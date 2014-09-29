@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Runtime.Serialization;
 
 namespace OlympSystem.Models
 {
@@ -15,7 +16,5 @@ namespace OlympSystem.Models
         public string ConfigName { get; set; }
 
         public bool IsActive { get; set; }
-
-        public virtual ICollection<Solution> Solutions { get; set; }
     }
 }

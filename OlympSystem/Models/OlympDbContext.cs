@@ -26,9 +26,7 @@ namespace OlympSystem.Models
         public DbSet<BinaryData> BinaryData { get; set; }
 
         public OlympDbContext() : base("DefaultConnection") { }
-
-
-
+        
         static OlympDbContext()
         {
             Database.SetInitializer(new TestDatabaseInitializer());
@@ -38,6 +36,11 @@ namespace OlympSystem.Models
         public static OlympDbContext Create()
         {
             return new OlympDbContext();
+        }
+
+        public void DeleteDB()
+        {
+            Database.Delete();
         }
 
         protected override void OnModelCreating(DbModelBuilder modelBuilder)
@@ -55,6 +58,7 @@ namespace OlympSystem.Models
         protected override void Seed(OlympDbContext context)
         {
             context.News.Add(new News { Title = "Новость", Text = "Тестовая новость :)", PublicationDate = DateTime.Now });
+            context.Compilators.Add(new Compilator { Name = "Visual C++ 2013", Language = "C++", SourceExtension = "cpp", CommandLine = "cl !.!", ConfigName = "VS2013.cmd" });
         }
     }
 
