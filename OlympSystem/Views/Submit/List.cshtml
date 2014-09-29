@@ -1,0 +1,57 @@
+﻿@model IEnumerable<OlympSystem.Models.Solution>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>
+                @Html.DisplayNameFor(model => model.CommitTime)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.User)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Problem)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Compilator)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.StatusState)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.MaxUserTime)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.MaxMemory)
+            </th>
+        </tr> 
+    </thead>        
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>
+                    @Html.DisplayFor(modelItem => item.CommitTime)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.User.Name)
+                </td>
+                <td>
+                    <a href="@Url.Action("Details", "Problem", new{@id = item.Problem.Id})"><abbr title="@item.Problem.ContestName @item.Problem.FullName">@item.Problem.Id</abbr></a>
+                </td>
+                <td>
+                    <abbr title="@item.Compilator.Name">@item.Compilator.Language</abbr>
+                </td>
+                <td>
+                    <abbr title="@item.StatusText">@item.ShortStatusText</abbr>
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.MaxUserTime)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.MaxMemory)
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

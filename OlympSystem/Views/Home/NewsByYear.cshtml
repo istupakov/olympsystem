@@ -1,0 +1,10 @@
+﻿@model IEnumerable<OlympSystem.Models.News>
+
+<h2>Новости</h2>
+@foreach (var news in Model)
+{
+    <h3>@news.Title</h3>
+    <p>@Html.Raw(news.Text)</p>
+    <p class="text-right">@news.PublicationDate.ToShortDateString()</p>
+    <hr/>
+}

@@ -13,6 +13,7 @@ using OlympSystem.Models;
 namespace OlympSystem.Controllers
 {
     [Authorize]
+    [RoutePrefix("Account"), Route("{action}/{id?}")]
     public class AccountController : Controller
     {
         private ApplicationUserManager _userManager;

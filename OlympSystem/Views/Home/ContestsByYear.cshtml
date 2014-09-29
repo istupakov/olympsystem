@@ -1,0 +1,11 @@
+﻿@model IEnumerable<OlympSystem.Models.Contest>
+
+<h2>Олимпиады</h2>
+@foreach (var contest in Model)
+{
+    <h3>@contest.Name</h3>
+    @Html.ActionLink("Задачи", "Index", "Problem", new { @contest = contest.Name }, new { })
+    <p class="text-right">@contest.StartTime.ToShortDateString() @contest.StartTime.ToShortTimeString()-@contest.EndTime.ToShortTimeString()</p>
+    <p>@Html.Raw(contest.Description)</p>   
+    <hr/> 
+}

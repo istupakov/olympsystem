@@ -11,6 +11,7 @@ using OlympSystem.Models;
 namespace OlympSystem.Controllers
 {
     [Authorize]
+    [RoutePrefix("Manage"), Route("{action}/{id?}")]
     public class ManageController : Controller
     {
         public ManageController()

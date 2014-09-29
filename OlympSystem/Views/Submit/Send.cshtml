@@ -1,0 +1,50 @@
+﻿@model OlympSystem.Models.SubmitSolutionViewModel
+
+@{
+    ViewBag.Title = "Отправка решения";
+    var CompilatorList = new SelectList(ViewBag.CompilatorList, "Id", "Name", Model.CompilatorId);
+}
+
+<h2>Отправка решения</h2>
+
+@using (Html.BeginForm())
+{
+    @Html.AntiForgeryToken()
+
+    <div class="form-horizontal" role="form">
+        <h4>Решение</h4>
+        <hr />
+        @Html.ValidationSummary(true)
+
+        <div class="form-group">
+            @Html.LabelFor(model => model.ProblemId, new { @class = "control-label col-md-2" })
+            <div class="col-md-10">
+                @Html.EditorFor(model => model.ProblemId, new { htmlAttributes = new { @class = "form-control" }, })
+                @Html.ValidationMessageFor(model => model.ProblemId)
+            </div>
+        </div>
+
+        <div class="form-group">
+            @Html.LabelFor(model => model.CompilatorId, new { @class = "control-label col-md-2" })
+            <div class="col-md-10">
+                @Html.DropDownListFor(model => model.CompilatorId, CompilatorList, string.Empty, new { @class = "form-control" })
+                @Html.ValidationMessageFor(model => model.CompilatorId)
+            </div>
+        </div>
+
+        <div class="form-group">
+            @Html.LabelFor(model => model.CodeText, new { @class = "control-label col-md-2" })
+            <div class="col-md-10">
+                @Html.TextAreaFor(model => model.CodeText, new { @class = "form-control", rows = 30})
+                @Html.ValidationMessageFor(model => model.CodeText)
+            </div>
+        </div>
+
+        <div class="form-group">
+            <div class="col-md-offset-2 col-md-10">
+                <input type="submit" value="Отправить" class="btn btn-default" />
+            </div>
+        </div>
+    </div>
+}
+

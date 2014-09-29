@@ -1,0 +1,48 @@
+﻿@model OlympSystem.Models.Problem
+
+@{
+    ViewBag.Title = Model.FullName;
+}
+
+<h2>@Model.ContestName @Model.FullName</h2>
+Ввод данных из стандартного потока<br />
+Вывод данных в стандартный поток<br />
+Ограничение по времени: @Model.TimeLimit с.<br />
+Ограничение по памяти: @Model.MemoryLimit MiB<br />
+<hr />
+@if (Model.Text == null)
+{
+    @Html.ActionLink("Скачать условие в PDF", "DownloadTasks", "Olympiad", new { id = Model.ContestId }, new { })
+}
+else
+{
+    @Html.Raw(Model.Text)
+}
+<hr />
+@if (Model.Clarifications.Any(c => !(c is Olympsys.Models.ClarificationToUser)))
+{
+    <h3>Пояснения жюри</h3>
+    foreach (var clarifications in Model.Clarifications.Where(c => !(c is Olympsys.Models.ClarificationToUser)))
+    {
+        <p>@clarifications.Text</p>
+    }
+    <hr />
+}
+<h3>Примеры</h3>
+<table class="table table-bordered table-condensed">
+    <thead>
+        <tr>
+            <th>Ввод</th>
+            <th>Вывод</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var test in Model.Tests.Where(t => t.IsActive && t.Number <= Model.OpenTestNumber).OrderBy(t => t.Number))
+        {
+            <tr>
+                <td><pre class="pre-tests ">@System.Text.Encoding.Default.GetString(test.Input)</pre></td>
+                <td><pre class="pre-tests">@System.Text.Encoding.Default.GetString(test.Output)</pre></td>
+            </tr>
+        }
+    </tbody>
+</table>
