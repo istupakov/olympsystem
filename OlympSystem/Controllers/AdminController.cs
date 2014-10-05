@@ -7,7 +7,7 @@ using System.Web.Mvc;
 
 namespace OlympSystem.Controllers
 {
-    [RoutePrefix("admin2")]
+    [RoutePrefix("admin")]
     public class AdminController : Controller
     {
         [Route()]

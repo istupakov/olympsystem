@@ -1,24 +1,24 @@
 ﻿<h2>Новости</h2>
-<strong class="error">{{ news.error }}</strong>
+<strong class="error">{{ error }}</strong>
 
-<button type="button" class="btn btn-primary" data-ng-hide="news.addMode" data-ng-click="news.toggleAdd()">Добавить новость</button>
+<button type="button" class="btn btn-primary" data-ng-hide="addMode" data-ng-click="toggleAdd()">Добавить новость</button>
 
 <div class="row">
-    <form name="addNews" role="form" data-ng-show="news.addMode">
+    <form name="addNews" role="form" data-ng-show="addMode">
         <div class="form-group">
             <label>Заголовок:</label>
-            <input type="text" class="form-control" data-ng-model="news.new.Title" required />
+            <input type="text" class="form-control" data-ng-model="new.Title" required />
         </div>
         <div class="form-group">
             <label>Текст:</label>
-            <input type="text" class="form-control" data-ng-model="news.new.Text" required />
+            <input type="text" class="form-control" data-ng-model="new.Text" required />
         </div>
         <div class="form-group">
             <label>Дата публикации:</label>
-            <input type="date" class="form-control" data-ng-model="news.new.PublicationDate" required />
+            <input type="date" class="form-control" data-ng-model="new.PublicationDate" required />
         </div>
-        <input type="submit" value="Добавить" data-ng-click="news.add(news.new)" data-ng-disabled="!addNews.$valid" class="btn btn-primary" />
-        <input type="button" value="Отмена" data-ng-click="news.toggleAdd()" class="btn btn-primary" />
+        <input type="submit" value="Добавить" data-ng-click="add(new)" data-ng-disabled="!add$valid" class="btn btn-primary" />
+        <input type="button" value="Отмена" data-ng-click="toggleAdd()" class="btn btn-primary" />
     </form>
 </div>
 <div class="row">
@@ -30,7 +30,7 @@
             <th></th>
         </tr>
 
-        <tr data-ng-repeat="cur in news.items">
+        <tr data-ng-repeat="cur in items">
             <td>
                 <p data-ng-hide="cur.editMode">{{ cur.Title }}</p>
                 <input data-ng-show="cur.editMode" class="form-control" type="text" data-ng-model="cur.Title" />
@@ -40,12 +40,12 @@
                 <input data-ng-show="cur.editMode" class="form-control" type="text" data-ng-model="cur.Text" />
             </td>
             <td>
-                <p data-ng-hide="cur.editMode">{{ cur.PublicationDate }}</p>
+                <p data-ng-hide="cur.editMode">{{ cur.PublicationDate | date: 'mediumDate' }}</p>
                 <input data-ng-show="cur.editMode" class="form-control" type="date" data-ng-model="cur.PublicationDate" />
             </td>
             <td>
-                <p data-ng-hide="cur.editMode"><a data-ng-click="news.toggleEdit($index)" href="javascript:;">Редактировать</a> | <a data-ng-click="news.delete($index)" href="javascript:;">Удалить</a></p>
-                <p data-ng-show="cur.editMode"><a data-ng-click="news.save(cur)" href="javascript:;">Сохранить</a> | <a data-ng-click="news.toggleEdit($index)" href="javascript:;">Отмена</a></p>
+                <p data-ng-hide="cur.editMode"><a data-ng-click="toggleEdit($index)" href="javascript:;">Редактировать</a> | <a data-ng-click="delete($index)" href="javascript:;">Удалить</a></p>
+                <p data-ng-show="cur.editMode"><a data-ng-click="save(cur)" href="javascript:;">Сохранить</a> | <a data-ng-click="toggleEdit($index)" href="javascript:;">Отмена</a></p>
             </td>
         </tr>
     </table>

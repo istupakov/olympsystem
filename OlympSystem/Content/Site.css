@@ -22,3 +22,11 @@ select,
 textarea {
     max-width: 280px;
 }
+
+.gridStyle {
+    border: 1px solid rgb(212,212,212);
+    width: 800px; 
+    height: 300px;
+}
+
+.nav, .pagination, .carousel, .panel-title a { cursor: pointer; }

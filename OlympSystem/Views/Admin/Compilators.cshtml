@@ -1,37 +1,37 @@
 ﻿<h2>Компиляторы</h2>
-<strong class="error">{{ compilators.error }}</strong>
+<strong class="error">{{ error }}</strong>
 
-<button type="button" class="btn btn-primary" data-ng-hide="compilators.addMode" data-ng-click="compilators.toggleAdd()">Добавить компилятор</button>
+<button type="button" class="btn btn-primary" data-ng-hide="addMode" data-ng-click="toggleAdd()">Добавить компилятор</button>
 
 <div class="row">
-    <form name="addCompilator" role="form" data-ng-show="compilators.addMode">
+    <form name="addCompilator" role="form" data-ng-show="addMode">
         <div class="form-group">
             <label>Name:</label>
-            <input type="text" class="form-control" data-ng-model="compilators.new.Name" required />
+            <input type="text" class="form-control" data-ng-model="new.Name" required />
         </div>
         <div class="form-group">
             <label>Language:</label>
-            <input type="text" class="form-control" data-ng-model="compilators.new.Language" required />
+            <input type="text" class="form-control" data-ng-model="new.Language" required />
         </div>
         <div class="form-group">
             <label>SourceExtension:</label>
-            <input type="text" class="form-control" data-ng-model="compilators.new.SourceExtension" required />
+            <input type="text" class="form-control" data-ng-model="new.SourceExtension" required />
         </div>
         <div class="form-group">
             <label>CommandLine:</label>
-            <input type="text" class="form-control" data-ng-model="compilators.new.CommandLine" required />
+            <input type="text" class="form-control" data-ng-model="new.CommandLine" required />
         </div>
         <div class="form-group">
             <label>ConfigName:</label>
-            <input type="text" class="form-control" data-ng-model="compilators.new.ConfigName" required />
+            <input type="text" class="form-control" data-ng-model="new.ConfigName" required />
         </div>
         <div class="checkbox">
             <label>
-                <input type="checkbox" data-ng-model="compilators.new.IsActive"> IsActive
+                <input type="checkbox" data-ng-model="new.IsActive"> IsActive
             </label>
         </div>
-        <input type="submit" value="Добавить" data-ng-click="compilators.add(compilators.new)" data-ng-disabled="!addCompilator.$valid" class="btn btn-primary" />
-        <input type="button" value="Отмена" data-ng-click="compilators.toggleAdd()" class="btn btn-primary" />
+        <input type="submit" value="Добавить" data-ng-click="add(new)" data-ng-disabled="!addCompilator.$valid" class="btn btn-primary" />
+        <input type="button" value="Отмена" data-ng-click="toggleAdd()" class="btn btn-primary" />
     </form>
 </div>
 
@@ -47,7 +47,7 @@
             <th></th>
         </tr>
 
-        <tr data-ng-repeat="cur in compilators.items">
+        <tr data-ng-repeat="cur in items">
             <td>
                 <p data-ng-hide="cur.editMode">{{ cur.Name }}</p>
                 <input data-ng-show="cur.editMode" class="form-control" type="text" data-ng-model="cur.Name" />
@@ -73,8 +73,8 @@
                 <input data-ng-show="cur.editMode" class="form-control" type="checkbox" data-ng-model="cur.IsActive" />
             </td>
             <td>
-                <p data-ng-hide="cur.editMode"><a data-ng-click="compilators.toggleEdit($index)" href="javascript:;">Редактировать</a> | <a data-ng-click="compilators.delete($index)" href="javascript:;">Удалить</a></p>
-                <p data-ng-show="cur.editMode"><a data-ng-click="compilators.save(cur)" href="javascript:;">Сохранить</a> | <a data-ng-click="compilators.toggleEdit($index)" href="javascript:;">Отмена</a></p>
+                <p data-ng-hide="cur.editMode"><a data-ng-click="toggleEdit($index)" href="javascript:;">Редактировать</a> | <a data-ng-click="delete($index)" href="javascript:;">Удалить</a></p>
+                <p data-ng-show="cur.editMode"><a data-ng-click="save(cur)" href="javascript:;">Сохранить</a> | <a data-ng-click="toggleEdit($index)" href="javascript:;">Отмена</a></p>
             </td>
         </tr>
     </table>

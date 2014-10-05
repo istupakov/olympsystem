@@ -23,8 +23,18 @@ namespace OlympSystem
                       "~/Scripts/bootstrap.js",
                       "~/Scripts/respond.js"));
 
+            bundles.Add(new ScriptBundle("~/bundles/angular").Include(
+                      "~/Scripts/angular.js",
+                      "~/Scripts/angular-animate.js",
+                      "~/Scripts/angular-resource.js",
+                      "~/Scripts/angular-route.js",
+                      "~/Scripts/angular-ui/ui-bootstrap.js"));
+
+            bundles.Add(new ScriptBundle("~/bundles/olympsystem").IncludeDirectory("~/Scripts/app/", "*.js"));
+
             bundles.Add(new StyleBundle("~/Content/css").Include(
                       "~/Content/bootstrap.css",
+                      "~/Content/ng-grid.css",
                       "~/Content/site.css"));
 
             // Set EnableOptimizations to false for debugging. For more information,

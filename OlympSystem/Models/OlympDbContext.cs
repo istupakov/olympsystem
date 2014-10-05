@@ -7,6 +7,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Reflection;
 using System.Threading.Tasks;
 using System.Security.Claims;
+using System.Data.Entity.Migrations;
 
 namespace OlympSystem.Models
 {
@@ -57,8 +58,11 @@ namespace OlympSystem.Models
     {
         protected override void Seed(OlympDbContext context)
         {
-            context.News.Add(new News { Title = "Новость", Text = "Тестовая новость :)", PublicationDate = DateTime.Now });
-            context.Compilators.Add(new Compilator { Name = "Visual C++ 2013", Language = "C++", SourceExtension = "cpp", CommandLine = "cl !.!", ConfigName = "VS2013.cmd" });
+            for (int i = 0; i < 10; i++)
+            {
+                context.News.Add(new News { Title = "Новость " + i, Text = "Тестовая новость " + i + " :)", PublicationDate = DateTime.Now - TimeSpan.FromDays(i) });
+                context.Compilators.Add(new Compilator { Name = "Visual C++ " + i, Language = "C++", SourceExtension = "cpp", CommandLine = "cl !.!", ConfigName = "VS2013.cmd" });
+            }
         }
     }
 

@@ -1,17 +1,31 @@
-﻿angular.module('OlympSystem.Admin', ['ngResource', 'ngRoute']);
+﻿angular.module('OlympSystem.Admin', ['ngResource', 'ngRoute', 'ui.bootstrap']);
 
 angular.module('OlympSystem.Admin').config(['$routeProvider', '$locationProvider',
     function ($routeProvider, $locationProvider) {
         $routeProvider
+            .when('/', {
+                templateUrl: '/admin/partial/home',
+            })
             .when('/news/', {
-                templateUrl: '/admin2/partial/news',
-                controller: 'NewsCtrl',
-                controllerAs: 'news'
+                templateUrl: '/admin/partial/news',
+                controller: 'SimpleCrudCtrl',
+                resolve: {
+                    Data: 'News'
+                }
+            })
+            .when('/news2/', {
+                templateUrl: '/admin/partial/news2',
+                controller: 'SimpleCrudCtrl',
+                resolve: {
+                    Data: 'News'
+                }
             })
             .when('/compilators/', {
-                templateUrl: '/admin2/partial/compilators',
-                controller: 'CompilatorsCtrl',
-                controllerAs: 'compilators'
+                templateUrl: '/admin/partial/compilators',
+                controller: 'SimpleCrudCtrl',
+                resolve: {
+                    Data: 'Compilator'
+                }
             })
             .otherwise({
                 redirectTo: '/'
@@ -19,55 +33,63 @@ angular.module('OlympSystem.Admin').config(['$routeProvider', '$locationProvider
         //$locationProvider.html5Mode(true);
     }]);
 
-var simpleController = function (Entry) {
-    this.addMode = false;
+angular.module('OlympSystem.Admin').controller('NavbarCtrl', ['$location',
+    function ($location) {
+        this.navCollapsed = true;        
+        this.isActive = function (viewLocation) {
+            return viewLocation === $location.path();
+        };
+    }]);
+    
+angular.module('OlympSystem.Admin').controller('SimpleCrudCtrl', ['$scope', 'Data',
+    function ($scope, Entry) {
+        $scope.addMode = false;
 
-    this.items = Entry.query();
+        $scope.items = Entry.query();
 
-    this.toggleEdit = function (index) {
-        var item = this.items[index];
-        if (item.editMode) {
-            this.items[index] = this.oldValue;
-        } else {
-            this.oldValue = angular.copy(item);
-            item.editMode = !item.editMode;
-        }
-    };
+        $scope.gridOptions = { data: 'items' };
 
-    this.toggleAdd = function () {
-        this.new = new Entry();
-        this.addMode = !this.addMode;
-    };
+        $scope.toggleEdit = function (index) {
+            var item = $scope.items[index];
+            if (item.editMode) {
+                $scope.items[index] = $scope.oldValue;
+            } else {
+                $scope.oldValue = angular.copy(item);
+                item.editMode = !item.editMode;
+            }
+        };
 
-    this.save = function (item) {
-        item.$update(angular.bind(this, function () { item.editMode = false; }));
-    };
+        $scope.toggleAdd = function () {
+            $scope.new = new Entry();
+            $scope.addMode = !$scope.addMode;
+        };
 
-    this.add = function (item) {
-        item.$save(angular.bind(this, function (data) { this.addMode = false; this.items.push(data); }));
-    };
+        $scope.save = function (item) {
+            item.$update(function () { item.editMode = false; });
+        };
 
-    this.delete = function (index) {
-        var item = this.items[index];
-        item.$delete(angular.bind(this, function (data) { this.items.splice(index, 1); }));
-    };
-};
+        $scope.add = function (item) {
+            item.$save(function (data) { $scope.addMode = false; $scope.items.push(data); });
+        };
 
-angular.module('OlympSystem.Admin').controller('NewsCtrl', ['News', simpleController]);
-angular.module('OlympSystem.Admin').controller('CompilatorsCtrl', ['Compilator', simpleController]);
-        
-angular.module('OlympSystem.Admin').factory('News',
+        $scope.delete = function (index) {
+            var item = $scope.items[index];
+            item.$delete(function (data) { $scope.items.splice(index, 1); });
+        };
+    }]);
+
+angular.module('OlympSystem.Admin').factory('News', ['$resource',
     function ($resource) {
         return $resource('/api/news/:Id',
             { Id: '@Id' },
             { 'update': { method: 'PUT' } }
        );
-    });
+    }]);
 
-angular.module('OlympSystem.Admin').factory('Compilator',
+angular.module('OlympSystem.Admin').factory('Compilator', ['$resource',
     function ($resource) {
         return $resource('/api/compilators/:Id',
             { Id: '@Id' },
             { 'update': { method: 'PUT' } }
        );
-    });
+    }]);
