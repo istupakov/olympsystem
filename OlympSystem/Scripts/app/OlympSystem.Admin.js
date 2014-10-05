@@ -3,24 +3,24 @@
 angular.module('OlympSystem.Admin').config(['$routeProvider', '$locationProvider',
     function ($routeProvider, $locationProvider) {
         $routeProvider
-            .when('/', {
+            .when('/admin', {
                 templateUrl: '/admin/partial/home',
             })
-            .when('/news/', {
+            .when('/admin/news', {
                 templateUrl: '/admin/partial/news',
                 controller: 'SimpleCrudCtrl',
                 resolve: {
                     Data: 'News'
                 }
             })
-            .when('/news2/', {
+            .when('/admin/news2', {
                 templateUrl: '/admin/partial/news2',
                 controller: 'SimpleCrudCtrl',
                 resolve: {
                     Data: 'News'
                 }
             })
-            .when('/compilators/', {
+            .when('/admin/compilators', {
                 templateUrl: '/admin/partial/compilators',
                 controller: 'SimpleCrudCtrl',
                 resolve: {
@@ -28,9 +28,9 @@ angular.module('OlympSystem.Admin').config(['$routeProvider', '$locationProvider
                 }
             })
             .otherwise({
-                redirectTo: '/'
+                redirectTo: '/admin'
             });
-        //$locationProvider.html5Mode(true);
+        $locationProvider.html5Mode(true);
     }]);
 
 angular.module('OlympSystem.Admin').controller('NavbarCtrl', ['$location',

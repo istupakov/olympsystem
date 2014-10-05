@@ -14,11 +14,11 @@ namespace OlympSystem
             routes.IgnoreRoute("{resource}.axd/{*pathInfo}");
             routes.MapMvcAttributeRoutes();
 
-//            routes.MapRoute(
-//                name: "Default",
-//                url: "{controller}/{action}/{id}",
-//                defaults: new { controller = "Home", action = "Index", id = UrlParameter.Optional }
-//            );
+            routes.MapRoute(
+                name: "OlympSystem.Admin",
+                url: "admin/{*any}",
+                defaults: new { controller = "Admin", action = "Index" }
+            );
         }
     }
 }

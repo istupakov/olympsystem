@@ -7,22 +7,20 @@ using System.Web.Mvc;
 
 namespace OlympSystem.Controllers
 {
-    [RoutePrefix("admin")]
     public class AdminController : Controller
     {
-        [Route()]
         public ActionResult Index(string name)
         {
             return View();
         }
 
-        [Route("partial/{name}")]
+        [Route("admin/partial/{name}")]
         public ActionResult Partial(string name)
         {
             return PartialView(name);
         }
 
-        [Route("resetdb")]
+        [Route("admin/resetdb")]
         public ActionResult ResetDB()
         {
             var db = new OlympDbContext();
