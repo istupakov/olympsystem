@@ -81,7 +81,7 @@ internal class OlympDataContext
 
     public DateTimeOffset GetCurrentDateTime()
     {
-        return _context.Database.SqlQuery<DateTimeOffset>($"SELECT CURRENT_TIMESTAMP;").Single();
+        return DateTimeOffset.Now;
     }
 
     private void LoadContests()
