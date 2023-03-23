@@ -1,0 +1,47 @@
+﻿@page
+@model IndexModel
+@{
+	ViewData["Title"] = Localizer["Contests"];
+}
+<h1>@ViewData["Title"]</h1>
+
+<div class="accordion" id="accordion">
+	@foreach (var contest in Model.Contests) {
+		<article class="accordion-item">
+			<h2 class="accordion-header" id="@contest.Abbr-header">
+				<button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#@contest.Abbr-body">
+					@contest.Name
+				</button>
+			</h2>
+			<div id="@contest.Abbr-body" class="accordion-collapse collapse" data-bs-parent="#accordion">
+				<div class="accordion-body">
+					<ul class="list-unstyled">
+						<li>@Localizer["Date"]: @contest.Date.ToShortDateString()</li>
+						@if (contest.StartTime > new DateTime(2010, 1, 1)) {
+							<li><a asp-page="./Competitors/Index" asp-route-id="@contest.Id">@Localizer["List of participants"]</a></li>
+						}
+						@if (DateTimeOffset.Now < contest.EndTime) {
+							<li><a asp-page="./Registration/Index" asp-route-id="@contest.Id">@Localizer["Register"]</a></li>
+						}
+						@if (contest.AllowShowStanding || User.IsInRole(RoleNames.Admin) || User.IsInRole(RoleNames.Jury)) {
+							<li><a asp-page="./Standing/Index" asp-route-id="@contest.Id">@Localizer["Standings"]</a></li>
+							if (contest.FinalTableId is null || contest.OfficialTableId is not null) {
+								<li><a asp-page="./Standing/Index" asp-route-id="@contest.Id" asp-route-official="true">@Localizer["Standings"] (@Localizer["without out-of-competition and disqualified participants"])</a></li>
+							}
+						}
+						@if (contest.ProblemPdfId is not null && (contest.AllowDownloadProblems || User.IsInRole(RoleNames.Admin) || User.IsInRole(RoleNames.Jury))) {
+							<li><a asp-page="./DownloadProblems" asp-route-id="@contest.Id">@Localizer["Download statements"]</a></li>
+						}
+						@if (contest.TestZipId is not null && (contest.AllowDownloadTests || User.IsInRole(RoleNames.Admin) || User.IsInRole(RoleNames.Jury))) {
+							<li><a asp-page="./DownloadTests" asp-route-id="@contest.Id">@Localizer["Download tests"]</a></li>
+						}
+						@if (contest.AllowSubmitSolution || User.IsInRole(RoleNames.Admin) || User.IsInRole(RoleNames.Jury)) {
+							<li><a asp-page="./Submits/Index" asp-route-id="@contest.Id">@Localizer["Submit solution"]</a></li>
+						}
+					</ul>
+					@Html.Raw(contest.Description)
+				</div>
+			</div>
+		</article>
+	}
+</div>

@@ -1,0 +1,53 @@
+syntax = "proto3";
+
+option csharp_namespace = "Olymp.Site.Protos";
+
+package runner;
+
+import "google/protobuf/duration.proto";  
+
+service Runner {
+    rpc Connect (stream CommandResponse) returns (stream CommandRequest);
+}
+
+message CommandRequest {
+    string command = 1;
+    bytes stdin = 2;
+    bool clear_workdir = 3;
+    bool read_only = 4;
+    repeated string env_files = 5;
+    repeated CommandFile files = 6;
+    CommandResources resource_limits = 7;
+}
+
+message CommandResources {
+    google.protobuf.Duration user_time = 1;
+    google.protobuf.Duration total_time = 2;
+    uint64 memory_bytes = 3;
+    uint64 stdout_bytes = 4;
+    uint64 stderr_bytes = 5;
+}
+
+message CommandFile {
+    string filename = 1;
+    bytes content = 2;
+}
+
+message CommandResponse {
+    CommandStatus status = 1;
+    sint32 exit_code = 2;
+    bytes stdout = 3;
+    bytes stderr = 4;
+    CommandResources resource_consumption = 5;
+}
+
+enum CommandStatus {
+    COMMAND_STATUS_UNSPECIFIED = 0;
+    COMMAND_STATUS_COMPLETED = 1;
+    COMMAND_STATUS_ERROR = 2;
+    COMMAND_STATUS_USER_TIME_LIMIT = 3;
+    COMMAND_STATUS_TOTAL_TIME_LIMIT = 4;
+    COMMAND_STATUS_MEMORY_LIMIT = 5;
+    COMMAND_STATUS_STDOUT_LIMIT = 6;
+    COMMAND_STATUS_STDERR_LIMIT = 7;
+}

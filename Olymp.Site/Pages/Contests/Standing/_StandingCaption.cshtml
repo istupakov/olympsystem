@@ -1,0 +1,17 @@
+﻿@model Standing
+
+@(!Model.Contest.IsOpen ? @Localizer["Preliminary results of the"] : @Localizer["Final results of the"]) @Model.Contest.Name
+@if (DateTimeOffset.Now < Model.Contest.EndTime) {
+	<span class="badge text-bg-primary">
+		@string.Format(@Localizer["{0:hh\\:mm\\:ss} left"], Model.Contest.EndTime - DateTimeOffset.Now)
+	</span>
+}
+else {
+	<span class="badge text-bg-primary">@Localizer["contest is over"]</span>
+}
+@if (Model.IsFrozen) {
+	<span class="badge text-bg-warning">@Localizer["frozen at"] @Model.Contest.FreezeTime?.ToString(Localizer["hh:mm tt z"])</span>
+}
+@if (Model.IsOfficial) {
+	<span class="badge text-bg-info">@Localizer["without out-of-competition and disqualified participants"]</span>
+}

@@ -1,0 +1,27 @@
+﻿@model IEnumerable<Message>
+
+@if (Model.Any()) {
+	foreach (var message in Model) {
+		<article class="card mb-3">
+			<div class="card-header text-bg-warning">
+				<h4>@(message.Problem is not null ? message.Problem.NameWithNumber : Localizer["Common message"])</h4>
+			</div>
+			<div class="card-body">
+				@if (!string.IsNullOrWhiteSpace(message.UserText)) {
+					<h5 class="card-title">@Localizer["Question"]</h5>
+					<p class="font-monospace">@message.UserText</p>
+					if (message.JuryText is not null) {
+						<h5 class="card-title">@Localizer["Answer"]</h5>
+						<p class="font-monospace">@Html.Raw(message.JuryText)</p>
+					}
+				}
+				else {
+					<p>@Html.Raw(message.JuryText)</p>
+				}
+			</div>
+			<div class="card-footer text-muted text-end">
+				@message.SendTime
+			</div>
+		</article>
+	}
+}

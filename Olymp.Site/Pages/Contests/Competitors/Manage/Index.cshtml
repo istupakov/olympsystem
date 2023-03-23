@@ -1,0 +1,75 @@
+﻿@page "{id:int}"
+@attribute [Authorize(Policy = PolicyNames.Admin)]
+@model IndexModel
+@{
+	ViewData["Title"] = $"{Localizer["List of participants of the"]} {Model.Contest.Name}";
+}
+<h1>@ViewData["Title"]</h1>
+
+<form method="post" class="mb-2">
+	<button class="btn btn-warning" asp-route-handler="ApproveAll" asp-route-id="@Model.Contest.Id">@Localizer["Approve all"]</button>
+	<button class="btn btn-danger" asp-route-handler="RemoveLogins" asp-route-id="@Model.Contest.Id">@Localizer["Remove logins"]</button>
+</form>
+
+<form class="col-md-6" enctype="multipart/form-data" method="post">
+	<div class="input-group">
+		<input type="file" asp-for="LoginsFile" class="form-control" accept=".csv" required>
+		<button class="btn btn-primary" asp-page-handler="UploadLogins" type="submit" value="Upload">@Localizer["Upload logins file"]</button>
+	</div>
+</form>
+<hr />
+
+<table class="table table-sm table-hover">
+	<thead>
+		<tr>
+			<th scope="col">@Localizer["Team"]</th>
+			<th scope="col">@Localizer["Members"]</th>
+			<th scope="col">@Localizer["Coach"]</th>
+			<th scope="col">@Localizer["Username"]</th>
+			<th scope="col">@Localizer["Password"]</th>
+			<th scope="col">@Localizer["Status"]</th>
+			<th scope="col">@Localizer["Registration date"]</th>
+			<th scope="col">@Localizer["Manage"]</th>
+		</tr>
+	</thead>
+	<tbody>
+		@foreach (var team in Model.Competitors!) {
+			<tr>
+				<td>@team.Name</td>
+				<td>
+					@if (team.Members.Count == 1 && team.Members.Single() is OlympUser single) {
+						<a href="mailto:@single.Email">@single.Name</a>
+					}
+					else {
+						<ul class="list-unstyled">
+							@foreach (var (name, member) in team.GetMembers()!) {
+								<li>
+									@if (member is null) {
+										@name
+									}
+									else {
+										<a href="mailto:@member.Email">@name</a>
+									}
+								</li>
+							}
+						</ul>
+					}
+				</td>
+				<td>
+					@team.Coach?.LastName @team.Coach?.FirstName @team.Coach?.Patronymic
+					<br />
+					<a href="mailto:@team.Coach?.Email">@team.Coach?.Email</a>
+				</td>
+				<td>@team.UserName</td>
+				<td>@team.PasswordHash</td>
+				<td>
+					<partial name="_UserBadge" model="team" />
+				</td>
+				<td>@team.RegistrationDate?.LocalDateTime.ToShortDateString()</td>
+				<td>
+					<partial name="_ManageCompetitor" model="team" />
+				</td>
+			</tr>
+		}
+	</tbody>
+</table>

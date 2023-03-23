@@ -1,0 +1,22 @@
+﻿@model IEnumerable<Standing.UserProblemResult>
+
+<table class="table table-hover table-bordered">
+	<thead>
+		<tr>
+			<th>@Localizer["Problem name"]</th>
+			<th>@Localizer["Status"]</th>
+			<th></th>
+		</tr>
+	</thead>
+	<tbody>
+		@foreach (var problemInfo in Model) {
+			<tr class="@(problemInfo.IsSuccess ? "table-success" : problemInfo.CommitNumber > 0? "table-danger": null )">
+				<td>@problemInfo.Problem.NameWithNumber</td>
+				<partial name="Standing/_UserProblemResult" model="problemInfo" />
+				<td>
+					<a asp-page="/Problems/ShowText" asp-route-id="@problemInfo.Problem.Id">@Localizer["Description"]</a>
+				</td>
+			</tr>
+		}
+	</tbody>
+</table>

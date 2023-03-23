@@ -1,0 +1,60 @@
+﻿@page
+@using Olymp.Site.Services.Checker;
+@attribute [Authorize(Policy = PolicyNames.JuryOrAdmin)]
+@model IndexModel
+@{
+	ViewData["Title"] = Localizer["Checkers"];
+}
+<h1>@ViewData["Title"]</h1>
+
+@foreach (var checker in Model.Checkers) {
+	<h2>@checker.Name (@checker.Id)</h2>
+	var cls = checker.SelfTestingStatus switch {
+		CheckerSelfTestingStatus.InProcess => "primary",
+		CheckerSelfTestingStatus.Success => "success",
+		CheckerSelfTestingStatus.Failed => "danger",
+		_ => "bg-secondary"
+	};
+	<p>
+		@Localizer["Connecting time"]: @checker.ConnectingTime
+	</p>
+	<div class="alert alert-@cls" role="alert">
+		@Localizer["Self-testing status"]: @checker.SelfTestingStatus
+	</div>
+	<ul>
+		@foreach (var env in checker.SupportedEnvs) {
+			<li>@env</li>
+		}
+	</ul>
+	<table class="table table-stripd">
+		<thead>
+			<tr>
+				<th scope="col">@Localizer["Test"]</th>
+				<th scope="col">@Localizer["Compilator"]</th>
+				<th scope="col">@Localizer["Expected result"]</th>
+				<th scope="col">@Localizer["Actual result"]</th>
+			</tr>
+		</thead>
+		<tbody>
+			@foreach (var res in checker.SelfTestingResults) {
+				var id = Guid.NewGuid();
+				<tr class="@(res.Test.ExpectedResult == res.Result? "table-success": "table-danger")">
+					<td>@res.Test.Name</td>
+					<td>@res.Compilator.Name</td>
+					<td>@res.Test.ExpectedResult</td>
+					<td>
+						@res.Result
+						<a class="btn btn-info" data-bs-toggle="collapse" href="#log-@id">view log</a>
+					</td>
+				</tr>
+				<tr class="collapse" id="log-@id">
+					<td colspan="4">
+						<div>
+							<pre class="vw-100">@res.Output</pre>
+						</div>
+					</td>
+				</tr>
+			}
+		</tbody>
+	</table>
+}

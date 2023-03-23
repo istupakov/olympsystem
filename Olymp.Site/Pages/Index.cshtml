@@ -1,0 +1,20 @@
+﻿@page
+@inject OlympContext Context
+@{
+	ViewData["Title"] = Localizer["News"];
+}
+<h1>@ViewData["Title"]</h1>
+
+@foreach (var item in Context.News.OrderByDescending(x => x.PublicationDate).Take(5)) {
+	<article class="card mb-3">
+		<div class="card-header text-bg-primary">
+			@item.Title
+		</div>
+		<div class="card-body">
+			@Html.Raw(item.Text)
+		</div>
+		<div class="card-footer text-muted text-end">
+			@item.PublicationDate.LocalDateTime.ToLongDateString()
+		</div>
+	</article>
+}

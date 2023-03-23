@@ -1,0 +1,29 @@
+﻿@page
+@model LanguageModel
+@inject IStringLocalizer<IdentityUIResources> Localizer
+@{
+	ViewData["Title"] = Localizer["Language"];
+	ViewData["ActivePage"] = ManageNavPages.Language;
+}
+
+<h3>@ViewData["Title"]</h3>
+<partial name="_StatusMessage" for="StatusMessage" />
+<div class="row">
+	<div class="col-md-6">
+		<form id="change-language-form" method="post">
+			<div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
+			<div class="form-floating mb-3">
+				<select asp-for="Input.Language" asp-items="Model.Languages" class="form-select">
+					<option value="" selected>Default (browser settings)</option>
+				</select>
+				<label asp-for="Input.Language"></label>
+				<span asp-validation-for="Input.Language" class="text-danger"></span>
+			</div>
+			<button type="submit" class="w-100 btn btn-lg btn-primary">@Localizer["Save"]</button>
+		</form>
+	</div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

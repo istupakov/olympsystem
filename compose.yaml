@@ -1,0 +1,44 @@
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          memory: 2GB
+    user: root
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: Express
+      MSSQL_SA_PASSWORD: ${DB_PASSWORD:-YourStrong!Passw0rd}
+    healthcheck:
+      test: /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P "$$MSSQL_SA_PASSWORD" -Q "SELECT 1" || exit 1
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    ports:
+      - "1433:1433"
+    volumes:
+      - ./data:/var/opt/mssql/data
+      - ./backup:/var/opt/mssql/backup
+  site:
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    build:
+      context: .
+      dockerfile: ./Olymp.Site/Dockerfile
+    environment:
+      ConnectionStrings__DefaultConnection: Server=sqlserver;Database=olympdb;TrustServerCertificate=true;User Id=SA;Password=${DB_PASSWORD:-YourStrong!Passw0rd}
+      ASPNETCORE_ENVIRONMENT: Staging
+      ASPNETCORE_URLS: http://+:5000
+      TZ: Asia/Novosibirsk
+    ports:
+      - "5000:5000"
+    healthcheck:
+      test: curl --fail http://localhost:5000/healthz || exit 1
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 10s

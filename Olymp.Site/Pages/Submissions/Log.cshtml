@@ -1,0 +1,31 @@
+﻿@page "{id:int}"
+@attribute [Authorize(Policy = PolicyNames.JuryOrAdmin)]
+@model LogModel
+@{
+	ViewData["Title"] = Localizer["Log"];
+}
+<h1>@ViewData["Title"]</h1>
+
+@foreach (var item in Model.CheckResults) {
+	<article class="card mb-3">
+		<div class="card-header text-bg-primary">
+			<ul class="list-unstyled">
+				<li>@Localizer["Id"]: @item.Id</li>
+				<li>@Localizer["SubmissionId"]: @item.SubmissionId</li>
+				<li>@Localizer["User"]: @item.Submission.User.Name</li>
+				<li>@Localizer["Problem"]: @item.Submission.Problem.Contest.Name @item.Submission.Problem.NameWithNumber</li>
+				<li>@Localizer["Compilator"]: @item.Submission.Compilator.Name</li>
+				<li>@Localizer["Submission time"]: @item.Submission.CommitTime</li>
+				<li>@Localizer["Status"]: @string.Format(Localizer[CheckStatusCodes.Template(item.StatusCode)], CheckStatusCodes.TestNumber(item.StatusCode))</li>
+				<li>@Localizer["Points"]: @item.Score</li>
+				<li>@Localizer["Results by tests"]: @item.TestResults</li>
+			</ul>
+		</div>
+		<div class="card-body">
+			<pre>@item.Log</pre>
+		</div>
+		<div class="card-footer text-muted text-end">
+			@item.CheckTime
+		</div>
+	</article>
+}

@@ -1,0 +1,23 @@
+﻿@page "{id:int}"
+@model IndexModel
+@{
+	ViewData["Title"] = $"{Localizer["Results of the"]} {Model.Contest.Name}";
+	ViewData["ShowApprovedBadge"] = false;
+}
+<h1>@ViewData["Title"]</h1>
+
+@if (ViewData["Table"] is not null) {
+	@Html.Raw(ViewData["Table"])
+}
+else {
+	<partial name="_StandingTable" for="Standing" />
+}
+
+@section Scripts {
+	<script>
+		$("table").addClass("table caption-top table-sm table-hover table-striped table-bordered")
+		$(".successmark").addClass("text-success text-center")
+		$(".failmark").addClass("text-danger text-center")
+		$(".firstmark").addClass("table-success text-center")
+	</script>
+}

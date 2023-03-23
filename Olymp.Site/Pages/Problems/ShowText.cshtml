@@ -1,0 +1,42 @@
+﻿@page "{id:int}"
+@attribute [Authorize]
+@model ShowTextModel
+@{
+	ViewData["Title"] = $"{Model.Problem.Contest.Name} {Model.Problem.NameWithNumber}";
+}
+<h1>@ViewData["Title"]</h1>
+
+<ul class="list-unstyled">
+	<li>@Localizer["Time limit"]: @Model.Problem.TimeLimit @Localizer["s."]</li>
+	<li>@Localizer["Memory limit"]: @Model.Problem.MemoryLimit Mb</li>
+</ul>
+
+@if (string.IsNullOrWhiteSpace(Model.Problem.Text)) {
+	<a asp-page="/Contests/DownloadProblems" asp-route-id="@Model.Problem.ContestId">@Localizer["Download statements"]</a>
+}
+else {
+	@Html.Raw(Model.Problem.Text)
+}
+<hr />
+
+<h3>@Localizer["Examples"]</h3>
+<table class="table table-sm table-bordered">
+	<thead>
+		<tr>
+			<th scope="col">@Localizer["standard input"]</th>
+			<th scope="col">@Localizer["standard output"]</th>
+		</tr>
+	</thead>
+	<tbody>
+		@foreach (var test in Model.Problem.Tests) {
+			<tr>
+				<td>
+					<pre><samp>@System.Text.Encoding.Default.GetString(test.Input)</samp></pre>
+				</td>
+				<td>
+					<pre><samp>@System.Text.Encoding.Default.GetString(test.Output)</samp></pre>
+				</td>
+			</tr>
+		}
+	</tbody>
+</table>

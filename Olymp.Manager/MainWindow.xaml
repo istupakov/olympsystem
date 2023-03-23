@@ -1,0 +1,483 @@
+﻿<Window
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:my="clr-namespace:Olymp.Manager"
+        xmlns:domain="clr-namespace:Olymp.Domain.Models;assembly=Olymp.Domain"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" x:Class="Olymp.Manager.MainWindow"
+        Title="Olymp Manager" Height="510" Width="703"
+        Loaded="Window_Loaded"
+    >
+	<Window.Resources>
+        <my:TextToBinConverter x:Key="TextToBinConverter"/>
+        <my:CategoryConverter x:Key="CategoryConverter"/>
+        <CollectionViewSource x:Key="ContestsView"/>
+        <CollectionViewSource x:Key="CheckersView"/>
+        <CollectionViewSource x:Key="UsersView"/>
+        <CollectionViewSource x:Key="NewsView"/>
+        <CollectionViewSource x:Key="MessagesView"/>
+        <CollectionViewSource x:Key="RetestView"/>
+        <CollectionViewSource x:Key="OrganizationsView"/>
+        <CollectionViewSource x:Key="CompilatorsView"/>
+
+        <DataTemplate DataType="{x:Type domain:User}" x:Key="BaseUserTemplate">
+			<Grid>
+				<Grid.RowDefinitions>
+					<RowDefinition Height="Auto"/>
+					<RowDefinition Height="Auto"/>
+					<RowDefinition Height="Auto"/>
+					<RowDefinition Height="Auto"/>
+					<RowDefinition Height="Auto"/>
+				</Grid.RowDefinitions>
+				<Grid.ColumnDefinitions>
+					<ColumnDefinition Width="0.5*"/>
+					<ColumnDefinition Width="0.5*"/>
+				</Grid.ColumnDefinitions>
+				<Label Target="LoginBox" Content="Логин: " Grid.Column="0" Grid.Row="0"/>
+				<TextBox x:Name="LoginBox" Text="{Binding UserName}" Grid.Column="1" Grid.Row="0"/>
+				<Label Target="IsHiddenBox" Content="Скрытый: " Grid.Column="0" Grid.Row="2"/>
+				<CheckBox x:Name="IsHiddenBox" IsChecked="{Binding IsHidden}" Grid.Column="1" Grid.Row="2"/>
+                <Label Target="IsDisqualified" Content="Дисквалификация: " Grid.Column="0" Grid.Row="3"/>
+                <CheckBox x:Name="IsDisqualified" IsChecked="{Binding IsDisqualified}" Grid.Column="1" Grid.Row="3"/>
+
+                <ComboBox ItemsSource="{Binding Source={StaticResource OrganizationsView}}" 
+                                  DisplayMemberPath="Name" SelectedValuePath="Id" SelectedItem="{Binding Organization}"
+                                  Grid.Column="1" Grid.Row="4"/>
+            </Grid>
+		</DataTemplate>
+		<DataTemplate DataType="{x:Type domain:Competitor}">
+            <Grid>
+				<Grid.RowDefinitions>
+					<RowDefinition Height="Auto"/>
+					<RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+				<Grid.ColumnDefinitions>
+					<ColumnDefinition Width="0.5*"/>
+					<ColumnDefinition Width="0.5*"/>
+				</Grid.ColumnDefinitions>
+				<Label Target="NameBox" Content="Имя участника: " Grid.Column="0" Grid.Row="0"/>
+				<TextBox x:Name="NameBox" Text="{Binding Name}"  Grid.Column="1" Grid.Row="0"/>
+                <Label Target="PasswordBox" Content="Пароль: " Grid.Column="0" Grid.Row="1"/>
+                <TextBox x:Name="PasswordBox" Text="{Binding PasswordHash}" Grid.Column="1" Grid.Row="1"/>
+                <Label Target="IsApprovedBox" Content="Проверен: " Grid.Column="0" Grid.Row="2"/>
+				<CheckBox x:Name="IsApprovedBox" IsChecked="{Binding IsApproved}" Grid.Column="1" Grid.Row="2"/>
+                <Label Target="IsOutOfCompetitionBox" Content="Вне конкурса: " Grid.Column="0" Grid.Row="3"/>
+				<CheckBox x:Name="IsOutOfCompetitionBox" IsChecked="{Binding IsOutOfCompetition}" Grid.Column="1" Grid.Row="3"/>
+                <Label Target="InfoBox" Content="Инфо: " Grid.Column="0" Grid.Row="4"/>
+                <TextBox x:Name="InfoBox" Text="{Binding MemberInfos}" Grid.Column="1" Grid.Row="4"/>
+
+                <GroupBox Header="Базовая информация" Grid.Row="4" Grid.ColumnSpan="5">
+                    <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource BaseUserTemplate}"/>
+                </GroupBox>
+            </Grid>
+		</DataTemplate>
+        <DataTemplate DataType="{x:Type domain:OlympUser}">
+            <GroupBox Header="Базовая информация">
+                <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource BaseUserTemplate}"/>
+            </GroupBox>
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type domain:Message}" x:Key="BaseMessageTemplate">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="0.5*"/>
+                    <ColumnDefinition Width="0.5*"/>
+                </Grid.ColumnDefinitions>
+                <GroupBox Header="Текст сообщения: " Grid.ColumnSpan="2" Grid.Row="0">
+                    <TextBox Text="{Binding UserText}" MinLines="6" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"/>
+                </GroupBox>
+                <GroupBox Header="Ответ: " Grid.ColumnSpan="2" Grid.Row="1">
+                    <TextBox Text="{Binding JuryText}"  MinLines="6" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"/>
+                </GroupBox>
+                <Label Target="ContestBox" Content="Олимпиада: " Grid.Column="0" Grid.Row="2"/>
+                <ComboBox x:Name="ContestBox" ItemsSource="{Binding Source={StaticResource ContestsView}}" 
+                          DisplayMemberPath="Name" SelectedValuePath="Id" SelectedItem="{Binding Contest}"
+                          SelectedValue="{Binding ContestId}" Grid.Column="1" Grid.Row="2"/>
+                <ComboBox x:Name="UserBox" ItemsSource="{Binding Contest.Competitors}" DisplayMemberPath="Name"
+                          SelectedValuePath="Id" SelectedValue="{Binding UserId}" 
+                          Grid.Column="1" Grid.Row="3"/>
+                
+                <ComboBox x:Name="ProblemBox" Grid.Column="1" Grid.Row="4" ItemsSource="{Binding Contest.Problems}"
+                          DisplayMemberPath="NameWithNumber" SelectedValuePath="Id" SelectedValue="{Binding ProblemId}"/>
+
+                <TextBox Text="{Binding SendTime}" Grid.Column="1" Grid.Row="5"/>
+                    <!--<ComboBox.ItemsSource>
+                        <CompositeCollection>
+                            <ComboBoxItem Content="(Null)"/>
+                            <CollectionContainer Collection="{Binding Source={StaticResource OlympEntities}, Path=Problems}"/>
+                        </CompositeCollection>
+                    </ComboBox.ItemsSource>
+                </ComboBox>-->
+            </Grid>
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type domain:Message}">
+            <StackPanel>
+                <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource BaseMessageTemplate}"/>
+            </StackPanel>
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type domain:Submission}">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="0.5*"/>
+                    <ColumnDefinition Width="0.5*"/>
+                </Grid.ColumnDefinitions>
+                <Label Target="ProblemBox" Content="Задача: " Grid.Column="0" Grid.Row="0"/>
+                <TextBox x:Name="ProblemBox" IsEnabled="False" Text="{Binding Path=Problem.NameWithNumber, Mode=OneWay}" Grid.Column="1" Grid.Row="0"/>
+                <Label Target="UserBox" Content="Пользователь: " Grid.Column="0" Grid.Row="1"/>
+                <TextBox x:Name="UserBox" IsEnabled="False" Text="{Binding Path=User.Name, Mode=OneWay}" Grid.Column="1" Grid.Row="1"/>
+                <Label Target="CompilatorBox" Content="Компилятор: " Grid.Column="0" Grid.Row="2"/>
+                <TextBox x:Name="CompilatorBox" IsEnabled="False" Text="{Binding Path=Compilator.Name, Mode=OneWay}" Grid.Column="1" Grid.Row="2"/>
+                <Label Target="StatusTextBox" Content="Состояние: " Grid.Column="0" Grid.Row="3"/>
+                <TextBox x:Name="StatusTextBox" IsEnabled="False" Text="{Binding Path=StatusText, Mode=OneWay}" Grid.Column="1" Grid.Row="3"/>
+                <Label Target="StatusCodeBox" Content="Код состояния: " Grid.Column="0" Grid.Row="4"/>
+                <TextBox x:Name="StatusCodeBox" Text="{Binding StatusCode}" Grid.Column="1" Grid.Row="4"/>
+                <Label Target="CommitTimeBox" Content="Время: " Grid.Column="0" Grid.Row="5"/>
+                <TextBox x:Name="CommitTimeBox" Text="{Binding CommitTime}" Grid.Column="1" Grid.Row="5"/>
+                <Label Target="ScoreBox" Content="Балл: " Grid.Column="0" Grid.Row="6"/>
+                <TextBox x:Name="ScoreBox" Text="{Binding Score}" Grid.Column="1" Grid.Row="6"/>
+                <GroupBox Header="SourceCode" Grid.Row="7" Grid.ColumnSpan="2">
+                    <TextBox Text="{Binding Converter={StaticResource TextToBinConverter}, Path=SourceCode}" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" />
+                </GroupBox>
+            </Grid>
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type domain:Contest}">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <GroupBox Header="Управление" Grid.Row="0">
+                    <StackPanel>
+                        <Button Click="AddProblem">Добавить задачу</Button>
+                        <Button Click="LoadProblems">Загрузить условия (pdf)</Button>
+                        <Button Click="LoadTests">Загрузить тесты (zip)</Button>
+                        <Button Click="RemoveTestsZip">Удалить тесты (zip)</Button>
+                        <Button Click="GenerateLogins">Загрузить логины</Button>
+                        <Button Click="CreateTestRound">Создать пробный тур</Button>
+                    </StackPanel>
+                </GroupBox>
+                <Expander Header="Параметры" Grid.Row="1">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="0.3*"/>
+                            <ColumnDefinition Width="0.6*"/>
+                        </Grid.ColumnDefinitions>
+                        <Label Target="NameBox" Content="Название: " Grid.Column="0" Grid.Row="0"/>
+                        <TextBox x:Name="NameBox" Text="{Binding Name}"  Grid.Column="1" Grid.Row="0"/>
+                        <Label Target="AbbrBox" Content="Аббревиатура: " Grid.Column="0" Grid.Row="1"/>
+                        <TextBox x:Name="AbbrBox" Text="{Binding Abbr}"  Grid.Column="1" Grid.Row="1"/>
+                        <Label Target="DateBox" Content="Дата: " Grid.Column="0" Grid.Row="2"/>
+                        <DatePicker x:Name="DateBox" SelectedDate="{Binding Date}" Grid.Column="1" Grid.Row="2"/>
+                        <Label Target="IsHiddenBox" Content="Скрытый: " Grid.Column="0" Grid.Row="3"/>
+                        <CheckBox x:Name="IsHiddenBox" IsChecked="{Binding IsHidden}" Grid.Column="1" Grid.Row="3"/>
+                        <Label Target="TimeOfStartBox" Content="Время начала: " Grid.Column="0" Grid.Row="4"/>
+                        <TextBox x:Name="TimeOfStartBox" Text="{Binding TimeOfStart}"  Grid.Column="1" Grid.Row="4"/>
+                        <Label Target="DurationBox" Content="Длительность: " Grid.Column="0" Grid.Row="5"/>
+                        <TextBox x:Name="DurationBox" Text="{Binding Duration}"  Grid.Column="1" Grid.Row="5"/>
+                        <Label Target="TimeOfShowProblemBox" Content="Время открытия задач: " Grid.Column="0" Grid.Row="6"/>
+                        <TextBox x:Name="TimeOfShowProblemBox" Text="{Binding Path=TimeOfShowProblem, TargetNullValue=''}"  Grid.Column="1" Grid.Row="6"/>
+                        <Label Target="TimeOfFreezeBox" Content="Время заморозки: " Grid.Column="0" Grid.Row="7"/>
+                        <TextBox x:Name="TimeOfFreezeBox" Text="{Binding Path=TimeOfFreeze, TargetNullValue=''}"  Grid.Column="1" Grid.Row="7"/>
+                        <Label Target="IsOpenBox" Content="Open: " Grid.Column="0" Grid.Row="8"/>
+                        <CheckBox x:Name="IsOpenBox" IsChecked="{Binding IsOpen}" Grid.Column="1" Grid.Row="8"/>
+
+                    </Grid>
+                </Expander>
+                <Expander Header="Описание:" Grid.Row="2">
+                    <TextBox Text="{Binding Description}" MinLines="5" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"/>
+                </Expander>
+                <!--<Expander Header="Компиляторы:" Grid.Row="3">
+                    <ListBox ItemsSource="{Binding Compilators}" DisplayMemberPath="Name"/>
+                </Expander>-->
+                <Expander Header="Финальная таблица" Grid.Row="4">
+                    <TextBox Text="{Binding FinalTableText}" Height="200" MinLines="5" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"/>
+                </Expander>
+                <Expander Header="Официальныя таблица" Grid.Row="5">
+                    <TextBox Text="{Binding OfficialTableText}" Height="200" MinLines="5" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"/>
+                </Expander>
+            </Grid>
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type domain:Problem}">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition/>
+                </Grid.RowDefinitions>
+                <GroupBox Header="Управление" Grid.Row="0">
+                    <StackPanel>
+                        <Button Click="AddTests">Добавить тесты</Button>
+                        <Button Click="ClearTests">Удалить все тесты</Button>
+                        <Button Click="RenumberTests">Перенумеровать тесты</Button>
+                        <Button Click="RepareTests">Исправить концы строк в тестах</Button>
+                        <Button Click="ScoreTests">Проставить баллы за тесты</Button>
+                        <TextBlock>Всего тестов загружено: <Run Text="{Binding Tests.Count, Mode=OneWay}"/></TextBlock>
+                    </StackPanel>
+                </GroupBox>
+                <GroupBox Header="Параметры" Grid.Row="1">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="0.3*"/>
+                            <ColumnDefinition Width="0.6*"/>
+                        </Grid.ColumnDefinitions>
+                        <Label Target="NumberBox" Content="Номер: " Grid.Column="0" Grid.Row="0"/>
+                        <TextBox x:Name="NumberBox" Text="{Binding Number}"  Grid.Column="1" Grid.Row="0"/>
+                        <Label Target="NameBox" Content="Название: " Grid.Column="0" Grid.Row="1"/>
+                        <TextBox x:Name="NameBox" Text="{Binding Name}" Grid.Column="1" Grid.Row="1"/>
+                        <Label Target="IsActiveBox" Content="Активна: " Grid.Column="0" Grid.Row="2"/>
+                        <CheckBox x:Name="IsActiveBox" IsChecked="{Binding IsActive}" Grid.Column="1" Grid.Row="2"/>
+                        <Label Target="TimeLimitBox" Content="Лимит времени: " Grid.Column="0" Grid.Row="3"/>
+                        <TextBox x:Name="TimeLimitBox" Text="{Binding TimeLimit}"  Grid.Column="1" Grid.Row="3"/>
+                        <Label Target="SlowTimeLimitBox" Content="Slow Лимит времени: " Grid.Column="0" Grid.Row="4"/>
+                        <TextBox x:Name="SlowTimeLimitBox" Text="{Binding SlowTimeLimit}"  Grid.Column="1" Grid.Row="4"/>
+                        <Label Target="MemoryLimitBox" Content="Мемори лимит: " Grid.Column="0" Grid.Row="5"/>
+                        <TextBox x:Name="MemoryLimitBox" Text="{Binding MemoryLimit}"  Grid.Column="1" Grid.Row="5"/>
+                        <Label Target="ContestBox" Content="Олимпиада: " Grid.Column="0" Grid.Row="6"/>
+                        <ComboBox x:Name="ContestBox" ItemsSource="{Binding Source={StaticResource ContestsView}}" 
+                                  DisplayMemberPath="Name" SelectedValuePath="Id" SelectedItem="{Binding Contest}"
+                                  SelectedValue="{Binding ContestId}" Grid.Column="1" Grid.Row="6"/>
+                        <Label Target="CheckerBox" Content="Чекер: " Grid.Column="0" Grid.Row="7"/>
+                        <ComboBox x:Name="CheckerBox" ItemsSource="{Binding Source={StaticResource CheckersView}}" 
+                                  DisplayMemberPath="Description" SelectedValuePath="Id" SelectedItem="{Binding Checker}"
+                                  SelectedValue="{Binding CheckerId}" Grid.Column="1" Grid.Row="7"/>
+                    </Grid>
+                </GroupBox>
+                <GroupBox Header="Условие задачи: " Grid.Row="2">
+                    <TextBox Text="{Binding Text}"  MinLines="6" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"/>
+                </GroupBox>
+            </Grid>
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type domain:Test}">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <GroupBox Header="Параметры" Grid.Row="0">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="0.3*"/>
+                            <ColumnDefinition Width="0.6*"/>
+                        </Grid.ColumnDefinitions>
+                        <Label Target="NumberBox" Content="Номер: " Grid.Column="0" Grid.Row="0"/>
+                        <TextBox x:Name="NumberBox" Text="{Binding Number}"  Grid.Column="1" Grid.Row="0"/>
+                        <Label Target="OpenBox" Content="Открыт: " Grid.Column="0" Grid.Row="1"/>
+                        <CheckBox x:Name="OpenBox" IsChecked="{Binding IsOpen}" Grid.Column="1" Grid.Row="1"/>
+                        <Label Target="ScoreBox" Content="Балл: " Grid.Column="0" Grid.Row="2"/>
+                        <TextBox x:Name="ScoreBox" Text="{Binding Score}" Grid.Column="1" Grid.Row="2"/>
+                    </Grid>
+                </GroupBox>
+                <GroupBox Header="Input" Grid.Row="1">
+                    <TextBox Text="{Binding Converter={StaticResource TextToBinConverter}, Path=Input}" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" />
+                </GroupBox>
+                <GroupBox Header="Output" Grid.Row="2">
+                    <TextBox Text="{Binding Converter={StaticResource TextToBinConverter}, Path=Output}" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" />
+                </GroupBox>
+            </Grid>
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type domain:News}">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="2*"/>
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="0.5*"/>
+                    <ColumnDefinition Width="0.5*"/>
+                </Grid.ColumnDefinitions>
+                <Label Target="PublicationDateBox" Content="Дата публикации: " Grid.Column="0" Grid.Row="0"/>
+                <DatePicker x:Name="PublicationDateBox" SelectedDate="{Binding PublicationDate}" Grid.Column="1" Grid.Row="0"/>
+                <GroupBox Header="Заголовок сообщения: " Grid.ColumnSpan="2" Grid.Row="1">
+                    <TextBox Text="{Binding Title}" MinLines="6" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"/>
+                </GroupBox>
+                <GroupBox Header="Текст сообщения: " Grid.ColumnSpan="2" Grid.Row="2">
+                    <TextBox Text="{Binding Text}"  MinLines="6" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"/>
+                </GroupBox>
+            </Grid>
+        </DataTemplate>
+    </Window.Resources>
+    <DockPanel>
+        <StackPanel DockPanel.Dock="Top">
+            <ToolBar>
+                <Button Click="Save">Сохранить</Button>
+                <Separator/>
+                <Button Click="AddContest">Добавить олимпиаду</Button>
+                <Button Click="AddNews">Добавить новость</Button>
+                <Separator/>
+                <Button Click="Delete">Удалить</Button>
+                <Separator/>
+                <Button Click="Update">Обновить</Button>
+                <Separator/>
+                <Button Click="ExportCheckToFile">Экспорт</Button>
+                <Separator/>
+                <Button Click="SaveTests">Сохранить тесты</Button>
+                <Button Click="SaveLog">Сохранить лог</Button>
+            </ToolBar>
+        </StackPanel>
+        <TabControl>
+        	<TabItem Header="Древо сущностей">
+	        	<Grid>
+	        		<Grid.ColumnDefinitions>
+	        			<ColumnDefinition Width="1*"/>
+	        			<ColumnDefinition Width="Auto"/>
+	        			<ColumnDefinition Width="2*"/>
+	        		</Grid.ColumnDefinitions>
+	        		<GridSplitter HorizontalAlignment="Stretch" Width="5" Grid.Column="1"/>
+	        		<TreeView x:Name="tree" SelectedItemChanged="tree_SelectedItemChanged">
+	        			<TreeView.Resources>
+                            <HierarchicalDataTemplate DataType="{x:Type domain:Contest}" ItemsSource="{Binding Converter={StaticResource CategoryConverter}}">
+                                <TextBlock Text="{Binding Name}"/>
+                            </HierarchicalDataTemplate>
+                            <HierarchicalDataTemplate DataType="{x:Type my:Category}" ItemsSource="{Binding Values}">
+	        					<TextBlock Text="{Binding Name}"/>
+	        				</HierarchicalDataTemplate>
+                            <HierarchicalDataTemplate DataType="{x:Type domain:Message}">
+                                <TextBlock Text="{Binding UserText}" Width="100" TextTrimming="CharacterEllipsis"/>
+                            </HierarchicalDataTemplate>
+                            <HierarchicalDataTemplate DataType="{x:Type domain:News}">
+	        					<TextBlock Text="{Binding Title}" Width="100" TextTrimming="CharacterEllipsis"/>
+	        				</HierarchicalDataTemplate>
+	        				<HierarchicalDataTemplate DataType="{x:Type domain:Submission}">
+                                <TextBlock Text="{Binding DescriptionOrId}" />
+	        				</HierarchicalDataTemplate>
+                            <HierarchicalDataTemplate DataType="{x:Type domain:Problem}" ItemsSource="{Binding Converter={StaticResource CategoryConverter}}">
+                                <TextBlock Text="{Binding NameWithNumber}"/>
+	        				</HierarchicalDataTemplate>
+	        				<HierarchicalDataTemplate DataType="{x:Type domain:Test}">
+	        					<TextBlock Text="{Binding Number}"/>
+	        				</HierarchicalDataTemplate>
+                            <HierarchicalDataTemplate DataType="{x:Type domain:Competitor}" ItemsSource="{Binding Converter={StaticResource CategoryConverter}}">
+                                <TextBlock><Run Text="{Binding Name, Mode=OneWay}"/> (id = <Run Text="{Binding Id}"/>)</TextBlock>
+	        				</HierarchicalDataTemplate>
+                            <HierarchicalDataTemplate DataType="{x:Type domain:OlympUser}" ItemsSource="{Binding Converter={StaticResource CategoryConverter}}">
+                                <TextBlock><Run Text="{Binding Name, Mode=OneWay}"/> (id = <Run Text="{Binding Id}"/>)</TextBlock>
+	        				</HierarchicalDataTemplate>                            
+	        			</TreeView.Resources>
+	        			<TreeViewItem Header="Олимпиады" ItemsSource="{Binding Source={StaticResource ContestsView}}"/>
+	        			<TreeViewItem Header="Пользователи" ItemsSource="{Binding Source={StaticResource UsersView}}"/>
+                        <TreeViewItem Header="Новости" ItemsSource="{Binding Source={StaticResource NewsView}}"/>
+                        <TreeViewItem Header="Сообщения" ItemsSource="{Binding Source={StaticResource MessagesView}}"/>
+                    </TreeView>
+	        		<ContentControl x:Name="content" Grid.Column="2"/>
+	        	</Grid>
+			</TabItem>
+            <TabItem Header="Перетестирование">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <GroupBox Header="Настройки" Grid.Row="0">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="0.5*"/>
+                                <ColumnDefinition Width="0.5*"/>
+                            </Grid.ColumnDefinitions>
+                            <Label Content="Олимпиада: " Grid.Column="0" Grid.Row="0" />
+                            <ComboBox x:Name="ContestBox" ItemsSource="{Binding Source={StaticResource ContestsView}}" 
+                                SelectedValuePath="Id" DisplayMemberPath="Name" Grid.Column="1" Grid.Row="0"/>
+                            <Label Content="Задача: " Grid.Column="0" Grid.Row="1"/>
+                            <ComboBox x:Name="ProblemBox" DisplayMemberPath="NameWithNumber" SelectedValuePath="Id" Grid.Column="1" Grid.Row="1"
+                                      ItemsSource="{Binding ElementName=ContestBox, Path=SelectedItem.Problems}" />
+                            <Label Content="Компилятор: " Grid.Column="0" Grid.Row="2"/>
+                            <ComboBox x:Name="CompilatorBox" DisplayMemberPath="Name" SelectedValuePath="Id" Grid.Column="1" Grid.Row="2"
+                                      ItemsSource="{Binding Source={StaticResource CompilatorsView}}" />
+                            <Label Content="Тип ошибки: " Grid.Column="0" Grid.Row="3"/>
+                            <TextBox x:Name="errorBox" Grid.Column="1" Grid.Row="3"/>
+                            <Label Content="Перетестировать успешные: " Grid.Column="0" Grid.Row="4"/>
+                            <CheckBox x:Name="IsRetestOk" IsChecked="False" Grid.Column="1" Grid.Row="4"/>
+                            <Button Click="SelectForRetest" Content="Показать" Grid.Column="0" Grid.Row="5"/>
+                            <Button Click="Retest" Content="Перетестировать!" Grid.Column="1" Grid.Row="5"/>
+                        </Grid>
+                    </GroupBox>
+                    <ListView x:Name="retestListView" DataContext="{StaticResource RetestView}" ItemsSource="{Binding}" Grid.Row="1">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock>
+                                    <Run Text="{Binding User.Name, Mode=OneWay}"/> <Bold><Run Text="{Binding StatusText, Mode=OneWay}"/></Bold><LineBreak/>
+                                    <Italic><Run Text="{Binding Problem.Name}"/>, <Run Text="{Binding Compilator.Name}"/></Italic>
+                                </TextBlock>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListView>
+                </Grid>
+            </TabItem>
+            <TabItem Header="Организации">
+                <DataGrid ItemsSource="{Binding Source={StaticResource OrganizationsView}}"/>
+            </TabItem>
+            <TabItem Header="Компиляторы">
+                <DataGrid x:Name="Compilers" ItemsSource="{Binding Source={StaticResource CompilatorsView}}"/>
+            </TabItem>
+        </TabControl>
+    </DockPanel>
+</Window>
+
+
+
+
+
+

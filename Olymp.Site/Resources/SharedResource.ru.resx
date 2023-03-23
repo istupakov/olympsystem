@@ -1,0 +1,540 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- 
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
+    associated with the data types.
+    
+    Example:
+    
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+                
+    There are any number of "resheader" rows that contain simple 
+    name/value pairs.
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
+    mimetype set.
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
+    extensible. For a given mimetype the value must be set accordingly:
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
+    read any of the formats listed below.
+    
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array 
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Accepted" xml:space="preserve">
+    <value>ОК</value>
+  </data>
+  <data name="Actual result" xml:space="preserve">
+    <value>Фактический результат</value>
+  </data>
+  <data name="Add team" xml:space="preserve">
+    <value>Добавить команду</value>
+  </data>
+  <data name="An error occurred while processing your request." xml:space="preserve">
+    <value>Во время обработки вашего запроса произошла ошибка.</value>
+  </data>
+  <data name="Answer" xml:space="preserve">
+    <value>Ответ</value>
+  </data>
+  <data name="Approve" xml:space="preserve">
+    <value>Одобрить</value>
+  </data>
+  <data name="Approve all" xml:space="preserve">
+    <value>Одобрить всех</value>
+  </data>
+  <data name="Approved" xml:space="preserve">
+    <value>Проверена</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>Отмена</value>
+  </data>
+  <data name="Cancel disqualification" xml:space="preserve">
+    <value>Отменить дисквалификацию</value>
+  </data>
+  <data name="Checker" xml:space="preserve">
+    <value>Чекер</value>
+  </data>
+  <data name="Checkers" xml:space="preserve">
+    <value>Чекеры</value>
+  </data>
+  <data name="Checking..." xml:space="preserve">
+    <value>На проверке...</value>
+  </data>
+  <data name="Coach" xml:space="preserve">
+    <value>Тренер</value>
+  </data>
+  <data name="Common message" xml:space="preserve">
+    <value>Общее сообщение</value>
+  </data>
+  <data name="common messages" xml:space="preserve">
+    <value>общих сообщений</value>
+  </data>
+  <data name="Common question" xml:space="preserve">
+    <value>Общий вопрос</value>
+  </data>
+  <data name="Communication with the jury" xml:space="preserve">
+    <value>Общение с жюри</value>
+  </data>
+  <data name="Competitor" xml:space="preserve">
+    <value>Участник</value>
+  </data>
+  <data name="Competitor's name" xml:space="preserve">
+    <value>Имя участника</value>
+  </data>
+  <data name="Compilation error" xml:space="preserve">
+    <value>Ошибка компиляции</value>
+  </data>
+  <data name="Compilation errors" xml:space="preserve">
+    <value>Ошибки компиляции</value>
+  </data>
+  <data name="Compilator" xml:space="preserve">
+    <value>Компилятор</value>
+  </data>
+  <data name="Connecting time" xml:space="preserve">
+    <value>Время подключения</value>
+  </data>
+  <data name="Contact Info" xml:space="preserve">
+    <value>Контактная информация</value>
+  </data>
+  <data name="Contacts" xml:space="preserve">
+    <value>Контакты</value>
+  </data>
+  <data name="contest is over" xml:space="preserve">
+    <value>соревнование закончено</value>
+  </data>
+  <data name="Contests" xml:space="preserve">
+    <value>Соревнования</value>
+  </data>
+  <data name="Create team for the" xml:space="preserve">
+    <value>Создать команду для</value>
+  </data>
+  <data name="Date" xml:space="preserve">
+    <value>Дата</value>
+  </data>
+  <data name="Delete" xml:space="preserve">
+    <value>Удалить</value>
+  </data>
+  <data name="Description" xml:space="preserve">
+    <value>Описание</value>
+  </data>
+  <data name="Disapprove" xml:space="preserve">
+    <value>Отклонить</value>
+  </data>
+  <data name="Disqualified" xml:space="preserve">
+    <value>Дисквалификация</value>
+  </data>
+  <data name="Disqualify" xml:space="preserve">
+    <value>Дисквалифицировать</value>
+  </data>
+  <data name="download" xml:space="preserve">
+    <value>скачать</value>
+  </data>
+  <data name="Download statements" xml:space="preserve">
+    <value>Скачать задачи</value>
+  </data>
+  <data name="Download tests" xml:space="preserve">
+    <value>Скачать тесты</value>
+  </data>
+  <data name="Error" xml:space="preserve">
+    <value>Ошибка</value>
+  </data>
+  <data name="Examples" xml:space="preserve">
+    <value>Примеры</value>
+  </data>
+  <data name="Expected result" xml:space="preserve">
+    <value>Ожидаемый результат</value>
+  </data>
+  <data name="Final results of the" xml:space="preserve">
+    <value>Итоговые результаты</value>
+  </data>
+  <data name="First name" xml:space="preserve">
+    <value>Имя</value>
+  </data>
+  <data name="For &lt;em&gt;Java&lt;/em&gt; solutions, the main class should be named &lt;strong&gt;Main&lt;/strong&gt;." xml:space="preserve">
+    <value>Для решений на &lt;em&gt;Java&lt;/em&gt; основной класс должен называться &lt;strong&gt;Main&lt;/strong&gt;.</value>
+  </data>
+  <data name="frozen at" xml:space="preserve">
+    <value>заморожена в</value>
+  </data>
+  <data name="Group" xml:space="preserve">
+    <value>Группа</value>
+  </data>
+  <data name="Hello" xml:space="preserve">
+    <value>Добро пожаловать</value>
+  </data>
+  <data name="hh:mm tt z" xml:space="preserve">
+    <value>HH:mm z</value>
+  </data>
+  <data name="I confirm that the data is filled in correctly" xml:space="preserve">
+    <value>Подтверждаю, что данные заполнены правильно</value>
+  </data>
+  <data name="Idleness limit exceeded on test {0}" xml:space="preserve">
+    <value>Превышение лимита времени на тесте {0}</value>
+  </data>
+  <data name="In competition" xml:space="preserve">
+    <value>В конкурсе</value>
+  </data>
+  <data name="Input data" xml:space="preserve">
+    <value>Входные данные</value>
+  </data>
+  <data name="Internal error" xml:space="preserve">
+    <value>Внутренняя ошибка системы</value>
+  </data>
+  <data name="Invalid value" xml:space="preserve">
+    <value>Недопустимое значение</value>
+  </data>
+  <data name="Jury clarifications and messages" xml:space="preserve">
+    <value>Разъяснения и сообщения жюри</value>
+  </data>
+  <data name="Last name" xml:space="preserve">
+    <value>Фамилия</value>
+  </data>
+  <data name="Latest Submissions" xml:space="preserve">
+    <value>Последние решения</value>
+  </data>
+  <data name="Linked user" xml:space="preserve">
+    <value>Привязанный пользователь</value>
+  </data>
+  <data name="List of participants" xml:space="preserve">
+    <value>Список участников</value>
+  </data>
+  <data name="List of participants of the" xml:space="preserve">
+    <value>Список участников</value>
+  </data>
+  <data name="Login" xml:space="preserve">
+    <value>Вход</value>
+  </data>
+  <data name="Logout" xml:space="preserve">
+    <value>Выход</value>
+  </data>
+  <data name="Manage" xml:space="preserve">
+    <value>Управление</value>
+  </data>
+  <data name="Members" xml:space="preserve">
+    <value>Участники</value>
+  </data>
+  <data name="Memory limit" xml:space="preserve">
+    <value>Ограничение по памяти</value>
+  </data>
+  <data name="Memory limit exceeded on test {0}" xml:space="preserve">
+    <value>Превышение ограничений по памяти на тесте {0}</value>
+  </data>
+  <data name="Name (team suffix)" xml:space="preserve">
+    <value>Имя (суффикс команды)</value>
+  </data>
+  <data name="News" xml:space="preserve">
+    <value>Новости</value>
+  </data>
+  <data name="On verification..." xml:space="preserve">
+    <value>На проверке...</value>
+  </data>
+  <data name="Out of competition" xml:space="preserve">
+    <value>Вне конкурса</value>
+  </data>
+  <data name="Participant 1" xml:space="preserve">
+    <value>Участник 1</value>
+  </data>
+  <data name="Participant 2" xml:space="preserve">
+    <value>Участник 2</value>
+  </data>
+  <data name="Participant 3" xml:space="preserve">
+    <value>Участник 3</value>
+  </data>
+  <data name="Participants must be different." xml:space="preserve">
+    <value>Участники должны быть разными.</value>
+  </data>
+  <data name="Password" xml:space="preserve">
+    <value>Пароль</value>
+  </data>
+  <data name="Phone" xml:space="preserve">
+    <value>Телефон</value>
+  </data>
+  <data name="Please confirm the correctness of the data." xml:space="preserve">
+    <value>Пожалуйста, подтвердите правильность данных.</value>
+  </data>
+  <data name="Points" xml:space="preserve">
+    <value>Баллы</value>
+  </data>
+  <data name="Preliminary results of the" xml:space="preserve">
+    <value>Предварительные результаты</value>
+  </data>
+  <data name="Presentation error on test {0}" xml:space="preserve">
+    <value>Ошибка представления на тесте {0}</value>
+  </data>
+  <data name="Problem" xml:space="preserve">
+    <value>Задача</value>
+  </data>
+  <data name="Problem name" xml:space="preserve">
+    <value>Название задачи</value>
+  </data>
+  <data name="Problems" xml:space="preserve">
+    <value>Задачи</value>
+  </data>
+  <data name="Public name" xml:space="preserve">
+    <value>Отображаемое имя</value>
+  </data>
+  <data name="Question" xml:space="preserve">
+    <value>Вопрос</value>
+  </data>
+  <data name="Queued..." xml:space="preserve">
+    <value>В очереди...</value>
+  </data>
+  <data name="Rank" xml:space="preserve">
+    <value>Место</value>
+  </data>
+  <data name="Reading and writing in all problems from the standard input/output stream." xml:space="preserve">
+    <value>Чтение и запись во всех задачах из стандартного потока ввода/вывода.</value>
+  </data>
+  <data name="Register" xml:space="preserve">
+    <value>Регистрация</value>
+  </data>
+  <data name="Registraion on" xml:space="preserve">
+    <value>Регистрация на</value>
+  </data>
+  <data name="Registration date" xml:space="preserve">
+    <value>Дата регистрации</value>
+  </data>
+  <data name="Registration for this competition is available only to coaches." xml:space="preserve">
+    <value>Регистрация на это соревнование доступна только тренерам.</value>
+  </data>
+  <data name="Registration information is incorrect." xml:space="preserve">
+    <value>Регистрационная информация неверна.</value>
+  </data>
+  <data name="Remove logins" xml:space="preserve">
+    <value>Удалить логины</value>
+  </data>
+  <data name="Results by tests" xml:space="preserve">
+    <value>Результаты по тестам</value>
+  </data>
+  <data name="Results of the" xml:space="preserve">
+    <value>Результаты</value>
+  </data>
+  <data name="Rules" xml:space="preserve">
+    <value>Правила</value>
+  </data>
+  <data name="Runtime error on test {0}" xml:space="preserve">
+    <value>Ошибка выполнения на тесте {0}</value>
+  </data>
+  <data name="s." xml:space="preserve">
+    <value>с.</value>
+  </data>
+  <data name="Search" xml:space="preserve">
+    <value>Найти</value>
+  </data>
+  <data name="Self-testing status" xml:space="preserve">
+    <value>Статус самотестирования</value>
+  </data>
+  <data name="Send" xml:space="preserve">
+    <value>Отправить</value>
+  </data>
+  <data name="Send message" xml:space="preserve">
+    <value>Отправить сообщение</value>
+  </data>
+  <data name="Send message on the" xml:space="preserve">
+    <value>Отправить сообщения на</value>
+  </data>
+  <data name="Server time" xml:space="preserve">
+    <value>Время сервера</value>
+  </data>
+  <data name="Source code" xml:space="preserve">
+    <value>Код решения</value>
+  </data>
+  <data name="Sponsors" xml:space="preserve">
+    <value>Спонсоры</value>
+  </data>
+  <data name="Standings" xml:space="preserve">
+    <value>Таблица результатов</value>
+  </data>
+  <data name="Status" xml:space="preserve">
+    <value>Статус</value>
+  </data>
+  <data name="Submission" xml:space="preserve">
+    <value>Решение</value>
+  </data>
+  <data name="Submission time" xml:space="preserve">
+    <value>Время отправки</value>
+  </data>
+  <data name="Submissions" xml:space="preserve">
+    <value>Решения</value>
+  </data>
+  <data name="Submit" xml:space="preserve">
+    <value>Отправить</value>
+  </data>
+  <data name="Submit solution" xml:space="preserve">
+    <value>Отправить решение на проверку</value>
+  </data>
+  <data name="Submit solution on the" xml:space="preserve">
+    <value>Отправить решение на</value>
+  </data>
+  <data name="Team" xml:space="preserve">
+    <value>Комманда</value>
+  </data>
+  <data name="Team members" xml:space="preserve">
+    <value>Участники команды</value>
+  </data>
+  <data name="Team name" xml:space="preserve">
+    <value>Название команды</value>
+  </data>
+  <data name="Team number" xml:space="preserve">
+    <value>Номер команды</value>
+  </data>
+  <data name="Test" xml:space="preserve">
+    <value>Тест</value>
+  </data>
+  <data name="The field {0} must be between {1} and {2}." xml:space="preserve">
+    <value>Поле {0} должно быть между {1} и {2}.</value>
+  </data>
+  <data name="The field {0} must match the regular expression '{1}'." xml:space="preserve">
+    <value>Поле {0} должно удовлетворять регулярному выражению '{1}'.</value>
+  </data>
+  <data name="The {0} field in the profile must be filled in." xml:space="preserve">
+    <value>Поле {0} в профиле должно быть заполнено.</value>
+  </data>
+  <data name="The {0} field is required." xml:space="preserve">
+    <value>Поле {0} является обязательным.</value>
+  </data>
+  <data name="The {0} must be at least {2} and at max {1} characters long." xml:space="preserve">
+    <value>{0} должен быть от {2} до {1} символов длиной.</value>
+  </data>
+  <data name="Time" xml:space="preserve">
+    <value>Время</value>
+  </data>
+  <data name="Time limit" xml:space="preserve">
+    <value>Время на тест</value>
+  </data>
+  <data name="Time limit exceeded on test {0}" xml:space="preserve">
+    <value>Превышение лимита времени на тесте {0}</value>
+  </data>
+  <data name="University" xml:space="preserve">
+    <value>ВУЗ</value>
+  </data>
+  <data name="University (team prefix)" xml:space="preserve">
+    <value>Университет (префикс команды)</value>
+  </data>
+  <data name="Upload logins file" xml:space="preserve">
+    <value>Загрузить файл с логинами</value>
+  </data>
+  <data name="User" xml:space="preserve">
+    <value>Пользователь</value>
+  </data>
+  <data name="Username" xml:space="preserve">
+    <value>Логин</value>
+  </data>
+  <data name="Users" xml:space="preserve">
+    <value>Пользователи</value>
+  </data>
+  <data name="view" xml:space="preserve">
+    <value>просмотр</value>
+  </data>
+  <data name="View submission" xml:space="preserve">
+    <value>Просмотр решения</value>
+  </data>
+  <data name="without out-of-competition and disqualified participants" xml:space="preserve">
+    <value>без внеконкурсных и дисквалифицированных участников</value>
+  </data>
+  <data name="Wrong answer on test {0}" xml:space="preserve">
+    <value>Неправильный ответ на тесте {0}</value>
+  </data>
+  <data name="You are already registered for this contest!" xml:space="preserve">
+    <value>Вы уже зарегистрированы на это соревнование!</value>
+  </data>
+  <data name="{0:hh\:mm\:ss} left" xml:space="preserve">
+    <value>осталось {0:hh\:mm\:ss}</value>
+  </data>
+</root>

@@ -1,0 +1,42 @@
+﻿@page
+@using Olymp.Site.Services.Checker;
+@attribute [Authorize(Policy = PolicyNames.JuryOrAdmin)]
+@model RunModel
+@{
+    ViewData["Title"] = Localizer["Run"];
+}
+<h1>@ViewData["Title"]</h1>
+
+<form method="post">
+    <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
+    <div class="form-floating mb-3">
+        <select asp-for="Input.CheckerId" asp-items="Model.CheckerList" class="form-select">
+            <option selected></option>
+        </select>
+        <label asp-for="Input.CheckerId"></label>
+        <span asp-validation-for="Input.CheckerId" class="text-danger"></span>
+    </div>
+    <div class="form-floating mb-3">
+        <select asp-for="Input.CompilatorId" asp-items="Model.CompilatorList" class="form-select">
+            <option selected></option>
+        </select>
+        <label asp-for="Input.CompilatorId"></label>
+        <span asp-validation-for="Input.CompilatorId" class="text-danger"></span>
+    </div>
+    <div class="form-floating mb-3">
+        <textarea asp-for="Input.Code" class="form-control" style="height: 200px"></textarea>
+        <label asp-for="Input.Code"></label>
+        <span asp-validation-for="Input.Code" class="text-danger"></span>
+    </div>
+    <div class="form-floating mb-3">
+        <textarea asp-for="Input.Input" class="form-control" style="height: 200px"></textarea>
+        <label asp-for="Input.Input"></label>
+        <span asp-validation-for="Input.Input" class="text-danger"></span>
+    </div>
+    <button type="submit" class="btn btn-primary">@Localizer["Submit"]</button>
+</form>
+
+<hr />
+<samp>
+    <pre>@Model.Output</pre>
+</samp>

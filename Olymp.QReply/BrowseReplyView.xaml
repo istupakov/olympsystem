@@ -1,0 +1,350 @@
+﻿<Window x:Class="Olymp.QReply.BrowseReplyView"
+		xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+		xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+		xmlns:cal="http://www.caliburnproject.org"
+		xmlns:ilc="clr-namespace:Olymp.QReply.Windows.Converters"
+		xmlns:oqrc="clr-namespace:Olymp.QReply.Controls"
+		Title="Вопросы от участников олимпиады"
+		Width="800"
+		Height="600"
+		MinWidth="800"
+		MinHeight="600"
+		Background="{StaticResource ResourceKey=MainBackgroundBrush}"
+		WindowState="Maximized">
+	<Window.Resources>
+		<LinearGradientBrush x:Key="NoAnswerBrush" StartPoint="0, 0" EndPoint="1, 1">
+			<LinearGradientBrush.GradientStops>
+				<GradientStop Offset="0" Color="OrangeRed" />
+				<GradientStop Offset="1" Color="Transparent" />
+			</LinearGradientBrush.GradientStops>
+		</LinearGradientBrush>
+		<LinearGradientBrush x:Key="HasAnswerBrush" StartPoint="0, 0" EndPoint="1, 1">
+			<LinearGradientBrush.GradientStops>
+				<GradientStop Offset="0" Color="LightGreen" />
+				<GradientStop Offset="1" Color="Transparent" />
+			</LinearGradientBrush.GradientStops>
+		</LinearGradientBrush>
+		<ilc:IsStringNullOrWhiteSpaceConverter x:Key="IsStringNullOrWhiteSpaceConverter" />
+		<ilc:ConveyorValueConverter x:Key="UserTextVisibilityConverter">
+			<ilc:ConveyorValueConverter.Converters>
+				<ilc:IsStringNullOrWhiteSpaceConverter />
+				<ilc:InverseBoolConverter />
+				<BooleanToVisibilityConverter />
+			</ilc:ConveyorValueConverter.Converters>
+		</ilc:ConveyorValueConverter>
+		<ilc:InverseBoolConverter x:Key="InverseBoolConverter" />
+		<Storyboard x:Key="AnswerSentStoryBoard" Duration="4">
+			<DoubleAnimation AutoReverse="True"
+							 From="0"
+							 Storyboard.TargetName="AnswerSentTextBlock"
+							 Storyboard.TargetProperty="Opacity"
+							 To="1" />
+		</Storyboard>
+		<Storyboard x:Key="JuryCommentSentStoryBoard" Duration="4">
+			<DoubleAnimation AutoReverse="True"
+							 From="0"
+							 Storyboard.TargetName="JuryCommentSentTextBlock"
+							 Storyboard.TargetProperty="Opacity"
+							 To="1" />
+		</Storyboard>
+		<Style TargetType="{x:Type TabItem}">
+			<Setter Property="Template">
+				<Setter.Value>
+					<ControlTemplate TargetType="{x:Type TabItem}">
+						<Grid>
+							<Border Name="Border"
+									Background="{StaticResource ResourceKey=MainBackgroundBrush}"
+									BorderBrush="{StaticResource ResourceKey=BorderBrush}"
+									BorderThickness="1,1,1,0"
+									CornerRadius="4,4,0,0">
+								<ContentPresenter x:Name="ContentSite"
+												  Margin="8,2,8,2"
+												  HorizontalAlignment="Center"
+												  VerticalAlignment="Center"
+												  ContentSource="Header" />
+							</Border>
+						</Grid>
+						<ControlTemplate.Triggers>
+							<Trigger Property="IsSelected" Value="True">
+								<Setter TargetName="Border" Property="Background" Value="{StaticResource ResourceKey=LightBackgroundBrush}" />
+							</Trigger>
+						</ControlTemplate.Triggers>
+					</ControlTemplate>
+				</Setter.Value>
+			</Setter>
+		</Style>
+	</Window.Resources>
+	<DockPanel>
+		<oqrc:EventTriggerControl IsEventTriggered="{Binding NewMessageTrigger}">
+			<oqrc:EventTriggerControl.Triggers>
+				<EventTrigger RoutedEvent="oqrc:EventTriggerControl.IsEventTriggeredChanged">
+					<SoundPlayerAction Source="Resources/NewMessage.wav" />
+				</EventTrigger>
+			</oqrc:EventTriggerControl.Triggers>
+		</oqrc:EventTriggerControl>
+		<Border DockPanel.Dock="Top" Style="{StaticResource ResourceKey=MainBorderStyle}">
+			<DockPanel>
+				<TextBlock VerticalAlignment="Center"
+						   Style="{StaticResource ResourceKey=MainTextBlockStyle}"
+						   Text="Олимпиада" />
+				<ComboBox x:Name="Contests"
+						  DisplayMemberPath="Name"
+						  DockPanel.Dock="Right"
+						  Style="{StaticResource ResourceKey=MainComboBoxStyle}" />
+			</DockPanel>
+		</Border>
+		<TabControl Background="Transparent">
+			<TabItem Background="{StaticResource MainBackgroundBrush}" Header="Вопросы участников">
+				<Grid>
+					<Grid.ColumnDefinitions>
+						<ColumnDefinition Width="*" />
+						<ColumnDefinition Width="2*" />
+					</Grid.ColumnDefinitions>
+					<GridSplitter Width="4"
+								  HorizontalAlignment="Right"
+								  VerticalAlignment="Stretch" />
+					<Border Style="{StaticResource ResourceKey=MainBorderStyle}">
+						<DockPanel>
+							<CheckBox x:Name="IsShowWithAnswersEnabled"
+									  DockPanel.Dock="Bottom"
+									  Style="{StaticResource ResourceKey=MainCheckBoxStyle}">
+								С ответами
+							</CheckBox>
+							<StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal">
+								<TextBlock Style="{StaticResource ResourceKey=MainTextBlockStyle}">Всего:</TextBlock>
+								<TextBlock Style="{StaticResource ResourceKey=MainTextBlockStyle}" Text="{Binding Items.Count, ElementName=Messages}" />
+							</StackPanel>
+							<ListBox x:Name="Messages"
+									 HorizontalContentAlignment="Stretch"
+									 SelectedItem="{Binding SelectedMessage}"
+									 Style="{StaticResource ResourceKey=MainListBoxStyle}">
+								<ListBox.ItemTemplate>
+									<DataTemplate>
+										<Border x:Name="MessageBorder"
+												Background="{StaticResource ResourceKey=HasAnswerBrush}"
+												cal:Bind.Model="{Binding}"
+												Style="{StaticResource ResourceKey=MainBorderStyle}">
+											<DockPanel>
+												<TextBlock x:Name="SendTime"
+														   DockPanel.Dock="Left"
+														   Style="{StaticResource MainTextBlockStyle}" />
+												<TextBlock x:Name="User_Name" Style="{StaticResource MainTextBlockStyle}" />
+											</DockPanel>
+										</Border>
+										<DataTemplate.Triggers>
+											<DataTrigger Binding="{Binding JuryText, Converter={StaticResource ResourceKey=IsStringNullOrWhiteSpaceConverter}}" Value="True">
+												<Setter TargetName="MessageBorder" Property="Background" Value="{StaticResource ResourceKey=NoAnswerBrush}" />
+											</DataTrigger>
+										</DataTemplate.Triggers>
+									</DataTemplate>
+								</ListBox.ItemTemplate>
+							</ListBox>
+						</DockPanel>
+					</Border>
+					<Border Grid.Column="1" Style="{StaticResource ResourceKey=MainBorderStyle}">
+						<DockPanel>
+							<Border DockPanel.Dock="Bottom" Style="{StaticResource ResourceKey=MainBorderStyle}">
+								<StackPanel>
+									<StackPanel.Triggers>
+										<EventTrigger RoutedEvent="oqrc:EventTriggerControl.IsEventTriggeredChanged">
+											<BeginStoryboard Storyboard="{StaticResource ResourceKey=AnswerSentStoryBoard}" />
+										</EventTrigger>
+									</StackPanel.Triggers>
+									<TextBlock x:Name="AnswerSentTextBlock"
+											   Margin="4,2,4,0"
+											   FontWeight="Bold"
+											   Foreground="DarkGreen"
+											   Opacity="0"
+											   Style="{StaticResource ResourceKey=MainTextBlockStyle}"
+											   Text="Ответ отправлен"
+											   TextAlignment="Center">
+										<TextBlock.Background>
+											<LinearGradientBrush StartPoint="0.5, 0" EndPoint="0.5, 1">
+												<LinearGradientBrush.GradientStops>
+													<GradientStop Offset="0" Color="Transparent" />
+													<GradientStop Offset="1" Color="#7700FF00" />
+												</LinearGradientBrush.GradientStops>
+											</LinearGradientBrush>
+										</TextBlock.Background>
+									</TextBlock>
+									<Button x:Name="SaveAnswer"
+											Margin="2,0,2,2"
+											Style="{StaticResource ResourceKey=MainButtonStyle}">
+										Ответить
+									</Button>
+									<oqrc:EventTriggerControl IsEventTriggered="{Binding AnswerSentTrigger}" />
+								</StackPanel>
+							</Border>
+							<Grid DockPanel.Dock="Top">
+								<Grid.RowDefinitions>
+									<RowDefinition Height="Auto" />
+									<RowDefinition Height="*" />
+									<RowDefinition Height="*" />
+								</Grid.RowDefinitions>
+								<Border Style="{StaticResource ResourceKey=MainBorderStyle}">
+									<StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
+                                        <TextBlock x:Name="SelectedMessage_Problems_Number" Style="{StaticResource ResourceKey=MainTextBlockStyle}" />
+                                        <TextBlock x:Name="SelectedMessage_Problems_Name" Style="{StaticResource ResourceKey=MainTextBlockStyle}" />
+									</StackPanel>
+								</Border>
+								<Border Grid.Row="1" Style="{StaticResource ResourceKey=MainBorderStyle}">
+									<DockPanel>
+										<TextBlock HorizontalAlignment="Center"
+												   DockPanel.Dock="Top"
+												   Style="{StaticResource ResourceKey=MainTextBlockStyle}"
+												   Text="Вопрос" />
+										<TextBox x:Name="SelectedMessage_UserText"
+												 DockPanel.Dock="Bottom"
+												 HorizontalScrollBarVisibility="Auto"
+												 IsReadOnly="True"
+												 Style="{StaticResource ResourceKey=MainTextBoxStyle}"
+												 VerticalScrollBarVisibility="Auto" />
+									</DockPanel>
+								</Border>
+								<Border Grid.Row="2" Style="{StaticResource ResourceKey=MainBorderStyle}">
+									<DockPanel>
+										<DockPanel DockPanel.Dock="Bottom">
+											<TextBlock VerticalAlignment="Center"
+													   Style="{StaticResource ResourceKey=MainTextBlockStyle}"
+													   Text="Стандартные ответы" />
+											<Button x:Name="AddDefaultAnswerToMsg"
+													Content="Добавить к ответу"
+													DockPanel.Dock="Right"
+													Style="{StaticResource ResourceKey=MainButtonStyle}" />
+											<ComboBox x:Name="DefaultAnswers"
+													  SelectedIndex="0"
+													  Style="{StaticResource ResourceKey=MainComboBoxStyle}" />
+										</DockPanel>
+										<TextBlock HorizontalAlignment="Center"
+												   DockPanel.Dock="Top"
+												   Style="{StaticResource ResourceKey=MainTextBlockStyle}"
+												   Text="Ответ" />
+										<TextBox x:Name="SelectedMessageAnswer"
+												 AcceptsReturn="True"
+												 DockPanel.Dock="Bottom"
+												 HorizontalScrollBarVisibility="Auto"
+												 Style="{StaticResource ResourceKey=MainTextBoxStyle}"
+												 VerticalScrollBarVisibility="Auto" />
+									</DockPanel>
+								</Border>
+							</Grid>
+						</DockPanel>
+					</Border>
+				</Grid>
+			</TabItem>
+			<TabItem Background="{StaticResource MainBackgroundBrush}" Header="Комментарии жюри">
+				<Grid>
+					<Grid.RowDefinitions>
+						<RowDefinition Height="2*" />
+						<RowDefinition Height="*" />
+					</Grid.RowDefinitions>
+					<Border Style="{StaticResource MainBorderStyle}">
+						<DockPanel>
+							<StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal">
+								<TextBlock Style="{StaticResource ResourceKey=MainTextBlockStyle}">Всего:</TextBlock>
+								<TextBlock Style="{StaticResource ResourceKey=MainTextBlockStyle}" Text="{Binding Items.Count, ElementName=JuryComments}" />
+							</StackPanel>
+							<ListBox x:Name="JuryComments"
+									 HorizontalContentAlignment="Stretch"
+									 Style="{StaticResource MainListBoxStyle}">
+								<ListBox.ItemTemplate>
+									<DataTemplate>
+										<Border Background="{StaticResource HasAnswerBrush}"
+												cal:Bind.Model="{Binding}"
+												Style="{StaticResource MainBorderStyle}">
+											<StackPanel>
+												<DockPanel>
+													<TextBlock Style="{StaticResource MainTextBlockStyle}" Text="{Binding SendTime}" />
+													<StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
+														<TextBlock Style="{StaticResource ResourceKey=MainTextBlockStyle}" Text="{Binding Problem.Number}" />
+														<TextBlock Style="{StaticResource ResourceKey=MainTextBlockStyle}" Text="{Binding Problem.Name}" />
+													</StackPanel>
+												</DockPanel>
+												<TextBox HorizontalScrollBarVisibility="Auto"
+														 IsReadOnly="True"
+														 Style="{StaticResource MainTextBoxStyle}"
+														 Text="{Binding UserText}"
+														 VerticalScrollBarVisibility="Auto"
+														 Visibility="{Binding UserText,
+																			  Mode=OneWay,
+																			  Converter={StaticResource UserTextVisibilityConverter}}" />
+												<TextBox HorizontalScrollBarVisibility="Auto"
+														 IsReadOnly="True"
+														 Style="{StaticResource MainTextBoxStyle}"
+														 Text="{Binding JuryText}"
+														 VerticalScrollBarVisibility="Auto" />
+											</StackPanel>
+										</Border>
+									</DataTemplate>
+								</ListBox.ItemTemplate>
+							</ListBox>
+						</DockPanel>
+					</Border>
+					<GridSplitter Height="4"
+								  HorizontalAlignment="Stretch"
+								  VerticalAlignment="Bottom" />
+					<DockPanel Grid.Row="1">
+						<Border DockPanel.Dock="Bottom" Style="{StaticResource MainBorderStyle}">
+							<StackPanel>
+								<StackPanel.Triggers>
+									<EventTrigger RoutedEvent="oqrc:EventTriggerControl.IsEventTriggeredChanged">
+										<BeginStoryboard Storyboard="{StaticResource ResourceKey=JuryCommentSentStoryBoard}" />
+									</EventTrigger>
+								</StackPanel.Triggers>
+								<TextBlock x:Name="JuryCommentSentTextBlock"
+										   Margin="4,2,4,0"
+										   FontWeight="Bold"
+										   Foreground="DarkGreen"
+										   Opacity="0"
+										   Style="{StaticResource ResourceKey=MainTextBlockStyle}"
+										   Text="Комментарий отправлен"
+										   TextAlignment="Center">
+									<TextBlock.Background>
+										<LinearGradientBrush StartPoint="0.5, 0" EndPoint="0.5, 1">
+											<LinearGradientBrush.GradientStops>
+												<GradientStop Offset="0" Color="Transparent" />
+												<GradientStop Offset="1" Color="#7700FF00" />
+											</LinearGradientBrush.GradientStops>
+										</LinearGradientBrush>
+									</TextBlock.Background>
+								</TextBlock>
+								<Button x:Name="SaveJuryComment"
+										Content="Отправить"
+										Style="{StaticResource MainButtonStyle}" />
+								<oqrc:EventTriggerControl IsEventTriggered="{Binding JuryCommentSentTrigger}" />
+							</StackPanel>
+						</Border>
+						<Border DockPanel.Dock="Top" Style="{StaticResource MainBorderStyle}">
+							<DockPanel>
+								<DockPanel DockPanel.Dock="Top">
+									<TextBlock VerticalAlignment="Center"
+											   Style="{StaticResource MainTextBlockStyle}"
+											   Text="Задача: " />
+									<CheckBox VerticalAlignment="Center"
+											  Content="Общий комментарий"
+											  IsChecked="{Binding IsNewJuryCommentGlobal}"
+											  IsThreeState="False"
+											  Style="{StaticResource MainCheckBoxStyle}" />
+									<ComboBox x:Name="Problems"
+											  DisplayMemberPath="Name"
+											  DockPanel.Dock="Right"
+											  IsEnabled="{Binding IsNewJuryCommentGlobal,
+																  Converter={StaticResource InverseBoolConverter}}"
+											  IsReadOnly="True"
+											  SelectedItem="{Binding SelectedProblem}"
+											  Style="{StaticResource MainComboBoxStyle}" />
+								</DockPanel>
+								<TextBox x:Name="NewJuryCommentText"
+										 AcceptsReturn="True"
+										 DockPanel.Dock="Bottom"
+										 HorizontalScrollBarVisibility="Auto"
+										 Style="{StaticResource MainTextBoxStyle}"
+										 VerticalScrollBarVisibility="Auto" />
+							</DockPanel>
+						</Border>
+					</DockPanel>
+				</Grid>
+			</TabItem>
+		</TabControl>
+	</DockPanel>
+</Window>

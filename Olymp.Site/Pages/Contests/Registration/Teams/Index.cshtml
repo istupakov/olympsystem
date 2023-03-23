@@ -1,0 +1,71 @@
+﻿@page "{id:int}"
+@attribute [Authorize(Policy = PolicyNames.Coach)]
+@model IndexModel
+@{
+	ViewData["Title"] = $"{Localizer["List of participants of the"]} {Model.Contest.Name}";
+}
+<h1>@ViewData["Title"]</h1>
+
+<div class="btn-group">
+	@foreach (var org in Model.Organizations) {
+		<a class="btn btn-primary" asp-page="./Create" asp-route-id="@Model.Contest.Id" asp-route-orgId="@org.Id">@Localizer["Add team"] @org.Name</a>
+	}
+</div>
+
+<table class="table table-hover">
+	<thead>
+		<tr>
+			<th scope="col">@Localizer["Team"]</th>
+			<th scope="col">@Localizer["Members"]</th>
+			<th scope="col">@Localizer["Coach"]</th>
+			<th scope="col">@Localizer["Username"]</th>
+			<th scope="col">@Localizer["Password"]</th>
+			<th scope="col">@Localizer["Status"]</th>
+			<th scope="col">@Localizer["Registration date"]</th>
+			<th scope="col">@Localizer["Manage"]</th>
+		</tr>
+	</thead>
+	<tbody>
+		@foreach (var team in Model.Teams) {
+			<tr class="@(team.IsApproved && !team.IsOutOfCompetition? "table-success": null)">
+				<td>@team.Name</td>
+				<td>
+					<ul class="list-unstyled">
+						@foreach (var (name, member) in team.GetMembers()!) {
+							<li>
+								@if (member is null) {
+									@name
+								}
+								else {
+									<a href="mailto:@member.Email">@name</a>
+								}
+							</li>
+						}
+					</ul>
+				</td>
+				<td>
+					@team.Coach?.LastName @team.Coach?.FirstName @team.Coach?.Patronymic
+					<br />
+					<a href="mailto:@team.Coach?.Email">@team.Coach?.Email</a>
+				</td>
+				<td>@team.UserName</td>
+				<td>
+					@if (team.CoachId == Model.UserId) {
+						@team.PasswordHash
+					}
+				</td>
+				<td>
+					<partial name="_UserBadge" model="team" />
+				</td>
+				<td>@team.RegistrationDate?.LocalDateTime.ToShortDateString()</td>
+				<td>
+					@if (team.CoachId == Model.UserId && !team.IsApproved && DateTimeOffset.Now < Model.Contest.StartTime) {
+						<form method="post" class="btn-group">
+							<button class="btn btn-danger" asp-page-handler="Delete" asp-route-teamId="@team.Id">@Localizer["Delete"]</button>
+						</form>
+					}
+				</td>
+			</tr>
+		}
+	</tbody>
+</table>

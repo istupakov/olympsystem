@@ -1,0 +1,55 @@
+﻿@model IEnumerable<Submission>
+
+<table class="table table-stripd table-hover">
+	<thead>
+		<tr>
+			<th scope="col">@Localizer["Submission time"]</th>
+			<th scope="col">@Localizer["Problem"]</th>
+			<th scope="col">@Localizer["Submission"]</th>
+			<th scope="col">@Localizer["Compilator"]</th>
+			<th scope="col">@Localizer["Status"]</th>
+		</tr>
+	</thead>
+	<tbody>
+		@foreach (var item in Model) {
+			<tr>
+				<td>@item.CommitTime</td>
+				<td>
+					<a asp-page="/Problems/ShowText" asp-route-id="@item.ProblemId">@item.Problem.NameWithNumber</a>
+				</td>
+				<td>
+					<a asp-page="/Submissions/Download" asp-route-id="@item.Id">@Localizer["download"]</a>
+					<span class="user-select-none">|</span>
+					<a asp-page="/Submissions/Code" asp-route-id="@item.Id">@Localizer["view"]</a>
+				</td>
+				<td>@item.Compilator.Name</td>
+				<td>
+					@{
+						var cls = item.StatusCode switch {
+							-1 => "link-danger",
+							0 => null,
+							1 => "text-info",
+							2 => "fw-bold text-success",
+							_ => "fw-semibold text-danger"
+						};
+					}
+					@if (item.StatusCode == -1) {
+						<a class="@cls" asp-page="/Submissions/Errors" asp-route-id="@item.Id">@string.Format(Localizer[item.StatusTemplate], item.StatusTestNumber)</a>
+					}
+					else {
+						<span class="@cls">@string.Format(Localizer[item.StatusTemplate], item.StatusTestNumber)</span>
+					}
+					@if (User.IsInRole(RoleNames.Admin) || User.IsInRole(RoleNames.Jury)) {
+						<a class="btn btn-info" asp-page="/Submissions/Log" asp-route-id="@item.Id">view log</a>
+					}
+				</td>
+			</tr>
+			if (item.Score is not null) {
+				<tr>
+					<td>@Localizer["Points"]: @item.Score</td>
+					<td colspan="5">@Localizer["Results by tests"]: @item.FormattedScoresByTest </td>
+				</tr>
+			}
+		}
+	</tbody>
+</table>

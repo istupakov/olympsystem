@@ -1,0 +1,11 @@
+﻿@page "{id:int}"
+@attribute [Authorize]
+@model ErrorsModel
+@{
+	ViewData["Title"] = Localizer["Compilation errors"];
+}
+<h1>@ViewData["Title"]</h1>
+
+<pre>
+@Model.Error
+</pre>

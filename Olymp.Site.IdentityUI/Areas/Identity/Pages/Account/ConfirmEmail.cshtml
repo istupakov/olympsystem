@@ -1,0 +1,9 @@
+﻿@page
+@model ConfirmEmailModel
+@inject IStringLocalizer<IdentityUIResources> Localizer
+@{
+	ViewData["Title"] = Localizer["Confirm email"];
+}
+
+<h1>@ViewData["Title"]</h1>
+<partial name="_StatusMessage" model="Model.StatusMessage" />

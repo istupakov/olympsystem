@@ -1,0 +1,85 @@
+﻿@page "{id:int}"
+@using Microsoft.AspNetCore.Mvc.Localization;
+@attribute [Authorize]
+@model IndexModel
+@inject IHtmlLocalizer<SharedResource> HtmlLocalizer
+@{
+	ViewData["Title"] = $"{Localizer["Submit solution on the"]} {Model.Contest.Name}";
+}
+<h1>@ViewData["Title"]</h1>
+
+<nav>
+	<div class="nav nav-tabs" id="submitTab" role="tablist">
+		<button class="nav-link" id="submit-tab" data-bs-toggle="tab" data-bs-target="#submit-tab-pane" type="button" role="tab">@Localizer["Submit"]</button>
+		<button class="nav-link" id="submissions-tab" data-bs-toggle="tab" data-bs-target="#submissions-tab-pane" type="button" role="tab">@Localizer["Submissions"]</button>
+		<button class="nav-link" id="problems-tab" data-bs-toggle="tab" data-bs-target="#problems-tab-pane" type="button" role="tab">@Localizer["Problems"]</button>
+		<button class="nav-link" id="messages-tab" data-bs-toggle="tab" data-bs-target="#messages-tab-pane" type="button" role="tab">@Localizer["Communication with the jury"] (@Localizer["common messages"]: @Model.CommonMessageCount)</button>
+	</div>
+</nav>
+
+<div class="tab-content" id="submitTabContent">
+	<div class="tab-pane fade" id="submit-tab-pane" role="tabpanel">
+		<h2>@Localizer["Submit solution"]</h2>
+		<div class="alert alert-warning" role="alert">
+			@Localizer["Reading and writing in all problems from the standard input/output stream."]
+		</div>
+		<div class="alert alert-warning" role="alert">
+			@HtmlLocalizer["For <em>Java</em> solutions, the main class should be named <strong>Main</strong>."]
+		</div>
+		<hr />
+		<form id="sumbit-form" method="post">
+			<div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
+			<div class="form-floating mb-3">
+				<select asp-for="Input.ProblemId" asp-items="Model.ProblemList" class="form-select">
+					<option selected></option>
+				</select>
+				<label asp-for="Input.ProblemId"></label>
+				<span asp-validation-for="Input.ProblemId" class="text-danger"></span>
+			</div>
+			<div class="form-floating mb-3">
+				<select asp-for="Input.CompilatorId" asp-items="Model.CompilatorList" class="form-select">
+					<option selected></option>
+				</select>
+				<label asp-for="Input.CompilatorId"></label>
+				<span asp-validation-for="Input.CompilatorId" class="text-danger"></span>
+			</div>
+			<div class="form-floating mb-3">
+				<textarea asp-for="Input.Code" class="form-control" style="height: 300px"></textarea>
+				<label asp-for="Input.Code"></label>
+				<span asp-validation-for="Input.Code" class="text-danger"></span>
+			</div>
+			<button type="submit" class="btn btn-primary">@Localizer["Submit"]</button>
+		</form>
+	</div>
+	<div class="tab-pane fade" id="submissions-tab-pane" role="tabpanel">
+		<h2>@Localizer["Submissions"]</h2>
+		<partial name="_UserSubmissions" for="Submissions" />
+	</div>
+	<div class="tab-pane fade" id="problems-tab-pane" role="tabpanel">
+		<h2>@Localizer["Problems"]</h2>
+		<partial name="_UserStanding" for="UserStanding" />
+	</div>
+	<div class="tab-pane fade" id="messages-tab-pane" role="tabpanel">
+		<h2>
+			@Localizer["Jury clarifications and messages"]
+		</h2>
+		@if (Model.Contest.AllowSendMessage || User.IsInRole(RoleNames.Admin) || User.IsInRole(RoleNames.Jury)) {
+			<a class="btn btn-primary" asp-page="./SendMessage" asp-route-id="@Model.Contest.Id" role="button">@Localizer["Send message"]</a>
+		}
+		<hr />
+		<partial name="_UserMessages" for="Contest.Messages" />
+	</div>
+</div>
+
+@section Scripts {
+	<partial name="_ValidationScriptsPartial" />
+	<script>
+		$(document).ready(function () {
+			$('button[data-bs-toggle="tab"]').on('shown.bs.tab', e => location.replace($(e.target).attr("data-bs-target")));
+			$('.nav-tabs button[data-bs-target="' + (location.hash || "#submit-tab-pane") + '"]').tab('show');
+		});
+		$(".successmark").addClass("text-center")
+		$(".failmark").addClass("text-center")
+		$(".firstmark").addClass("text-center")
+	</script>
+}

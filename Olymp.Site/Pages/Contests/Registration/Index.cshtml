@@ -1,0 +1,49 @@
+﻿@page "{id:int}"
+@attribute [Authorize(Policy = PolicyNames.OlympUser)]
+@model IndexModel
+@{
+	ViewData["Title"] = $"{Localizer["Registraion on"]} {Model.Contest.Name}";
+}
+<h1>@ViewData["Title"]</h1>
+
+@if (Model.Contest.IsAcm) {
+	<div class="alert alert-danger" role="alert">
+		@Localizer["Registration for this competition is available only to coaches."]
+	</div>
+}
+else {
+	<form method="post">
+		<div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
+		<div class="form-floating mb-3">
+			<input asp-for="CompetitorName" class="form-control" disabled />
+			<label asp-for="CompetitorName"></label>
+			<span asp-validation-for="CompetitorName" class="text-danger"></span>
+		</div>
+		@if (Model.AlreadyRegistered) {
+			<div class="alert alert-primary" role="alert">
+				@Localizer["You are already registered for this contest!"]
+			</div>
+			if (DateTimeOffset.Now < Model.Contest.StartTime) {
+				<button type="submit" asp-route-handler="Delete" class="btn btn-warning">@Localizer["Cancel"]</button>
+			}
+		}
+		else {
+			@if (!Model.HasGroup) {
+				<div class="alert alert-warning" role="alert">
+					@string.Format(Localizer["The {0} field in the profile must be filled in."], Localizer["Group"])
+				</div>
+			}
+			<div class="btn-group">
+				@if (!Model.ModelState.IsValid) {
+					<button class="btn btn-primary" disabled>@Localizer["Register"]</button>
+				}
+				else {
+					if (Model.HasGroup) {
+						<button class="btn btn-primary" asp-route-handler="Create" asp-route-ooc="false">@Localizer["Register"]</button>
+					}
+					<button class="btn btn-warning" asp-route-handler="Create" asp-route-ooc="true">@Localizer["Register"] (@Localizer["Out of competition"].Value.ToLower())</button>
+				}
+			</div>
+		}
+	</form>
+}

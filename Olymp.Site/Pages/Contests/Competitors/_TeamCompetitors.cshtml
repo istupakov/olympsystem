@@ -1,0 +1,48 @@
+﻿@model IEnumerable<Competitor>
+
+<table class="table table-hover">
+	<thead>
+		<tr>
+			<th scope="col">@Localizer["Team"]</th>
+			<th scope="col">@Localizer["Members"]</th>
+			<th scope="col">@Localizer["University"]</th>
+			<th scope="col">@Localizer["Coach"]</th>
+			<th scope="col">@Localizer["Status"]</th>
+			@if (ViewData["IsManage"] is true) {
+				<th scope="col">@Localizer["Manage"]</th>
+			}
+		</tr>
+	</thead>
+	<tbody>
+		@foreach (var team in Model) {
+			<tr class="@(team.IsApproved? "table-success": "table-warning")">
+				<td>@team.Name</td>
+				<td>
+					<ul class="list-unstyled">
+						@foreach (var member in team.MemberNames!) {
+							<li>@member</li>
+						}
+					</ul>
+				</td>
+				<td>
+					<abbr title="@team.Organization?.FullName">@team.Organization?.Name</abbr>
+				</td>
+				<td>
+					@team.Coach?.LastName @team.Coach?.FirstName @team.Coach?.Patronymic
+					@if (User.IsInRole(RoleNames.Admin)) {
+						<br />
+						<a href="mailto:@team.Coach?.Email">@team.Coach?.Email</a>
+					}
+				</td>
+				<td>
+					<partial name="_UserBadge" model="team" />
+				</td>
+				@if (ViewData["IsManage"] is true) {
+					<td>
+						<partial name="_ManageCompetitor" model="team" />
+					</td>
+				}
+			</tr>
+		}
+	</tbody>
+</table>

@@ -1,0 +1,85 @@
+﻿@page "{id:int}"
+@attribute [Authorize(Policy = PolicyNames.Coach)]
+@model CreateModel
+@{
+	ViewData["Title"] = $"{Localizer["Create team for the"]} {Model.Contest!.Name} ({Model.Organization!.Name})";
+}
+<h1>@ViewData["Title"]</h1>
+
+<form method="post">
+	<div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
+	<div class="form-floating mb-3">
+		<input asp-for="Input.TeamPrefix" class="form-control" />
+		<label asp-for="Input.TeamPrefix"></label>
+		<span asp-validation-for="Input.TeamPrefix" class="text-danger"></span>
+	</div>
+	<div class="form-floating mb-3">
+		<input asp-for="Input.TeamNumber" class="form-control" />
+		<label asp-for="Input.TeamNumber"></label>
+		<span asp-validation-for="Input.TeamNumber" class="text-danger"></span>
+	</div>
+	<div class="form-floating mb-3">
+		<input asp-for="Input.TeamSuffix" class="form-control" />
+		<label asp-for="Input.TeamSuffix"></label>
+		<span asp-validation-for="Input.TeamSuffix" class="text-danger"></span>
+	</div>
+	<div class="form-floating mb-3">
+		<input asp-for="Input.Participant1" class="form-control" list="participants" />
+		<label asp-for="Input.Participant1"></label>
+		<span asp-validation-for="Input.Participant1" class="text-danger"></span>
+	</div>
+	<div class="form-floating mb-3">
+		<input asp-for="Input.Participant2" class="form-control" list="participants" />
+		<label asp-for="Input.Participant2"></label>
+		<span asp-validation-for="Input.Participant2" class="text-danger"></span>
+	</div>
+	<div class="form-floating mb-3">
+		<input asp-for="Input.Participant3" class="form-control" list="participants" />
+		<label asp-for="Input.Participant3"></label>
+		<span asp-validation-for="Input.Participant3" class="text-danger"></span>
+	</div>
+	<datalist id="participants">
+		@foreach (var user in Model.Participants!) {
+			<option value="@user.Id" label="@user.FirstName @user.LastName (@user.Email)"></option>
+		}
+	</datalist>
+	@if (Model.NeedConfirmation) {
+		<hr />
+		<div class="form-floating mb-3">
+			<input asp-for="TeamName" class="form-control" disabled />
+			<label asp-for="TeamName"></label>
+			<span asp-validation-for="TeamName" class="text-danger"></span>
+		</div>
+		<div class="form-floating mb-3">
+			<input asp-for="TeamMembers" class="form-control" disabled />
+			<label asp-for="TeamMembers"></label>
+			<span asp-validation-for="TeamMembers" class="text-danger"></span>
+		</div>
+		@if (Model.Member1 is not null) {
+			<div class="alert alert-primary" role="alert">
+				@Localizer["Linked user"]: @Model.Member1.FirstName @Model.Member1.LastName (@Model.Member1.Email)
+			</div>
+		}
+		@if (Model.Member2 is not null) {
+			<div class="alert alert-primary" role="alert">
+				@Localizer["Linked user"]: @Model.Member2.FirstName @Model.Member2.LastName (@Model.Member2.Email)
+			</div>
+		}
+		@if (Model.Member3 is not null) {
+			<div class="alert alert-primary" role="alert">
+				@Localizer["Linked user"]: @Model.Member3.FirstName @Model.Member3.LastName (@Model.Member3.Email)
+			</div>
+		}
+		<hr />
+		<div class="form-check">
+			<input asp-for="Input.Confirmation" class="form-check-input" type="checkbox">
+			<label asp-for="Input.Confirmation" class="form-check-label"></label>
+			<span asp-validation-for="Input.Confirmation" class="text-danger"></span>
+		</div>
+	}
+	<button type="submit" class="btn btn-primary mt-2">@Localizer["Register"]</button>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

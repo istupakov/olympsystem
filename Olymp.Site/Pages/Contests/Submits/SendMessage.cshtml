@@ -1,0 +1,28 @@
+﻿@page "{id:int}"
+@attribute [Authorize]
+@model SendMessageModel
+@{
+	ViewData["Title"] = $"{Localizer["Send message on the"]} {Model.Contest.Name}";
+}
+<h1>@ViewData["Title"]</h1>
+
+<form method="post">
+	<div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
+	<div class="form-floating mb-3">
+		<select asp-for="Input.ProblemId" asp-items="Model.Problems" class="form-select">
+			<option value="" selected>@Localizer["Common question"]</option>
+		</select>
+		<label asp-for="Input.ProblemId"></label>
+		<span asp-validation-for="Input.ProblemId" class="text-danger"></span>
+	</div>
+	<div class="form-floating mb-3">
+		<textarea asp-for="Input.Text" class="form-control" style="height: 300px"></textarea>
+		<label asp-for="Input.Text"></label>
+		<span asp-validation-for="Input.Text" class="text-danger"></span>
+	</div>
+	<button type="submit" class="btn btn-primary">@Localizer["Send"]</button>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

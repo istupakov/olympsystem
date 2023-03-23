@@ -1,0 +1,55 @@
+﻿@model Standing
+
+<table class="table caption-top table-sm table-hover table-striped table-bordered">
+	<caption>
+		<partial name="_StandingCaption" model="Model" />
+	</caption>
+	<thead>
+		<tr>
+			<th scope="col">@Localizer["Rank"]</th>
+			<th scope="col">@Localizer["Competitor"]</th>
+			@foreach (var problem in Model.Contest.Problems.OrderBy(x => x.Number)) {
+				<th scope="col" class="text-center">
+					<abbr title="@problem.NameWithNumber">@problem.Number</abbr>
+				</th>
+			}
+			@if (ViewData["IsSchool"] is true) {
+				<th scope="col">@Localizer["Points"]</th>
+			}
+			else {
+				<th scope="col" class="text-center">=</th>
+			}
+			<th scope="col">@Localizer["Time"]</th>
+		</tr>
+	</thead>
+	<tbody>
+		@{
+			int number = 1, score = 0;
+			int resultCount = Model.Results.Count();
+			foreach (var item in Model.Results) {
+				if (item.Score != score)
+					score = item.Score;
+				<tr>
+					<td class="text-center">
+						@(item.Score > 0 || number == resultCount ? number++ : $"{number}-{resultCount}")
+					</td>
+					<td>
+						@item.User.Name
+						<partial name="_UserBadge" model="item.User" />
+						@if (Model.Contest.IsAcm && item.User is Competitor team) {
+							<br />
+							<small>@string.Join(", ", team.MemberNames!)</small>
+						}
+					</td>
+					@foreach (var res in item.ProblemResults) {
+						<partial name="_UserProblemResult" model="res" view-data="@(new(ViewData){ ["StartTime"] = item.StartTime})" />
+					}
+					<th class="text-center">@item.Score</th>
+					<td>
+						@($"{(int)item.SummaryTime.TotalHours:D2}:{item.SummaryTime.Minutes:D2}:{item.SummaryTime.Seconds:D2}")
+					</td>
+				</tr>
+			}
+		}
+	</tbody>
+</table>

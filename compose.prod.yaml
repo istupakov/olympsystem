@@ -1,0 +1,19 @@
+services:
+  site:
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_URLS: ${ASPNETCORE_URLS:-http://+:5000;https://+:5001}
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_HTTPS_PORT: 443
+      DataProtection__Path: ./keys
+      LettuceEncrypt__Path: ./tls
+      LettuceEncrypt__Password:
+      LettuceEncrypt__UseStagingServer:
+      MailService__UserName:
+      MailService__Password:
+      ApiKeys__0:
+    ports:
+      - "5001:5001"
+    volumes:
+      - ./tls:/app/tls
+      - ./keys:/app/keys

@@ -1,0 +1,158 @@
+﻿@page "{id:int?}"
+@attribute [Authorize(Policy = PolicyNames.Admin)]
+@model ManageModel
+@{
+	ViewData["Title"] = $"{Localizer["Manage user"]} {@Model.TargetUser.UserName}";
+}
+<h1>@ViewData["Title"]</h1>
+
+<div class="row">
+	<div class="col-md-8">
+		<table class="table table-stripd">
+			<thead>
+				<tr>
+					<th scope="col">@Localizer["Property"]</th>
+					<th scope="col">@Localizer["Value"]</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr>
+					<th scope="row">@Localizer["Name"]</th>
+					<td>@Model.TargetUser.Name</td>
+				</tr>
+				<tr>
+					<th scope="row">@Localizer["Username"]</th>
+					<td>@Model.TargetUser.UserName</td>
+				</tr>
+				<tr>
+					<th scope="row">@Localizer["Email"]</th>
+					<td><a href="mailto:@Model.TargetUser.Email">@Model.TargetUser.Email</a></td>
+				</tr>
+				<tr>
+					<th scope="row">@Localizer["Lockout until"]</th>
+					<td>@Model.TargetUser.LockoutEnd</td>
+				</tr>
+				<tr>
+					<th scope="row">@Localizer["Registration date"]</th>
+					<td>@Model.TargetUser.RegistrationDate</td>
+				</tr>
+				<tr>
+					<th scope="row">@Localizer["Org"]</th>
+					<td>@Model.TargetUser.Organization?.Name</td>
+				</tr>
+				<tr>
+					<th scope="row">@Localizer["Coach"]</th>
+					<td>
+						@if (Model.TargetUser.Coach is not null) {
+							<a asp-route-id="@Model.TargetUser.Coach.Id">@Model.TargetUser.Coach.Name</a>
+						}
+					</td>
+				</tr>
+				<tr>
+					<th scope="row">@Localizer["Flags"]</th>
+					<td>
+						@if (Model.TargetUser is Competitor { IsApproved: true }) {
+							<span class="badge text-bg-info">IsApproved</span>
+						}
+						@if (Model.TargetUser.IsDisqualified) {
+							<span class="badge text-bg-danger">IsDisqualified</span>
+						}
+						@if (Model.TargetUser is Competitor { IsOutOfCompetition: true }) {
+							<span class="badge text-bg-warning">IsOutOfCompetition</span>
+						}
+						@if (Model.TargetUser.IsHidden) {
+							<span class="badge text-bg-success">IsHidden</span>
+						}
+					</td>
+				</tr>
+				@if (Model.TargetUser is OlympUser olympUser) {
+					<tr>
+						<th scope="row">@Localizer["Last name"]</th>
+						<td>@olympUser.LastName</td>
+					</tr>
+					<tr>
+						<th scope="row">@Localizer["First name"]</th>
+						<td>@olympUser.FirstName</td>
+					</tr>
+					<tr>
+						<th scope="row">@Localizer["Patronymic"]</th>
+						<td>@olympUser.Patronymic</td>
+					</tr>
+					<tr>
+						<th scope="row">@Localizer["Details"]</th>
+						<td>@olympUser.Details</td>
+					</tr>
+					<tr>
+						<th scope="row">@Localizer["Memberships"]</th>
+						<td>
+							<ul class="list-unstyled">
+								@foreach (var memberships in olympUser.Memberships) {
+									<li>
+										<a asp-route-id="@memberships.Id">@memberships.Name (@memberships.Contest.Name)</a>
+									</li>
+								}
+							</ul>
+						</td>
+					</tr>
+				}
+				@if (Model.TargetUser is Competitor competitor) {
+					<tr>
+						<th scope="row">@Localizer["Contest"]</th>
+						<td>@competitor.Contest.Name</td>
+					</tr>
+					<tr>
+						<th scope="row">@Localizer["Members"]</th>
+						<td>
+							<ul class="list-unstyled">
+								@if (competitor.MemberInfos is null) {
+									var member = competitor.Members.Single();
+									<li>
+										<a asp-route-id="@member.Id">@member.Name (@member.Email)</a>
+									</li>
+								}
+								else {
+									foreach (var (name, member) in competitor.GetMembers()!) {
+										if (member is null) {
+											<li>@name</li>
+										}
+										else {
+											<li>
+												@name: <a asp-route-id="@member.Id">@member.Name (@member.Email)</a>
+											</li>
+										}
+									}
+								}
+							</ul>
+						</td>
+					</tr>
+				}
+				<tr>
+					<th scope="row">@Localizer["Roles"]</th>
+					<td>@string.Join(", ", Model.Roles)</td>
+				</tr>
+				<tr>
+					<th scope="row">@Localizer["Claims"] (@ClaimNames.CoachOrg)</th>
+					<td>@string.Join(", ", Model.Claims.Where(x => x.Type == ClaimNames.CoachOrg).Select(x => Model.Organizations[int.Parse(x.Value)].Name))</td>
+				</tr>
+			</tbody>
+		</table>
+	</div>
+</div>
+
+@if (Model.TargetUser is OlympUser) {
+	<form method="post" class="btn-toolbar" role="toolbar">
+		<div class="btn-group btn-group-sm my-1 me-2" role="group">
+			<button class="btn btn-success" asp-route-action="AddRole" asp-route-role="Admin">@Localizer["Add admin role"]</button>
+			<button class="btn btn-success" asp-route-action="AddRole" asp-route-role="Jury">@Localizer["Add jury role"]</button>
+			<button class="btn btn-primary" asp-route-action="AddCoachOrgClaim">@Localizer["Add coach-org claim"]</button>
+			<button class="btn btn-info" asp-route-action="ToogleIsHidden">@Localizer["Toogle is hidden"]</button>
+			<button class="btn btn-warning" asp-route-action="SyncUsername">@Localizer["Sync username and email"]</button>
+		</div>
+		<div class="btn-group btn-group-sm my-1" role="group">
+			<button class="btn btn-warning" asp-route-action="RemoveRole" asp-route-role="Admin">@Localizer["Remove admin role"]</button>
+			<button class="btn btn-warning" asp-route-action="RemoveRole" asp-route-role="Jury">@Localizer["Remove jury role"]</button>
+			<button class="btn btn-warning" asp-route-action="RemoveCoachOrgClaim">@Localizer["Remove coach-org claims"]</button>
+			<button class="btn btn-danger" asp-route-action="Ban">@Localizer["Ban"]</button>
+		</div>
+	</form>
+}

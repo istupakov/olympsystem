@@ -1,0 +1,17 @@
+﻿@page "{id:int}"
+@model IndexModel
+@{
+	ViewData["Title"] = $"{Localizer["List of participants of the"]} {Model.Contest.Name}";
+}
+<h1>@ViewData["Title"]</h1>
+@if (User.IsInRole(RoleNames.Admin)) {
+	<a asp-page="./Manage/Index" asp-route-id="@Model.Contest.Id">@Localizer["Manage"]</a>
+}
+
+
+@if (Model.Contest.IsAcm) {
+	<partial name="_TeamCompetitors" for="Competitors" />
+}
+else {
+	<partial name="_IndividualCompetitors" for="Competitors" />
+}

@@ -1,0 +1,22 @@
+﻿@model Competitor
+
+<form method="post" class="btn-toolbar" role="toolbar">
+	<div class="btn-group btn-group-sm my-1 me-2" role="group">
+		<button class="btn btn-info" asp-route-action="Manage" asp-route-userId="@Model.Id">@Localizer["Manage"]</button>
+	</div>
+	<div class="btn-group btn-group-sm my-1 me-2" role="group">
+		<button class="btn btn-success" asp-route-action="Approve" asp-route-userId="@Model.Id">@Localizer["Approve"]</button>
+		<button class="btn btn-warning" asp-route-action="Disapprove" asp-route-userId="@Model.Id">@Localizer["Disapprove"]</button>
+	</div>
+	<div class="btn-group btn-group-sm my-1 me-2" role="group">
+		<button class="btn btn-success" asp-route-action="InCompetition" asp-route-userId="@Model.Id">@Localizer["In competition"]</button>
+		<button class="btn btn-warning" asp-route-action="OutOfCompetition" asp-route-userId="@Model.Id">@Localizer["Out of competition"]</button>
+	</div>
+	<div class="btn-group btn-group-sm my-1 me-2" role="group">
+		<button class="btn btn-warning" asp-route-action="Disqualify" asp-route-userId="@Model.Id">@Localizer["Disqualify"]</button>
+		<button class="btn btn-success" asp-route-action="CancelDisqualification" asp-route-userId="@Model.Id">@Localizer["Cancel disqualification"]</button>
+	</div>
+	<div class="btn-group btn-group-sm my-1" role="group">
+		<button class="btn btn-danger" asp-route-action="Delete" asp-route-userId="@Model.Id">@Localizer["Delete"]</button>
+	</div>
+</form>

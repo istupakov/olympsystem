@@ -1,0 +1,54 @@
+﻿@model Standing.UserProblemResult
+@{
+	var startTime = ViewData["StartTime"] as DateTimeOffset?;
+	var time = startTime is null
+		? Model.LastCommitTime.ToString()
+		: (Model.LastCommitTime - startTime.Value).ToString("hh\\:mm");
+}
+
+@if (ViewData["IsSchool"] is true) {
+	var cls = (Model.Score, Model.Score == Model.MaxScore) switch {
+		( > 0, true) => "firstmark",
+		( > 0, false) => "successmark",
+		(0, _) => "failmark",
+		_ => null
+	};
+	if (Model.CommitNumber > 0) {
+		<td class="@cls">
+			@Model.Score/@Model.MaxScore
+			<br />
+			@time
+		</td>
+	}
+	else {
+		<td></td>
+	}
+}
+else {
+	switch ((Model.CommitNumber, Model.IsSuccess)) {
+		case (1, true):
+			<td class="@(Model.IsFirstSuccess? "firstmark": "successmark")">
+				+
+				<br />
+				@time
+			</td>
+			break;
+		case ( > 1, true):
+			<td class="@(Model.IsFirstSuccess? "firstmark": "successmark")">
+				+@(Model.CommitNumber - 1)
+				<br />
+				@time
+			</td>
+			break;
+		case ( > 0, false):
+			<td class="failmark">
+				-@Model.CommitNumber
+				<br />
+				@time
+			</td>
+			break;
+		default:
+			<td></td>
+			break;
+	}
+}

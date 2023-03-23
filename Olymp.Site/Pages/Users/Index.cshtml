@@ -1,0 +1,63 @@
+﻿@page
+@attribute [Authorize(Policy = PolicyNames.Admin)]
+@model IndexModel
+@{
+	ViewData["Title"] = Localizer["Users"];
+}
+<h1>@ViewData["Title"]</h1>
+
+<div class="row row-cols-1 row-cols-md-3 align-items-center">
+	<div class="col mb-2">
+		<div class="input-group">
+			@if (!Model.AllUsers) {
+				<a class="btn btn-outline-primary" asp-route-all="true">@Localizer["Show all users"]</a>
+			}
+			else {
+				<a class="btn btn-outline-primary" asp-route-all="false">@Localizer["Show only admins, jury and coaches"]</a>
+			}
+		</div>
+	</div>
+	<form class="col mb-2" method="get" asp-page="./Manage">
+		<div class="input-group">
+			<div class="form-floating">
+				<input type="text" class="form-control" id="username" name="username" placeholder="Username" required>
+				<label for="username">@Localizer["Username"]</label>
+			</div>
+			<button class="btn btn-outline-primary">@Localizer["Search"]</button>
+		</div>
+	</form>
+	<form class="col mb-2" method="get">
+		<div class="input-group">
+			<div class="form-floating">
+				<input type="email" class="form-control" id="email" name="email" placeholder="name@example.com" required>
+				<label for="email">@Localizer["Email"]</label>
+			</div>
+			<button class="btn btn-outline-primary">@Localizer["Search"]</button>
+		</div>
+	</form>
+</div>
+
+@foreach (var (group, users) in Model.UserGroups) {
+	<h2>@group</h2>
+
+	<table class="table table-stripd">
+		<thead>
+			<tr>
+				<th scope="col">@Localizer["Id"]</th>
+				<th scope="col">@Localizer["Public name"]</th>
+				<th scope="col">@Localizer["Username"]</th>
+				<th scope="col">@Localizer["Email"]</th>
+			</tr>
+		</thead>
+		<tbody>
+			@foreach (var user in users) {
+				<tr>
+					<th scope="row"><a asp-page="./Manage" asp-route-id="@user.Id">@user.Id</a></th>
+					<td>@user.Name</td>
+					<td>@user.UserName</td>
+					<td>@user.Email</td>
+				</tr>
+			}
+		</tbody>
+	</table>
+}

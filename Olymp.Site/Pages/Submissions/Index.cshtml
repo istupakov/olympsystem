@@ -1,0 +1,89 @@
+﻿@page "{n:int=1}"
+@attribute [Authorize]
+@model IndexModel
+@{
+	ViewData["Title"] = Localizer["Latest Submissions"];
+}
+<h1>@ViewData["Title"]</h1>
+
+@if (User.IsInRole(RoleNames.Admin) || User.IsInRole(RoleNames.Jury)) {
+	<form class="mb-2" method="get" asp-page-handler="Find">
+		<div class="input-group">
+			<div class="form-floating">
+				<input type="search" class="form-control" id="user" name="user">
+				<label for="user">@Localizer["User"]</label>
+			</div>
+			<div class="form-floating">
+				<input type="search" class="form-control" id="problem" name="problem">
+				<label for="problem">@Localizer["Problem"]</label>
+			</div>
+			<div class="form-floating">
+				<input type="search" class="form-control" id="compilator" name="compilator">
+				<label for="compilator">@Localizer["Compilator"]</label>
+			</div>
+			<button class="btn btn-outline-primary">@Localizer["Search"]</button>
+		</div>
+	</form>
+}
+
+<table class="table table-sm table-stripd">
+	<thead>
+		<tr>
+			<th scope="col">@Localizer["Submission time"]</th>
+			<th scope="col">@Localizer["User"]</th>
+			<th scope="col">@Localizer["Problem"]</th>
+			<th scope="col">@Localizer["Compilator"]</th>
+			<th scope="col">@Localizer["Status"]</th>
+		</tr>
+	</thead>
+	<tbody>
+		@foreach (var item in Model.Submissions) {
+			<tr>
+				<td>@item.CommitTime</td>
+				<td>
+					@item.User.Name
+					@if (item.User is OlympUser && item.User.Organization is not null) {
+						<abbr title="@item.User.Organization.FullName">
+							(@item.User.Organization.Name)
+						</abbr>
+					}
+				</td>
+				<td>
+					<a asp-page="/Problems/ShowText" asp-route-id="@item.ProblemId" title="@item.Problem.Contest.Name @item.Problem.NameWithNumber">@item.Problem.Name</a>
+				</td>
+				<td>@item.Compilator.Name</td>
+				<td>
+					@{
+						var cls = item.StatusCode switch {
+							-1 => "text-danger",
+							0 => null,
+							1 => "text-info",
+							2 => "fw-bold text-success",
+							_ => "fw-semibold text-danger"
+						};
+					}
+					<span class="@cls">@string.Format(Localizer[item.StatusTemplate], item.StatusTestNumber)</span>
+					@if (User.IsInRole(RoleNames.Admin) || User.IsInRole(RoleNames.Jury)) {
+						<div class="btn-group btn-group-sm">
+							@if (item.StatusCode == -1) {
+								<a class="btn btn-danger" asp-page="./Errors" asp-route-id="@item.Id">view errors</a>
+							}
+							<a class="btn btn-info" asp-page="./Log" asp-route-id="@item.Id">view log</a>
+							<a class="btn btn-primary" asp-page="./Code" asp-route-id="@item.Id">view code</a>
+						</div>
+					}
+				</td>
+			</tr>
+		}
+	</tbody>
+</table>
+
+<nav>
+	<ul class="pagination">
+		@for (int i = 1; i < 10; ++i) {
+			<li class="page-item @(i == Model.N? "active": null)">
+				<a class="page-link" asp-route-n="@i" asp-route-user="@Request.Query["user"]" asp-route-problem="@Request.Query["problem"]" asp-route-compilator="@Request.Query["compilator"]">@i</a>
+			</li>
+		}
+	</ul>
+</nav>

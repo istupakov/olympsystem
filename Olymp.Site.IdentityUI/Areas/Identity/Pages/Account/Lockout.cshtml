@@ -1,0 +1,11 @@
+﻿@page
+@model LockoutModel
+@inject IStringLocalizer<IdentityUIResources> Localizer
+@{
+	ViewData["Title"] = Localizer["Locked out"];
+}
+
+<header>
+	<h1 class="text-danger">@ViewData["Title"]</h1>
+	<p class="text-danger">@Localizer["This account has been locked out, please try again later."]</p>
+</header>
