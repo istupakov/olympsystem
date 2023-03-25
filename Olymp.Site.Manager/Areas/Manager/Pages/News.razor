@@ -1,0 +1,90 @@
+﻿@page "/manager/news"
+@attribute [Authorize(Roles = "Admin")]
+@inject IDbContextFactory<OlympContext> DbFactory
+
+<PageTitle>Manage news</PageTitle>
+
+<h1>Manage news</h1>
+
+<button class="btn btn-primary mb-2" @onclick="Add">Add news</button>
+
+<div class="row">
+    <div class="col-md-4" style="height: 50vh">
+        <div class="overflow-auto h-100 w-100 d-inline-block">
+            <ul class="list-group">
+                <Virtualize Context="news" ItemsProvider="@GetNews">
+                    <a class="list-group-item list-group-item-action @(news.Id == selectedNews?.Id? "active": null)" @onclick="() => Select(news.Id)">
+                        <div class="d-flex justify-content-between">
+                            <h5 class="mb-1">@news.Title</h5>
+                            <small>@news.PublicationDate.Date.ToShortDateString()</small>
+                        </div>
+                    </a>
+                </Virtualize>
+            </ul>
+        </div>
+    </div>
+    <div class="col-md-8">
+        @if (selectedNews is not null)
+        {
+            <EditForm Model="@selectedNews" OnValidSubmit="@Save">
+                <DataAnnotationsValidator />
+                <ValidationSummary />
+
+                <div class="form-floating mb-3">
+                    <InputText id="title" class="form-control" @bind-Value="selectedNews.Title" />
+                    <label for="title">Title</label>
+                </div>
+
+                <div class="form-floating mb-3">
+                    <InputDate id="publicationDate" class="form-control" @bind-Value="selectedNews.PublicationDate" />
+                    <label for="publicationDate">Publication date</label>
+                </div>
+
+                <div class="form-floating mb-3">
+                    <InputTextArea id="text" class="form-control" style="height: 30vh" @bind-Value="selectedNews.Text" />
+                    <label for="text">Text</label>
+                </div>
+
+                <button class="btn btn-warning" type="submit">Save</button>
+            </EditForm>
+        }
+    </div>
+</div>
+
+@code {
+    private Domain.Models.News? selectedNews = null;
+
+    private async ValueTask<ItemsProviderResult<Domain.Models.News>> GetNews(ItemsProviderRequest request)
+    {
+        using var context = DbFactory.CreateDbContext();
+        return new(await context.News
+                                .OrderByDescending(x => x.PublicationDate)
+                                .Skip(request.StartIndex)
+                                .Take(request.Count)
+                                .ToListAsync(request.CancellationToken),
+                   await context.News
+                                .CountAsync(request.CancellationToken)
+        );
+    }
+
+    private async Task Select(int id)
+    {
+        using var context = DbFactory.CreateDbContext();
+        selectedNews = await context.News.SingleAsync(x => x.Id == id);
+    }
+
+    private void Add()
+    {
+        selectedNews = new()
+            {
+                Title = null!,
+                PublicationDate = DateTimeOffset.Now,
+                Text = null!
+            };
+    }
+
+    private Task Save()
+    {
+        throw new NotImplementedException();
+    }
+}
