@@ -8,8 +8,6 @@ using Olymp.Domain;
 using Olymp.Domain.Models;
 using Olymp.Site.Protos;
 
-using static System.Net.Mime.MediaTypeNames;
-
 namespace Olymp.Site.Services.Checker;
 
 public interface ICheckerService
@@ -42,7 +40,7 @@ public class CheckerService : ICheckerService
 {
     private readonly ILogger _logger;
     private readonly IRunnerService _runner;
-    private readonly IServiceProvider _provider;
+    private readonly IDbContextFactory<OlympContext> _dbFactory;
     private readonly IEnumerable<ICheckerTest> _checkerTests;
     private readonly List<CheckerTestResult> _checkerTestResults = new();
     private readonly Dictionary<int, ISimpleChecker> _simpleCheckers;
@@ -55,12 +53,13 @@ public class CheckerService : ICheckerService
     public CheckerSelfTestingStatus SelfTestingStatus { get; private set; } = CheckerSelfTestingStatus.Unknown;
     public IEnumerable<CheckerTestResult> SelfTestingResults => _checkerTestResults.AsReadOnly();
 
-    public CheckerService(ILogger<CheckerService> logger, IRunnerService runner, IServiceProvider provider,
-        IEnumerable<ICheckerTest> checkerTests, IEnumerable<ISimpleChecker> simpleCheckers)
+    public CheckerService(ILogger<CheckerService> logger, IRunnerService runner,
+        IDbContextFactory<OlympContext> dbFactory, IEnumerable<ICheckerTest> checkerTests,
+        IEnumerable<ISimpleChecker> simpleCheckers)
     {
         _logger = logger;
         _runner = runner;
-        _provider = provider;
+        _dbFactory = dbFactory;
         _checkerTests = checkerTests;
         _simpleCheckers = simpleCheckers.ToDictionary(x => x.Id);
     }
@@ -130,8 +129,7 @@ public class CheckerService : ICheckerService
 
     public async Task<bool> TryCheckFromDB(CancellationToken token)
     {
-        await using var scope = _provider.CreateAsyncScope();
-        var context = scope.ServiceProvider.GetRequiredService<OlympContext>();
+        using var context = await _dbFactory.CreateDbContextAsync();
 
         var compilatorsId = await context.Compilators
                            .Where(x => x.IsActive && SupportedEnvs.Contains(x.ConfigName))
@@ -334,8 +332,7 @@ public class CheckerService : ICheckerService
 
     public async Task<bool> RunSelfTests(CancellationToken token)
     {
-        await using var scope = _provider.CreateAsyncScope();
-        var context = scope.ServiceProvider.GetRequiredService<OlympContext>();
+        using var context = await _dbFactory.CreateDbContextAsync();
         var compilators = await context.Compilators
             .Where(x => x.IsActive && SupportedEnvs.Contains(x.ConfigName))
             .ToListAsync(token);
