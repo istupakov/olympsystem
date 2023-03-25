@@ -19,6 +19,7 @@
     <ProjectReference Include="..\Olymp.Checker\Olymp.Checker.csproj" />
     <ProjectReference Include="..\Olymp.Domain\Olymp.Domain.csproj" />
     <ProjectReference Include="..\Olymp.Site.IdentityUI\Olymp.Site.IdentityUI.csproj" />
+    <ProjectReference Include="..\Olymp.Site.Manager\Olymp.Site.Manager.csproj" />
   </ItemGroup>
 
   <ItemGroup>

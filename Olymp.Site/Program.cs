@@ -30,7 +30,7 @@ builder.WebHost.ConfigureKestrel(options =>
 // Add services to the container.
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
-builder.Services.AddDbContext<OlympContext>(options => options.UseSqlServer(connectionString)
+builder.Services.AddDbContextFactory<OlympContext>(options => options.UseSqlServer(connectionString)
     .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTrackingWithIdentityResolution)
     .EnableSensitiveDataLogging(builder.Environment.IsDevelopment()));
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
@@ -116,10 +116,14 @@ builder.Services.AddGrpc();
 builder.Services.AddRazorPages(options =>
 {
     options.Conventions.AuthorizeAreaFolder("Identity", "/Account/Manage", PolicyNames.OlympUser);
+    options.Conventions.AuthorizeAreaFolder("Manager", "/", PolicyNames.JuryOrAdmin);
 })
     .AddViewLocalization(LanguageViewLocationExpanderFormat.Suffix)
     .AddDataAnnotationsLocalization<SharedResource>()
     .AddDataAnnotationsLocalization<IdentityUIResources>();
+
+
+builder.Services.AddServerSideBlazor();
 
 var dataProtectionPath = builder.Configuration["DataProtection:Path"];
 if (builder.Environment.IsProduction() && dataProtectionPath is not null)
@@ -169,5 +173,7 @@ app.UseAuthorization();
 app.MapHealthChecks("/healthz");
 app.MapGrpcService<RunnerService>().RequireAuthorization(PolicyNames.Runner);
 app.MapRazorPages();
+app.MapBlazorHub();
+app.MapFallbackToAreaPage("/Manager/{**segment}", "/_Host", "Manager");
 
 app.Run();

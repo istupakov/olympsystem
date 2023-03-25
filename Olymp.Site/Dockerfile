@@ -3,14 +3,16 @@ WORKDIR /src
 
 COPY ./Olymp.Checker/*.csproj ./Olymp.Checker/
 COPY ./Olymp.Domain/*.csproj ./Olymp.Domain/
-COPY ./Olymp.Site/*.csproj ./Olymp.Site/
 COPY ./Olymp.Site.IdentityUI/*.csproj ./Olymp.Site.IdentityUI/
+COPY ./Olymp.Site.Manager/*.csproj ./Olymp.Site.Manager/
+COPY ./Olymp.Site/*.csproj ./Olymp.Site/
 RUN dotnet restore --no-cache ./Olymp.Site/Olymp.Site.csproj
 
 COPY ./Olymp.Checker ./Olymp.Checker/
 COPY ./Olymp.Domain ./Olymp.Domain/
-COPY ./Olymp.Site ./Olymp.Site/
 COPY ./Olymp.Site.IdentityUI ./Olymp.Site.IdentityUI/
+COPY ./Olymp.Site.Manager ./Olymp.Site.Manager/
+COPY ./Olymp.Site ./Olymp.Site/
 RUN dotnet publish --no-restore ./Olymp.Site/Olymp.Site.csproj -c Release -o ./app
 
 FROM mcr.microsoft.com/dotnet/aspnet
