@@ -183,8 +183,8 @@
 								</Grid.RowDefinitions>
 								<Border Style="{StaticResource ResourceKey=MainBorderStyle}">
 									<StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
-                                        <TextBlock x:Name="SelectedMessage_Problems_Number" Style="{StaticResource ResourceKey=MainTextBlockStyle}" />
-                                        <TextBlock x:Name="SelectedMessage_Problems_Name" Style="{StaticResource ResourceKey=MainTextBlockStyle}" />
+                                        <TextBlock x:Name="SelectedMessage_Problem_Number" Style="{StaticResource ResourceKey=MainTextBlockStyle}" />
+                                        <TextBlock x:Name="SelectedMessage_Problem_Name" Style="{StaticResource ResourceKey=MainTextBlockStyle}" />
 									</StackPanel>
 								</Border>
 								<Border Grid.Row="1" Style="{StaticResource ResourceKey=MainBorderStyle}">
