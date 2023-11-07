@@ -232,16 +232,16 @@
     <value>Пароли должны содержать не менее {0} символов.</value>
   </data>
   <data name="Passwords must have at least one digit ('0'-'9')." xml:space="preserve">
-    <value>Пароль должен иметь хотя бы одну цифру ('0'-'9').</value>
+    <value>Пароли должны иметь хотя бы одну цифру ('0'-'9').</value>
   </data>
   <data name="Passwords must have at least one lowercase ('a'-'z')." xml:space="preserve">
-    <value>Пароль должен иметь хотя бы один символ в нижнем регистре ('a'-'z').</value>
+    <value>Пароли должны иметь хотя бы один символ в нижнем регистре ('a'-'z').</value>
   </data>
   <data name="Passwords must have at least one non alphanumeric character." xml:space="preserve">
-    <value>Пароль должен иметь хотя бы один не цифро-буквенный символ.</value>
+    <value>Пароли должны иметь хотя бы один не цифро-буквенный символ.</value>
   </data>
   <data name="Passwords must have at least one uppercase ('A'-'Z')." xml:space="preserve">
-    <value>Пароль должен иметь хотя бы один символ в верхнем регистре ('A'-'Z').</value>
+    <value>Пароли должны иметь хотя бы один символ в верхнем регистре ('A'-'Z').</value>
   </data>
   <data name="Patronymic" xml:space="preserve">
     <value>Отчество</value>
@@ -298,7 +298,7 @@
     <value>Подтверждение сброса пароля</value>
   </data>
   <data name="Reset your password." xml:space="preserve">
-    <value>Сбросить ваш пароля.</value>
+    <value>Сбросить ваш пароль.</value>
   </data>
   <data name="Save" xml:space="preserve">
     <value>Сохранить</value>
@@ -328,7 +328,7 @@
     <value>Поле {0} не является действительным адресом электронной почты.</value>
   </data>
   <data name="The {0} field is not a valid phone number." xml:space="preserve">
-    <value>Поле {0} не является правильным номером телефона.</value>
+    <value>Поле {0} не является действительным номером телефона.</value>
   </data>
   <data name="The {0} field is required." xml:space="preserve">
     <value>Поле {0} является обязательным.</value>
