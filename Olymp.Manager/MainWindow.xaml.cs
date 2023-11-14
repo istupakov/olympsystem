@@ -25,7 +25,7 @@ public partial class MainWindow : Window
         InitializeComponent();
     }
 
-    private OlympContext CreateContext()
+    private static OlympContext CreateContext()
     {
         var configuration = new ConfigurationBuilder()
             .SetBasePath(Directory.GetCurrentDirectory())
@@ -58,7 +58,7 @@ public partial class MainWindow : Window
         (Resources["RetestView"] as CollectionViewSource).Source = null;
     }
 
-    void Update(object sender, RoutedEventArgs e)
+    private void Update(object sender, RoutedEventArgs e)
     {
         var context = CreateContext();
         DataContext = context;
@@ -80,7 +80,7 @@ public partial class MainWindow : Window
         (Resources["RetestView"] as CollectionViewSource).Source = null;
     }
 
-    void RefreshViews()
+    private void RefreshViews()
     {
         (Resources["ContestsView"] as CollectionViewSource).View.Refresh();
         (Resources["CheckersView"] as CollectionViewSource).View.Refresh();
@@ -454,5 +454,18 @@ public partial class MainWindow : Window
                 }
             }
         }
+    }
+
+    private void Compilers_AutoGeneratingColumn(object sender, DataGridAutoGeneratingColumnEventArgs e)
+    {
+        if (e.Column.Header.ToString() == nameof(Compilator.NameWithDescription))
+        {
+            e.Cancel = true;
+        }
+    }
+
+    private void Compilers_AddingNewItem(object sender, AddingNewItemEventArgs e)
+    {
+        e.NewItem = Context.CreateProxy<Compilator>();
     }
 }

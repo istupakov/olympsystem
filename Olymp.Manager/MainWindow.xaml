@@ -470,7 +470,7 @@
                 <DataGrid ItemsSource="{Binding Source={StaticResource OrganizationsView}}"/>
             </TabItem>
             <TabItem Header="Компиляторы">
-                <DataGrid x:Name="Compilers" ItemsSource="{Binding Source={StaticResource CompilatorsView}}"/>
+                <DataGrid x:Name="Compilers" ItemsSource="{Binding Source={StaticResource CompilatorsView}}" AutoGeneratingColumn="Compilers_AutoGeneratingColumn" AddingNewItem="Compilers_AddingNewItem"/>
             </TabItem>
         </TabControl>
     </DockPanel>
