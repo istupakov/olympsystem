@@ -94,6 +94,7 @@ public class CheckerService : ICheckerService
         {
             "Java" => $"java -Xmx{memoryLimitMb}M -Xss64M Main",
             "Python" => Path.ChangeExtension(name, ".pyc"),
+            "C#" when compilator.ConfigName.StartsWith("dotnet") => $"dotnet {Path.ChangeExtension(name, ".dll")}",
             _ => Path.ChangeExtension(name, ".exe")
         };
 
