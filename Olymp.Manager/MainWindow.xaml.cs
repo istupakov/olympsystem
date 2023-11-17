@@ -468,4 +468,9 @@ public partial class MainWindow : Window
     {
         e.NewItem = Context.CreateProxy<Compilator>();
     }
+
+    private void DataGrid_AddingNewItem(object sender, AddingNewItemEventArgs e)
+    {
+        e.NewItem = Context.CreateProxy<Organization>();
+    }
 }

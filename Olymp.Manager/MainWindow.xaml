@@ -467,7 +467,7 @@
                 </Grid>
             </TabItem>
             <TabItem Header="Организации">
-                <DataGrid ItemsSource="{Binding Source={StaticResource OrganizationsView}}"/>
+                <DataGrid ItemsSource="{Binding Source={StaticResource OrganizationsView}}" AddingNewItem="DataGrid_AddingNewItem"/>
             </TabItem>
             <TabItem Header="Компиляторы">
                 <DataGrid x:Name="Compilers" ItemsSource="{Binding Source={StaticResource CompilatorsView}}" AutoGeneratingColumn="Compilers_AutoGeneratingColumn" AddingNewItem="Compilers_AddingNewItem"/>
