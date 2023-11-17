@@ -270,6 +270,7 @@ ServiceFabricBackup/
 *.ndf
 Entropy.bin
 backup/
+data/
 
 # Business Intelligence projects
 *.rdl.data
