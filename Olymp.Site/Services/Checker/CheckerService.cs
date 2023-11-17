@@ -77,7 +77,7 @@ public class CheckerService : ICheckerService
         var command = compilator.CommandLine.Replace("!.!", filename).Replace("!", Path.GetFileNameWithoutExtension(filename));
 
         var resourceLimits = new RunnerResources(TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(10),
-            256 * 1024 * 1024, 0, 100 * 1024);
+            512 * 1024 * 1024, 0, 100 * 1024);
         return await _runner.Run(new($"{command} 1>&2", Memory<byte>.Empty, clearWorkdir, false,
             new[] { compilator.ConfigName }, new RunnerFile[] { new(filename, source) },
             resourceLimits), token);
