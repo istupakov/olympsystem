@@ -201,6 +201,9 @@
   <data name="Contests" xml:space="preserve">
     <value>Соревнования</value>
   </data>
+  <data name="Create random logins" xml:space="preserve">
+    <value>Создать случайные логины</value>
+  </data>
   <data name="Create team for the" xml:space="preserve">
     <value>Создать команду для</value>
   </data>

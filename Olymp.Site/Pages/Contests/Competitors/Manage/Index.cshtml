@@ -8,6 +8,7 @@
 
 <form method="post" class="mb-2">
 	<button class="btn btn-warning" asp-route-handler="ApproveAll" asp-route-id="@Model.Contest.Id">@Localizer["Approve all"]</button>
+	<button class="btn btn-primary" asp-route-handler="CreateRandomLogins" asp-route-id="@Model.Contest.Id">@Localizer["Create random logins"]</button>
 	<button class="btn btn-danger" asp-route-handler="RemoveLogins" asp-route-id="@Model.Contest.Id">@Localizer["Remove logins"]</button>
 </form>
 

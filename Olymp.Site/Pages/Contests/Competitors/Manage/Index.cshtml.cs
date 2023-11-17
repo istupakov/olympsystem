@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using System.Text;
 
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -116,7 +117,7 @@ public class IndexModel : PageModel
         return RedirectToPage();
     }
 
-    public async Task<IActionResult> OnPostUploadLoginsAsync(int id)
+    private async Task<IActionResult> CreateLoginsAsync(int id, Dictionary<string, string> logins)
     {
         var contest = await _context.Contests
             .Include(x => x.Competitors.OrderBy(x => x.RegistrationDate))
@@ -128,16 +129,6 @@ public class IndexModel : PageModel
 
         if (contest is null)
             return NotFound();
-
-        if (LoginsFile is null)
-            return BadRequest();
-
-        var logins = new Dictionary<string, string>();
-        using (var reader = new StreamReader(LoginsFile.OpenReadStream()))
-        {
-            while ((await reader.ReadLineAsync())?.Split(';', '\t', ',') is [var login, var password])
-                logins.Add(login, password);
-        }
 
         foreach (var competitor in contest.Competitors)
         {
@@ -170,6 +161,44 @@ public class IndexModel : PageModel
         }
 
         return RedirectToPage();
+    }
+
+    public async Task<IActionResult> OnPostUploadLoginsAsync(int id)
+    {
+        if (LoginsFile is null)
+            return BadRequest();
+
+        var logins = new Dictionary<string, string>();
+        using (var reader = new StreamReader(LoginsFile.OpenReadStream()))
+        {
+            while ((await reader.ReadLineAsync())?.Split(';', '\t', ',') is [var login, var password])
+                logins.Add(login, password);
+        }
+
+        return await CreateLoginsAsync(id, logins);
+    }
+
+    public async Task<IActionResult> OnPostCreateRandomLoginsAsync(int id)
+    {
+        int count = await _context.Competitors.CountAsync(x => x.ContestId == id);
+
+        const int passwordLength = 10;
+        var passwordSymbols = new List<char>();
+        passwordSymbols.AddRange(Enumerable.Range(0, 10).Select(x => (char)('0' + x)));
+        passwordSymbols.AddRange(Enumerable.Range(0, 26).Select(x => (char)('a' + x)));
+        passwordSymbols.AddRange(Enumerable.Range(0, 26).Select(x => (char)('A' + x)));
+
+        var random = new Random();
+        var logins = new Dictionary<string, string>();
+        for (int i = 1; i <= count; ++i)
+        {
+            var password = new StringBuilder();
+            for (int j = 0; j < passwordLength; ++j)
+                password.Append(passwordSymbols[random.Next(passwordSymbols.Count)]);
+            logins.Add($"olymp{i:000}", password.ToString());
+        }
+
+        return await CreateLoginsAsync(id, logins);
     }
 
     public async Task<IActionResult> OnPostRemoveLoginsAsync(int id)
