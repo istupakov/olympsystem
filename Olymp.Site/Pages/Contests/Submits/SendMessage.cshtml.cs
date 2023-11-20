@@ -14,12 +14,13 @@ using Olymp.Domain.Models;
 
 namespace Olymp.Site.Pages.Contests.Submits;
 
-public class SendMessageModel : PageModel
+public class SendMessageModel(OlympContext context, UserManager<User> userManager,
+    IAuthorizationService authorizationService, IStringLocalizer<SharedResource> localizer) : PageModel
 {
-    private readonly OlympContext _context;
-    private readonly UserManager<User> _userManager;
-    private readonly IAuthorizationService _authorizationService;
-    private readonly IStringLocalizer<SharedResource> _localizer;
+    private readonly OlympContext _context = context;
+    private readonly UserManager<User> _userManager = userManager;
+    private readonly IAuthorizationService _authorizationService = authorizationService;
+    private readonly IStringLocalizer<SharedResource> _localizer = localizer;
 
     public Contest Contest { get; private set; } = null!;
     public SelectList Problems { get; private set; } = null!;
@@ -36,15 +37,6 @@ public class SendMessageModel : PageModel
         [Display(Name = "Question")]
         [StringLength(4 * 1024, MinimumLength = 10, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.")]
         public string Text { get; set; } = null!;
-    }
-
-    public SendMessageModel(OlympContext context, UserManager<User> userManager,
-        IAuthorizationService authorizationService, IStringLocalizer<SharedResource> localizer)
-    {
-        _context = context;
-        _userManager = userManager;
-        _authorizationService = authorizationService;
-        _localizer = localizer;
     }
 
     private async Task<bool> LoadAsync(int id)

@@ -8,14 +8,9 @@ using Olymp.Domain;
 
 namespace Olymp.Site.Pages.Contests;
 
-public class DownloadTestsModel : PageModel
+public class DownloadTestsModel(OlympContext context) : PageModel
 {
-    private readonly OlympContext _context;
-
-    public DownloadTestsModel(OlympContext context)
-    {
-        _context = context;
-    }
+    private readonly OlympContext _context = context;
 
     public async Task<IActionResult> OnGetAsync(int id)
     {

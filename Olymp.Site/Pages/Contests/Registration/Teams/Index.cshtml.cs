@@ -8,21 +8,15 @@ using Olymp.Domain.Models;
 
 namespace Olymp.Site.Pages.Contests.Registration.Teams;
 
-public class IndexModel : PageModel
+public class IndexModel(OlympContext context, UserManager<User> userManager) : PageModel
 {
-    private readonly OlympContext _context;
-    private readonly UserManager<User> _userManager;
+    private readonly OlympContext _context = context;
+    private readonly UserManager<User> _userManager = userManager;
 
     public Contest Contest { get; private set; } = null!;
     public IEnumerable<Organization> Organizations { get; private set; } = null!;
     public IEnumerable<Competitor> Teams { get; private set; } = null!;
     public int UserId { get; private set; }
-
-    public IndexModel(OlympContext context, UserManager<User> userManager)
-    {
-        _context = context;
-        _userManager = userManager;
-    }
 
     public async Task<IActionResult> OnGetAsync(int id)
     {

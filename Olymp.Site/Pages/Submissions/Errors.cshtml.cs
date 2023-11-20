@@ -8,18 +8,12 @@ using Olymp.Domain;
 
 namespace Olymp.Site.Pages.Submissions;
 
-public class ErrorsModel : PageModel
+public class ErrorsModel(OlympContext context, IAuthorizationService authorizationService) : PageModel
 {
-    private readonly OlympContext _context;
-    private readonly IAuthorizationService _authorizationService;
+    private readonly OlympContext _context = context;
+    private readonly IAuthorizationService _authorizationService = authorizationService;
 
     public string Error { get; private set; } = null!;
-
-    public ErrorsModel(OlympContext context, IAuthorizationService authorizationService)
-    {
-        _context = context;
-        _authorizationService = authorizationService;
-    }
 
     public async Task<IActionResult> OnGetAsync(int id)
     {
@@ -40,7 +34,7 @@ public class ErrorsModel : PageModel
         if (last.CheckTime < new DateTime(2023, 03, 01))
         {
             int index = last.Log.IndexOf("StandartOutput");
-            Error = index != -1 ? last.Log.Substring(index) : "Internal error!";
+            Error = index != -1 ? last.Log[index..] : "Internal error!";
             return Page();
         }
 

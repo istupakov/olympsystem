@@ -7,16 +7,11 @@ using Olymp.Domain.Models;
 
 namespace Olymp.Site.Pages.Submissions;
 
-public class LogModel : PageModel
+public class LogModel(OlympContext context) : PageModel
 {
-    private readonly OlympContext _context;
+    private readonly OlympContext _context = context;
 
     public IEnumerable<CheckResult> CheckResults { get; private set; } = null!;
-
-    public LogModel(OlympContext context)
-    {
-        _context = context;
-    }
 
     public async Task<IActionResult> OnGetAsync(int id)
     {

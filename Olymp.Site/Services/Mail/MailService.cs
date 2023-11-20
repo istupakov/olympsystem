@@ -18,23 +18,17 @@ public class MailServiceConfiguration
     public required string Password { get; init; }
 }
 
-public class MailService : IEmailSender
+public class MailService(ILogger<MailService> logger, IOptions<MailServiceConfiguration> mailServiceConfiguration) : IEmailSender
 {
-    private readonly ILogger _logger;
-    private readonly MailServiceConfiguration _configuration;
-
-    public MailService(ILogger<MailService> logger, IOptions<MailServiceConfiguration> mailServiceConfiguration)
-    {
-        _logger = logger;
-        _configuration = mailServiceConfiguration.Value;
-    }
+    private readonly ILogger _logger = logger;
+    private readonly MailServiceConfiguration _configuration = mailServiceConfiguration.Value;
 
     public Task SendEmailAsync(string email, string subject, string htmlMessage)
     {
         var builder = new BodyBuilder { HtmlBody = htmlMessage };
         var message = new MimeMessage(
-            new[] { MailboxAddress.Parse(_configuration.From) },
-            new[] { MailboxAddress.Parse(email) },
+            [MailboxAddress.Parse(_configuration.From)],
+            [MailboxAddress.Parse(email)],
             subject, builder.ToMessageBody());
 
         _logger.LogInformation("Sending an email to {email} with the subject '{subject}'", email, subject);

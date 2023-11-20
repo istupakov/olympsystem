@@ -9,19 +9,13 @@ using Olymp.Domain.Models;
 
 namespace Olymp.Site.Pages.Users;
 
-public class IndexModel : PageModel
+public class IndexModel(OlympContext context, UserManager<User> userManager) : PageModel
 {
-    private readonly OlympContext _context;
-    private readonly UserManager<User> _userManager;
+    private readonly OlympContext _context = context;
+    private readonly UserManager<User> _userManager = userManager;
 
     public bool AllUsers { get; private set; }
     public List<(string, IList<User>)> UserGroups { get; } = new();
-
-    public IndexModel(OlympContext context, UserManager<User> userManager)
-    {
-        _context = context;
-        _userManager = userManager;
-    }
 
     public async Task OnGetAsync(bool all = false, string? email = null)
     {

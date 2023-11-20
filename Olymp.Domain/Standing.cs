@@ -156,7 +156,7 @@ public class Standing
 
         var usersInfo = from user in users
                         let competitor = user as Competitor
-                        let members = competitor?.MemberNames ?? Array.Empty<string>()
+                        let members = competitor?.MemberNames ?? []
                         select new
                         {
                             user.Id,

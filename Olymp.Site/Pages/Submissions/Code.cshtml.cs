@@ -8,19 +8,13 @@ using Olymp.Domain;
 
 namespace Olymp.Site.Pages.Submissions;
 
-public class CodeModel : PageModel
+public class CodeModel(OlympContext context, IAuthorizationService authorizationService) : PageModel
 {
-    private readonly OlympContext _context;
-    private readonly IAuthorizationService _authorizationService;
+    private readonly OlympContext _context = context;
+    private readonly IAuthorizationService _authorizationService = authorizationService;
 
     public string Code { get; private set; } = null!;
     public string Lang { get; private set; } = null!;
-
-    public CodeModel(OlympContext context, IAuthorizationService authorizationService)
-    {
-        _context = context;
-        _authorizationService = authorizationService;
-    }
 
     public async Task<IActionResult> OnGetAsync(int id)
     {

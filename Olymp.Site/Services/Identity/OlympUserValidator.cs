@@ -4,12 +4,8 @@ using Olymp.Domain.Models;
 
 namespace Olymp.Site.Services.Identity;
 
-public class OlympUserValidator : UserValidator<User>
+public class OlympUserValidator(IdentityErrorDescriber? errors = null) : UserValidator<User>(errors)
 {
-    public OlympUserValidator(IdentityErrorDescriber? errors = null)
-        : base(errors)
-    {
-    }
 
     public override Task<IdentityResult> ValidateAsync(UserManager<User> manager, User user)
     {

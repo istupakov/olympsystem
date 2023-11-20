@@ -8,16 +8,11 @@ using Olymp.Domain.Models;
 namespace Olymp.Site.Pages.Problems;
 
 
-public class ShowTextModel : PageModel
+public class ShowTextModel(OlympContext context) : PageModel
 {
-    private readonly OlympContext _context;
+    private readonly OlympContext _context = context;
 
     public Problem Problem { get; private set; } = null!;
-
-    public ShowTextModel(OlympContext context)
-    {
-        _context = context;
-    }
 
     public async Task<IActionResult> OnGetAsync(int id)
     {

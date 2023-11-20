@@ -10,11 +10,11 @@ using Olymp.Site.Services.Plagiarism;
 
 namespace Olymp.Site.Pages.Plagiarism;
 
-public class TestModel : PageModel
+public class TestModel(OlympContext context, ISubmissionSimilarityService submissionSimilarityService, IStringLocalizer<SharedResource> localizer) : PageModel
 {
-    private readonly OlympContext _context;
-    private readonly ISubmissionSimilarityService _submissionSimilarityService;
-    private readonly IStringLocalizer<SharedResource> _localizer;
+    private readonly OlympContext _context = context;
+    private readonly ISubmissionSimilarityService _submissionSimilarityService = submissionSimilarityService;
+    private readonly IStringLocalizer<SharedResource> _localizer = localizer;
 
     [BindProperty]
     public InputModel Input { get; set; } = new();
@@ -31,13 +31,6 @@ public class TestModel : PageModel
     }
 
     public float? Similarity { get; private set; }
-
-    public TestModel(OlympContext context, ISubmissionSimilarityService submissionSimilarityService, IStringLocalizer<SharedResource> localizer)
-    {
-        _context = context;
-        _submissionSimilarityService = submissionSimilarityService;
-        _localizer = localizer;
-    }
 
     public void OnGet()
     {

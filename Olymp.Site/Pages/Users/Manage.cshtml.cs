@@ -10,21 +10,15 @@ using Olymp.Domain.Models;
 
 namespace Olymp.Site.Pages.Users;
 
-public class ManageModel : PageModel
+public class ManageModel(OlympContext context, UserManager<User> userManager) : PageModel
 {
-    private readonly OlympContext _context;
-    private readonly UserManager<User> _userManager;
+    private readonly OlympContext _context = context;
+    private readonly UserManager<User> _userManager = userManager;
 
     public User TargetUser { get; private set; } = null!;
     public Dictionary<int, Organization> Organizations { get; private set; } = null!;
     public IEnumerable<string> Roles { get; private set; } = null!;
     public IEnumerable<Claim> Claims { get; private set; } = null!;
-
-    public ManageModel(OlympContext context, UserManager<User> userManager)
-    {
-        _userManager = userManager;
-        _context = context;
-    }
 
     private async Task<User?> FindUser(int? id, string? username, string? email)
     {

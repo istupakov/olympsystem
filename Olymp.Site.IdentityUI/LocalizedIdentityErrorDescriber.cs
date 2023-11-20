@@ -5,14 +5,9 @@ namespace Olymp.Site.IdentityUI;
 
 #nullable disable
 
-public class LocalizedIdentityErrorDescriber : IdentityErrorDescriber
+public class LocalizedIdentityErrorDescriber(IStringLocalizer<IdentityUIResources> localizer) : IdentityErrorDescriber
 {
-    private readonly IStringLocalizer<IdentityUIResources> _localizer;
-
-    public LocalizedIdentityErrorDescriber(IStringLocalizer<IdentityUIResources> localizer)
-    {
-        _localizer = localizer;
-    }
+    private readonly IStringLocalizer<IdentityUIResources> _localizer = localizer;
 
     public override IdentityError DefaultError() => new() { Code = nameof(DefaultError), Description = string.Format(_localizer["An unknown failure has occurred."]) };
     public override IdentityError ConcurrencyFailure() => new() { Code = nameof(ConcurrencyFailure), Description = string.Format(_localizer["Optimistic concurrency failure, object has been modified."]) };

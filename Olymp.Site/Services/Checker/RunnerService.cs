@@ -33,24 +33,18 @@ public interface IRunnerService
     Task<RunnerResult> Run(RunnerTask request, CancellationToken token = default);
 }
 
-public class RunnerService : Runner.RunnerBase, IRunnerService
+public class RunnerService(ILogger<RunnerService> logger, ICheckerManager manager) : Runner.RunnerBase, IRunnerService
 {
-    private readonly ILogger _logger;
-    private readonly ICheckerManager _manager;
+    private readonly ILogger _logger = logger;
+    private readonly ICheckerManager _manager = manager;
     private readonly Channel<CommandRequest> _request = Channel.CreateBounded<CommandRequest>(1);
     private readonly Channel<CommandResponse> _response = Channel.CreateBounded<CommandResponse>(1);
-    private readonly HashSet<string> _supportedEnvs = new();
+    private readonly HashSet<string> _supportedEnvs = [];
 
     public Guid Id { get; private set; } = Guid.Empty;
     public string Name { get; private set; } = null!;
     public DateTimeOffset ConnectingTime { get; } = DateTimeOffset.Now;
     public IReadOnlySet<string> SupportedEnvs => _supportedEnvs;
-
-    public RunnerService(ILogger<RunnerService> logger, ICheckerManager manager)
-    {
-        _logger = logger;
-        _manager = manager;
-    }
 
     public async Task<RunnerResult> Run(RunnerTask task, CancellationToken token = default)
     {

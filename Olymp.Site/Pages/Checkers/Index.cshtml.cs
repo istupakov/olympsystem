@@ -4,16 +4,11 @@ using Olymp.Site.Services.Checker;
 
 namespace Olymp.Site.Pages.Checkers;
 
-public class IndexModel : PageModel
+public class IndexModel(ICheckerManager checkerManager) : PageModel
 {
-    private readonly ICheckerManager _checkerManager;
+    private readonly ICheckerManager _checkerManager = checkerManager;
 
     public IEnumerable<ICheckerService> Checkers => _checkerManager.Checkers.Values;
-
-    public IndexModel(ICheckerManager checkerManager)
-    {
-        _checkerManager = checkerManager;
-    }
 
     public void OnGet()
     {

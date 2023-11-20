@@ -15,12 +15,12 @@ namespace Olymp.Site.Pages.Plagiarism;
 public record PlagiarismCase(Submission Submission1, Submission Submission2, double Similarity);
 public record PlagiarismReport(Competitor Competitor1, Competitor Competitor2, IEnumerable<PlagiarismCase> Cases);
 
-public class IndexModel : PageModel
+public class IndexModel(OlympContext context, ISubmissionSimilarityService submissionSimilarityService,
+    IStringLocalizer<SharedResource> localizer) : PageModel
 {
-    private readonly OlympContext _context;
-    private readonly ISubmissionSimilarityService _submissionSimilarityService;
-    private readonly IStringLocalizer<SharedResource> _localizer;
-    private readonly ILogger _logger;
+    private readonly OlympContext _context = context;
+    private readonly ISubmissionSimilarityService _submissionSimilarityService = submissionSimilarityService;
+    private readonly IStringLocalizer<SharedResource> _localizer = localizer;
 
     [BindProperty]
     public InputModel Input { get; set; } = new();
@@ -39,16 +39,7 @@ public class IndexModel : PageModel
         public float? Threshold { get; set; }
     }
 
-    public IEnumerable<PlagiarismReport> Reports { get; private set; } = Enumerable.Empty<PlagiarismReport>();
-
-    public IndexModel(OlympContext context, ISubmissionSimilarityService submissionSimilarityService,
-        IStringLocalizer<SharedResource> localizer, ILogger<IndexModel> logger)
-    {
-        _context = context;
-        _submissionSimilarityService = submissionSimilarityService;
-        _localizer = localizer;
-        _logger = logger;
-    }
+    public IEnumerable<PlagiarismReport> Reports { get; private set; } = [];
 
     public async Task LoadAsync()
     {
@@ -86,11 +77,11 @@ public class IndexModel : PageModel
                   from user2 in contest.Competitors
                   where user1.Id < user2.Id
                   let cases = from sol1 in user1.Submissions
-                             from sol2 in user2.Submissions
-                             where sol1.ProblemId == sol2.ProblemId
-                             let similarity = _submissionSimilarityService.Similarity(sol1, sol2)
-                             where similarity > Input.Threshold
-                             select new PlagiarismCase(sol1, sol2, similarity)
+                              from sol2 in user2.Submissions
+                              where sol1.ProblemId == sol2.ProblemId
+                              let similarity = _submissionSimilarityService.Similarity(sol1, sol2)
+                              where similarity > Input.Threshold
+                              select new PlagiarismCase(sol1, sol2, similarity)
                   where cases.Any()
                   select new PlagiarismReport(user1, user2, cases);
 

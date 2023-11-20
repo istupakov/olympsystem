@@ -4,13 +4,8 @@ using Olymp.Domain.Models;
 
 namespace Olymp.Site.Services.Identity;
 
-public class OlympPasswordValidator : PasswordValidator<User>
+public class OlympPasswordValidator(IdentityErrorDescriber? errors = null) : PasswordValidator<User>(errors)
 {
-    public OlympPasswordValidator(IdentityErrorDescriber? errors = null)
-        : base(errors)
-    {
-    }
-
     public override Task<IdentityResult> ValidateAsync(UserManager<User> manager, User user, string? password)
     {
         if (user is Competitor)

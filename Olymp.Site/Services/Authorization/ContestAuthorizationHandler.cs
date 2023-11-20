@@ -8,17 +8,11 @@ using Olymp.Domain.Models;
 
 namespace Olymp.Site.Services.Authorization;
 
-public class ContestAuthorizationHandler :
+public class ContestAuthorizationHandler(OlympContext context, UserManager<User> userManager) :
     AuthorizationHandler<OperationAuthorizationRequirement, Contest>
 {
-    private readonly OlympContext _context;
-    private readonly UserManager<User> _userManager;
-
-    public ContestAuthorizationHandler(OlympContext context, UserManager<User> userManager)
-    {
-        _context = context;
-        _userManager = userManager;
-    }
+    private readonly OlympContext _context = context;
+    private readonly UserManager<User> _userManager = userManager;
 
     protected override async Task HandleRequirementAsync(AuthorizationHandlerContext context,
                                                          OperationAuthorizationRequirement requirement,

@@ -9,17 +9,12 @@ namespace Olymp.Site.Services.Authentication;
 public class ApiKeyAuthenticationOptions : AuthenticationSchemeOptions
 {
     public string ApiKeyHeaderName { get; set; } = "Authorization";
-    public IEnumerable<string> ApiKeys { get; set; } = Array.Empty<string>();
+    public IEnumerable<string> ApiKeys { get; set; } = [];
 }
 
-public class ApiKeyAuthenticationHandler : AuthenticationHandler<ApiKeyAuthenticationOptions>
+public class ApiKeyAuthenticationHandler(IOptionsMonitor<ApiKeyAuthenticationOptions> options,
+    ILoggerFactory logger, UrlEncoder encoder) : AuthenticationHandler<ApiKeyAuthenticationOptions>(options, logger, encoder)
 {
-    public ApiKeyAuthenticationHandler(IOptionsMonitor<ApiKeyAuthenticationOptions> options,
-        ILoggerFactory logger, UrlEncoder encoder, ISystemClock clock)
-        : base(options, logger, encoder, clock)
-    {
-    }
-
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()
     {
         if (!Request.Headers.TryGetValue(Options.ApiKeyHeaderName, out var headerValues)

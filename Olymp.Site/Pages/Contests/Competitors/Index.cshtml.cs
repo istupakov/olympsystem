@@ -7,17 +7,12 @@ using Olymp.Domain.Models;
 
 namespace Olymp.Site.Pages.Contests.Competitors;
 
-public class IndexModel : PageModel
+public class IndexModel(OlympContext context) : PageModel
 {
-    private readonly OlympContext _context;
+    private readonly OlympContext _context = context;
 
     public Contest Contest { get; private set; } = null!;
     public IEnumerable<Competitor>? Competitors { get; private set; } = null!;
-
-    public IndexModel(OlympContext context)
-    {
-        _context = context;
-    }
 
     public async Task<IActionResult> OnGetAsync(int id)
     {

@@ -7,18 +7,13 @@ using Olymp.Domain.Models;
 
 namespace Olymp.Site.Pages.Submissions;
 
-public class IndexModel : PageModel
+public class IndexModel(OlympContext context) : PageModel
 {
-    private readonly OlympContext _context;
+    private readonly OlympContext _context = context;
 
     public IEnumerable<Submission> Submissions { get; private set; } = null!;
 
     public int N { get; private set; }
-
-    public IndexModel(OlympContext context)
-    {
-        _context = context;
-    }
 
     public async Task<IActionResult> OnGetAsync(int n = 1, string? user = null, string? problem = null, string? compilator = null)
     {

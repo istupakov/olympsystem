@@ -11,11 +11,12 @@ using Olymp.Domain.Models;
 
 namespace Olymp.Site.Pages.Contests.Registration.Teams;
 
-public class CreateModel : PageModel
+public class CreateModel(OlympContext context, UserManager<User> userManager,
+    IStringLocalizer<SharedResource> localizer) : PageModel
 {
-    private readonly OlympContext _context;
-    private readonly UserManager<User> _userManager;
-    private readonly IStringLocalizer<SharedResource> _localizer;
+    private readonly OlympContext _context = context;
+    private readonly UserManager<User> _userManager = userManager;
+    private readonly IStringLocalizer<SharedResource> _localizer = localizer;
 
     public Contest? Contest { get; private set; }
     public Organization? Organization { get; private set; }
@@ -78,14 +79,6 @@ public class CreateModel : PageModel
 
         [Display(Name = "I confirm that the data is filled in correctly")]
         public bool Confirmation { get; set; }
-    }
-
-    public CreateModel(OlympContext context, UserManager<User> userManager,
-        IStringLocalizer<SharedResource> localizer)
-    {
-        _context = context;
-        _userManager = userManager;
-        _localizer = localizer;
     }
 
     private async Task LoadAsync(int id, int orgId)
@@ -184,8 +177,8 @@ public class CreateModel : PageModel
             RegistrationDate = DateTimeOffset.Now,
             SecurityStamp = Guid.NewGuid().ToString(),
             Members = new List<OlympUser>(),
-            Messages = Array.Empty<Message>(),
-            Submissions = Array.Empty<Submission>()
+            Messages = [],
+            Submissions = []
         };
 
         _context.Attach(Organization);

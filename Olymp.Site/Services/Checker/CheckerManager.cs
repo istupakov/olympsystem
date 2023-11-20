@@ -9,19 +9,13 @@ public interface ICheckerManager
     void Unregister(IRunnerService runner);
 }
 
-public class CheckerManager : ICheckerManager
+public class CheckerManager(IServiceProvider provider, ILogger<CheckerManager> logger) : ICheckerManager
 {
-    private readonly IServiceProvider _provider;
-    private readonly ILogger _logger;
+    private readonly IServiceProvider _provider = provider;
+    private readonly ILogger _logger = logger;
     private readonly ConcurrentDictionary<Guid, ICheckerService> _checkers = new();
 
     public IReadOnlyDictionary<Guid, ICheckerService> Checkers => _checkers.AsReadOnly();
-
-    public CheckerManager(IServiceProvider provider, ILogger<CheckerManager> logger)
-    {
-        _provider = provider;
-        _logger = logger;
-    }
 
     public void Register(IRunnerService runner, CancellationToken token)
     {
@@ -39,7 +33,7 @@ public class CheckerManager : ICheckerManager
         _checkers.TryRemove(runner.Id, out _);
     }
 
-    private async Task Process(ICheckerService checker, CancellationToken token)
+    private async Task Process(CheckerService checker, CancellationToken token)
     {
         while (!token.IsCancellationRequested)
         {

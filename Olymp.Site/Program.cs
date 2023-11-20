@@ -90,7 +90,7 @@ builder.Services.AddRouting(options => options.LowercaseUrls = true);
 builder.Services.AddAuthentication()
     .AddScheme<ApiKeyAuthenticationOptions, ApiKeyAuthenticationHandler>("ApiKey", options =>
     {
-        options.ApiKeys = builder.Configuration.GetSection("ApiKeys").Get<string[]>() ?? Array.Empty<string>();
+        options.ApiKeys = builder.Configuration.GetSection("ApiKeys").Get<string[]>() ?? [];
     });
 
 builder.Services.AddScoped<IAuthorizationHandler, ContestAuthorizationHandler>();

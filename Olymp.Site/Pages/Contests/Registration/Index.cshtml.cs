@@ -11,11 +11,12 @@ using Olymp.Domain.Models;
 
 namespace Olymp.Site.Pages.Contests.Registration;
 
-public class IndexModel : PageModel
+public class IndexModel(OlympContext context, UserManager<User> userManager,
+    IStringLocalizer<SharedResource> localizer) : PageModel
 {
-    private readonly OlympContext _context;
-    private readonly UserManager<User> _userManager;
-    private readonly IStringLocalizer<SharedResource> _localizer;
+    private readonly OlympContext _context = context;
+    private readonly UserManager<User> _userManager = userManager;
+    private readonly IStringLocalizer<SharedResource> _localizer = localizer;
 
     public Contest Contest { get; private set; } = null!;
 
@@ -24,14 +25,6 @@ public class IndexModel : PageModel
 
     public bool HasGroup { get; private set; }
     public bool AlreadyRegistered { get; private set; }
-
-    public IndexModel(OlympContext context, UserManager<User> userManager,
-        IStringLocalizer<SharedResource> localizer)
-    {
-        _context = context;
-        _userManager = userManager;
-        _localizer = localizer;
-    }
 
     private async Task<OlympUser> LoadUser()
     {
@@ -122,8 +115,8 @@ public class IndexModel : PageModel
             RegistrationDate = DateTimeOffset.Now,
             SecurityStamp = Guid.NewGuid().ToString(),
             Members = new List<OlympUser>(),
-            Messages = Array.Empty<Message>(),
-            Submissions = Array.Empty<Submission>()
+            Messages = [],
+            Submissions = []
         };
         competitor.Members.Add(user);
         await _userManager.CreateAsync(competitor);

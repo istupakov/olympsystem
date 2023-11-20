@@ -12,11 +12,12 @@ using Olymp.Site.Services.Checker;
 
 namespace Olymp.Site.Pages.Checkers;
 
-public class RunModel : PageModel
+public class RunModel(OlympContext context, ICheckerManager checkerManager,
+    IStringLocalizer<SharedResource> localizer) : PageModel
 {
-    private readonly OlympContext _context;
-    private readonly ICheckerManager _checkerManager;
-    private readonly IStringLocalizer<SharedResource> _localizer;
+    private readonly OlympContext _context = context;
+    private readonly ICheckerManager _checkerManager = checkerManager;
+    private readonly IStringLocalizer<SharedResource> _localizer = localizer;
 
     public IEnumerable<SelectListItem> CheckerList { get; private set; } = null!;
     public SelectList CompilatorList { get; private set; } = null!;
@@ -43,14 +44,6 @@ public class RunModel : PageModel
 
         [Display(Name = "Input data")]
         public string? Input { get; set; } = null!;
-    }
-
-    public RunModel(OlympContext context, ICheckerManager checkerManager,
-        IStringLocalizer<SharedResource> localizer)
-    {
-        _context = context;
-        _checkerManager = checkerManager;
-        _localizer = localizer;
     }
 
     public async Task LoadAsync()

@@ -8,8 +8,6 @@ using Olymp.Domain;
 using Olymp.Domain.Models;
 using Olymp.Site.Protos;
 
-using static System.Net.Mime.MediaTypeNames;
-
 namespace Olymp.Site.Services.Checker;
 
 public interface ICheckerService
@@ -38,14 +36,15 @@ public enum CheckerSelfTestingStatus
 
 public record CheckerTestResult(ICheckerTest Test, Compilator Compilator, CheckerResultStatus Result, string Output);
 
-public class CheckerService : ICheckerService
+public class CheckerService(ILogger<CheckerService> logger, IRunnerService runner, IServiceProvider provider,
+    IEnumerable<ICheckerTest> checkerTests, IEnumerable<ISimpleChecker> simpleCheckers) : ICheckerService
 {
-    private readonly ILogger _logger;
-    private readonly IRunnerService _runner;
-    private readonly IServiceProvider _provider;
-    private readonly IEnumerable<ICheckerTest> _checkerTests;
-    private readonly List<CheckerTestResult> _checkerTestResults = new();
-    private readonly Dictionary<int, ISimpleChecker> _simpleCheckers;
+    private readonly ILogger _logger = logger;
+    private readonly IRunnerService _runner = runner;
+    private readonly IServiceProvider _provider = provider;
+    private readonly IEnumerable<ICheckerTest> _checkerTests = checkerTests;
+    private readonly List<CheckerTestResult> _checkerTestResults = [];
+    private readonly Dictionary<int, ISimpleChecker> _simpleCheckers = simpleCheckers.ToDictionary(x => x.Id);
     private readonly SemaphoreSlim _semaphore = new(1);
 
     public Guid Id => _runner.Id;
@@ -54,16 +53,6 @@ public class CheckerService : ICheckerService
     public IReadOnlySet<string> SupportedEnvs => _runner.SupportedEnvs;
     public CheckerSelfTestingStatus SelfTestingStatus { get; private set; } = CheckerSelfTestingStatus.Unknown;
     public IEnumerable<CheckerTestResult> SelfTestingResults => _checkerTestResults.AsReadOnly();
-
-    public CheckerService(ILogger<CheckerService> logger, IRunnerService runner, IServiceProvider provider,
-        IEnumerable<ICheckerTest> checkerTests, IEnumerable<ISimpleChecker> simpleCheckers)
-    {
-        _logger = logger;
-        _runner = runner;
-        _provider = provider;
-        _checkerTests = checkerTests;
-        _simpleCheckers = simpleCheckers.ToDictionary(x => x.Id);
-    }
 
     private async Task<RunnerResult> Compile(string name, Compilator compilator,
         ReadOnlyMemory<byte> source, bool clearWorkdir, CancellationToken token)
@@ -103,8 +92,7 @@ public class CheckerService : ICheckerService
 
         var resourceLimits = new RunnerResources(timeLimit, timeLimit + TimeSpan.FromSeconds(5),
             (uint)memoryLimitMb * 1024 * 1024, 1024 * 1024, 4096);
-        return await _runner.Run(new(command, input, false, true, new[] { compilator.ConfigName },
-            Array.Empty<RunnerFile>(), resourceLimits), token);
+        return await _runner.Run(new(command, input, false, true, new[] { compilator.ConfigName }, [], resourceLimits), token);
     }
 
     private async Task<(CheckerResultStatus, RunnerResult)> CheckTest(string name,
@@ -227,20 +215,20 @@ public class CheckerService : ICheckerService
             {
                 int counter = 0;
                 log.AppendLine($"""
-                --------------
-                Test {test.Number}
-                """);
+                    --------------
+                    Test {test.Number}
+                    """);
             test:
                 var (status, result) = await CheckTest(name, submission.Compilator, checker,
                     test.Input, test.Output, timeLimit, submission.Problem.MemoryLimit, token);
 
                 log.AppendLine($"""
-                status: {status}
-                user time: {result.ResourceConsumption.UserTime}
-                total time: {result.ResourceConsumption.TotalTime}
-                peak memory: {result.ResourceConsumption.Memory / 1024 / 1024} MB
-                exit code: {result.ExitCode}
-                """);
+                    status: {status}
+                    user time: {result.ResourceConsumption.UserTime}
+                    total time: {result.ResourceConsumption.TotalTime}
+                    peak memory: {result.ResourceConsumption.Memory / 1024 / 1024} MB
+                    exit code: {result.ExitCode}
+                    """);
 
                 if (status is CheckerResultStatus.TimeLimit or CheckerResultStatus.MemoryLimit && ++counter < 3)
                     goto test;
@@ -252,11 +240,11 @@ public class CheckerService : ICheckerService
                         statusCode = status.MakeStatusCode(test.Number);
 
                     log.AppendLine($"""
-                stdout:
-                {GetTruncatedString(result.Stdout, 1024)}
-                stderr:
-                {GetTruncatedString(result.Stderr, 1024)}
-                """);
+                        stdout:
+                        {GetTruncatedString(result.Stdout, 1024)}
+                        stderr:
+                        {GetTruncatedString(result.Stderr, 1024)}
+                        """);
 
                     if (!allTests)
                         break;
@@ -300,14 +288,14 @@ public class CheckerService : ICheckerService
             if (compileResult.Status is not CommandStatus.Completed)
             {
                 return $"""
-                status: {compileResult.Status}
-                user time: {compileResult.ResourceConsumption.UserTime}
-                total time: {compileResult.ResourceConsumption.TotalTime}
-                peak memory: {compileResult.ResourceConsumption.Memory / 1024 / 1024} MB
-                exit code: {compileResult.ExitCode}
-                compilator:
-                {encoding.GetString(compileResult.Stderr.Span)}
-                """;
+                    status: {compileResult.Status}
+                    user time: {compileResult.ResourceConsumption.UserTime}
+                    total time: {compileResult.ResourceConsumption.TotalTime}
+                    peak memory: {compileResult.ResourceConsumption.Memory / 1024 / 1024} MB
+                    exit code: {compileResult.ExitCode}
+                    compilator:
+                    {encoding.GetString(compileResult.Stderr.Span)}
+                    """;
             }
 
             var result = await RunTest(name, compilator, encoding.GetBytes(input),
@@ -403,28 +391,28 @@ public class CheckerService : ICheckerService
         test.TimeLimit, test.MemoryLimitMB, token);
 
         var output = $"""
-                status: {result.Status}
-                user time: {result.ResourceConsumption.UserTime}
-                total time: {result.ResourceConsumption.TotalTime}
-                peak memory: {result.ResourceConsumption.Memory / 1024 / 1024} MB
-                exit code: {result.ExitCode}
-                source:
-                {test.Source}
-                compilator:
-                {encoding.GetString(compileResult.Stderr.Span)}
-                test input:
-                {test.Input}
-                test output
-                {test.Output}
-                stdout:
-                {GetTruncatedString(result.Stdout, 1024)}
-                stderr:
-                {GetTruncatedString(result.Stderr, 1024)}
-                """;
+            status: {result.Status}
+            user time: {result.ResourceConsumption.UserTime}
+            total time: {result.ResourceConsumption.TotalTime}
+            peak memory: {result.ResourceConsumption.Memory / 1024 / 1024} MB
+            exit code: {result.ExitCode}
+            source:
+            {test.Source}
+            compilator:
+            {encoding.GetString(compileResult.Stderr.Span)}
+            test input:
+            {test.Input}
+            test output
+            {test.Output}
+            stdout:
+            {GetTruncatedString(result.Stdout, 1024)}
+            stderr:
+            {GetTruncatedString(result.Stderr, 1024)}
+            """;
 
         return (status, output);
     }
 
     private static string GetTruncatedString(ReadOnlyMemory<byte> memory, int len) =>
-        Encoding.UTF8.GetString(memory.Span[..(Math.Min(memory.Length, len))]);
+        Encoding.UTF8.GetString(memory.Span[..Math.Min(memory.Length, len)]);
 }
