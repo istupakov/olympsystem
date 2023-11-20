@@ -19,6 +19,7 @@ using Olymp.Site.Services.Authorization;
 using Olymp.Site.Services.Checker;
 using Olymp.Site.Services.Identity;
 using Olymp.Site.Services.Mail;
+using Olymp.Site.Services.Plagiarism;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -111,6 +112,8 @@ builder.Services.AddAuthorization(options =>
 builder.Services.AddSimpleCheckers();
 builder.Services.AddCheckerTests();
 builder.Services.AddSingleton<ICheckerManager, CheckerManager>();
+
+builder.Services.AddTransient<ISubmissionSimilarityService, SimpleSubmissionSimilarityService>();
 
 builder.Services.AddGrpc();
 builder.Services.AddRazorPages(options =>

@@ -348,6 +348,9 @@
   <data name="Phone" xml:space="preserve">
     <value>Телефон</value>
   </data>
+  <data name="Plagiarism" xml:space="preserve">
+    <value>Плагиат</value>
+  </data>
   <data name="Please confirm the correctness of the data." xml:space="preserve">
     <value>Пожалуйста, подтвердите правильность данных.</value>
   </data>
