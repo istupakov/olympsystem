@@ -68,8 +68,7 @@ public class CheckerService(ILogger<CheckerService> logger, IRunnerService runne
         var resourceLimits = new RunnerResources(TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(10),
             512 * 1024 * 1024, 0, 100 * 1024);
         return await _runner.Run(new($"{command} 1>&2", Memory<byte>.Empty, clearWorkdir, false,
-            new[] { compilator.ConfigName }, new RunnerFile[] { new(filename, source) },
-            resourceLimits), token);
+            [compilator.ConfigName], [new(filename, source)], resourceLimits), token);
     }
 
     private async Task<RunnerResult> RunTest(string name, Compilator compilator,
@@ -92,7 +91,7 @@ public class CheckerService(ILogger<CheckerService> logger, IRunnerService runne
 
         var resourceLimits = new RunnerResources(timeLimit, timeLimit + TimeSpan.FromSeconds(5),
             (uint)memoryLimitMb * 1024 * 1024, 1024 * 1024, 4096);
-        return await _runner.Run(new(command, input, false, true, new[] { compilator.ConfigName }, [], resourceLimits), token);
+        return await _runner.Run(new(command, input, false, true, [compilator.ConfigName], [], resourceLimits), token);
     }
 
     private async Task<(CheckerResultStatus, RunnerResult)> CheckTest(string name,
@@ -211,6 +210,9 @@ public class CheckerService(ILogger<CheckerService> logger, IRunnerService runne
             var log = new StringBuilder();
             var testResults = new List<CheckerResultStatus>();
             var statusCode = 2;
+            var maxUserTime = TimeSpan.Zero;
+            var maxTotalTime = TimeSpan.Zero;
+            var maxPeakMemory = 0ul;
             foreach (var test in submission.Problem.Tests)
             {
                 int counter = 0;
@@ -221,6 +223,14 @@ public class CheckerService(ILogger<CheckerService> logger, IRunnerService runne
             test:
                 var (status, result) = await CheckTest(name, submission.Compilator, checker,
                     test.Input, test.Output, timeLimit, submission.Problem.MemoryLimit, token);
+
+                if (result.ResourceConsumption.UserTime > maxUserTime)
+                    maxUserTime = result.ResourceConsumption.UserTime;
+
+                if (result.ResourceConsumption.TotalTime > maxTotalTime)
+                    maxTotalTime = result.ResourceConsumption.TotalTime;
+
+                maxPeakMemory = Math.Max(maxPeakMemory, result.ResourceConsumption.Memory);
 
                 log.AppendLine($"""
                     status: {status}
@@ -253,6 +263,9 @@ public class CheckerService(ILogger<CheckerService> logger, IRunnerService runne
 
             log.AppendLine($"""
                 --------------
+                Max user time: {maxUserTime}
+                Max total time: {maxTotalTime}
+                Max peak memory: {maxPeakMemory / 1024 / 1024} MB
                 Checking time {timer.Elapsed}
                 """);
 
