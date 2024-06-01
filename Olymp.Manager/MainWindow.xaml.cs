@@ -151,6 +151,10 @@ public partial class MainWindow : Window
             {
                 x.CheckerId = 1;
                 x.Name = "Новая Задача";
+                x.TimeLimit = 1;
+                x.SlowTimeLimit = 1;
+                x.MemoryLimit = 256;
+                x.Number = catalog.Problems.Count + 1;
             });
 
             catalog.Problems.Add(problem);
