@@ -13,7 +13,7 @@ using Olymp.Site.Services.Plagiarism;
 namespace Olymp.Site.Pages.Plagiarism;
 
 public record PlagiarismCase(Submission Submission1, Submission Submission2, double Similarity);
-public record PlagiarismReport(Competitor Competitor1, Competitor Competitor2, IEnumerable<PlagiarismCase> Cases);
+public record PlagiarismReport(User Competitor1, User Competitor2, IEnumerable<PlagiarismCase> Cases);
 
 public class IndexModel(OlympContext context, ISubmissionSimilarityService submissionSimilarityService,
     IStringLocalizer<SharedResource> localizer) : PageModel
