@@ -3,7 +3,6 @@ using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Localization;
 
 using Olymp.Domain;
 using Olymp.Site.Services.Plagiarism;

@@ -166,7 +166,7 @@ public class IndexModel(OlympContext context, UserManager<User> userManager) : P
         using (var reader = new StreamReader(LoginsFile.OpenReadStream()))
         {
             while ((await reader.ReadLineAsync())?.Split(';', '\t', ',') is [var login, var password])
-                logins.Add(login, password);
+                logins.Add(login.Trim(), password.Trim());
         }
 
         return await CreateLoginsAsync(id, logins);

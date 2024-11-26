@@ -17,11 +17,11 @@ public partial class Competitor
 {
     public IEnumerable<(string name, OlympUser? user)>? GetMembers() =>
         MemberInfos?.Split(';') is [var name1, var id1s, var name2, var id2s, var name3, var id3s] ?
-        new[] {
+        [
             (name1, int.TryParse(id1s, out var id1)? Members.Single(x => x.Id == id1): null),
             (name2, int.TryParse(id2s, out var id2)? Members.Single(x => x.Id == id2): null),
             (name3, int.TryParse(id3s, out var id3)? Members.Single(x => x.Id == id3): null)
-        } : null;
+        ] : null;
 
     public IEnumerable<string>? MemberNames => GetMembers()?.Select(x => x.name);
 }

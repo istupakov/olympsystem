@@ -169,8 +169,10 @@ app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.MapStaticAssets();
 app.MapHealthChecks("/healthz");
 app.MapGrpcService<RunnerService>().RequireAuthorization(PolicyNames.Runner);
-app.MapRazorPages();
+app.MapRazorPages()
+   .WithStaticAssets();
 
 app.Run();

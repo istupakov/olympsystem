@@ -11,13 +11,13 @@ public interface ISubmissionSimilarityService
 
 public partial class SimpleSubmissionSimilarityService : ISubmissionSimilarityService
 {
+    [GeneratedRegex("[\\w\\s]")]
+    private static partial Regex FilterRegex { get; }
+
     public float Similarity(Submission submission1, Submission submission2)
     {
-        var source1 = FilterRegex().Replace(submission1.Text, string.Empty);
-        var source2 = FilterRegex().Replace(submission2.Text, string.Empty);
+        var source1 = FilterRegex.Replace(submission1.Text, string.Empty);
+        var source2 = FilterRegex.Replace(submission2.Text, string.Empty);
         return EditDistances.LevenshteinSimilarity(source1, source2);
     }
-
-    [GeneratedRegex("[\\w\\s]")]
-    private static partial Regex FilterRegex();
 }

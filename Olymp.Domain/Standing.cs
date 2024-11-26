@@ -82,7 +82,7 @@ public class Standing
                 .OrderBy(submission => submission.CommitTime)
                 .Where(submission => !submission.IsHidden)
                 .Where(submission => submission.CommitTime >= startTime && submission.CommitTime <= startTime.Value + contest.Duration)
-                .Where(submission => submission.StatusCode != 0 && submission.StatusCode != 1);
+                .Where(submission => submission.StatusCode is not 0 and not 1);
 
         if (contest.IsFreeze && !notFreeze)
             submissions = submissions.Where(submission => submission.CommitTime < contest.FreezeTime);

@@ -8,13 +8,13 @@ public class FloatArrayChecker : ISimpleChecker
 
     private static CheckerResultStatus CheckInternal(string juryOutput, string userOutput)
     {
-        var juryStringCount = juryOutput.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries).Length;
-        var userStringCount = userOutput.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries).Length;
+        var juryStringCount = juryOutput.Split(['\n'], StringSplitOptions.RemoveEmptyEntries).Length;
+        var userStringCount = userOutput.Split(['\n'], StringSplitOptions.RemoveEmptyEntries).Length;
         if (juryStringCount != userStringCount) return CheckerResultStatus.PresentationError;
 
-        var juryAnswer = juryOutput.Split(new[] { ' ', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+        var juryAnswer = juryOutput.Split([' ', '\n'], StringSplitOptions.RemoveEmptyEntries)
             .Where(t => !string.IsNullOrWhiteSpace(t)).Select(t => Convert.ToDouble(t, CultureInfo.InvariantCulture)).ToList();
-        var userAnswer = userOutput.Split(new[] { ' ', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+        var userAnswer = userOutput.Split([' ', '\n'], StringSplitOptions.RemoveEmptyEntries)
             .Where(t => !string.IsNullOrWhiteSpace(t)).Select(t => Convert.ToDouble(t, CultureInfo.InvariantCulture)).ToList();
 
         if (juryAnswer.Count != userAnswer.Count)
