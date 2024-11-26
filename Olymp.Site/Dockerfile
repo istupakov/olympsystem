@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 
 COPY ./Olymp.Checker/*.csproj ./Olymp.Checker/
@@ -13,9 +13,9 @@ COPY ./Olymp.Site ./Olymp.Site/
 COPY ./Olymp.Site.IdentityUI ./Olymp.Site.IdentityUI/
 RUN dotnet publish --no-restore ./Olymp.Site/Olymp.Site.csproj -c Release -o ./app
 
-FROM mcr.microsoft.com/dotnet/aspnet:8.0
+FROM mcr.microsoft.com/dotnet/aspnet:9.0
 RUN apt-get update && apt-get install -y \
-    curl  \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
