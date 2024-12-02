@@ -1,4 +1,4 @@
-﻿@page
+@page
 @model RegisterModel
 @inject IStringLocalizer<IdentityUIResources> Localizer
 @{
@@ -15,50 +15,50 @@
 			<div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
 			<div class="form-floating mb-3">
 				<input asp-for="Input.PublicName" class="form-control" autocomplete="nickname" aria-required="true" placeholder="nickname" />
-				<label asp-for="Input.PublicName"></label>
+				<label asp-for="Input.PublicName" class="form-label"></label>
 				<span asp-validation-for="Input.PublicName" class="text-danger"></span>
 			</div>
 			<div class="form-floating mb-3">
 				<input asp-for="Input.Email" class="form-control" autocomplete="username" aria-required="true" placeholder="name@example.com" />
-				<label asp-for="Input.Email"></label>
+				<label asp-for="Input.Email" class="form-label"></label>
 				<span asp-validation-for="Input.Email" class="text-danger"></span>
 			</div>
 			<div class="form-floating mb-3">
 				<input asp-for="Input.Password" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password" />
-				<label asp-for="Input.Password"></label>
+				<label asp-for="Input.Password" class="form-label"></label>
 				<span asp-validation-for="Input.Password" class="text-danger"></span>
 			</div>
 			<div class="form-floating mb-3">
 				<input asp-for="Input.ConfirmPassword" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password" />
-				<label asp-for="Input.ConfirmPassword"></label>
+				<label asp-for="Input.ConfirmPassword" class="form-label"></label>
 				<span asp-validation-for="Input.ConfirmPassword" class="text-danger"></span>
 			</div>
 			<h3>@Localizer["To participate in official competitions, you also need to fill out"]</h3>
 			<div class="form-floating mb-3">
-				<input asp-for="Input.LastName" class="form-control" autocomplete="family-name" aria-required="false" />
-				<label asp-for="Input.LastName"></label>
+				<input asp-for="Input.LastName" class="form-control" autocomplete="family-name" aria-required="false" placeholder="family-name" />
+				<label asp-for="Input.LastName" class="form-label"></label>
 				<span asp-validation-for="Input.LastName" class="text-danger"></span>
 			</div>
 			<div class="form-floating mb-3">
-				<input asp-for="Input.FirstName" class="form-control" autocomplete="given-name" aria-required="false" />
-				<label asp-for="Input.FirstName"></label>
+				<input asp-for="Input.FirstName" class="form-control" autocomplete="given-name" aria-required="false" placeholder="given-name" />
+				<label asp-for="Input.FirstName" class="form-label"></label>
 				<span asp-validation-for="Input.FirstName" class="text-danger"></span>
 			</div>
 			<div class="form-floating mb-3">
-				<input asp-for="Input.Patronymic" class="form-control" autocomplete="additional-name" aria-required="false" />
-				<label asp-for="Input.Patronymic"></label>
+				<input asp-for="Input.Patronymic" class="form-control" autocomplete="additional-name" aria-required="false"  placeholder="additional-name" />
+				<label asp-for="Input.Patronymic" class="form-label"></label>
 				<span asp-validation-for="Input.Patronymic" class="text-danger"></span>
 			</div>
 			<div class="form-floating mb-3">
 				<select asp-for="Input.OrganizationId" asp-items="Model.Organizations" class="form-select">
 					<option selected></option>
 				</select>
-				<label asp-for="Input.OrganizationId"></label>
+				<label asp-for="Input.OrganizationId" class="form-label"></label>
 				<span asp-validation-for="Input.OrganizationId" class="text-danger"></span>
 			</div>
 			<div class="form-floating mb-3">
-				<input asp-for="Input.Group" class="form-control" aria-required="false" />
-				<label asp-for="Input.Group"></label>
+				<input asp-for="Input.Group" class="form-control" aria-required="false" placeholder="group" />
+				<label asp-for="Input.Group" class="form-label"></label>
 				<span asp-validation-for="Input.Group" class="text-danger"></span>
 			</div>
 			<button id="registerSubmit" type="submit" class="w-100 btn btn-lg btn-primary">@Localizer["Register"]</button>

@@ -16,7 +16,7 @@
 				<select asp-for="Input.Language" asp-items="Model.Languages" class="form-select">
 					<option value="" selected>Default (browser settings)</option>
 				</select>
-				<label asp-for="Input.Language"></label>
+				<label asp-for="Input.Language" class="form-label"></label>
 				<span asp-validation-for="Input.Language" class="text-danger"></span>
 			</div>
 			<button type="submit" class="w-100 btn btn-lg btn-primary">@Localizer["Save"]</button>
