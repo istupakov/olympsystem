@@ -2,6 +2,7 @@
 @{
 	var requestCulture = Context.Features.Get<IRequestCultureFeature>();
 	var lang = requestCulture?.RequestCulture.UICulture.IetfLanguageTag;
+	var currentPage = ViewContext.ActionDescriptor.DisplayName;
 }
 <!DOCTYPE html>
 <html lang="@lang">
@@ -15,7 +16,7 @@
 </head>
 <body>
 	<header>
-		<nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
+		<nav class="navbar navbar-expand-sm border-bottom box-shadow mb-3">
 			<div class="container">
 				<a class="navbar-brand" asp-area="" asp-page="/Index">OlympSystem</a>
 				<button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
@@ -25,44 +26,44 @@
 				<div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
 					<ul class="navbar-nav flex-grow-1">
 						<li class="nav-item">
-							<a class="nav-link text-dark" asp-area="" asp-page="/Index">@Localizer["News"]</a>
+							<a class="nav-link @(currentPage is "/Index"? "active": null)" asp-area="" asp-page="/Index">@Localizer["News"]</a>
 						</li>
 						@if (User.HasClaim(x => x.Type == ClaimNames.CompetitorContest)) {
 							var contestId = int.Parse(User.Claims.FirstOrDefault(x => x.Type == ClaimNames.CompetitorContest)!.Value);
 							<li class="nav-item">
-								<a class="nav-link text-dark" asp-area="" asp-page="/Contests/Submits/Index" asp-route-id="@contestId">@Localizer["Submit solution"]</a>
+								<a class="nav-link @(currentPage is "/Contests/Submits/Index"? "active": null)" asp-area="" asp-page="/Contests/Submits/Index" asp-route-id="@contestId">@Localizer["Submit solution"]</a>
 							</li>
 							<li class="nav-item">
-								<a class="nav-link text-dark" asp-area="" asp-page="/Contests/Standing/Index" asp-route-id="@contestId">@Localizer["Standings"]</a>
+								<a class="nav-link @(currentPage is "/Contests/Standing/Index"? "active": null)" asp-area="" asp-page="/Contests/Standing/Index" asp-route-id="@contestId">@Localizer["Standings"]</a>
 							</li>
 						}
 						else {
 							if (User.Identity?.IsAuthenticated is true) {
 								<li class="nav-item">
-									<a class="nav-link text-dark" asp-area="" asp-page="/Submissions/Index" asp-route-n="">@Localizer["Submissions"]</a>
+									<a class="nav-link @(currentPage is "/Submissions/Index"? "active": null)" asp-area="" asp-page="/Submissions/Index" asp-route-n="">@Localizer["Submissions"]</a>
 								</li>
 							}
 							<li class="nav-item">
-								<a class="nav-link text-dark" asp-area="" asp-page="/Contests/Index">@Localizer["Contests"]</a>
+								<a class="nav-link @(currentPage is "/Contests/Index"? "active": null)" asp-area="" asp-page="/Contests/Index">@Localizer["Contests"]</a>
 							</li>
 						}
 						<li class="nav-item">
-							<a class="nav-link text-dark" asp-area="" asp-page="/Rules">@Localizer["Rules"]</a>
+							<a class="nav-link @(currentPage is "/Rules"? "active": null)" asp-area="" asp-page="/Rules">@Localizer["Rules"]</a>
 						</li>
 						<li class="nav-item">
-							<a class="nav-link text-dark" asp-area="" asp-page="/Contacts">@Localizer["Contacts"]</a>
+							<a class="nav-link @(currentPage is "/Contacts"? "active": null)" asp-area="" asp-page="/Contacts">@Localizer["Contacts"]</a>
 						</li>
 						@if (User.IsInRole(RoleNames.Admin) || User.IsInRole(RoleNames.Jury)) {
 							<li class="nav-item">
-								<a class="nav-link text-dark" asp-area="" asp-page="/Checkers/Index">@Localizer["Checkers"]</a>
+								<a class="nav-link @(currentPage is "/Checkers/Index"? "active": null)" asp-area="" asp-page="/Checkers/Index">@Localizer["Checkers"]</a>
 							</li>
 						}
 						@if (User.IsInRole(RoleNames.Admin)) {
 							<li class="nav-item">
-								<a class="nav-link text-dark" asp-area="" asp-page="/Users/Index">@Localizer["Users"]</a>
+								<a class="nav-link @(currentPage is "/Users/Index"? "active": null)" asp-area="" asp-page="/Users/Index">@Localizer["Users"]</a>
 							</li>
 							<li class="nav-item">
-								<a class="nav-link text-dark" asp-area="" asp-page="/Plagiarism/Index">@Localizer["Plagiarism"]</a>
+								<a class="nav-link @(currentPage is "/Plagiarism/Index"? "active": null)" asp-area="" asp-page="/Plagiarism/Index">@Localizer["Plagiarism"]</a>
 							</li>
 						}
 					</ul>

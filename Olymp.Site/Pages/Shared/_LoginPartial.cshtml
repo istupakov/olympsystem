@@ -6,26 +6,26 @@
 		var name = (await UserManager.GetUserAsync(User))?.Name ?? User.Identity?.Name!;
 		@if (User.HasClaim(x => x.Type == ClaimNames.CompetitorContest)) {
 			<li class="nav-item">
-				<a class="nav-link text-dark">@name</a>
+				<a class="nav-link">@name</a>
 			</li>
 		}
 		else {
 			<li class="nav-item">
-				<a class="nav-link text-dark" asp-area="Identity" asp-page="/Account/Manage/Index" title="@Localizer["Manage"]">@Localizer["Hello"] @name</a>
+				<a class="nav-link" asp-area="Identity" asp-page="/Account/Manage/Index" title="@Localizer["Manage"]">@Localizer["Hello"] @name</a>
 			</li>
 		}
 		<li class="nav-item">
 			<form class="form-inline" asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="@Url.Page("/", new { area = "" })" method="post">
-				<button type="submit" class="nav-link btn btn-link text-dark">@Localizer["Logout"]</button>
+				<button type="submit" class="nav-link btn btn-link">@Localizer["Logout"]</button>
 			</form>
 		</li>
 	}
 	else {
 		<li class="nav-item">
-			<a class="nav-link text-dark" asp-area="Identity" asp-page="/Account/Register">@Localizer["Register"]</a>
+			<a class="nav-link" asp-area="Identity" asp-page="/Account/Register">@Localizer["Register"]</a>
 		</li>
 		<li class="nav-item">
-			<a class="nav-link text-dark" asp-area="Identity" asp-page="/Account/Login">@Localizer["Login"]</a>
+			<a class="nav-link" asp-area="Identity" asp-page="/Account/Login">@Localizer["Login"]</a>
 		</li>
 	}
 </ul>
