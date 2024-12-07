@@ -110,7 +110,7 @@ public class RunnerClientService : BackgroundService
     private async Task LogWhoami(string? user, CancellationToken token)
     {
         using var process = _processFactory.Create("whoami", _workDirectory,
-            user, CreateEnviromentVariables(Enumerable.Empty<string>()),
+            user, CreateEnviromentVariables([]),
             2, ProcessPriorityClass.Normal, TimeSpan.FromSeconds(1), 128_000_000);
 
         await process.Process.WaitForExitAsync(token);
@@ -134,8 +134,8 @@ public class RunnerClientService : BackgroundService
 
     private Dictionary<string, string> CreateEnviromentVariables(IEnumerable<string> envFiles)
     {
-        var envs = new Dictionary<string, string>();
-        foreach (string envFile in new[] { "base" }.Concat(envFiles))
+        Dictionary<string, string> envs = [];
+        foreach (string envFile in (IEnumerable<string>)["base", .. envFiles])
         {
             string path = Path.Combine(_envFilesDirectory, Path.ChangeExtension(envFile, ".env"));
             foreach (string line in File.ReadLines(path))

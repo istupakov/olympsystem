@@ -2,15 +2,13 @@ using Olymp.Runner;
 using Olymp.Runner.Windows;
 using Olymp.Site.Protos;
 
-IHost host = Host.CreateDefaultBuilder(args)
-    .ConfigureServices((context, services) =>
-    {
-        services.Configure<RunnerClientConfig>(context.Configuration.GetSection(RunnerClientConfig.Section));
-        services.AddHostedService<RunnerClientService>();
+var builder = Host.CreateApplicationBuilder(args);
+builder.Services.Configure<RunnerClientConfig>(builder.Configuration.GetSection(RunnerClientConfig.Section));
+builder.Services.AddHostedService<RunnerClientService>();
 
-        services.AddGrpcClient<Runner.RunnerClient>(options =>
+builder.Services.AddGrpcClient<Runner.RunnerClient>(options =>
         {
-            options.Address = new Uri(context.Configuration["RunnerServerAddress"]!);
+            options.Address = new Uri(builder.Configuration["RunnerServerAddress"]!);
         }).ConfigureChannel(options =>
         {
             options.MaxReceiveMessageSize = null;
@@ -21,14 +19,13 @@ IHost host = Host.CreateDefaultBuilder(args)
             };
         }).AddCallCredentials((authContext, metadata) =>
         {
-            if (context.Configuration["ApiKey"] is string apiKey)
+            if (builder.Configuration["ApiKey"] is string apiKey)
                 metadata.Add("Authorization", apiKey);
             return Task.CompletedTask;
         });
 
-        if (OperatingSystem.IsWindowsVersionAtLeast(5, 1, 2600))
-            services.AddTransient<IRestrictedProcessFactory, RestrictedWindowsProcessFactory>();
-    })
-    .Build();
+if (OperatingSystem.IsWindowsVersionAtLeast(5, 1, 2600))
+    builder.Services.AddTransient<IRestrictedProcessFactory, RestrictedWindowsProcessFactory>();
 
+var host = builder.Build();
 host.Run();
