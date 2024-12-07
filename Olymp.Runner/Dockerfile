@@ -118,12 +118,12 @@ RUN $url = 'https://github.com/msys2/msys2-installer/releases/download/nightly-x
 # Enable detection of running in a container
 ENV DOTNET_RUNNING_IN_CONTAINER true
 # .NET Runtime version
-ENV DOTNET_VERSION=8.0.11
+ENV DOTNET_VERSION=9.0.0
 # .NET SDK version
-ENV DOTNET_SDK_VERSION=8.0.404
+ENV DOTNET_SDK_VERSION=9.0.101
 # Install .NET Runtime and SDK
 RUN Invoke-WebRequest -OutFile dotnet.zip https://dotnetcli.azureedge.net/dotnet/Runtime/$Env:DOTNET_VERSION/dotnet-runtime-$Env:DOTNET_VERSION-win-x64.zip; \
-	$dotnet_sha512 = 'a0ed92b8ffeb4efb61a93c3cb7c1ed66529e23cbe60b44d621b49b1cb90159866a3d921630485fc0e2b1660b2001f73752c6fa6fc9dca40145ef4549dd26a1ab'; \
+	$dotnet_sha512 = '23ae6ce34fe1271a5a48675a9cb7ed728af4be4014a7ee4a6a60a84fc23e55b50a5cafd7ec20197bd73ee47901e4239e0c4cd8fd0f5deeb34cc3da1de3960e46'; \
 	if ((Get-FileHash dotnet.zip -Algorithm sha512).Hash -ne $dotnet_sha512) { \
 		Write-Host 'CHECKSUM VERIFICATION FAILED!'; \
 		exit 1; \
@@ -132,7 +132,7 @@ RUN Invoke-WebRequest -OutFile dotnet.zip https://dotnetcli.azureedge.net/dotnet
 	tar -oxzf dotnet.zip -C $Env:ProgramFiles\dotnet; \
 	Remove-Item -Force dotnet.zip; \
 	Invoke-WebRequest -OutFile dotnet.zip https://dotnetcli.azureedge.net/dotnet/Sdk/$Env:DOTNET_SDK_VERSION/dotnet-sdk-$Env:DOTNET_SDK_VERSION-win-x64.zip; \
-	$dotnet_sha512 = 'fe2a799726fafa252352e6397dd790717f7263903408ccfedb0fb275ba93f96a7840dacc7f188e94d87671313d2a48480ea8387408ed5772b43c363e2dbba1ba'; \
+	$dotnet_sha512 = '53f16be2079ed85d230a6c98fa9220046930ca0eaaf1f928b63cfae9fd9a0a5ad87c60c07833ee16dedfa582ce5d9ae68b5b4292aec56fd44203fe9e7bcfba92'; \
 	if ((Get-FileHash dotnet.zip -Algorithm sha512).Hash -ne $dotnet_sha512) { \
 		Write-Host 'CHECKSUM VERIFICATION FAILED!'; \
 		exit 1; \
@@ -146,7 +146,7 @@ RUN Invoke-WebRequest -OutFile dotnet.zip https://dotnetcli.azureedge.net/dotnet
 	setx /M PATH ($env:Path + ';' + $Env:ProgramFiles + '\dotnet')
 
 # Build Olymp.Runner
-FROM mcr.microsoft.com/dotnet/sdk:8.0-windowsservercore-ltsc2019 AS build
+FROM mcr.microsoft.com/dotnet/sdk:9.0-windowsservercore-ltsc2019 AS build
 WORKDIR /src
 
 COPY ./Olymp.Runner/*.csproj ./Olymp.Runner/
