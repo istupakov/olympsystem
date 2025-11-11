@@ -95,19 +95,17 @@ builder.Services.AddAuthentication()
 
 builder.Services.AddScoped<IAuthorizationHandler, ContestAuthorizationHandler>();
 builder.Services.AddScoped<IAuthorizationHandler, SubmissionAuthorizationHandler>();
-builder.Services.AddAuthorization(options =>
-{
-    options.AddPolicy(PolicyNames.Runner, policy => policy.AddAuthenticationSchemes("ApiKey")
-                                                          .RequireAuthenticatedUser());
-    options.AddPolicy(PolicyNames.OlympUser, policy =>
+builder.Services.AddAuthorizationBuilder()
+    .AddPolicy(PolicyNames.Runner, policy => policy.AddAuthenticationSchemes("ApiKey")
+                                                   .RequireAuthenticatedUser())
+    .AddPolicy(PolicyNames.OlympUser, policy =>
     {
         policy.RequireAuthenticatedUser();
         policy.RequireAssertion(context => !context.User.HasClaim(x => x.Type == ClaimNames.CompetitorContest));
-    });
-    options.AddPolicy(PolicyNames.Admin, policy => policy.RequireRole(RoleNames.Admin));
-    options.AddPolicy(PolicyNames.Coach, policy => policy.RequireClaim(ClaimNames.CoachOrg));
-    options.AddPolicy(PolicyNames.JuryOrAdmin, policy => policy.RequireRole(RoleNames.Jury, RoleNames.Admin));
-});
+    })
+    .AddPolicy(PolicyNames.Admin, policy => policy.RequireRole(RoleNames.Admin))
+    .AddPolicy(PolicyNames.Coach, policy => policy.RequireClaim(ClaimNames.CoachOrg))
+    .AddPolicy(PolicyNames.JuryOrAdmin, policy => policy.RequireRole(RoleNames.Jury, RoleNames.Admin));
 
 builder.Services.AddSimpleCheckers();
 builder.Services.AddCheckerTests();

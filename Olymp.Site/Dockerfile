@@ -20,5 +20,5 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 COPY --link --from=build /src/app ./
-USER $APP_UID
+
 ENTRYPOINT ["./Olymp.Site"]
