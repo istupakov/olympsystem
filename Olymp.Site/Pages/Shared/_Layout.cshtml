@@ -51,6 +51,9 @@
 							<a class="nav-link @(currentPage is "/Rules"? "active": null)" asp-area="" asp-page="/Rules">@Localizer["Rules"]</a>
 						</li>
 						<li class="nav-item">
+							<a class="nav-link @(currentPage is "/Sponsors"? "active": null)" asp-area="" asp-page="/Sponsors">@Localizer["Sponsors"]</a>
+						</li>
+						<li class="nav-item">
 							<a class="nav-link @(currentPage is "/Contacts"? "active": null)" asp-area="" asp-page="/Contacts">@Localizer["Contacts"]</a>
 						</li>
 						@if (User.IsInRole(RoleNames.Admin) || User.IsInRole(RoleNames.Jury)) {
