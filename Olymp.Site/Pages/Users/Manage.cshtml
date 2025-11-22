@@ -153,6 +153,15 @@
 			<button class="btn btn-warning" asp-route-action="RemoveRole" asp-route-role="Jury">@Localizer["Remove jury role"]</button>
 			<button class="btn btn-warning" asp-route-action="RemoveCoachOrgClaim">@Localizer["Remove coach-org claims"]</button>
 			<button class="btn btn-danger" asp-route-action="Ban">@Localizer["Ban"]</button>
+			<button class="btn btn-warning" asp-route-action="Unban">@Localizer["Unban"]</button>
+		</div>
+	</form>
+}
+else {
+	<form method="post" class="btn-toolbar" role="toolbar">
+		<div class="btn-group btn-group-sm my-1" role="group">
+			<button class="btn btn-danger" asp-route-action="Ban">@Localizer["Ban"]</button>
+			<button class="btn btn-warning" asp-route-action="Unban">@Localizer["Unban"]</button>
 		</div>
 	</form>
 }

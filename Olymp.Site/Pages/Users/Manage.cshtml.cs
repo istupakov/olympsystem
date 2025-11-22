@@ -139,6 +139,13 @@ public class ManageModel(OlympContext context, UserManager<User> userManager) : 
                         return BadRequest(res.Errors);
                 }
                 break;
+            case "Unban":
+                {
+                    var res = await _userManager.SetLockoutEndDateAsync(user, null);
+                    if (!res.Succeeded)
+                        return BadRequest(res.Errors);
+                }
+                break;
         }
 
         return RedirectToPage();
