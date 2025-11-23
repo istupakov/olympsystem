@@ -6,9 +6,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Localization;
 
 using Olymp.Domain;
-using Olymp.Site.Services.Plagiarism;
+using Olymp.Site.Services.AntiCheat;
 
-namespace Olymp.Site.Pages.Plagiarism;
+namespace Olymp.Site.Pages.AntiCheat;
 
 public class TestModel(OlympContext context, ISubmissionSimilarityService submissionSimilarityService, IStringLocalizer<SharedResource> localizer) : PageModel
 {

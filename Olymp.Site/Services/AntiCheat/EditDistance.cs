@@ -1,4 +1,4 @@
-namespace Olymp.Site.Services.Plagiarism;
+namespace Olymp.Site.Services.AntiCheat;
 
 public static class EditDistances
 {

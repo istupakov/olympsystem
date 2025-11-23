@@ -5,9 +5,9 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 
 using Olymp.Domain;
-using Olymp.Site.Services.Plagiarism;
+using Olymp.Site.Services.AntiCheat;
 
-namespace Olymp.Site.Pages.Plagiarism;
+namespace Olymp.Site.Pages.AntiCheat;
 
 public class ByDateModel(OlympContext context, ISubmissionSimilarityService submissionSimilarityService) : PageModel
 {

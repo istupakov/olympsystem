@@ -2,7 +2,7 @@ using System.Text.RegularExpressions;
 
 using Olymp.Domain.Models;
 
-namespace Olymp.Site.Services.Plagiarism;
+namespace Olymp.Site.Services.AntiCheat;
 
 public interface ISubmissionSimilarityService
 {
