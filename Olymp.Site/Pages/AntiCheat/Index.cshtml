@@ -2,9 +2,15 @@
 @attribute [Authorize(Policy = PolicyNames.Admin)]
 @model IndexModel
 @{
-    ViewData["Title"] = Localizer["Plagiarism"];
+    ViewData["Title"] = Localizer["AntiCheat"];
 }
 <h1>@ViewData["Title"]</h1>
+
+<div class="btn-group">
+    <a class="btn btn-info" asp-page="./PlagiarismTest">@Localizer["Plagiarism Test"]</a>
+    <a class="btn btn-info" asp-page="./AIDetectionTest">@Localizer["AI Detection Test"]</a>
+    <a class="btn btn-primary" asp-page="./ByDate">@Localizer["ByDate"]</a>
+</div>
 
 <form method="post">
     <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
@@ -20,47 +26,12 @@
         <label asp-for="Input.Threshold"></label>
         <span asp-validation-for="Input.Threshold" class="text-danger"></span>
     </div>
-    <button type="submit" class="btn btn-primary">@Localizer["Submit"]</button>
+    <div class="btn-group">
+        <button type="submit" class="btn btn-primary" asp-route-action="Plagiarism">@Localizer["Plagiarism"]</button>
+        <button type="submit" class="btn btn-primary" asp-route-action="AIUsing">@Localizer["Detect AI Using"]</button>
+    </div>
 </form>
 
 <hr />
-<ul>
-    @foreach (var report in Model.Reports)
-
-    {
-        <li>
-            <h2>@report.Competitor1.Name <span class="user-select-none">|</span> @report.Competitor2.Name</h2>
-            <ul>
-                @foreach (var group in report.Cases.GroupBy(x => x.Submission1.Problem))
-
-                {
-                    <li>
-                        <h3>@group.Key.NameWithNumber (@string.Format("similarity {0:p2}", group.Max(x => x.Similarity)))</h3>
-                        <ul>
-                            @foreach (var c in group)
-                            {
-                                <li>
-                                    <h4>@string.Format("similarity {0:p2}", c.Similarity)</h4>
-
-                                    <p>@c.Submission1.Id (@c.Submission1.CommitTime, @c.Submission1.Compilator.Name,
-                                        @string.Format(Localizer[c.Submission1.StatusTemplate], c.Submission1.StatusTestNumber))
-                                        <a asp-page="/Submissions/Download"
-                                            asp-route-id="@c.Submission1.Id">@Localizer["download"]</a>
-                                        <span class="user-select-none">|</span>
-                                        <a asp-page="/Submissions/Code" asp-route-id="@c.Submission1.Id">@Localizer["view"]</a>
-
-                                    <p>@c.Submission2.Id (@c.Submission2.CommitTime, @c.Submission2.Compilator.Name,
-                                            @string.Format(Localizer[c.Submission2.StatusTemplate], c.Submission2.StatusTestNumber))
-                                        <a asp-page="/Submissions/Download"
-                                            asp-route-id="@c.Submission2.Id">@Localizer["download"]</a>
-                                        <span class="user-select-none">|</span>
-                                        <a asp-page="/Submissions/Code" asp-route-id="@c.Submission2.Id">@Localizer["view"]</a>
-                                </li>
-                            }
-                        </ul>
-                    </li>
-                }
-            </ul>
-        </li>
-    }
-</ul>
+<partial name="_PlagiarismReport" for="PlagiarismReports" />
+<partial name="_AIUsingReport" for="AIUsingReports" />

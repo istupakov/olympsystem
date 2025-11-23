@@ -112,6 +112,7 @@ builder.Services.AddCheckerTests();
 builder.Services.AddSingleton<ICheckerManager, CheckerManager>();
 
 builder.Services.AddTransient<ISubmissionSimilarityService, SimpleSubmissionSimilarityService>();
+builder.Services.AddTransient<IAIDetectionServiceService, SimpleAIDetectionServiceService>();
 
 builder.Services.AddGrpc();
 builder.Services.AddRazorPages(options =>

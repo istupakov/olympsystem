@@ -1,0 +1,28 @@
+﻿@page
+@attribute [Authorize(Policy = PolicyNames.Admin)]
+@model AIDetectionTestModel
+@{
+	ViewData["Title"] = Localizer["AI Detection Test"];
+}
+<h1>@ViewData["Title"]</h1>
+
+<form method="post">
+	<div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
+	<div class="form-floating mb-3">
+		<input asp-for="Input.SubmissionId" class="form-control" required>
+		<label asp-for="Input.SubmissionId"></label>
+		<span asp-validation-for="Input.SubmissionId" class="text-danger"></span>
+	</div>
+	<button type="submit" class="btn btn-primary">@Localizer["Submit"]</button>
+</form>
+
+<hr />
+<samp>
+	<p>Probability: @Model.Report?.Probability</p>
+	<p>Cyrillic Comments: @Model.Report?.CyrillicComments</p>
+	<p>Not Code comments: @Model.Report?.EnglishComments</p>
+	@foreach (var fragment in Model.Report?.SuspiciousFragments ?? [])
+	{
+		<pre><code>@fragment</code></pre>
+	}
+</samp>

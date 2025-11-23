@@ -15,11 +15,15 @@ namespace Olymp.Site.Pages.AntiCheat;
 public record PlagiarismCase(Submission Submission1, Submission Submission2, double Similarity);
 public record PlagiarismReport(User Competitor1, User Competitor2, IEnumerable<PlagiarismCase> Cases);
 
+public record AIUsingCase(Submission Submission, AIDetectionResult Result);
+public record AIUsingReport(User Competitor, IEnumerable<AIUsingCase> Cases);
+
 public class IndexModel(OlympContext context, ISubmissionSimilarityService submissionSimilarityService,
-    IStringLocalizer<SharedResource> localizer) : PageModel
+    IAIDetectionServiceService aiDetectionServiceService, IStringLocalizer<SharedResource> localizer) : PageModel
 {
     private readonly OlympContext _context = context;
     private readonly ISubmissionSimilarityService _submissionSimilarityService = submissionSimilarityService;
+    private readonly IAIDetectionServiceService _aiDetectionServiceService = aiDetectionServiceService;
     private readonly IStringLocalizer<SharedResource> _localizer = localizer;
 
     [BindProperty]
@@ -39,7 +43,8 @@ public class IndexModel(OlympContext context, ISubmissionSimilarityService submi
         public float? Threshold { get; set; }
     }
 
-    public IEnumerable<PlagiarismReport> Reports { get; private set; } = [];
+    public IEnumerable<PlagiarismReport> PlagiarismReports { get; private set; } = [];
+    public IEnumerable<AIUsingReport> AIUsingReports { get; private set; } = [];
 
     public async Task LoadAsync()
     {
@@ -53,7 +58,7 @@ public class IndexModel(OlympContext context, ISubmissionSimilarityService submi
         return Page();
     }
 
-    public async Task<IActionResult> OnPost(CancellationToken token)
+    public async Task<IActionResult> OnPost(string action, CancellationToken token)
     {
         await LoadAsync();
 
@@ -73,17 +78,30 @@ public class IndexModel(OlympContext context, ISubmissionSimilarityService submi
             return Page();
         }
 
-        Reports = from user1 in contest!.Competitors
-                  from user2 in contest.Competitors
-                  where user1.Id < user2.Id
-                  let cases = from sol1 in user1.Submissions
-                              from sol2 in user2.Submissions
-                              where sol1.ProblemId == sol2.ProblemId
-                              let similarity = _submissionSimilarityService.Similarity(sol1, sol2)
-                              where similarity > Input.Threshold
-                              select new PlagiarismCase(sol1, sol2, similarity)
-                  where cases.Any()
-                  select new PlagiarismReport(user1, user2, cases);
+        if (action == "AIUsing")
+        {
+            AIUsingReports = from user in contest!.Competitors
+                             let cases = from sol in user.Submissions
+                                         let result = _aiDetectionServiceService.DetectAI(sol)
+                                         where result.Probability > Input.Threshold
+                                         select new AIUsingCase(sol, result)
+                             where cases.Any()
+                             select new AIUsingReport(user, cases);
+        }
+        else
+        {
+            PlagiarismReports = from user1 in contest!.Competitors
+                                from user2 in contest.Competitors
+                                where user1.Id < user2.Id
+                                let cases = from sol1 in user1.Submissions
+                                            from sol2 in user2.Submissions
+                                            where sol1.ProblemId == sol2.ProblemId
+                                            let similarity = _submissionSimilarityService.CompareSimilarity(sol1, sol2)
+                                            where similarity > Input.Threshold
+                                            select new PlagiarismCase(sol1, sol2, similarity)
+                                where cases.Any()
+                                select new PlagiarismReport(user1, user2, cases);
+        }
 
         return Page();
     }

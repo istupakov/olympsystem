@@ -10,7 +10,7 @@ using Olymp.Site.Services.AntiCheat;
 
 namespace Olymp.Site.Pages.AntiCheat;
 
-public class TestModel(OlympContext context, ISubmissionSimilarityService submissionSimilarityService, IStringLocalizer<SharedResource> localizer) : PageModel
+public class PlagiarismTestModel(OlympContext context, ISubmissionSimilarityService submissionSimilarityService, IStringLocalizer<SharedResource> localizer) : PageModel
 {
     private readonly OlympContext _context = context;
     private readonly ISubmissionSimilarityService _submissionSimilarityService = submissionSimilarityService;
@@ -49,7 +49,7 @@ public class TestModel(OlympContext context, ISubmissionSimilarityService submis
 
         if (ModelState.IsValid)
         {
-            Similarity = _submissionSimilarityService.Similarity(submission1!, submission2!);
+            Similarity = _submissionSimilarityService.CompareSimilarity(submission1!, submission2!);
         }
 
         return Page();

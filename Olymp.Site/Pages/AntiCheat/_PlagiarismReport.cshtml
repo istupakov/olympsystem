@@ -1,0 +1,58 @@
+@model IEnumerable<PlagiarismReport>
+
+<div class="accordion" id="aireport">
+    @foreach (var report in Model)
+    {
+        <div class="accordion-item">
+            <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#user-@report.Competitor1.Id-@report.Competitor2.Id" aria-expanded="false"
+                    aria-controls="user-@report.Competitor1.Id-@report.Competitor2.Id">
+                    @report.Competitor1.Name <span class="user-select-none">|</span> @report.Competitor2.Name
+                    (@string.Format("similarity {0:p2}", report.Cases.Max(x => x.Similarity)))
+                </button>
+            </h2>
+            <div id="user-@report.Competitor1.Id-@report.Competitor2.Id" class="accordion-collapse collapse"
+                data-bs-parent="#aireport">
+                <div class="accordion-body">
+                    <ul>
+                        @foreach (var group in report.Cases.GroupBy(x => x.Submission1.Problem))
+                        {
+                            <li>
+                                <h3> @group.Key.NameWithNumber
+                                    (@string.Format("similarity {0:p2}", group.Max(x => x.Similarity)))
+                                </h3>
+                                <ul>
+                                    @foreach (var c in group)
+                                    {
+                                        <li>
+                                            <h4>@string.Format("similarity {0:p2}", c.Similarity)</h4>
+
+                                            <p>@c.Submission1.Id (@c.Submission1.CommitTime, @c.Submission1.Compilator.Name,
+                                                @string.Format(Localizer[c.Submission1.StatusTemplate],
+                                                c.Submission1.StatusTestNumber))
+                                    <a asp-page="/Submissions/Download"
+                                        asp-route-id="@c.Submission1.Id">@Localizer["download"]</a>
+                                    <span class="user-select-none">|</span>
+                                    <a asp-page="/Submissions/Code"
+                                        asp-route-id="@c.Submission1.Id">@Localizer["view"]</a>
+
+                                <p>@c.Submission2.Id (@c.Submission2.CommitTime, @c.Submission2.Compilator.Name,
+                                    @string.Format(Localizer[c.Submission2.StatusTemplate],
+                                                                        c.Submission2.StatusTestNumber))
+                                    <a asp-page="/Submissions/Download"
+                                        asp-route-id="@c.Submission2.Id">@Localizer["download"]</a>
+                                    <span class="user-select-none">|</span>
+                                    <a asp-page="/Submissions/Code"
+                                        asp-route-id="@c.Submission2.Id">@Localizer["view"]</a>
+                            </li>
+                                                        }
+                                </ul>
+                            </li>
+                        }
+                    </ul>
+                </div>
+            </div>
+        </div>
+    }
+</div>

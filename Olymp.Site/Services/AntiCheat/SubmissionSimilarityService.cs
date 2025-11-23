@@ -6,15 +6,15 @@ namespace Olymp.Site.Services.AntiCheat;
 
 public interface ISubmissionSimilarityService
 {
-    float Similarity(Submission submission1, Submission submission2);
+    float CompareSimilarity(Submission submission1, Submission submission2);
 }
 
 public partial class SimpleSubmissionSimilarityService : ISubmissionSimilarityService
 {
-    [GeneratedRegex("[\\w\\s]")]
+    [GeneratedRegex(@"[\w\s]")]
     private static partial Regex FilterRegex { get; }
 
-    public float Similarity(Submission submission1, Submission submission2)
+    public float CompareSimilarity(Submission submission1, Submission submission2)
     {
         var source1 = FilterRegex.Replace(submission1.Text, string.Empty);
         var source2 = FilterRegex.Replace(submission2.Text, string.Empty);
