@@ -1,6 +1,5 @@
 **/bin
 **/obj
 **/Dockerfile
-Backups
-certs
-Data
+backup
+data
