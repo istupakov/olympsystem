@@ -388,6 +388,29 @@ public partial class MainWindow : Window
         }
     }
 
+    private void SaveSubmissions(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            int id = (tree.SelectedItem as Contest).Id;
+
+            var context = CreateContext();
+            var olymp = context.Contests.Find(id);
+
+            var submissions = olymp.Competitors.SelectMany(competitior => competitior.Submissions).
+                Where(submission => submission.CommitTime > olymp.StartTime && submission.CommitTime < olymp.EndTime).
+                OrderBy(submission => submission.CommitTime);
+
+            Directory.CreateDirectory($"submissions/{olymp.Abbr}");
+            foreach (var submission in submissions)
+                File.WriteAllBytes($"submissions/{olymp.Abbr}/{submission.Id}_{submission.UserId}_{submission.ProblemId}{submission.Compilator.SourceExtension}", submission.SourceCode);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(ex.Message);
+        }
+    }
+
     private void RepareTests(object sender, RoutedEventArgs e)
     {
         var problem = tree.SelectedItem as Problem;

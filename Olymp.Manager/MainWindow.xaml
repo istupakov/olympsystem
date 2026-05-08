@@ -368,6 +368,7 @@
                 <Separator/>
                 <Button Click="SaveTests">Сохранить тесты</Button>
                 <Button Click="SaveLog">Сохранить лог</Button>
+                <Button Click="SaveSubmissions">Сохранить решения</Button>
             </ToolBar>
         </StackPanel>
         <TabControl>
