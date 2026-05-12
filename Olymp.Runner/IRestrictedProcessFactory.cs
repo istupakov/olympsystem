@@ -6,9 +6,9 @@ public interface IRestrictedProcess : IDisposable
 {
     Process Process { get; }
 
-    public uint ActiveProcesses { get; }
-    public TimeSpan TotalUserTime { get; }
-    public nuint PeakJobMemoryUsed { get; }
+    uint ActiveProcesses { get; }
+    TimeSpan TotalUserTime { get; }
+    nuint PeakJobMemoryUsed { get; }
 
     void Terminate(int exitCode = 0);
 }

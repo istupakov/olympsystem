@@ -36,18 +36,18 @@ internal class JobObject : IDisposable
 
     public void Dispose() => _jobHandle.Dispose();
 
-    public unsafe void SetInfo<T>(JOBOBJECTINFOCLASS infoClass, T info)
+    public void SetInfo<T>(JOBOBJECTINFOCLASS infoClass, T info)
         where T : unmanaged
     {
-        if (!PInvoke.SetInformationJobObject(_jobHandle, infoClass, &info, (uint)Marshal.SizeOf<T>()))
+        if (!PInvoke.SetInformationJobObject(_jobHandle, infoClass, MemoryMarshal.AsBytes(MemoryMarshal.CreateSpan(ref info, 1))))
             Marshal.ThrowExceptionForHR(Marshal.GetHRForLastWin32Error());
     }
 
-    public unsafe T QueryInfo<T>(JOBOBJECTINFOCLASS infoClass)
+    public T QueryInfo<T>(JOBOBJECTINFOCLASS infoClass)
         where T : unmanaged
     {
         var info = new T();
-        if (!PInvoke.QueryInformationJobObject(_jobHandle, infoClass, &info, (uint)Marshal.SizeOf<T>(), null))
+        if (!PInvoke.QueryInformationJobObject(_jobHandle, infoClass, MemoryMarshal.AsBytes(MemoryMarshal.CreateSpan(ref info, 1))))
             Marshal.ThrowExceptionForHR(Marshal.GetHRForLastWin32Error());
         return info;
     }
@@ -90,19 +90,19 @@ internal class JobObject : IDisposable
         SetInfo(JOBOBJECTINFOCLASS.JobObjectBasicUIRestrictions, basicUiRestrictions);
     }
 
-    public void SetNetRateControl(ulong maxBandwith)
+    public void SetNetRateControl(ulong maxBandwidth)
     {
         var netRateControlInformation = new JOBOBJECT_NET_RATE_CONTROL_INFORMATION
         {
             ControlFlags = JOB_OBJECT_NET_RATE_CONTROL_FLAGS.JOB_OBJECT_NET_RATE_CONTROL_ENABLE
                 | JOB_OBJECT_NET_RATE_CONTROL_FLAGS.JOB_OBJECT_NET_RATE_CONTROL_MAX_BANDWIDTH,
-            MaxBandwidth = maxBandwith
+            MaxBandwidth = maxBandwidth
         };
 
         SetInfo(JOBOBJECTINFOCLASS.JobObjectNetRateControlInformation, netRateControlInformation);
     }
 
-    
+
 
     public void Assign(Process process)
     {
