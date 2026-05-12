@@ -8,6 +8,17 @@ indent_style = space
 [*.xml]
 indent_size = 2
 
+# Xml project files
+[*.{csproj,fsproj,vbproj,proj,slnx}]
+indent_size = 2
+
+# Xml config files
+[*.{props,targets,config,nuspec}]
+indent_size = 2
+
+[*.json]
+indent_size = 2
+
 # C# files
 [*.cs]
 
@@ -18,7 +29,6 @@ indent_size = 4
 tab_width = 4
 
 # New line preferences
-end_of_line = crlf
 insert_final_newline = true
 charset = utf-8
 

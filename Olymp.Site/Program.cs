@@ -46,14 +46,14 @@ else
 }
 
 builder.Services.AddTransient<IPasswordHasher<User>, OlympPasswordHasher>();
-builder.Services.AddTransient<IPasswordValidator<User>, OlympPasswordValidator>();
-builder.Services.AddTransient<IUserValidator<User>, OlympUserValidator>();
 
 builder.Services.AddIdentity<User, IdentityRole<int>>()
     .AddEntityFrameworkStores<OlympContext>()
     .AddDefaultTokenProviders()
     .AddErrorDescriber<LocalizedIdentityErrorDescriber>()
-    .AddUserConfirmation<OlympUserConfirmation>();
+    .AddUserConfirmation<OlympUserConfirmation>()
+    .AddUserValidator<OlympUserValidator>()
+    .AddPasswordValidator<OlympPasswordValidator>();
 
 builder.Services.Configure<IdentityOptions>(options =>
 {
