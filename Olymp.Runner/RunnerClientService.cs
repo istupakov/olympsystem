@@ -110,7 +110,7 @@ public class RunnerClientService : BackgroundService
     private async Task LogWhoami(string? user, CancellationToken token)
     {
         using var process = _processFactory.Create("whoami", _workDirectory,
-            user, CreateEnviromentVariables([]),
+            user, CreateEnvironmentVariables([]),
             2, ProcessPriorityClass.Normal, TimeSpan.FromSeconds(1), 128_000_000);
 
         await process.Process.WaitForExitAsync(token);
@@ -132,7 +132,7 @@ public class RunnerClientService : BackgroundService
         await file.WriteAsync(content, token);
     }
 
-    private Dictionary<string, string> CreateEnviromentVariables(IEnumerable<string> envFiles)
+    private Dictionary<string, string> CreateEnvironmentVariables(IEnumerable<string> envFiles)
     {
         Dictionary<string, string> envs = [];
         foreach (string envFile in (IEnumerable<string>)["base", .. envFiles])
@@ -164,7 +164,7 @@ public class RunnerClientService : BackgroundService
             await CreateFile(file.Filename, file.Content.Memory, token);
         }
 
-        var envs = CreateEnviromentVariables(request.EnvFiles);
+        var envs = CreateEnvironmentVariables(request.EnvFiles);
 
         var userTimeLimit = request.ResourceLimits.UserTime.ToTimeSpan();
         nuint memoryLimit = new(request.ResourceLimits.MemoryBytes);
