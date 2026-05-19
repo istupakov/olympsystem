@@ -1,0 +1,25 @@
+﻿@page
+@attribute [Authorize(Policy = PolicyNames.Admin)]
+@model ByUserModel
+@{
+    ViewData["Title"] = Localizer["Submission by user similarity test"];
+}
+<h1>@ViewData["Title"]</h1>
+
+<form method="post">
+    <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
+    <div class="form-floating mb-3">
+        <input asp-for="Input.UserName" class="form-control" required>
+        <label asp-for="Input.UserName"></label>
+        <span asp-validation-for="Input.UserName" class="text-danger"></span>
+    </div>
+    <div class="form-floating mb-3">
+        <input asp-for="Input.Threshold" class="form-control">
+        <label asp-for="Input.Threshold"></label>
+        <span asp-validation-for="Input.Threshold" class="text-danger"></span>
+    </div>
+    <button type="submit" class="btn btn-primary">@Localizer["Submit"]</button>
+</form>
+
+<hr />
+<partial name="_PlagiarismReport" for="Reports" />
