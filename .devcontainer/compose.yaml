@@ -1,0 +1,15 @@
+services:
+  site:
+    image: mcr.microsoft.com/devcontainers/dotnet:10.0-noble
+    build: !reset null
+    ports: !reset []
+    entrypoint: ["sleep", "infinity"]
+    command: []
+    working_dir: /workspace
+    volumes:
+      - .:/workspace
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_HTTP_PORTS: !reset null
+    healthcheck:
+      disable: true

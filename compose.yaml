@@ -32,7 +32,7 @@ services:
     environment:
       ConnectionStrings__DefaultConnection: Server=sqlserver;Database=olympdb;TrustServerCertificate=true;User Id=SA;Password=${DB_PASSWORD:-YourStrong!Passw0rd}
       ASPNETCORE_ENVIRONMENT: Staging
-      ASPNETCORE_URLS: http://+:5000
+      ASPNETCORE_HTTP_PORTS: "5000"
       TZ: Asia/Novosibirsk
     ports:
       - "5000:5000"

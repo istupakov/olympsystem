@@ -1,0 +1,27 @@
+{
+  "name": "OlympSystem",
+  "dockerComposeFile": [
+    "../compose.yaml",
+    "compose.yaml"
+  ],
+  "service": "site",
+  "runServices": ["site"],
+  "workspaceFolder": "/workspace",
+  "remoteUser": "vscode",
+  "portsAttributes": {
+    "8080": {
+      "label": "Olymp.Site",
+      "protocol": "http",
+      "onAutoForward": "openBrowserOnce"
+    }
+  },
+  "postCreateCommand": "dotnet tool restore && dotnet restore Olymp.Site/Olymp.Site.csproj",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-dotnettools.csdevkit",
+        "redhat.vscode-yaml"
+      ]
+    }
+  }
+}

@@ -1,8 +1,11 @@
 services:
+  sqlserver:
+    environment:
+      MSSQL_SA_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD for production}
   site:
     restart: unless-stopped
     environment:
-      ASPNETCORE_URLS: ${ASPNETCORE_URLS:-http://+:5000;https://+:5001}
+      ASPNETCORE_HTTPS_PORTS: "5001"
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_HTTPS_PORT: 443
       DataProtection__Path: ./keys
