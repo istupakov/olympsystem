@@ -5,7 +5,6 @@ namespace Olymp.Checker;
 public interface ICheckerTest
 {
     string Name => GetType().Name;
-    bool Optional => false;
     IReadOnlyList<string> CompilatorNames => [];
 
     string Language => GetType().Namespace?.Split('.').LastOrDefault() switch

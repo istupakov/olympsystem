@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Text;
 
@@ -16,12 +17,14 @@ public interface ICheckerService
     string Name { get; }
     DateTimeOffset ConnectingTime { get; }
     IReadOnlySet<string> SupportedEnvs { get; }
+    IReadOnlyList<CompilatorInfo>? Compilators { get; }
+    string VersionLog { get; }
     CheckerSelfTestingStatus SelfTestingStatus { get; }
     IEnumerable<CheckerTestResult> SelfTestingResults { get; }
 
     Task<bool> TryCheckFromDB(CancellationToken token);
     Task<CheckResult> Check(Submission submission, bool allTests, CancellationToken token);
-    Task<string> Run(string source, Compilator compilator, string input,
+    Task<string> Run(string source, ICompilatorConfiguration configuration, string input,
         TimeSpan timeLimit, int memoryLimitMb, CancellationToken token);
     Task<bool> RunSelfTests(CancellationToken token);
 }
@@ -34,16 +37,22 @@ public enum CheckerSelfTestingStatus
     Success
 }
 
-public record CheckerTestResult(ICheckerTest Test, Compilator Compilator, CheckerResultStatus Result, string Output);
+public record CheckerTestResult(ICheckerTest Test, CompilatorInfo Compilator, CheckerResultStatus Result, string Output);
 
 public class CheckerService(ILogger<CheckerService> logger, IRunnerService runner, IServiceProvider provider,
+    IEnumerable<ICompilatorConfiguration> compilatorConfigurations,
     IEnumerable<ICheckerTest> checkerTests, IEnumerable<ISimpleChecker> simpleCheckers) : ICheckerService
 {
+    private static readonly RunnerResources CompilationResources = new(
+        TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30),
+        768 * 1024 * 1024, 64 * 1024, 64 * 1024);
+
     private readonly ILogger _logger = logger;
     private readonly IRunnerService _runner = runner;
     private readonly IServiceProvider _provider = provider;
+    private readonly IReadOnlyList<ICompilatorConfiguration> _configurations = compilatorConfigurations.ToArray();
     private readonly IEnumerable<ICheckerTest> _checkerTests = checkerTests;
-    private readonly List<CheckerTestResult> _checkerTestResults = [];
+    private readonly ConcurrentQueue<CheckerTestResult> _checkerTestResults = new();
     private readonly Dictionary<int, ISimpleChecker> _simpleCheckers = simpleCheckers.ToDictionary(x => x.Id);
     private readonly SemaphoreSlim _semaphore = new(1);
 
@@ -51,56 +60,112 @@ public class CheckerService(ILogger<CheckerService> logger, IRunnerService runne
     public string Name => _runner.Name;
     public DateTimeOffset ConnectingTime => _runner.ConnectingTime;
     public IReadOnlySet<string> SupportedEnvs => _runner.SupportedEnvs;
+    public IReadOnlyList<CompilatorInfo>? Compilators { get; private set; }
+    public string VersionLog { get; private set; } = string.Empty;
     public CheckerSelfTestingStatus SelfTestingStatus { get; private set; } = CheckerSelfTestingStatus.Unknown;
-    public IEnumerable<CheckerTestResult> SelfTestingResults => _checkerTestResults.AsReadOnly();
+    public IEnumerable<CheckerTestResult> SelfTestingResults => _checkerTestResults.ToArray();
 
-    private async Task<RunnerResult> Compile(string name, Compilator compilator,
-        ReadOnlyMemory<byte> source, bool clearWorkdir, CancellationToken token)
+    public async Task LoadCompilators(CancellationToken token)
     {
-        if (!_runner.SupportedEnvs.Contains(compilator.ConfigName))
-            throw new NotSupportedException($"Runner {_runner.Name} don't support config {compilator.ConfigName}");
+        if (Compilators is not null)
+            return;
 
-        var filename = (compilator.Language is "Java") ? "Main.java"
-            : Path.ChangeExtension(name, compilator.SourceExtension);
+        await _semaphore.WaitAsync(token);
+        try
+        {
+            if (Compilators is not null)
+                return;
 
-        var command = compilator.CommandLine.Replace("!.!", filename).Replace("!", Path.GetFileNameWithoutExtension(filename));
+            var compilators = new List<CompilatorInfo>();
+            var results = new Dictionary<(string Env, string Command), RunnerResult>();
+            VersionLog = string.Empty;
+            foreach (var configuration in _configurations.Where(x => SupportedEnvs.Contains(x.ConfigName)))
+            {
+                token.ThrowIfCancellationRequested();
+                var command = configuration.GetVersionCommand();
+                var output = string.Empty;
+                try
+                {
+                    var key = (configuration.ConfigName, command);
+                    if (!results.TryGetValue(key, out var result))
+                    {
+                        result = await _runner.Run(new(command, ReadOnlyMemory<byte>.Empty, false, false,
+                            [configuration.ConfigName], [], CompilationResources), token);
+                        results.Add(key, result);
+                        VersionLog += $"Environment: {configuration.ConfigName}\n{GetCommandLog(command, result)}\n\n";
+                    }
 
-        var resourceLimits = new RunnerResources(TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(10),
-            512 * 1024 * 1024, 0, 100 * 1024);
-        return await _runner.Run(new($"{command} 1>&2", Memory<byte>.Empty, clearWorkdir, false,
-            [compilator.ConfigName], [new(filename, source)], resourceLimits), token);
+                    output = (Encoding.UTF8.GetString(result.Stdout.Span) + "\n"
+                        + Encoding.UTF8.GetString(result.Stderr.Span)).Trim();
+                    if (result.Status != CommandStatus.Completed || result.ExitCode != 0)
+                        throw new InvalidOperationException($"status: {result.Status}, exit code: {result.ExitCode}");
+
+                    compilators.Add(configuration.ParseInfo(output));
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    compilators.Add(new(configuration, configuration.Name, null,
+                        $"{command}\n{output}\n{ex.Message}"));
+                }
+            }
+
+            Compilators = compilators.OrderBy(x => x.DisplayName, StringComparer.Ordinal).ToArray();
+        }
+        finally
+        {
+            _semaphore.Release();
+        }
     }
 
-    private async Task<RunnerResult> RunTest(string name, Compilator compilator,
+    // Until database records use configuration names, match the unchanged legacy settings.
+    private CompilatorInfo GetCompilatorInfo(Compilator compilator)
+    {
+        var info = Compilators!.SingleOrDefault(x => x.Configuration.Language == compilator.Language
+            && x.Configuration.ConfigName == compilator.ConfigName
+            && x.Configuration.CompileCommand == compilator.CommandLine)
+            ?? throw new NotSupportedException($"Compilator {compilator.Id} ({compilator.Name}) has no matching configuration on runner {Id}");
+
+        if (info.Error is not null)
+            throw new NotSupportedException($"Compilator {info.Configuration.Name} is unavailable:\n{info.Error}");
+
+        return info;
+    }
+
+    private async Task<RunnerResult> Compile(string name, ICompilatorConfiguration configuration,
+        ReadOnlyMemory<byte> source, bool clearWorkdir, CancellationToken token)
+    {
+        if (!_runner.SupportedEnvs.Contains(configuration.ConfigName))
+            throw new NotSupportedException($"Runner {_runner.Name} don't support config {configuration.ConfigName}");
+
+        var filename = configuration.GetSourceFileName(name);
+        var command = configuration.GetCompileCommand(name);
+
+        return await _runner.Run(new($"{command} 1>&2", Memory<byte>.Empty, clearWorkdir, false,
+            [configuration.ConfigName], [new(filename, source)], CompilationResources), token);
+    }
+
+    private async Task<RunnerResult> RunTest(string name, ICompilatorConfiguration configuration,
         ReadOnlyMemory<byte> input, TimeSpan timeLimit, int memoryLimitMb,
         CancellationToken token)
     {
-        if (!_runner.SupportedEnvs.Contains(compilator.ConfigName))
-            throw new NotSupportedException($"Runner {_runner.Name} don't support config {compilator.ConfigName}");
+        if (!_runner.SupportedEnvs.Contains(configuration.ConfigName))
+            throw new NotSupportedException($"Runner {_runner.Name} don't support config {configuration.ConfigName}");
 
-        var command = compilator.Language switch
-        {
-            "Java" => $"java -Xmx{memoryLimitMb}M -Xss64M Main",
-            "Python" => Path.ChangeExtension(name, ".pyc"),
-            "C#" when compilator.ConfigName.StartsWith("dotnet") => $"dotnet {Path.ChangeExtension(name, ".dll")}",
-            _ => Path.ChangeExtension(name, ".exe")
-        };
-
-        if (compilator.Language == "Java")
-            memoryLimitMb += 128;
+        var command = configuration.RunCommand(name, memoryLimitMb);
+        memoryLimitMb += configuration.MemoryOverheadMb;
 
         var resourceLimits = new RunnerResources(timeLimit, timeLimit + TimeSpan.FromSeconds(5),
             (uint)memoryLimitMb * 1024 * 1024, 1024 * 1024, 4096);
-        return await _runner.Run(new(command, input, false, true, [compilator.ConfigName], [], resourceLimits), token);
+        return await _runner.Run(new(command, input, false, true, [configuration.ConfigName], [], resourceLimits), token);
     }
 
     private async Task<(CheckerResultStatus, RunnerResult)> CheckTest(string name,
-        Compilator compilator, ISimpleChecker checker, ReadOnlyMemory<byte> input,
+        ICompilatorConfiguration configuration, ISimpleChecker checker, ReadOnlyMemory<byte> input,
         ReadOnlyMemory<byte> output, TimeSpan timeLimit, int memoryLimitMb,
         CancellationToken token)
     {
-        var encoding = Encoding.ASCII;
-        var result = await RunTest(name, compilator, input, timeLimit, memoryLimitMb, token);
+        var encoding = Encoding.UTF8;
+        var result = await RunTest(name, configuration, input, timeLimit, memoryLimitMb, token);
         var status = result.Status switch
         {
             CommandStatus.UserTimeLimit => CheckerResultStatus.TimeLimit,
@@ -130,6 +195,7 @@ public class CheckerService(ILogger<CheckerService> logger, IRunnerService runne
         var submission = await context.Submissions
             .Where(x => x.StatusCode == 0 || x.StatusCode == 1 && x.LastModification < span)
             .Where(x => x.Problem.IsActive && compilatorsId.Contains(x.CompilatorId))
+            .Where(x => x.Problem.Tests.Any(test => test.IsActive))
             .OrderBy(x => x.CommitTime)
             .Include(x => x.Compilator)
             .Include(x => x.User)
@@ -179,20 +245,36 @@ public class CheckerService(ILogger<CheckerService> logger, IRunnerService runne
 
     public async Task<CheckResult> Check(Submission submission, bool allTests, CancellationToken token)
     {
+        await LoadCompilators(token);
         await _semaphore.WaitAsync(token);
         var timer = Stopwatch.StartNew();
 
         try
         {
             var name = submission.Id.ToString();
-            var compileResult = await Compile(name, submission.Compilator, submission.SourceCode, true, token);
+            var compilator = GetCompilatorInfo(submission.Compilator);
+            var configuration = compilator.Configuration;
+            var log = new StringBuilder();
+            log.AppendLine($"""
+                Runner: {Name} ({Id})
+                Compilator: {compilator.DisplayName}
+                Configuration: {configuration.Name} ({configuration.ConfigName})
+                Versions: {compilator.Description}
+                """);
+
+            var compileResult = await Compile(name, configuration, submission.SourceCode, true, token);
+            log.AppendLine($"""
+                Compilation:
+                user time: {compileResult.ResourceConsumption.UserTime}
+                total time: {compileResult.ResourceConsumption.TotalTime}
+                """);
             if (compileResult.Status is not CommandStatus.Completed)
             {
                 return new()
                 {
                     Submission = null!,
                     SubmissionId = submission.Id,
-                    Log = GetTruncatedString(compileResult.Stderr, 1024),
+                    Log = log.AppendLine(GetTruncatedString(compileResult.Stderr, 1024)).ToString(),
                     StatusCode = CheckerResultStatus.CompilationError.MakeStatusCode(),
                     CheckTime = DateTimeOffset.Now
                 };
@@ -201,13 +283,9 @@ public class CheckerService(ILogger<CheckerService> logger, IRunnerService runne
             if (!_simpleCheckers.TryGetValue(submission.Problem.CheckerId, out var checker))
                 throw new InvalidOperationException($"Checker with id {submission.Problem.CheckerId} not found");
 
-            var timeLimit = submission.Compilator.Language switch
-            {
-                "Java" or "Python" => TimeSpan.FromSeconds(submission.Problem.SlowTimeLimit),
-                _ => TimeSpan.FromSeconds(submission.Problem.TimeLimit)
-            };
+            var timeLimit = TimeSpan.FromSeconds(configuration.UseSlowTimeLimit
+                ? submission.Problem.SlowTimeLimit : submission.Problem.TimeLimit);
 
-            var log = new StringBuilder();
             var testResults = new List<CheckerResultStatus>();
             var statusCode = 2;
             var maxUserTime = TimeSpan.Zero;
@@ -221,7 +299,7 @@ public class CheckerService(ILogger<CheckerService> logger, IRunnerService runne
                     Test {test.Number}
                     """);
             test:
-                var (status, result) = await CheckTest(name, submission.Compilator, checker,
+                var (status, result) = await CheckTest(name, configuration, checker,
                     test.Input, test.Output, timeLimit, submission.Problem.MemoryLimit, token);
 
                 if (result.ResourceConsumption.UserTime > maxUserTime)
@@ -289,39 +367,31 @@ public class CheckerService(ILogger<CheckerService> logger, IRunnerService runne
         }
     }
 
-    public async Task<string> Run(string source, Compilator compilator,
+    public async Task<string> Run(string source, ICompilatorConfiguration configuration,
         string input, TimeSpan timeLimit, int memoryLimitMb, CancellationToken token)
     {
         await _semaphore.WaitAsync(token);
         try
         {
             string name = Guid.NewGuid().ToString();
-            var encoding = Encoding.ASCII;
-            var compileResult = await Compile(name, compilator, encoding.GetBytes(source), true, token);
+            var encoding = Encoding.UTF8;
+            var compileResult = await Compile(name, configuration, encoding.GetBytes(source), true, token);
+            var compilationLog = GetCompilationLog(configuration.GetCompileCommand(name), compileResult);
             if (compileResult.Status is not CommandStatus.Completed)
-            {
-                return $"""
-                    status: {compileResult.Status}
-                    user time: {compileResult.ResourceConsumption.UserTime}
-                    total time: {compileResult.ResourceConsumption.TotalTime}
-                    peak memory: {compileResult.ResourceConsumption.Memory / 1024 / 1024} MB
-                    exit code: {compileResult.ExitCode}
-                    compilator:
-                    {encoding.GetString(compileResult.Stderr.Span)}
-                    """;
-            }
+                return compilationLog;
 
-            var result = await RunTest(name, compilator, encoding.GetBytes(input),
+            var result = await RunTest(name, configuration, encoding.GetBytes(input),
                 timeLimit, memoryLimitMb, token);
 
             return $"""
+                {compilationLog}
+
+                Execution:
                 status: {result.Status}
                 user time: {result.ResourceConsumption.UserTime}
                 total time: {result.ResourceConsumption.TotalTime}
                 peak memory: {result.ResourceConsumption.Memory / 1024 / 1024} MB
                 exit code: {result.ExitCode}
-                compilator:
-                {encoding.GetString(compileResult.Stderr.Span)}
                 stdout:
                 {GetTruncatedString(result.Stdout, 4096)}
                 stderr:
@@ -336,39 +406,64 @@ public class CheckerService(ILogger<CheckerService> logger, IRunnerService runne
 
     public async Task<bool> RunSelfTests(CancellationToken token)
     {
-        await using var scope = _provider.CreateAsyncScope();
-        var context = scope.ServiceProvider.GetRequiredService<OlympContext>();
-        var compilators = await context.Compilators
-            .Where(x => x.IsActive && SupportedEnvs.Contains(x.ConfigName))
-            .ToListAsync(token);
+        await LoadCompilators(token);
+        var compilators = Compilators!;
 
         _checkerTestResults.Clear();
         SelfTestingStatus = CheckerSelfTestingStatus.InProcess;
 
+        if (compilators.Count == 0)
+        {
+            _logger.LogWarning("Checker {id} has no supported compilators to test", Id);
+            SelfTestingStatus = CheckerSelfTestingStatus.Failed;
+            return false;
+        }
+
+        var hasTestsForAllCompilators = true;
         foreach (var compilator in compilators)
-            foreach (var test in _checkerTests.Where(x => x.Language == compilator.Language))
+        {
+            if (compilator.Error is not null)
+                continue;
+
+            var tests = _checkerTests.Where(x => x.Language == compilator.Configuration.Language
+                && (x.CompilatorNames.Count == 0 || x.CompilatorNames.Contains(compilator.Configuration.Name))).ToArray();
+            if (tests.Length == 0)
+            {
+                _logger.LogWarning("No self-tests for compilator {compilator}, language {language}",
+                    compilator.Configuration.Name, compilator.Configuration.Language);
+                hasTestsForAllCompilators = false;
+            }
+
+            foreach (var test in tests)
             {
                 token.ThrowIfCancellationRequested();
                 await _semaphore.WaitAsync(token);
                 try
                 {
-                    var (status, output) = await RunCheckerTest(test, compilator, token);
-                    _checkerTestResults.Add(new(test, compilator, status, output));
+                    var (status, output) = await RunCheckerTest(test, compilator.Configuration, token);
+                    _checkerTestResults.Enqueue(new(test, compilator, status, output));
 
                     if (status == test.ExpectedResult)
                         _logger.LogInformation("CheckerTest {name} with compilator {compilator}: OK",
-                            test.Name, compilator.Name);
+                            test.Name, compilator.DisplayName);
                     else
                         _logger.LogWarning("CheckerTest {name} with compilator {compilator} error: expected {expected}, actual {actual}",
-                            test.Name, compilator.Name, test.ExpectedResult, status);
+                            test.Name, compilator.DisplayName, test.ExpectedResult, status);
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    _logger.LogWarning(ex, "CheckerTest {name} with compilator {compilator} failed", test.Name, compilator.Configuration.Name);
+                    _checkerTestResults.Enqueue(new(test, compilator, CheckerResultStatus.InternalError, ex.ToString()));
                 }
                 finally
                 {
                     _semaphore.Release();
                 }
             }
+        }
 
-        if (_checkerTestResults.Where(x => !x.Test.Optional).All(x => x.Result == x.Test.ExpectedResult))
+        if (compilators.All(x => x.Error is null) && hasTestsForAllCompilators
+            && _checkerTestResults.All(x => x.Result == x.Test.ExpectedResult))
         {
             SelfTestingStatus = CheckerSelfTestingStatus.Success;
             return true;
@@ -379,31 +474,28 @@ public class CheckerService(ILogger<CheckerService> logger, IRunnerService runne
     }
 
     private async Task<(CheckerResultStatus, string)> RunCheckerTest(ICheckerTest test,
-        Compilator compilator, CancellationToken token)
+        ICompilatorConfiguration configuration, CancellationToken token)
     {
-        var encoding = Encoding.ASCII;
-        var compileResult = await Compile(test.Name, compilator, encoding.GetBytes(test.Source), true, token);
+        var encoding = Encoding.UTF8;
+        var compileResult = await Compile(test.Name, configuration, encoding.GetBytes(test.Source), true, token);
+        var compilationLog = GetCompilationLog(configuration.GetCompileCommand(test.Name), compileResult);
         if (compileResult.Status is not CommandStatus.Completed)
         {
-            var compileOutput = $"""
-                status: {compileResult.Status}
-                user time: {compileResult.ResourceConsumption.UserTime}
-                total time: {compileResult.ResourceConsumption.TotalTime}
-                peak memory: {compileResult.ResourceConsumption.Memory / 1024 / 1024} MB
-                exit code: {compileResult.ExitCode}
+            return (CheckerResultStatus.CompilationError, $"""
+                {compilationLog}
                 source:
                 {test.Source}
-                compilator:
-                {encoding.GetString(compileResult.Stderr.Span)}
-                """;
-            return (CheckerResultStatus.CompilationError, compileOutput);
+                """);
         }
 
-        var (status, result) = await CheckTest(test.Name, compilator, test.Checker,
+        var (status, result) = await CheckTest(test.Name, configuration, test.Checker,
         encoding.GetBytes(test.Input), encoding.GetBytes(test.Output),
         test.TimeLimit, test.MemoryLimitMB, token);
 
         var output = $"""
+            {compilationLog}
+
+            Execution:
             status: {result.Status}
             user time: {result.ResourceConsumption.UserTime}
             total time: {result.ResourceConsumption.TotalTime}
@@ -411,8 +503,6 @@ public class CheckerService(ILogger<CheckerService> logger, IRunnerService runne
             exit code: {result.ExitCode}
             source:
             {test.Source}
-            compilator:
-            {encoding.GetString(compileResult.Stderr.Span)}
             test input:
             {test.Input}
             test output
@@ -425,6 +515,22 @@ public class CheckerService(ILogger<CheckerService> logger, IRunnerService runne
 
         return (status, output);
     }
+
+    private static string GetCommandLog(string command, RunnerResult result) => $"""
+        command: {command}
+        status: {result.Status}
+        user time: {result.ResourceConsumption.UserTime}
+        total time: {result.ResourceConsumption.TotalTime}
+        peak memory: {result.ResourceConsumption.Memory / 1024 / 1024} MB
+        exit code: {result.ExitCode}
+        """;
+
+    private static string GetCompilationLog(string command, RunnerResult result) => $"""
+        Compilation:
+        {GetCommandLog(command, result)}
+        compilator:
+        {GetTruncatedString(result.Stderr, 100 * 1024)}
+        """;
 
     private static string GetTruncatedString(ReadOnlyMemory<byte> memory, int len) =>
         Encoding.UTF8.GetString(memory.Span[..Math.Min(memory.Length, len)]);

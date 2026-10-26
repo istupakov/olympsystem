@@ -4,57 +4,118 @@
 @model IndexModel
 @{
 	ViewData["Title"] = Localizer["Checkers"];
+	var checkers = Model.Checkers.ToArray();
 }
-<h1>@ViewData["Title"]</h1>
+<div class="d-flex align-items-center justify-content-between mb-3">
+	<h1 class="mb-0">@ViewData["Title"]</h1>
+	<a asp-page="./Run" class="btn btn-outline-primary">@Localizer["Run"]</a>
+</div>
 
-@foreach (var checker in Model.Checkers) {
-	<h2>@checker.Name (@checker.Id)</h2>
-	var cls = checker.SelfTestingStatus switch {
-		CheckerSelfTestingStatus.InProcess => "primary",
-		CheckerSelfTestingStatus.Success => "success",
-		CheckerSelfTestingStatus.Failed => "danger",
-		_ => "bg-secondary"
+@if (checkers.Length == 0) {
+	<div class="alert alert-warning" role="alert">@Localizer["No connected runners"]</div>
+}
+
+@foreach (var checker in checkers) {
+	var selfTestingStatus = checker.SelfTestingStatus;
+	var results = checker.SelfTestingResults.ToLookup(x => x.Compilator.Configuration.Name);
+	var (statusText, statusClass) = selfTestingStatus switch {
+		CheckerSelfTestingStatus.InProcess => ("Self-testing in progress", "primary"),
+		CheckerSelfTestingStatus.Success => ("Self-testing passed", "success"),
+		CheckerSelfTestingStatus.Failed => ("Self-testing failed", "danger"),
+		_ => ("Waiting for self-testing", "secondary")
 	};
-	<p>
-		@Localizer["Connecting time"]: @checker.ConnectingTime
-	</p>
-	<div class="alert alert-@cls" role="alert">
-		@Localizer["Self-testing status"]: @checker.SelfTestingStatus
-	</div>
-	<ul>
-		@foreach (var env in checker.SupportedEnvs) {
-			<li>@env</li>
+	<section class="mb-4">
+		<div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
+			<div>
+				<h2 class="h4 mb-1">@checker.Name</h2>
+				<div class="small text-body-secondary text-break">@checker.Id</div>
+				<div class="small text-body-secondary">@Localizer["Connecting time"]: @checker.ConnectingTime.ToString("g")</div>
+			</div>
+			<span class="badge text-bg-@statusClass">@Localizer[statusText]</span>
+		</div>
+		@if (checker.VersionLog is { Length: > 0 } versionLog) {
+			<details class="mb-3">
+				<summary>@Localizer["Version probe log"]</summary>
+				<pre class="text-break mt-2" style="white-space: pre-wrap;">@versionLog</pre>
+			</details>
 		}
-	</ul>
-	<table class="table table-stripd">
-		<thead>
-			<tr>
-				<th scope="col">@Localizer["Test"]</th>
-				<th scope="col">@Localizer["Compilator"]</th>
-				<th scope="col">@Localizer["Expected result"]</th>
-				<th scope="col">@Localizer["Actual result"]</th>
-			</tr>
-		</thead>
-		<tbody>
-			@foreach (var res in checker.SelfTestingResults) {
-				var id = Guid.NewGuid();
-				<tr class="@(res.Test.ExpectedResult == res.Result? "table-success": "table-danger")">
-					<td>@res.Test.Name</td>
-					<td>@res.Compilator.Name</td>
-					<td>@res.Test.ExpectedResult</td>
-					<td>
-						@res.Result
-						<a class="btn btn-info" data-bs-toggle="collapse" href="#log-@id">view log</a>
-					</td>
-				</tr>
-				<tr class="collapse" id="log-@id">
-					<td colspan="4">
-						<div>
-							<pre class="vw-100">@res.Output</pre>
-						</div>
-					</td>
-				</tr>
+		@if (checker.Compilators is not { } compilators) {
+			<p class="text-body-secondary">@Localizer["Loading compiler versions..."]</p>
+		}
+		else if (compilators.Count == 0) {
+			<p class="text-danger">@Localizer["No available compilators"]</p>
+		}
+		else {
+			@foreach (var compilator in compilators) {
+				var tests = results[compilator.Configuration.Name].ToArray();
+				var completed = tests.Length == Model.GetTestCount(compilator.Configuration);
+				var passed = tests.Count(x => x.Result == x.Test.ExpectedResult);
+				var failed = tests.Length - passed;
+				var hasError = compilator.Error is not null || failed > 0 || (completed && tests.Length == 0);
+				var testClass = hasError ? "danger" : completed ? "success" : "secondary";
+				<details class="border rounded mb-2" open="@hasError">
+					<summary class="p-3">
+						<span class="fw-semibold">@compilator.DisplayName</span>
+						<span class="badge text-bg-@testClass ms-2">
+							@if (compilator.Error is not null) {
+								@Localizer["Unavailable"]
+							}
+							else if (failed > 0) {
+								@Localizer["Passed {0} of {1}; failures: {2}", passed, tests.Length, failed]
+							}
+							else if (tests.Length == 0) {
+								@Localizer[completed ? "No tests" : "Waiting for tests"]
+							}
+							else if (!completed) {
+								@Localizer["Passed {0}; self-testing in progress", passed]
+							}
+							else {
+								@Localizer["Passed {0} of {1}", passed, tests.Length]
+							}
+						</span>
+						<span class="d-block small text-body-secondary mt-1">@Localizer["Configuration"]: @compilator.Configuration.Name (@compilator.Configuration.ConfigName)</span>
+					</summary>
+					<div class="border-top p-3">
+						@if (!string.IsNullOrWhiteSpace(compilator.Description)) {
+							<p class="text-break">@compilator.Description</p>
+						}
+						@if (compilator.Error is { } error) {
+							<p class="text-danger">@Localizer["Version could not be determined"]</p>
+							<pre class="text-break text-danger" style="white-space: pre-wrap;">@error</pre>
+						}
+						@if (tests.Length > 0) {
+							<div class="table-responsive">
+								<table class="table table-sm align-middle mb-0">
+									<thead>
+										<tr>
+											<th scope="col">@Localizer["Test"]</th>
+											<th scope="col">@Localizer["Expected result"]</th>
+											<th scope="col">@Localizer["Actual result"]</th>
+										</tr>
+									</thead>
+									<tbody>
+										@foreach (var test in tests) {
+											<tr class="@(test.Result == test.Test.ExpectedResult ? null : "table-danger")">
+												<th scope="row" class="fw-normal text-break">@test.Test.Name</th>
+												<td>@test.Test.ExpectedResult</td>
+												<td>@test.Result</td>
+											</tr>
+											<tr>
+												<td colspan="3" class="pt-0">
+													<details class="mt-1">
+														<summary>@Localizer["View log"]</summary>
+														<pre class="text-break mt-2" style="white-space: pre-wrap;">@test.Output</pre>
+													</details>
+												</td>
+											</tr>
+										}
+									</tbody>
+								</table>
+							</div>
+						}
+					</div>
+				</details>
 			}
-		</tbody>
-	</table>
+		}
+	</section>
 }

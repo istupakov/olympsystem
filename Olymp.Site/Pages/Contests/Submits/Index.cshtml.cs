@@ -75,6 +75,7 @@ public class IndexModel(OlympContext context, UserManager<User> userManager,
         Compilators = await _context.Compilators
             .Where(x => x.IsActive)
             .OrderBy(x => x.Name)
+            .ThenBy(x => x.Description)
             .ToListAsync();
 
         Contest = contest;

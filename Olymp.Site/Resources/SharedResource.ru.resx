@@ -543,4 +543,85 @@
   <data name="{0:hh\:mm\:ss} left" xml:space="preserve">
     <value>осталось {0:hh\:mm\:ss}</value>
   </data>
+  <data name="Run" xml:space="preserve">
+    <value>Запуск</value>
+  </data>
+  <data name="Version could not be determined" xml:space="preserve">
+    <value>Не удалось определить версию</value>
+  </data>
+  <data name="No connected runners" xml:space="preserve">
+    <value>Нет подключённых Runner</value>
+  </data>
+  <data name="Self-testing in progress" xml:space="preserve">
+    <value>Самопроверка выполняется</value>
+  </data>
+  <data name="Self-testing passed" xml:space="preserve">
+    <value>Самопроверка пройдена</value>
+  </data>
+  <data name="Self-testing failed" xml:space="preserve">
+    <value>Самопроверка не пройдена</value>
+  </data>
+  <data name="Waiting for self-testing" xml:space="preserve">
+    <value>Ожидает самопроверки</value>
+  </data>
+  <data name="Loading compiler versions..." xml:space="preserve">
+    <value>Получение версий компиляторов...</value>
+  </data>
+  <data name="No available compilators" xml:space="preserve">
+    <value>Нет доступных компиляторов</value>
+  </data>
+  <data name="Configuration" xml:space="preserve">
+    <value>Конфигурация</value>
+  </data>
+  <data name="Unavailable" xml:space="preserve">
+    <value>Недоступен</value>
+  </data>
+  <data name="No tests" xml:space="preserve">
+    <value>Нет тестов</value>
+  </data>
+  <data name="Waiting for tests" xml:space="preserve">
+    <value>Ожидает проверки</value>
+  </data>
+  <data name="Passed {0}; self-testing in progress" xml:space="preserve">
+    <value>Пройдено {0}, проверка продолжается</value>
+  </data>
+  <data name="Passed {0} of {1}" xml:space="preserve">
+    <value>Пройдено {0} из {1}</value>
+  </data>
+  <data name="Passed {0} of {1}; failures: {2}" xml:space="preserve">
+    <value>Пройдено {0} из {1}; ошибок: {2}</value>
+  </data>
+  <data name="View log" xml:space="preserve">
+    <value>Журнал</value>
+  </data>
+  <data name="Runner" xml:space="preserve">
+    <value>Runner</value>
+  </data>
+  <data name="Back to checkers" xml:space="preserve">
+    <value>К чекерам</value>
+  </data>
+  <data name="Select a runner" xml:space="preserve">
+    <value>Выберите Runner</value>
+  </data>
+  <data name="Select a compilator" xml:space="preserve">
+    <value>Выберите компилятор</value>
+  </data>
+  <data name="Execution limits: {0} s, {1} MB" xml:space="preserve">
+    <value>Лимиты выполнения: {0} с, {1} МБ</value>
+  </data>
+  <data name="Execution result" xml:space="preserve">
+    <value>Результат запуска</value>
+  </data>
+  <data name="The selected runner is no longer connected." xml:space="preserve">
+    <value>Выбранный Runner больше не подключён.</value>
+  </data>
+  <data name="The selected runner disconnected during execution. Select a connected runner and try again." xml:space="preserve">
+    <value>Runner отключился во время запуска. Выберите подключённый Runner и повторите попытку.</value>
+  </data>
+  <data name="The selected compilator is unavailable on this runner." xml:space="preserve">
+    <value>Выбранный компилятор недоступен на этом Runner.</value>
+  </data>
+  <data name="Version probe log" xml:space="preserve">
+    <value>Журнал опроса версий</value>
+  </data>
 </root>

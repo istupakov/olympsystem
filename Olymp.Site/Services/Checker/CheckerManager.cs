@@ -39,6 +39,7 @@ public class CheckerManager(IServiceProvider provider, ILogger<CheckerManager> l
         {
             try
             {
+                await checker.LoadCompilators(token);
                 if (!await checker.RunSelfTests(token))
                 {
                     _logger.LogWarning("Checker {id} self tests failed", checker.Id);

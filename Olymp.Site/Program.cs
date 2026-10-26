@@ -109,6 +109,7 @@ builder.Services.AddAuthorizationBuilder()
 
 builder.Services.AddSimpleCheckers();
 builder.Services.AddCheckerTests();
+builder.Services.AddCompilators();
 builder.Services.AddSingleton<ICheckerManager, CheckerManager>();
 
 builder.Services.AddTransient<ISubmissionSimilarityService, SimpleSubmissionSimilarityService>();

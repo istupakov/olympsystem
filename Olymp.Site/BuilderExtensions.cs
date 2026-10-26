@@ -1,5 +1,4 @@
 using Olymp.Checker;
-using Olymp.Site;
 
 namespace Olymp.Site;
 
@@ -23,7 +22,7 @@ public static class BuilderExtensions
             .Where(x => !x.IsAbstract && x.IsClass && typeof(ICheckerTest).IsAssignableFrom(x));
 
         foreach (var test in tests)
-            services.Add(new ServiceDescriptor(typeof(ICheckerTest), test, ServiceLifetime.Transient));
+            services.AddSingleton(typeof(ICheckerTest), test);
 
         return services;
     }
@@ -34,7 +33,18 @@ public static class BuilderExtensions
             .Where(x => !x.IsAbstract && x.IsClass && typeof(ISimpleChecker).IsAssignableFrom(x));
 
         foreach (var checker in checkers)
-            services.Add(new ServiceDescriptor(typeof(ISimpleChecker), checker, ServiceLifetime.Transient));
+            services.AddSingleton(typeof(ISimpleChecker), checker);
+
+        return services;
+    }
+
+    public static IServiceCollection AddCompilators(this IServiceCollection services)
+    {
+        var compilators = typeof(ICompilatorConfiguration).Assembly.GetTypes()
+            .Where(x => !x.IsAbstract && x.IsClass && typeof(ICompilatorConfiguration).IsAssignableFrom(x));
+
+        foreach (var compilator in compilators)
+            services.AddSingleton(typeof(ICompilatorConfiguration), compilator);
 
         return services;
     }
