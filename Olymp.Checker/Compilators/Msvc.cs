@@ -23,10 +23,6 @@ public sealed class MsvcCConfiguration() : MsvcConfiguration(
     "C", "C", ".c", "cl /O2 /TC !.!")
 { }
 
-public sealed class MsvcCppConfiguration() : MsvcConfiguration(
-    "C++", "C++", ".cpp", "cl /O2 /EHs /TP !.!")
-{ }
-
 public sealed class MsvcCpp20Configuration() : MsvcConfiguration(
     "C++", "C++20", ".cpp", "cl /O2 /EHs /TP /std:c++20 !.!")
 { }

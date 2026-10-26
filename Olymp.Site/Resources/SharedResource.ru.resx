@@ -624,4 +624,22 @@
   <data name="Version probe log" xml:space="preserve">
     <value>Журнал опроса версий</value>
   </data>
+  <data name="Add runner compilators" xml:space="preserve">
+    <value>Добавить компиляторы Runner</value>
+  </data>
+  <data name="Disable compilators without a runner" xml:space="preserve">
+    <value>Выключить компиляторы без Runner</value>
+  </data>
+  <data name="Added or enabled compilators: {0}" xml:space="preserve">
+    <value>Добавлено или включено компиляторов: {0}</value>
+  </data>
+  <data name="Disabled compilators: {0}" xml:space="preserve">
+    <value>Выключено компиляторов: {0}</value>
+  </data>
+  <data name="The selected runner has not passed self-testing." xml:space="preserve">
+    <value>Выбранный Runner не прошёл самопроверку.</value>
+  </data>
+  <data name="Wait for runner self-testing to finish." xml:space="preserve">
+    <value>Дождитесь завершения самопроверки Runner.</value>
+  </data>
 </root>

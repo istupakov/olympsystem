@@ -5,11 +5,24 @@
 @{
 	ViewData["Title"] = Localizer["Checkers"];
 	var checkers = Model.Checkers.ToArray();
+	var isAdmin = User.IsInRole(RoleNames.Admin);
 }
-<div class="d-flex align-items-center justify-content-between mb-3">
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
 	<h1 class="mb-0">@ViewData["Title"]</h1>
-	<a asp-page="./Run" class="btn btn-outline-primary">@Localizer["Run"]</a>
+	<div class="d-flex flex-wrap gap-2">
+		@if (isAdmin) {
+			<form method="post" asp-page-handler="DisableCompilators">
+				<button type="submit" class="btn btn-outline-danger" disabled="@(checkers.Any(x => x.SelfTestingStatus is CheckerSelfTestingStatus.Unknown or CheckerSelfTestingStatus.InProcess))">@Localizer["Disable compilators without a runner"]</button>
+			</form>
+		}
+		<a asp-page="./Run" class="btn btn-outline-primary">@Localizer["Run"]</a>
+	</div>
 </div>
+
+@if (Model.StatusMessage is { } message) {
+	<div class="alert alert-success" role="status">@message</div>
+}
+<div asp-validation-summary="All" class="text-danger" role="alert"></div>
 
 @if (checkers.Length == 0) {
 	<div class="alert alert-warning" role="alert">@Localizer["No connected runners"]</div>
@@ -31,7 +44,15 @@
 				<div class="small text-body-secondary text-break">@checker.Id</div>
 				<div class="small text-body-secondary">@Localizer["Connecting time"]: @checker.ConnectingTime.ToString("g")</div>
 			</div>
-			<span class="badge text-bg-@statusClass">@Localizer[statusText]</span>
+			<div class="d-flex flex-wrap align-items-center gap-2">
+				<span class="badge text-bg-@statusClass">@Localizer[statusText]</span>
+				@if (isAdmin) {
+					<form method="post" asp-page-handler="AddCompilators">
+						<input type="hidden" name="checkerId" value="@checker.Id" />
+						<button type="submit" class="btn btn-sm btn-outline-primary" disabled="@(selfTestingStatus != CheckerSelfTestingStatus.Success)">@Localizer["Add runner compilators"]</button>
+					</form>
+				}
+			</div>
 		</div>
 		@if (checker.VersionLog is { Length: > 0 } versionLog) {
 			<details class="mb-3">

@@ -26,7 +26,7 @@
                                         <li>
                                             <h4>@string.Format("probability {0:p2}", c.Result.Probability)</h4>
                                             <p>@c.Submission.Id
-                                                (@c.Submission.CommitTime, @c.Submission.Compilator.Name,
+                                                (@c.Submission.CommitTime, <span title="@c.Submission.Compilator.Description">@c.Submission.Compilator.Name</span>,
                                                 @string.Format(Localizer[c.Submission.StatusTemplate],
                                                 c.Submission.StatusTestNumber))
                                     <a asp-page="/Submissions/Download"

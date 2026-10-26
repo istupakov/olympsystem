@@ -74,18 +74,19 @@ public class IndexModel(OlympContext context, UserManager<User> userManager,
 
         Compilators = await _context.Compilators
             .Where(x => x.IsActive)
-            .OrderBy(x => x.Name)
-            .ThenBy(x => x.Description)
+            .OrderBy(x => x.Description)
+            .ThenBy(x => x.Name)
             .ToListAsync();
 
         Contest = contest;
-        CompilatorList = new SelectList(Compilators, nameof(Compilator.Id), nameof(Compilator.NameWithDescription));
+        CompilatorList = new SelectList(Compilators, nameof(Compilator.Id), nameof(Compilator.Description));
         ProblemList = new SelectList(Contest.Problems, nameof(Problem.Id), nameof(Problem.NameWithNumber));
         Submissions = Contest.Problems.SelectMany(x => x.Submissions).OrderByDescending(x => x.CommitTime).ToList();
         UserStanding = Domain.Standing.UserProblemStanding(Contest.Problems, Submissions);
         CommonMessageCount = Contest.Messages.Count(message => message.UserId is null);
         ViewData["IsSchool"] = contest.IsSchool;
-        Input.CompilatorId ??= Submissions.Select(x => x.CompilatorId).FirstOrDefault();
+        Input.CompilatorId ??= Submissions.Select(x => (int?)x.CompilatorId)
+            .FirstOrDefault(id => Compilators.Any(x => x.Id == id));
 
         return true;
     }

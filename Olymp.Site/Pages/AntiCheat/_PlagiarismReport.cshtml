@@ -28,7 +28,7 @@
                                         <li>
                                             <h4>@string.Format("similarity {0:p2}", c.Similarity)</h4>
 
-                                            <p>@c.Submission1.Id (@c.Submission1.CommitTime, @c.Submission1.Compilator.Name,
+                                            <p>@c.Submission1.Id (@c.Submission1.CommitTime, <span title="@c.Submission1.Compilator.Description">@c.Submission1.Compilator.Name</span>,
                                                 @string.Format(Localizer[c.Submission1.StatusTemplate],
                                                 c.Submission1.StatusTestNumber))
                                     <a asp-page="/Submissions/Download"
@@ -37,7 +37,7 @@
                                     <a asp-page="/Submissions/Code"
                                         asp-route-id="@c.Submission1.Id">@Localizer["view"]</a>
 
-                                <p>@c.Submission2.Id (@c.Submission2.CommitTime, @c.Submission2.Compilator.Name,
+                                <p>@c.Submission2.Id (@c.Submission2.CommitTime, <span title="@c.Submission2.Compilator.Description">@c.Submission2.Compilator.Name</span>,
                                     @string.Format(Localizer[c.Submission2.StatusTemplate],
                                                                         c.Submission2.StatusTestNumber))
                                     <a asp-page="/Submissions/Download"

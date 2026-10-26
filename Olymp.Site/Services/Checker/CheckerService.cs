@@ -117,12 +117,10 @@ public class CheckerService(ILogger<CheckerService> logger, IRunnerService runne
         }
     }
 
-    // Until database records use configuration names, match the unchanged legacy settings.
     private CompilatorInfo GetCompilatorInfo(Compilator compilator)
     {
-        var info = Compilators!.SingleOrDefault(x => x.Configuration.Language == compilator.Language
-            && x.Configuration.ConfigName == compilator.ConfigName
-            && x.Configuration.CompileCommand == compilator.CommandLine)
+        var info = Compilators!.SingleOrDefault(x => x.Configuration.Name == compilator.Name
+            && x.DisplayName == compilator.Description)
             ?? throw new NotSupportedException($"Compilator {compilator.Id} ({compilator.Name}) has no matching configuration on runner {Id}");
 
         if (info.Error is not null)
@@ -186,15 +184,20 @@ public class CheckerService(ILogger<CheckerService> logger, IRunnerService runne
         await using var scope = _provider.CreateAsyncScope();
         var context = scope.ServiceProvider.GetRequiredService<OlympContext>();
 
-        var compilatorsId = await context.Compilators
-                           .Where(x => x.IsActive && SupportedEnvs.Contains(x.ConfigName))
-                           .Select(x => x.Id)
-                           .ToListAsync(token);
+        var available = Compilators!.Where(x => x.Error is null)
+            .Select(x => (x.Configuration.Name, x.DisplayName)).ToHashSet();
+        var records = await context.Compilators.Where(x => x.IsActive)
+            .Select(x => new { x.Id, x.Name, x.Description }).ToListAsync(token);
+        var compilatorIds = records
+            .Where(x => x.Description is not null && available.Contains((x.Name, x.Description)))
+            .Select(x => x.Id).ToArray();
+        if (compilatorIds.Length == 0)
+            return false;
 
-        var span = DateTimeOffset.Now - TimeSpan.FromMinutes(1);
+        var span = DateTimeOffset.Now - TimeSpan.FromMinutes(2);
         var submission = await context.Submissions
             .Where(x => x.StatusCode == 0 || x.StatusCode == 1 && x.LastModification < span)
-            .Where(x => x.Problem.IsActive && compilatorsId.Contains(x.CompilatorId))
+            .Where(x => x.Problem.IsActive && compilatorIds.Contains(x.CompilatorId))
             .Where(x => x.Problem.Tests.Any(test => test.IsActive))
             .OrderBy(x => x.CommitTime)
             .Include(x => x.Compilator)
@@ -208,16 +211,24 @@ public class CheckerService(ILogger<CheckerService> logger, IRunnerService runne
 
         if (submission is null)
             return false;
+        var now = DateTimeOffset.Now;
+        var updated = await context.Submissions
+            .Where(x => x.Id == submission.Id
+                && (x.StatusCode == 0 || x.StatusCode == 1 && x.LastModification < span))
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(x => x.StatusCode, 1)
+                .SetProperty(x => x.LastModification, now), token);
+        if (updated == 0)
+            return true;
 
-        _logger.LogDebug("Check: submission {id}, problem {problem}, compilator {compilator}, user {user}",
-                submission.Id, submission.Problem.Name, submission.Compilator.Name, submission.User.Name);
+        submission.StatusCode = 1;
+        submission.LastModification = now;
+        context.Attach(submission);
+
         try
         {
-            context.Attach(submission);
-            submission.StatusCode = 1;
-            submission.LastModification = DateTimeOffset.Now;
-            await context.SaveChangesAsync(CancellationToken.None);
-
+            _logger.LogDebug("Check: submission {id}, problem {problem}, compilator {compilator}, user {user}",
+                submission.Id, submission.Problem.Name, submission.Compilator.Name, submission.User.Name);
             var isSchool = submission.Problem.Contest.IsSchool;
             var log = await Check(submission, isSchool, token);
 

@@ -51,7 +51,7 @@
 				<td>
 					<a asp-page="/Problems/ShowText" asp-route-id="@item.ProblemId" title="@item.Problem.Contest.Name @item.Problem.NameWithNumber">@item.Problem.Name</a>
 				</td>
-				<td>@item.Compilator.Name</td>
+				<td><span title="@item.Compilator.Description">@item.Compilator.Name</span></td>
 				<td>
 					@{
 						var cls = item.StatusCode switch {

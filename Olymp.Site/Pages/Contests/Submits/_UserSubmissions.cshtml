@@ -22,7 +22,7 @@
 					<span class="user-select-none">|</span>
 					<a asp-page="/Submissions/Code" asp-route-id="@item.Id">@Localizer["view"]</a>
 				</td>
-				<td>@item.Compilator.Name</td>
+				<td><span title="@item.Compilator.Description">@item.Compilator.Name</span></td>
 				<td>
 					@{
 						var cls = item.StatusCode switch {

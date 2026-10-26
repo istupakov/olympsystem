@@ -30,7 +30,8 @@ public class IndexModel(OlympContext context) : PageModel
         var query = _context.Submissions
             .Where(x => user == null || x.User.Name.Contains(user))
             .Where(x => problem == null || x.Problem.Name.Contains(problem))
-            .Where(x => compilator == null || x.Compilator.Name.Contains(compilator))
+            .Where(x => compilator == null || x.Compilator.Name.Contains(compilator)
+                || x.Compilator.Description != null && x.Compilator.Description.Contains(compilator))
             .OrderByDescending(x => x.CommitTime)
             .Include(x => x.User)
             .ThenInclude(x => x.Organization)

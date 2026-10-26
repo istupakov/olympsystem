@@ -18,10 +18,6 @@ public sealed class GccCConfiguration() : GccConfiguration(
     "C", "C", ".c", "gcc", "gcc -O2 -Wl,--stack=67108864 -x c !.! -o!")
 { }
 
-public sealed class GccCpp20Configuration() : GccConfiguration(
-    "C++", "C++20", ".cpp", "g++", "g++ -O2 -Wl,--stack=67108864 -x c++ -std=c++20 !.! -o!")
-{ }
-
 public sealed class GccCpp23Configuration() : GccConfiguration(
     "C++", "C++23", ".cpp", "g++", "g++ -O2 -Wl,--stack=67108864 -x c++ -std=c++23 !.! -o!")
 { }
