@@ -1,0 +1,16 @@
+version: "2.4"
+services:
+  runner:
+    build:
+      context: ./..
+      dockerfile: ./Olymp.Runner/Dockerfile
+    platform: windows
+    isolation: hyperv
+    restart: unless-stopped
+    environment:
+      ApiKey:
+    networks:
+      - runner
+networks:
+  runner:
+    name: nat

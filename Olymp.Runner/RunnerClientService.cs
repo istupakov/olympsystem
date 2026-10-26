@@ -46,7 +46,9 @@ public class RunnerClientService : BackgroundService
         {
             try
             {
-                var supportedEnvs = Directory.EnumerateFiles(_envFilesDirectory).Select(Path.GetFileNameWithoutExtension);
+                var supportedEnvs = Directory.EnumerateFiles(_envFilesDirectory, "*.env")
+                    .Select(Path.GetFileNameWithoutExtension)
+                    .Where(x => !string.Equals(x, "base", StringComparison.OrdinalIgnoreCase));
 
                 var metadata = new Metadata
                 {
@@ -134,13 +136,14 @@ public class RunnerClientService : BackgroundService
 
     private Dictionary<string, string> CreateEnvironmentVariables(IEnumerable<string> envFiles)
     {
-        Dictionary<string, string> envs = [];
+        var envs = new Dictionary<string, string>(OperatingSystem.IsWindows()
+            ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
         foreach (string envFile in (IEnumerable<string>)["base", .. envFiles])
         {
             string path = Path.Combine(_envFilesDirectory, Path.ChangeExtension(envFile, ".env"));
             foreach (string line in File.ReadLines(path))
             {
-                if (line.Split('=') is [string name, string value])
+                if (line.Split('=', 2) is [string name, string value] && !string.IsNullOrWhiteSpace(name))
                 {
                     envs[name.Trim()] = value.Trim();
                 }
