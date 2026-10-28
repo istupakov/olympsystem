@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 using MailKit.Net.Smtp;
 using MailKit.Security;
 
@@ -11,10 +13,19 @@ namespace Olymp.Site.Services.Mail;
 
 public class MailServiceConfiguration
 {
+    [Required]
     public required string From { get; init; }
+
+    [Required]
     public required string SmtpServer { get; init; }
+
+    [Range(1, 65535)]
     public required int Port { get; init; }
+
+    [Required]
     public required string UserName { get; init; }
+
+    [Required]
     public required string Password { get; init; }
 }
 

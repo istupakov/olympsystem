@@ -38,8 +38,10 @@ if (builder.Environment.IsDevelopment() && !builder.Configuration.GetSection(nam
     builder.Services.AddTransient<IEmailSender, DebugEmailSender>();
 else
 {
-    builder.Services.Configure<MailServiceConfiguration>(
-        builder.Configuration.GetSection(nameof(MailService)));
+    builder.Services.AddOptions<MailServiceConfiguration>()
+        .Bind(builder.Configuration.GetSection(nameof(MailService)))
+        .ValidateDataAnnotations()
+        .ValidateOnStart();
     builder.Services.AddTransient<IEmailSender, MailService>();
 }
 
@@ -147,6 +149,7 @@ else
     app.UseHsts();
 }
 
+app.UseHealthChecks("/healthz");
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 
@@ -162,7 +165,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapStaticAssets();
-app.MapHealthChecks("/healthz");
 app.MapGrpcService<RunnerService>().RequireAuthorization(PolicyNames.Runner);
 app.MapRazorPages()
    .WithStaticAssets();

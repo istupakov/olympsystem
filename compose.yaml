@@ -6,7 +6,6 @@ services:
       resources:
         reservations:
           memory: 2GB
-    user: root
     environment:
       ACCEPT_EULA: "Y"
       MSSQL_PID: Express
