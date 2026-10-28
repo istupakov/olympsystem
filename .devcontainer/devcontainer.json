@@ -15,7 +15,7 @@
       "onAutoForward": "openBrowserOnce"
     }
   },
-  "postCreateCommand": "dotnet tool restore && dotnet restore Olymp.Site/Olymp.Site.csproj",
+  "postCreateCommand": "dotnet tool restore && dotnet restore",
   "customizations": {
     "vscode": {
       "extensions": [
