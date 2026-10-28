@@ -18,7 +18,7 @@ public class RunModel(ICheckerManager checkerManager,
     public const int MemoryLimitMb = 128;
 
     private readonly ICheckerManager _checkerManager = checkerManager;
-    private readonly IReadOnlyList<ICompilatorConfiguration> _configurations = compilatorConfigurations.ToArray();
+    private readonly IReadOnlyList<ICompilatorConfiguration> _configurations = [.. compilatorConfigurations];
     private readonly IStringLocalizer<SharedResource> _localizer = localizer;
 
     public IReadOnlyList<SelectListItem> CheckerList { get; private set; } = [];
@@ -50,19 +50,18 @@ public class RunModel(ICheckerManager checkerManager,
     private void Load()
     {
         var checkers = _checkerManager.Checkers.Values.ToArray();
-        CheckerList = checkers.Select(x =>
-            new SelectListItem { Text = $"{x.Name} ({x.Id})", Value = x.Id.ToString() }).ToArray();
+        CheckerList = [.. checkers.Select(x =>
+            new SelectListItem { Text = $"{x.Name} ({x.Id})", Value = x.Id.ToString() })];
 
         var checker = checkers.SingleOrDefault(x => x.Id == Input.CheckerId);
-        CompilatorList = _configurations
+        CompilatorList = [.. _configurations
             .Where(c => checkers.Any(x => x.SupportedEnvs.Contains(c.ConfigName)))
             .Select(c => new SelectListItem
             {
                 Value = c.Name,
                 Text = checker?.Compilators?.SingleOrDefault(x => x.Configuration.Name == c.Name)?.DisplayName ?? c.Name
             })
-            .OrderBy(x => x.Text, StringComparer.Ordinal)
-            .ToArray();
+            .OrderBy(x => x.Text, StringComparer.Ordinal)];
     }
 
     public void OnGet()

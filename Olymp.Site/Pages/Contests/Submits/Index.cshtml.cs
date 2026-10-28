@@ -81,7 +81,7 @@ public class IndexModel(OlympContext context, UserManager<User> userManager,
         Contest = contest;
         CompilatorList = new SelectList(Compilators, nameof(Compilator.Id), nameof(Compilator.Description));
         ProblemList = new SelectList(Contest.Problems, nameof(Problem.Id), nameof(Problem.NameWithNumber));
-        Submissions = Contest.Problems.SelectMany(x => x.Submissions).OrderByDescending(x => x.CommitTime).ToList();
+        Submissions = [.. Contest.Problems.SelectMany(x => x.Submissions).OrderByDescending(x => x.CommitTime)];
         UserStanding = Domain.Standing.UserProblemStanding(Contest.Problems, Submissions);
         CommonMessageCount = Contest.Messages.Count(message => message.UserId is null);
         ViewData["IsSchool"] = contest.IsSchool;

@@ -49,10 +49,10 @@ public class ByUserModel(OlympContext context, ISubmissionSimilarityService subm
                                     .Include(x => x.Submissions)
                                     .ThenInclude(x => x.Compilator)
                                     .ToListAsync();
-        var user1=users.FirstOrDefault(u=>u.UserName == Input.UserName || u.Name == Input.UserName);
+        var user1 = users.FirstOrDefault(u => u.UserName == Input.UserName || u.Name == Input.UserName);
         if (user1 == null) return Page();
 
-        Reports = from user2 in users                  
+        Reports = from user2 in users
                   let cases = from sol1 in user1.Submissions
                               from sol2 in user2.Submissions
                               where sol1.ProblemId == sol2.ProblemId

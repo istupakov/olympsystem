@@ -74,7 +74,7 @@ public class Standing
         if (!startTime.HasValue)
         {
             startTime = contest.StartTime;
-            users = contest.Competitors.Where(user => user.IsApproved && !user.IsHidden && (!official || !user.IsOutOfCompetition && !user.IsDisqualified));
+            users = contest.Competitors.Where(user => user.IsApproved && !user.IsHidden && (!official || (!user.IsOutOfCompetition && !user.IsDisqualified)));
         }
 
         var problems = contest.Problems.OrderBy(problem => problem.Number);

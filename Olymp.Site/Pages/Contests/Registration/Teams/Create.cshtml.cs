@@ -176,7 +176,7 @@ public class CreateModel(OlympContext context, UserManager<User> userManager,
             MemberInfos = TeamInfo,
             RegistrationDate = DateTimeOffset.Now,
             SecurityStamp = Guid.NewGuid().ToString(),
-            Members = new List<OlympUser>(),
+            Members = [],
             Messages = [],
             Submissions = []
         };

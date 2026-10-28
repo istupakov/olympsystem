@@ -7,9 +7,8 @@ builder.Services.Configure<RunnerClientConfig>(builder.Configuration.GetSection(
 builder.Services.AddHostedService<RunnerClientService>();
 
 builder.Services.AddGrpcClient<Runner.RunnerClient>(options =>
-        {
-            options.Address = new Uri(builder.Configuration["RunnerServerAddress"]!);
-        }).ConfigureChannel(options =>
+            options.Address = new Uri(builder.Configuration["RunnerServerAddress"]!))
+        .ConfigureChannel(options =>
         {
             options.MaxReceiveMessageSize = null;
             options.HttpHandler = new SocketsHttpHandler

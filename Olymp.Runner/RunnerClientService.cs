@@ -11,30 +11,20 @@ using Olymp.Site.Protos;
 
 namespace Olymp.Runner;
 
-public class RunnerClientService : BackgroundService
+public class RunnerClientService(Site.Protos.Runner.RunnerClient runnerClient,
+    IOptions<RunnerClientConfig> options,
+    ILogger<RunnerClientService> logger,
+    IRestrictedProcessFactory processFactory) : BackgroundService
 {
-    private readonly Site.Protos.Runner.RunnerClient _runnerClient;
-    private readonly ILogger<RunnerClientService> _logger;
-    private readonly IRestrictedProcessFactory _processFactory;
-    private readonly string _workDirectory;
-    private readonly string _envFilesDirectory;
-    private readonly string? _readOnlyUser;
-    private readonly Guid _id = Guid.NewGuid();
-
-    public RunnerClientService(Site.Protos.Runner.RunnerClient runnerClient,
-        IOptions<RunnerClientConfig> options,
-        ILogger<RunnerClientService> logger,
-        IRestrictedProcessFactory processFactory)
-    {
-        _runnerClient = runnerClient;
-        _workDirectory = Path.GetFullPath(options.Value.WorkingDirectory
+    private readonly Site.Protos.Runner.RunnerClient _runnerClient = runnerClient;
+    private readonly ILogger<RunnerClientService> _logger = logger;
+    private readonly IRestrictedProcessFactory _processFactory = processFactory;
+    private readonly string _workDirectory = Path.GetFullPath(options.Value.WorkingDirectory
             ?? throw new Exception($"WorkingDirectory must be set"));
-        _envFilesDirectory = Path.GetFullPath(options.Value.EnvFilesDirectory
+    private readonly string _envFilesDirectory = Path.GetFullPath(options.Value.EnvFilesDirectory
             ?? throw new Exception($"EnvFilesDirectory must be set"));
-        _readOnlyUser = options.Value.ReadOnlyUser;
-        _logger = logger;
-        _processFactory = processFactory;
-    }
+    private readonly string? _readOnlyUser = options.Value.ReadOnlyUser;
+    private readonly Guid _id = Guid.NewGuid();
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {

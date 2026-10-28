@@ -50,7 +50,7 @@ public class CheckerService(ILogger<CheckerService> logger, IRunnerService runne
     private readonly ILogger _logger = logger;
     private readonly IRunnerService _runner = runner;
     private readonly IServiceProvider _provider = provider;
-    private readonly IReadOnlyList<ICompilatorConfiguration> _configurations = compilatorConfigurations.ToArray();
+    private readonly IReadOnlyList<ICompilatorConfiguration> _configurations = [.. compilatorConfigurations];
     private readonly IEnumerable<ICheckerTest> _checkerTests = checkerTests;
     private readonly ConcurrentQueue<CheckerTestResult> _checkerTestResults = new();
     private readonly Dictionary<int, ISimpleChecker> _simpleCheckers = simpleCheckers.ToDictionary(x => x.Id);
@@ -63,7 +63,7 @@ public class CheckerService(ILogger<CheckerService> logger, IRunnerService runne
     public IReadOnlyList<CompilatorInfo>? Compilators { get; private set; }
     public string VersionLog { get; private set; } = string.Empty;
     public CheckerSelfTestingStatus SelfTestingStatus { get; private set; } = CheckerSelfTestingStatus.Unknown;
-    public IEnumerable<CheckerTestResult> SelfTestingResults => _checkerTestResults.ToArray();
+    public IEnumerable<CheckerTestResult> SelfTestingResults => [.. _checkerTestResults];
 
     public async Task LoadCompilators(CancellationToken token)
     {
@@ -109,7 +109,7 @@ public class CheckerService(ILogger<CheckerService> logger, IRunnerService runne
                 }
             }
 
-            Compilators = compilators.OrderBy(x => x.DisplayName, StringComparer.Ordinal).ToArray();
+            Compilators = [.. compilators.OrderBy(x => x.DisplayName, StringComparer.Ordinal)];
         }
         finally
         {
@@ -196,7 +196,7 @@ public class CheckerService(ILogger<CheckerService> logger, IRunnerService runne
 
         var span = DateTimeOffset.Now - TimeSpan.FromMinutes(2);
         var submission = await context.Submissions
-            .Where(x => x.StatusCode == 0 || x.StatusCode == 1 && x.LastModification < span)
+            .Where(x => x.StatusCode == 0 || (x.StatusCode == 1 && x.LastModification < span))
             .Where(x => x.Problem.IsActive && compilatorIds.Contains(x.CompilatorId))
             .Where(x => x.Problem.Tests.Any(test => test.IsActive))
             .OrderBy(x => x.CommitTime)
@@ -214,7 +214,7 @@ public class CheckerService(ILogger<CheckerService> logger, IRunnerService runne
         var now = DateTimeOffset.Now;
         var updated = await context.Submissions
             .Where(x => x.Id == submission.Id
-                && (x.StatusCode == 0 || x.StatusCode == 1 && x.LastModification < span))
+                && (x.StatusCode == 0 || (x.StatusCode == 1 && x.LastModification < span)))
             .ExecuteUpdateAsync(setters => setters
                 .SetProperty(x => x.StatusCode, 1)
                 .SetProperty(x => x.LastModification, now), token);

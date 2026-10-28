@@ -15,7 +15,7 @@ public class IndexModel(OlympContext context, UserManager<User> userManager) : P
     private readonly UserManager<User> _userManager = userManager;
 
     public bool AllUsers { get; private set; }
-    public List<(string, IList<User>)> UserGroups { get; } = new();
+    public List<(string, IList<User>)> UserGroups { get; } = [];
 
     public async Task OnGetAsync(bool all = false, string? email = null)
     {
