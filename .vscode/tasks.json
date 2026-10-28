@@ -1,0 +1,61 @@
+{
+  "version": "2.0.0",
+  "options": {
+    "cwd": "${workspaceFolder}"
+  },
+  "problemMatcher": [],
+  "tasks": [
+    {
+      "label": "Host: Prepare SQL directories",
+      "detail": "Prepare shared SQL Server directories on a Linux/WSL host.",
+      "type": "process",
+      "command": "bash",
+      "args": ["scripts/prepare-sql-directories.sh"]
+    },
+    {
+      "label": "Host: Trust HTTPS certificate",
+      "detail": "Run on a Windows/WSL host after the Dev Container creates the certificate.",
+      "type": "process",
+      "command": "certutil.exe",
+      "args": ["-user", "-addstore", "Root", "tls\\Olymp.Site.crt"]
+    },
+    {
+      "label": "Host: Database backup",
+      "detail": "Run on the Docker host; supports development and production.",
+      "type": "process",
+      "command": "bash",
+      "args": ["scripts/database-backup.sh"]
+    },
+    {
+      "label": "Host: Apply production migrations",
+      "detail": "Build the site image and run its migration bundle against the production Compose database.",
+      "type": "process",
+      "command": "docker",
+      "args": [
+        "compose", "-f", "compose.yaml", "-f", "compose.prod.yaml",
+        "run", "--rm", "--build", "--entrypoint", "/app/efbundle", "site"
+      ]
+    },
+    {
+      "label": "Database: Restore",
+      "detail": "Run inside the Dev Container. Replaces the development database after confirmation.",
+      "type": "process",
+      "command": "dotnet",
+      "args": ["run", "--file", "scripts/database-restore.cs", "--", "${input:databaseBackupFile}"]
+    },
+    {
+      "label": "Site: Watch",
+      "type": "process",
+      "command": "dotnet",
+      "args": ["watch", "--project", "Olymp.Site"],
+      "problemMatcher": "$msCompile"
+    }
+  ],
+  "inputs": [
+    {
+      "id": "databaseBackupFile",
+      "type": "promptString",
+      "description": "Backup filename in ./backup (including .bak)"
+    }
+  ]
+}

@@ -6,16 +6,36 @@
   ],
   "service": "site",
   "runServices": ["site"],
-  "workspaceFolder": "/workspace",
+  "workspaceFolder": "/workspaces/OlympSystem",
   "remoteUser": "vscode",
+  "forwardPorts": [5000, 5001, 5002, 5003],
   "portsAttributes": {
-    "8080": {
-      "label": "Olymp.Site",
+    "5000": {
+      "label": "Olymp.Site (HTTP)",
       "protocol": "http",
+      "requireLocalPort": true,
+      "onAutoForward": "silent"
+    },
+    "5001": {
+      "label": "Olymp.Site (HTTPS)",
+      "protocol": "https",
+      "requireLocalPort": true,
       "onAutoForward": "openBrowserOnce"
+    },
+    "5002": {
+      "label": "Browser refresh (WS)",
+      "protocol": "http",
+      "requireLocalPort": true,
+      "onAutoForward": "silent"
+    },
+    "5003": {
+      "label": "Browser refresh (WSS)",
+      "protocol": "https",
+      "requireLocalPort": true,
+      "onAutoForward": "silent"
     }
   },
-  "postCreateCommand": "dotnet tool restore && dotnet restore",
+  "postCreateCommand": "bash .devcontainer/setup-https.sh && dotnet tool restore && dotnet restore",
   "customizations": {
     "vscode": {
       "extensions": [

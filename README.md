@@ -16,21 +16,32 @@ Programming contest system with automated judging and standings. Used at [olymp.
 
 Requires VS Code with Dev Containers and Docker Compose.
 
-Before starting containers, prepare the SQL Server directories on the Docker host (Linux/WSL), from the repository root. For an existing installation, including production, stop SQL Server before changing ownership:
+### Setup
 
-```shell
-sudo install -d -o 10001 -g 0 -m 770 data backup
-sudo chown -R 10001:0 data backup
+On the host, use the commands below or the corresponding VS Code tasks (**Tasks: Run Task**).
+
+1. For SQL Server data on a Linux filesystem, run `Host: Prepare SQL directories` or:
+
+   ```bash
+   bash scripts/prepare-sql-directories.sh
+   ```
+
+2. **Dev Containers: Reopen in Container**. The HTTPS certificate is prepared automatically in `./tls`.
+3. On Windows/WSL, run `Host: Trust HTTPS certificate` or:
+
+   ```bash
+   certutil.exe -user -addstore Root 'tls\Olymp.Site.crt'
+   ```
+
+### Run
+
+In the container, run the `Site: Watch` task or:
+
+```bash
+dotnet watch --project Olymp.Site
 ```
 
-Open the repository with **Dev Containers: Reopen in Container**, then run:
-
-```shell
-dotnet ef database update --project Olymp.Domain --startup-project Olymp.Site
-dotnet watch --project Olymp.Site/Olymp.Site.csproj --no-launch-profile
-```
-
-Open the forwarded port `8080` in VS Code. Migrations do not create an administrator account.
+Open https://localhost:5001.
 
 Judging requires a separate Runner, a trusted HTTPS endpoint and matching site `ApiKeys` / Runner `ApiKey` settings. Its Compose file is [Olymp.Runner/docker-compose.yml](Olymp.Runner/docker-compose.yml).
 
