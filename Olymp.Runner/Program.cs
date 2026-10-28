@@ -1,13 +1,26 @@
+using Microsoft.Extensions.Options;
+
 using Olymp.Runner;
 using Olymp.Runner.Windows;
 using Olymp.Site.Protos;
 
 var builder = Host.CreateApplicationBuilder(args);
-builder.Services.Configure<RunnerClientConfig>(builder.Configuration.GetSection(RunnerClientConfig.Section));
+builder.Services.AddOptions<RunnerConnectionConfig>()
+    .Bind(builder.Configuration)
+    .ValidateDataAnnotations()
+    .Validate(config =>
+        config.RunnerServerAddress is { IsAbsoluteUri: true } address
+        && address.Scheme == Uri.UriSchemeHttps,
+        "RunnerServerAddress must be an absolute HTTPS URL.")
+    .ValidateOnStart();
+builder.Services.AddOptions<RunnerClientConfig>()
+    .Bind(builder.Configuration.GetSection(RunnerClientConfig.Section))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
 builder.Services.AddHostedService<RunnerClientService>();
 
-builder.Services.AddGrpcClient<Runner.RunnerClient>(options =>
-            options.Address = new Uri(builder.Configuration["RunnerServerAddress"]!))
+builder.Services.AddGrpcClient<Runner.RunnerClient>((services, options) =>
+            options.Address = services.GetRequiredService<IOptions<RunnerConnectionConfig>>().Value.RunnerServerAddress)
         .ConfigureChannel(options =>
         {
             options.MaxReceiveMessageSize = null;
@@ -16,10 +29,10 @@ builder.Services.AddGrpcClient<Runner.RunnerClient>(options =>
                 PooledConnectionIdleTimeout = Timeout.InfiniteTimeSpan,
                 KeepAlivePingDelay = TimeSpan.FromSeconds(5)
             };
-        }).AddCallCredentials((authContext, metadata) =>
+        }).AddCallCredentials((authContext, metadata, services) =>
         {
-            if (builder.Configuration["ApiKey"] is string apiKey)
-                metadata.Add("Authorization", apiKey);
+            var config = services.GetRequiredService<IOptions<RunnerConnectionConfig>>().Value;
+            metadata.Add("Authorization", config.ApiKey);
             return Task.CompletedTask;
         });
 

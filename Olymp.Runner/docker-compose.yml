@@ -9,8 +9,7 @@ services:
     restart: unless-stopped
     environment:
       ApiKey:
-    networks:
-      - runner
 networks:
-  runner:
+  default:
     name: nat
+    external: true

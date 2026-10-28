@@ -16,6 +16,13 @@ Programming contest system with automated judging and standings. Used at [olymp.
 
 Requires VS Code with Dev Containers and Docker Compose.
 
+Before starting containers, prepare the SQL Server directories on the Docker host (Linux/WSL), from the repository root. For an existing installation, including production, stop SQL Server before changing ownership:
+
+```shell
+sudo install -d -o 10001 -g 0 -m 770 data backup
+sudo chown -R 10001:0 data backup
+```
+
 Open the repository with **Dev Containers: Reopen in Container**, then run:
 
 ```shell

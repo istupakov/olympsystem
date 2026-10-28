@@ -19,10 +19,8 @@ public class RunnerClientService(Site.Protos.Runner.RunnerClient runnerClient,
     private readonly Site.Protos.Runner.RunnerClient _runnerClient = runnerClient;
     private readonly ILogger<RunnerClientService> _logger = logger;
     private readonly IRestrictedProcessFactory _processFactory = processFactory;
-    private readonly string _workDirectory = Path.GetFullPath(options.Value.WorkingDirectory
-            ?? throw new Exception($"WorkingDirectory must be set"));
-    private readonly string _envFilesDirectory = Path.GetFullPath(options.Value.EnvFilesDirectory
-            ?? throw new Exception($"EnvFilesDirectory must be set"));
+    private readonly string _workDirectory = Path.GetFullPath(options.Value.WorkingDirectory);
+    private readonly string _envFilesDirectory = Path.GetFullPath(options.Value.EnvFilesDirectory);
     private readonly string? _readOnlyUser = options.Value.ReadOnlyUser;
     private readonly Guid _id = Guid.NewGuid();
 
