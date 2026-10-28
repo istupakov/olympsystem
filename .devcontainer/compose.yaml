@@ -5,11 +5,14 @@ services:
     ports: !reset []
     entrypoint: ["sleep", "infinity"]
     command: []
-    working_dir: /workspace
+    working_dir: /workspaces/OlympSystem
     volumes:
-      - .:/workspace
+      - .:/workspaces/OlympSystem
     environment:
-      ASPNETCORE_ENVIRONMENT: Development
-      ASPNETCORE_HTTP_PORTS: !reset null
+      ASPNETCORE_HTTP_PORTS: ""
+      DOTNET_WATCH_SUPPRESS_LAUNCH_BROWSER: "true"
+      DOTNET_WATCH_AUTO_RELOAD_WS_PORT: "5002"
+      DOTNET_WATCH_AUTO_RELOAD_WSS_PORT: "5003"
+      SSL_CERT_DIR: /home/vscode/.aspnet/dev-certs/trust:/usr/lib/ssl/certs
     healthcheck:
       disable: true
