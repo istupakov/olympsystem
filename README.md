@@ -1,21 +1,30 @@
 # OlympSystem
 
-Web-based system for programming contests used on the site https://olymp.nstu.ru
+Programming contest system with automated judging and standings. Used at [olymp.nstu.ru](https://olymp.nstu.ru).
 
-## Dev Container
+## Projects
 
-Requires Docker Compose with `!reset` support and the VS Code Dev Containers extension.
+- `Olymp.Site` — contest website.
+- `Olymp.Site.IdentityUI` — authentication and account management UI.
+- `Olymp.Domain` — data model and SQL Server migrations.
+- `Olymp.Checker` — compiler configurations, output checkers and judging self-tests.
+- `Olymp.Runner` — compilation and execution of submissions.
 
-Select **Dev Containers: Reopen in Container**, then run in the container terminal:
+`Olymp.Manager` and `Olymp.QReply` are legacy Windows applications, excluded from the solution.
+
+## Development
+
+Requires VS Code with Dev Containers and Docker Compose.
+
+Open the repository with **Dev Containers: Reopen in Container**, then run:
 
 ```shell
 dotnet ef database update --project Olymp.Domain --startup-project Olymp.Site
 dotnet watch --project Olymp.Site/Olymp.Site.csproj --no-launch-profile
 ```
 
-VS Code opens the site in your browser when it starts.
+Open the forwarded port `8080` in VS Code. Migrations do not create an administrator account.
 
-Database files are in `data/`, backups in `backup/`.
+Judging requires a separate Runner, a trusted HTTPS endpoint and matching site `ApiKeys` / Runner `ApiKey` settings. Its Compose file is [Olymp.Runner/docker-compose.yml](Olymp.Runner/docker-compose.yml).
 
-`Olymp.Manager`, `Olymp.QReply`, and `Olymp.Runner` require Windows.
-Checking submissions requires a separate runner and a trusted HTTPS endpoint for the site.
+[CI workflow](.github/workflows/ci.yml) · [License](LICENSE).

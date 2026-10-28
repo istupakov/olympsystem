@@ -1,5 +1,25 @@
+# Build outputs
 **/bin
 **/obj
+
+# Docker build definitions
 **/Dockerfile
+
+# Repository and IDE metadata
+.git
+**/.vs
+**/.idea
+**/.vscode
+
+# Local environment files
+**/.env
+**/.env.*
+
+# Persistent application data
 backup
 data
+tls
+keys
+
+# Local submission workspace
+Olymp.Runner/workdir
