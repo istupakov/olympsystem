@@ -98,7 +98,7 @@ public class IndexModel(OlympContext context, UserManager<User> userManager,
 
         var user = await LoadUser();
 
-        if (DateTimeOffset.Now > contest.EndTime || AlreadyRegistered || !HasGroup && !ooc)
+        if (DateTimeOffset.Now > contest.EndTime || AlreadyRegistered || (!HasGroup && !ooc))
             return Forbid();
 
         if (!ModelState.IsValid)
@@ -114,7 +114,7 @@ public class IndexModel(OlympContext context, UserManager<User> userManager,
             OrganizationId = user.OrganizationId,
             RegistrationDate = DateTimeOffset.Now,
             SecurityStamp = Guid.NewGuid().ToString(),
-            Members = new List<OlympUser>(),
+            Members = [],
             Messages = [],
             Submissions = []
         };

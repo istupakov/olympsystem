@@ -25,11 +25,11 @@ public static class EditDistances
 
     public static float LevenshteinSimilarity(string source1, string source2)
     {
-        return 1 - LevenshteinDistance(source1, source2) / Math.Max(source1.Length, source2.Length);
+        return 1 - (LevenshteinDistance(source1, source2) / Math.Max(source1.Length, source2.Length));
     }
 
     public static float LongestCommonSubsequenceSimilarity(string source1, string source2)
     {
-        return 1 - LevenshteinDistance(source1, source2, replaceCost: 2) / (source1.Length + source2.Length);
+        return 1 - (LevenshteinDistance(source1, source2, replaceCost: 2) / (source1.Length + source2.Length));
     }
 }

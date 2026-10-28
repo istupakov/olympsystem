@@ -40,6 +40,6 @@ public partial class SimpleAIDetectionServiceService : IAIDetectionServiceServic
         var cyrillicComments = comments.Where(x => CyrillicRegex.IsMatch(x)).ToList();
         var englishComments = comments.Where(x => !CodeRegex.IsMatch(x) && EnglishRegex.IsMatch(x)).Except(cyrillicComments).ToList();
 
-        return new AIDetectionResult(Sigmoid(cyrillicComments.Count / 2.0 + englishComments.Count / 4.0), cyrillicComments.Count, englishComments.Count, cyrillicComments.Concat(englishComments));
+        return new AIDetectionResult(Sigmoid((cyrillicComments.Count / 2.0) + (englishComments.Count / 4.0)), cyrillicComments.Count, englishComments.Count, cyrillicComments.Concat(englishComments));
     }
 }

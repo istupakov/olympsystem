@@ -24,9 +24,7 @@ using Olymp.Site.Services.Mail;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.WebHost.ConfigureKestrel(options =>
-{
-    options.Limits.Http2.KeepAlivePingDelay = TimeSpan.FromSeconds(10);
-});
+    options.Limits.Http2.KeepAlivePingDelay = TimeSpan.FromSeconds(10));
 
 // Add services to the container.
 
@@ -81,17 +79,13 @@ builder.Services.AddRequestLocalization(options =>
     options.ApplyCurrentCultureToResponseHeaders = true;
 });
 builder.Services.AddWebEncoders(options =>
-{
-    options.TextEncoderSettings = new TextEncoderSettings(UnicodeRanges.BasicLatin, UnicodeRanges.Cyrillic);
-});
+    options.TextEncoderSettings = new TextEncoderSettings(UnicodeRanges.BasicLatin, UnicodeRanges.Cyrillic));
 
 builder.Services.AddRouting(options => options.LowercaseUrls = true);
 
 builder.Services.AddAuthentication()
     .AddScheme<ApiKeyAuthenticationOptions, ApiKeyAuthenticationHandler>("ApiKey", options =>
-    {
-        options.ApiKeys = builder.Configuration.GetSection("ApiKeys").Get<string[]>() ?? [];
-    });
+        options.ApiKeys = builder.Configuration.GetSection("ApiKeys").Get<string[]>() ?? []);
 
 builder.Services.AddScoped<IAuthorizationHandler, ContestAuthorizationHandler>();
 builder.Services.AddScoped<IAuthorizationHandler, SubmissionAuthorizationHandler>();
@@ -117,9 +111,7 @@ builder.Services.AddTransient<IAIDetectionServiceService, SimpleAIDetectionServi
 
 builder.Services.AddGrpc();
 builder.Services.AddRazorPages(options =>
-{
-    options.Conventions.AuthorizeAreaFolder("Identity", "/Account/Manage", PolicyNames.OlympUser);
-})
+    options.Conventions.AuthorizeAreaFolder("Identity", "/Account/Manage", PolicyNames.OlympUser))
     .AddViewLocalization(LanguageViewLocationExpanderFormat.Suffix)
     .AddDataAnnotationsLocalization<SharedResource>()
     .AddDataAnnotationsLocalization<IdentityUIResources>();

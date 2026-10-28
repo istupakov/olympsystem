@@ -35,6 +35,12 @@ charset = utf-8
 #### .NET Coding Conventions ####
 [*.{cs,vb}]
 
+# Keep conditional returns as an explicit style choice.
+dotnet_diagnostic.IDE0046.severity = none
+
+# Review logging performance separately.
+dotnet_diagnostic.CA1873.severity = none
+
 # Organize usings
 dotnet_separate_import_directive_groups = true
 dotnet_sort_system_directives_first = true
@@ -387,3 +393,14 @@ dotnet_naming_style.s_camelcase.required_prefix = s_
 dotnet_naming_style.s_camelcase.required_suffix = 
 dotnet_naming_style.s_camelcase.word_separator = 
 dotnet_naming_style.s_camelcase.capitalization = camel_case
+
+[Olymp.Site.IdentityUI/**/*.cs]
+dotnet_diagnostic.IDE0019.severity = none
+dotnet_diagnostic.IDE0047.severity = none
+dotnet_diagnostic.IDE0048.severity = none
+dotnet_diagnostic.IDE0054.severity = none
+dotnet_diagnostic.IDE0059.severity = none
+dotnet_diagnostic.IDE0161.severity = none
+dotnet_diagnostic.IDE0290.severity = none
+dotnet_diagnostic.IDE0305.severity = none
+dotnet_diagnostic.CA1822.severity = none

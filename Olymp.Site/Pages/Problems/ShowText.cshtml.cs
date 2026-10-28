@@ -26,7 +26,7 @@ public class ShowTextModel(OlympContext context) : PageModel
 
         Problem = problem;
 
-        if (problem.Contest.AllowDownloadProblems && problem.IsActive || User.IsInRole(RoleNames.Admin) || User.IsInRole(RoleNames.Jury))
+        if ((problem.Contest.AllowDownloadProblems && problem.IsActive) || User.IsInRole(RoleNames.Admin) || User.IsInRole(RoleNames.Jury))
             return Page();
         return Forbid();
     }
