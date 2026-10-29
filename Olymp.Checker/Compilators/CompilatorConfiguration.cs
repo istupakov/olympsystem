@@ -25,12 +25,11 @@ public abstract partial class CompilatorConfiguration(
     public virtual string RunCommand(string name, int memoryMb) => Path.ChangeExtension(name, ".exe");
 
     public abstract string GetVersionCommand();
-    protected abstract string GetDisplayName(string version);
     public abstract CompilatorInfo ParseInfo(string output);
 
     protected const string VersionNumberPattern = @"\d+\.\d+(?:\.\d+)*(?:[-+][\w.-]+)?";
 
-    [GeneratedRegex(@"^\s*(?<v>" + VersionNumberPattern + @")\s*$", RegexOptions.Multiline | RegexOptions.CultureInvariant)]
+    [GeneratedRegex(@"^\s*(?<v>" + VersionNumberPattern + @")(?:[ \t]+\([0-9a-fA-F]+\))?\s*$", RegexOptions.Multiline | RegexOptions.CultureInvariant)]
     protected static partial Regex NumericVersionRegex { get; }
 
     protected string ReadVersion(string output, Regex regex)
@@ -47,7 +46,4 @@ public abstract partial class CompilatorConfiguration(
             displayVersion = displayVersion[..^2];
         return $" {displayVersion}";
     }
-
-    protected CompilatorInfo CreateInfo(string version, string description) =>
-        new(this, GetDisplayName(version), description);
 }

@@ -5,10 +5,9 @@ public sealed class FreePascalConfiguration() : CompilatorConfiguration(
 {
     public override string Name => "Pascal";
     public override string GetVersionCommand() => "fpc -iV";
-    protected override string GetDisplayName(string version) => $"Pascal (Free Pascal{VersionSuffix(version)})";
     public override CompilatorInfo ParseInfo(string output)
     {
         var version = ReadVersion(output, NumericVersionRegex);
-        return CreateInfo(version, $"Free Pascal {version}");
+        return new(this, $"Pascal (Free Pascal{VersionSuffix(version)})", $"Free Pascal {version}");
     }
 }

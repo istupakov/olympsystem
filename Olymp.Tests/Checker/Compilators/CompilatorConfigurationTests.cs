@@ -17,7 +17,7 @@ public class CompilatorConfigurationTests
             "C (MSVC 2026)", "MSVC 19.51.36260; Visual Studio 2026" },
         { typeof(MsvcCpp20Configuration), "Microsoft (R) C/C++ Optimizing Compiler Version 19.51.36260 for x64\n",
             "C++20 (MSVC 2026)", "MSVC 19.51.36260; Visual Studio 2026" },
-        { typeof(CSharpFrameworkConfiguration), "Microsoft (R) Visual C# Compiler version 5.11.0-1.26424.5\n    Version    REG_SZ    4.8.03761\n",
+        { typeof(CSharpFrameworkConfiguration), "5.11.0-1.26424.5 (5a2162bea6845eabc1fc721624a43568c65db3b1)\n    Version    REG_SZ    4.8.03761\n",
             "C# (.NET Framework 4.8)", "Compiler 5.11.0-1.26424.5; .NET Framework 4.8.03761" },
         { typeof(CSharpDotnetConfiguration), "10.0.403\nMicrosoft.AspNetCore.App 10.0.14 [C:\\dotnet]\nMicrosoft.NETCore.App 9.0.1 [C:\\dotnet]\nMicrosoft.NETCore.App 10.0.14 [C:\\dotnet]\nSupported language versions:\n14.0\n15.0 (default)\n",
             "C# 15 (.NET 10)", "C# 15.0; .NET 10.0.14; SDK 10.0.403" },
@@ -74,7 +74,7 @@ public class CompilatorConfigurationTests
     [InlineData(typeof(JavaConfiguration), "javac 27.0.1")]
     [InlineData(typeof(KotlinConfiguration), "info: kotlinc-jvm 2.4.21 (JRE 27.0.1)")]
     [InlineData(typeof(PyPyConfiguration), "Python 3.12.15")]
-    [InlineData(typeof(CSharpFrameworkConfiguration), "Microsoft (R) Visual C# Compiler version 5.11.0")]
+    [InlineData(typeof(CSharpFrameworkConfiguration), "5.11.0")]
     [InlineData(typeof(CSharpDotnetConfiguration), "10.0.403\n15.0 (default)")]
     [InlineData(typeof(CSharpDotnetConfiguration), "10.0.403\nMicrosoft.NETCore.App 10.0.14 [C:\\dotnet]")]
     public void MissingRequiredRuntimeOrCompilerInformationIsRejected(Type type, string output)

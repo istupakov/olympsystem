@@ -10,7 +10,6 @@ public sealed partial class JavaConfiguration() : CompilatorConfiguration(
     public override bool UseSlowTimeLimit => true;
     public override int MemoryOverheadMb => 128;
     public override string GetVersionCommand() => "javac -version && java -version";
-    protected override string GetDisplayName(string version) => $"Java{VersionSuffix(version)} (OpenJDK)";
     public override string RunCommand(string name, int memoryMb) => $"java -Xmx{memoryMb}M -Xss64M Main";
 
     public override CompilatorInfo ParseInfo(string output)

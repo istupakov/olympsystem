@@ -6,11 +6,10 @@ public abstract class GccConfiguration(
 {
     public override string Name => $"GCC {displayLanguage}";
     public override string GetVersionCommand() => $"{executable} -dumpfullversion -dumpversion";
-    protected override string GetDisplayName(string version) => $"{displayLanguage} (GCC{VersionSuffix(version)})";
     public override CompilatorInfo ParseInfo(string output)
     {
         var version = ReadVersion(output, NumericVersionRegex);
-        return CreateInfo(version, $"GCC {version}");
+        return new(this, $"{displayLanguage} (GCC{VersionSuffix(version)})", $"GCC {version}");
     }
 }
 
