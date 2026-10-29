@@ -1,5 +1,5 @@
 ﻿@page
-@using Olymp.Site.Services.Checker;
+@using Olymp.Checker;
 @attribute [Authorize(Policy = PolicyNames.JuryOrAdmin)]
 @model IndexModel
 @{
@@ -31,6 +31,9 @@
 @foreach (var checker in checkers) {
 	var selfTestingStatus = checker.SelfTestingStatus;
 	var results = checker.SelfTestingResults.ToLookup(x => x.Compilator.Configuration.Name);
+	var compilators = checker.Compilators
+		?? checker.Configurations.Select(x => new CompilatorInfo(x, x.Name, null))
+			.OrderBy(x => x.DisplayName, StringComparer.Ordinal).ToArray();
 	var (statusText, statusClass) = selfTestingStatus switch {
 		CheckerSelfTestingStatus.InProcess => ("Self-testing in progress", "primary"),
 		CheckerSelfTestingStatus.Success => ("Self-testing passed", "success"),
@@ -54,25 +57,19 @@
 				}
 			</div>
 		</div>
-		@if (checker.VersionLog is { Length: > 0 } versionLog) {
-			<details class="mb-3">
-				<summary>@Localizer["Version probe log"]</summary>
-				<pre class="text-break mt-2" style="white-space: pre-wrap;">@versionLog</pre>
-			</details>
-		}
-		@if (checker.Compilators is not { } compilators) {
+		@if (checker.Compilators is null && compilators.Count > 0) {
 			<p class="text-body-secondary">@Localizer["Loading compiler versions..."]</p>
 		}
-		else if (compilators.Count == 0) {
+		@if (compilators.Count == 0) {
 			<p class="text-danger">@Localizer["No available compilators"]</p>
 		}
 		else {
 			@foreach (var compilator in compilators) {
 				var tests = results[compilator.Configuration.Name].ToArray();
-				var completed = tests.Length == Model.GetTestCount(compilator.Configuration);
-				var passed = tests.Count(x => x.Result == x.Test.ExpectedResult);
-				var failed = tests.Length - passed;
-				var hasError = compilator.Error is not null || failed > 0 || (completed && tests.Length == 0);
+				var completed = tests.All(x => x.Result is not null);
+				var passed = tests.Count(x => x.Result == x.ExpectedResult);
+				var failed = tests.Count(x => x.Result is not null && x.Result != x.ExpectedResult);
+				var hasError = compilator.Error is not null || failed > 0;
 				var testClass = hasError ? "danger" : completed ? "success" : "secondary";
 				<details class="border rounded mb-2" open="@hasError">
 					<summary class="p-3">
@@ -83,9 +80,6 @@
 							}
 							else if (failed > 0) {
 								@Localizer["Passed {0} of {1}; failures: {2}", passed, tests.Length, failed]
-							}
-							else if (tests.Length == 0) {
-								@Localizer[completed ? "No tests" : "Waiting for tests"]
 							}
 							else if (!completed) {
 								@Localizer["Passed {0}; self-testing in progress", passed]
@@ -116,19 +110,21 @@
 									</thead>
 									<tbody>
 										@foreach (var test in tests) {
-											<tr class="@(test.Result == test.Test.ExpectedResult ? null : "table-danger")">
-												<th scope="row" class="fw-normal text-break">@test.Test.Name</th>
-												<td>@test.Test.ExpectedResult</td>
-												<td>@test.Result</td>
+											<tr class="@(test.Result is not null && test.Result != test.ExpectedResult ? "table-danger" : null)">
+												<th scope="row" class="fw-normal text-break">@test.Name</th>
+												<td>@test.ExpectedResult</td>
+												<td>@(test.Result?.ToString() ?? Localizer["Not run"].Value)</td>
 											</tr>
-											<tr>
-												<td colspan="3" class="pt-0">
-													<details class="mt-1">
-														<summary>@Localizer["View log"]</summary>
-														<pre class="text-break mt-2" style="white-space: pre-wrap;">@test.Output</pre>
-													</details>
-												</td>
-											</tr>
+											@if (test.Output.Length > 0) {
+												<tr>
+													<td colspan="3" class="pt-0">
+														<details class="mt-1">
+															<summary>@Localizer["View log"]</summary>
+															<pre class="text-break mt-2" style="white-space: pre-wrap;">@test.Output</pre>
+														</details>
+													</td>
+												</tr>
+											}
 										}
 									</tbody>
 								</table>

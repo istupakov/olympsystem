@@ -1,69 +1,40 @@
-using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Text;
 
-using Microsoft.EntityFrameworkCore;
+namespace Olymp.Checker.Services;
 
-using Olymp.Checker;
-using Olymp.Domain;
-using Olymp.Domain.Models;
-using Olymp.Site.Protos;
-
-namespace Olymp.Site.Services.Checker;
-
-public interface ICheckerService
-{
-    Guid Id { get; }
-    string Name { get; }
-    DateTimeOffset ConnectingTime { get; }
-    IReadOnlySet<string> SupportedEnvs { get; }
-    IReadOnlyList<CompilatorInfo>? Compilators { get; }
-    string VersionLog { get; }
-    CheckerSelfTestingStatus SelfTestingStatus { get; }
-    IEnumerable<CheckerTestResult> SelfTestingResults { get; }
-
-    Task<bool> TryCheckFromDB(CancellationToken token);
-    Task<CheckResult> Check(Submission submission, bool allTests, CancellationToken token);
-    Task<string> Run(string source, ICompilatorConfiguration configuration, string input,
-        TimeSpan timeLimit, int memoryLimitMb, CancellationToken token);
-    Task<bool> RunSelfTests(CancellationToken token);
-}
-
-public enum CheckerSelfTestingStatus
-{
-    Unknown,
-    InProcess,
-    Failed,
-    Success
-}
-
-public record CheckerTestResult(ICheckerTest Test, CompilatorInfo Compilator, CheckerResultStatus Result, string Output);
-
-public class CheckerService(ILogger<CheckerService> logger, IRunnerService runner, IServiceProvider provider,
-    IEnumerable<ICompilatorConfiguration> compilatorConfigurations,
-    IEnumerable<ICheckerTest> checkerTests, IEnumerable<ISimpleChecker> simpleCheckers) : ICheckerService
+public sealed class CheckerService : ICheckerService
 {
     private static readonly RunnerResources CompilationResources = new(
         TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30),
         768 * 1024 * 1024, 64 * 1024, 64 * 1024);
 
-    private readonly ILogger _logger = logger;
-    private readonly IRunnerService _runner = runner;
-    private readonly IServiceProvider _provider = provider;
-    private readonly IReadOnlyList<ICompilatorConfiguration> _configurations = [.. compilatorConfigurations];
-    private readonly IEnumerable<ICheckerTest> _checkerTests = checkerTests;
-    private readonly ConcurrentQueue<CheckerTestResult> _checkerTestResults = new();
-    private readonly Dictionary<int, ISimpleChecker> _simpleCheckers = simpleCheckers.ToDictionary(x => x.Id);
+    private readonly IRunnerService _runner;
+    private readonly IReadOnlyList<ICheckerTest> _checkerTests;
+    private readonly CheckerTestResult[] _versionResults;
+    private CheckerTestResult[] _checkerTestResults;
+    private readonly Dictionary<int, ISimpleChecker> _simpleCheckers;
     private readonly SemaphoreSlim _semaphore = new(1);
+
+    public CheckerService(IRunnerService runner, IEnumerable<ICompilatorConfiguration> compilatorConfigurations,
+        IEnumerable<ICheckerTest> checkerTests, IEnumerable<ISimpleChecker> simpleCheckers)
+    {
+        _runner = runner;
+        _checkerTests = [.. checkerTests];
+        _simpleCheckers = simpleCheckers.ToDictionary(x => x.Id);
+        Configurations = [.. compilatorConfigurations.Where(x => runner.SupportedEnvs.Contains(x.ConfigName))];
+        _versionResults = [.. Configurations.Select(configuration => new CheckerTestResult("Version",
+            new(configuration, configuration.Name, null), CheckerResultStatus.Accepted, null, string.Empty))];
+        _checkerTestResults = CreateTestResults(_versionResults.Select(x => x.Compilator));
+    }
 
     public Guid Id => _runner.Id;
     public string Name => _runner.Name;
     public DateTimeOffset ConnectingTime => _runner.ConnectingTime;
-    public IReadOnlySet<string> SupportedEnvs => _runner.SupportedEnvs;
+    public IReadOnlyList<ICompilatorConfiguration> Configurations { get; }
     public IReadOnlyList<CompilatorInfo>? Compilators { get; private set; }
-    public string VersionLog { get; private set; } = string.Empty;
     public CheckerSelfTestingStatus SelfTestingStatus { get; private set; } = CheckerSelfTestingStatus.Unknown;
-    public IEnumerable<CheckerTestResult> SelfTestingResults => [.. _checkerTestResults];
+    public IEnumerable<CheckerTestResult> SelfTestingResults => [.. _versionResults, .. _checkerTestResults];
 
     public async Task LoadCompilators(CancellationToken token)
     {
@@ -78,12 +49,14 @@ public class CheckerService(ILogger<CheckerService> logger, IRunnerService runne
 
             var compilators = new List<CompilatorInfo>();
             var results = new Dictionary<(string Env, string Command), RunnerResult>();
-            VersionLog = string.Empty;
-            foreach (var configuration in _configurations.Where(x => SupportedEnvs.Contains(x.ConfigName)))
+            for (int i = 0; i < Configurations.Count; i++)
             {
+                var configuration = Configurations[i];
                 token.ThrowIfCancellationRequested();
                 var command = configuration.GetVersionCommand();
                 var output = string.Empty;
+                var log = $"Environment: {configuration.ConfigName}\ncommand: {command}";
+                CompilatorInfo compilator;
                 try
                 {
                     var key = (configuration.ConfigName, command);
@@ -92,24 +65,37 @@ public class CheckerService(ILogger<CheckerService> logger, IRunnerService runne
                         result = await _runner.Run(new(command, ReadOnlyMemory<byte>.Empty, false, false,
                             [configuration.ConfigName], [], CompilationResources), token);
                         results.Add(key, result);
-                        VersionLog += $"Environment: {configuration.ConfigName}\n{GetCommandLog(command, result)}\n\n";
                     }
 
+                    log = $"""
+                        Environment: {configuration.ConfigName}
+                        {GetCommandLog(command, result)}
+                        stdout:
+                        {GetTruncatedString(result.Stdout, 64 * 1024)}
+                        stderr:
+                        {GetTruncatedString(result.Stderr, 64 * 1024)}
+                        """;
                     output = (Encoding.UTF8.GetString(result.Stdout.Span) + "\n"
                         + Encoding.UTF8.GetString(result.Stderr.Span)).Trim();
-                    if (result.Status != CommandStatus.Completed || result.ExitCode != 0)
+                    if (result.Status != RunnerStatus.Completed || result.ExitCode != 0)
                         throw new InvalidOperationException($"status: {result.Status}, exit code: {result.ExitCode}");
 
-                    compilators.Add(configuration.ParseInfo(output));
+                    compilator = configuration.ParseInfo(output);
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException)
                 {
-                    compilators.Add(new(configuration, configuration.Name, null,
-                        $"{command}\n{output}\n{ex.Message}"));
+                    compilator = new(configuration, configuration.Name, null,
+                        $"{command}\n{output}\n{ex.Message}");
+                    log += $"\nError:\n{ex.Message}";
                 }
+                compilators.Add(compilator);
+                _versionResults[i] = new("Version", compilator, CheckerResultStatus.Accepted,
+                    compilator.Error is null ? CheckerResultStatus.Accepted : CheckerResultStatus.InternalError, log);
             }
 
-            Compilators = [.. compilators.OrderBy(x => x.DisplayName, StringComparer.Ordinal)];
+            var sorted = compilators.OrderBy(x => x.DisplayName, StringComparer.Ordinal).ToArray();
+            _checkerTestResults = CreateTestResults(sorted);
+            Compilators = sorted;
         }
         finally
         {
@@ -117,20 +103,8 @@ public class CheckerService(ILogger<CheckerService> logger, IRunnerService runne
         }
     }
 
-    private CompilatorInfo GetCompilatorInfo(Compilator compilator)
-    {
-        var info = Compilators!.SingleOrDefault(x => x.Configuration.Name == compilator.Name
-            && x.DisplayName == compilator.Description)
-            ?? throw new NotSupportedException($"Compilator {compilator.Id} ({compilator.Name}) has no matching configuration on runner {Id}");
-
-        if (info.Error is not null)
-            throw new NotSupportedException($"Compilator {info.Configuration.Name} is unavailable:\n{info.Error}");
-
-        return info;
-    }
-
     private async Task<RunnerResult> Compile(string name, ICompilatorConfiguration configuration,
-        ReadOnlyMemory<byte> source, bool clearWorkdir, CancellationToken token)
+        string source, bool clearWorkdir, CancellationToken token)
     {
         if (!_runner.SupportedEnvs.Contains(configuration.ConfigName))
             throw new NotSupportedException($"Runner {_runner.Name} don't support config {configuration.ConfigName}");
@@ -139,7 +113,7 @@ public class CheckerService(ILogger<CheckerService> logger, IRunnerService runne
         var command = configuration.GetCompileCommand(name);
 
         return await _runner.Run(new($"{command} 1>&2", Memory<byte>.Empty, clearWorkdir, false,
-            [configuration.ConfigName], [new(filename, source)], CompilationResources), token);
+            [configuration.ConfigName], [new(filename, Encoding.UTF8.GetBytes(source))], CompilationResources), token);
     }
 
     private async Task<RunnerResult> RunTest(string name, ICompilatorConfiguration configuration,
@@ -166,104 +140,30 @@ public class CheckerService(ILogger<CheckerService> logger, IRunnerService runne
         var result = await RunTest(name, configuration, input, timeLimit, memoryLimitMb, token);
         var status = result.Status switch
         {
-            CommandStatus.UserTimeLimit => CheckerResultStatus.TimeLimit,
-            CommandStatus.TotalTimeLimit => CheckerResultStatus.IdlenessLimit,
-            CommandStatus.MemoryLimit => CheckerResultStatus.MemoryLimit,
-            CommandStatus.StdoutLimit => CheckerResultStatus.PresentationError,
-            CommandStatus.StderrLimit => CheckerResultStatus.PresentationError,
-            CommandStatus.Error => CheckerResultStatus.RuntimeError,
-            CommandStatus.Completed => checker.Check(encoding.GetString(input.Span),
+            RunnerStatus.UserTimeLimit => CheckerResultStatus.TimeLimit,
+            RunnerStatus.TotalTimeLimit => CheckerResultStatus.IdlenessLimit,
+            RunnerStatus.MemoryLimit => CheckerResultStatus.MemoryLimit,
+            RunnerStatus.StdoutLimit => CheckerResultStatus.PresentationError,
+            RunnerStatus.StderrLimit => CheckerResultStatus.PresentationError,
+            RunnerStatus.Error => CheckerResultStatus.RuntimeError,
+            RunnerStatus.Completed => checker.Check(encoding.GetString(input.Span),
                 encoding.GetString(output.Span), encoding.GetString(result.Stdout.Span)),
             _ => throw new Exception($"Runner unexpected result {result.Status}")
         };
         return (status, result);
     }
 
-    public async Task<bool> TryCheckFromDB(CancellationToken token)
+    public async Task<CheckerResult> Check(CheckRequest request, CancellationToken token)
     {
-        await using var scope = _provider.CreateAsyncScope();
-        var context = scope.ServiceProvider.GetRequiredService<OlympContext>();
-
-        var available = Compilators!.Where(x => x.Error is null)
-            .Select(x => (x.Configuration.Name, x.DisplayName)).ToHashSet();
-        var records = await context.Compilators.Where(x => x.IsActive)
-            .Select(x => new { x.Id, x.Name, x.Description }).ToListAsync(token);
-        var compilatorIds = records
-            .Where(x => x.Description is not null && available.Contains((x.Name, x.Description)))
-            .Select(x => x.Id).ToArray();
-        if (compilatorIds.Length == 0)
-            return false;
-
-        var span = DateTimeOffset.Now - TimeSpan.FromMinutes(2);
-        var submission = await context.Submissions
-            .Where(x => x.StatusCode == 0 || (x.StatusCode == 1 && x.LastModification < span))
-            .Where(x => x.Problem.IsActive && compilatorIds.Contains(x.CompilatorId))
-            .Where(x => x.Problem.Tests.Any(test => test.IsActive))
-            .OrderBy(x => x.CommitTime)
-            .Include(x => x.Compilator)
-            .Include(x => x.User)
-            .Include(x => x.Problem)
-            .ThenInclude(x => x.Tests.Where(x => x.IsActive).OrderBy(x => x.Number))
-            .Include(x => x.Problem)
-            .ThenInclude(x => x.Contest)
-            .AsSplitQuery()
-            .FirstOrDefaultAsync(token);
-
-        if (submission is null)
-            return false;
-        var now = DateTimeOffset.Now;
-        var updated = await context.Submissions
-            .Where(x => x.Id == submission.Id
-                && (x.StatusCode == 0 || (x.StatusCode == 1 && x.LastModification < span)))
-            .ExecuteUpdateAsync(setters => setters
-                .SetProperty(x => x.StatusCode, 1)
-                .SetProperty(x => x.LastModification, now), token);
-        if (updated == 0)
-            return true;
-
-        submission.StatusCode = 1;
-        submission.LastModification = now;
-        context.Attach(submission);
-
-        try
-        {
-            _logger.LogDebug("Check: submission {id}, problem {problem}, compilator {compilator}, user {user}",
-                submission.Id, submission.Problem.Name, submission.Compilator.Name, submission.User.Name);
-            var isSchool = submission.Problem.Contest.IsSchool;
-            var log = await Check(submission, isSchool, token);
-
-            context.CheckResults.Add(log);
-            submission.StatusCode = log.StatusCode;
-            submission.Score = log.Score;
-            submission.ScoresByTest = log.TestResults;
-
-            _logger.LogDebug("CheckLog for submission {id}: status: {status}, score {score}",
-                submission.Id, log.StatusCode, log.Score);
-
-            return true;
-        }
-        catch
-        {
-            submission.StatusCode = 0;
-            throw;
-        }
-        finally
-        {
-            submission.LastModification = DateTimeOffset.Now;
-            await context.SaveChangesAsync(CancellationToken.None);
-        }
-    }
-
-    public async Task<CheckResult> Check(Submission submission, bool allTests, CancellationToken token)
-    {
-        await LoadCompilators(token);
         await _semaphore.WaitAsync(token);
         var timer = Stopwatch.StartNew();
 
         try
         {
-            var name = submission.Id.ToString();
-            var compilator = GetCompilatorInfo(submission.Compilator);
+            var name = request.Name;
+            var compilator = request.Compilator;
+            if (compilator.Error is not null)
+                throw new NotSupportedException($"Compilator {compilator.Configuration.Name} is unavailable:\n{compilator.Error}");
             var configuration = compilator.Configuration;
             var log = new StringBuilder();
             log.AppendLine($"""
@@ -273,36 +173,27 @@ public class CheckerService(ILogger<CheckerService> logger, IRunnerService runne
                 Versions: {compilator.Description}
                 """);
 
-            var compileResult = await Compile(name, configuration, Encoding.UTF8.GetBytes(submission.Text), true, token);
+            var compileResult = await Compile(name, configuration, request.Source, true, token);
             log.AppendLine($"""
                 Compilation:
                 user time: {compileResult.ResourceConsumption.UserTime}
                 total time: {compileResult.ResourceConsumption.TotalTime}
                 """);
-            if (compileResult.Status is not CommandStatus.Completed)
+            if (compileResult.Status is not RunnerStatus.Completed)
             {
-                return new()
-                {
-                    Submission = null!,
-                    SubmissionId = submission.Id,
-                    Log = log.AppendLine(GetTruncatedString(compileResult.Stderr, 1024)).ToString(),
-                    StatusCode = CheckerResultStatus.CompilationError.MakeStatusCode(),
-                    CheckTime = DateTimeOffset.Now
-                };
+                return new(CheckerResultStatus.CompilationError.MakeStatusCode(),
+                    log.AppendLine(GetTruncatedString(compileResult.Stderr, 1024)).ToString());
             }
 
-            if (!_simpleCheckers.TryGetValue(submission.Problem.CheckerId, out var checker))
-                throw new InvalidOperationException($"Checker with id {submission.Problem.CheckerId} not found");
-
-            var timeLimit = TimeSpan.FromSeconds(configuration.UseSlowTimeLimit
-                ? submission.Problem.SlowTimeLimit : submission.Problem.TimeLimit);
+            if (!_simpleCheckers.TryGetValue(request.CheckerId, out var checker))
+                throw new InvalidOperationException($"Checker with id {request.CheckerId} not found");
 
             var testResults = new List<CheckerResultStatus>();
             var statusCode = 2;
             var maxUserTime = TimeSpan.Zero;
             var maxTotalTime = TimeSpan.Zero;
             var maxPeakMemory = 0ul;
-            foreach (var test in submission.Problem.Tests)
+            foreach (var test in request.Tests)
             {
                 int counter = 0;
                 log.AppendLine($"""
@@ -311,7 +202,7 @@ public class CheckerService(ILogger<CheckerService> logger, IRunnerService runne
                     """);
             test:
                 var (status, result) = await CheckTest(name, configuration, checker,
-                    test.Input, test.Output, timeLimit, submission.Problem.MemoryLimit, token);
+                    test.Input, test.Output, request.TimeLimit, request.MemoryLimitMb, token);
 
                 if (result.ResourceConsumption.UserTime > maxUserTime)
                     maxUserTime = result.ResourceConsumption.UserTime;
@@ -345,7 +236,7 @@ public class CheckerService(ILogger<CheckerService> logger, IRunnerService runne
                         {GetTruncatedString(result.Stderr, 1024)}
                         """);
 
-                    if (!allTests)
+                    if (!request.AllTests)
                         break;
                 }
             }
@@ -358,19 +249,12 @@ public class CheckerService(ILogger<CheckerService> logger, IRunnerService runne
                 Checking time {timer.Elapsed}
                 """);
 
-            var needScores = allTests && submission.Problem.Tests.Any(x => x.Score is not null);
-            return new()
-            {
-                Submission = null!,
-                SubmissionId = submission.Id,
-                Log = log.ToString(),
-                StatusCode = statusCode,
-                CheckTime = DateTimeOffset.Now,
-                Score = !needScores ? null : submission.Problem.Tests
+            var needScores = request.Tests.Any(x => x.Score is not null);
+            return new(statusCode, log.ToString(),
+                !needScores ? null : request.Tests
                     .Zip(testResults, (test, res) => res is CheckerResultStatus.Accepted ? test.Score : 0).Sum(),
-                TestResults = !needScores ? null : string.Join(';', submission.Problem.Tests
-                    .Zip(testResults, (test, res) => $"{(res is CheckerResultStatus.Accepted ? test.Score ?? 0 : res)}"))
-            };
+                !needScores ? null : string.Join(';', request.Tests
+                    .Zip(testResults, (test, res) => $"{(res is CheckerResultStatus.Accepted ? test.Score ?? 0 : res)}")));
         }
         finally
         {
@@ -386,9 +270,9 @@ public class CheckerService(ILogger<CheckerService> logger, IRunnerService runne
         {
             string name = Guid.NewGuid().ToString();
             var encoding = Encoding.UTF8;
-            var compileResult = await Compile(name, configuration, encoding.GetBytes(source), true, token);
+            var compileResult = await Compile(name, configuration, source, true, token);
             var compilationLog = GetCompilationLog(configuration.GetCompileCommand(name), compileResult);
-            if (compileResult.Status is not CommandStatus.Completed)
+            if (compileResult.Status is not RunnerStatus.Completed)
                 return compilationLog;
 
             var result = await RunTest(name, configuration, encoding.GetBytes(input),
@@ -415,56 +299,60 @@ public class CheckerService(ILogger<CheckerService> logger, IRunnerService runne
         }
     }
 
+    private ICheckerTest[] GetTests(ICompilatorConfiguration configuration) =>
+        [.. _checkerTests.Where(x => x.Language == configuration.Language
+            && (x.CompilatorNames.Count == 0 || x.CompilatorNames.Contains(configuration.Name)))];
+
+    private CheckerTestResult[] CreateTestResults(IEnumerable<CompilatorInfo> compilators)
+    {
+        var results = new List<CheckerTestResult>();
+        foreach (var compilator in compilators)
+        {
+            var tests = GetTests(compilator.Configuration);
+            if (tests.Length == 0)
+                results.Add(new("SelfTests", compilator, CheckerResultStatus.Accepted, CheckerResultStatus.InternalError,
+                    $"No self-tests for compilator {compilator.Configuration.Name}, language {compilator.Configuration.Language}"));
+            else
+                results.AddRange(tests.Select(test => new CheckerTestResult(test.Name, compilator,
+                    test.ExpectedResult, null, string.Empty)));
+        }
+        return [.. results];
+    }
+
     public async Task<bool> RunSelfTests(CancellationToken token)
     {
         await LoadCompilators(token);
         var compilators = Compilators!;
 
-        _checkerTestResults.Clear();
+        _checkerTestResults = CreateTestResults(compilators);
         SelfTestingStatus = CheckerSelfTestingStatus.InProcess;
 
-        if (compilators.Count == 0)
-        {
-            _logger.LogWarning("Checker {id} has no supported compilators to test", Id);
-            SelfTestingStatus = CheckerSelfTestingStatus.Failed;
-            return false;
-        }
-
-        var hasTestsForAllCompilators = true;
+        int index = 0;
         foreach (var compilator in compilators)
         {
-            if (compilator.Error is not null)
-                continue;
-
-            var tests = _checkerTests.Where(x => x.Language == compilator.Configuration.Language
-                && (x.CompilatorNames.Count == 0 || x.CompilatorNames.Contains(compilator.Configuration.Name))).ToArray();
+            var tests = GetTests(compilator.Configuration);
             if (tests.Length == 0)
             {
-                _logger.LogWarning("No self-tests for compilator {compilator}, language {language}",
-                    compilator.Configuration.Name, compilator.Configuration.Language);
-                hasTestsForAllCompilators = false;
+                index++;
+                continue;
             }
-
             foreach (var test in tests)
             {
+                int resultIndex = index++;
+                if (compilator.Error is not null)
+                    continue;
+
                 token.ThrowIfCancellationRequested();
                 await _semaphore.WaitAsync(token);
+                var pending = _checkerTestResults[resultIndex];
                 try
                 {
                     var (status, output) = await RunCheckerTest(test, compilator.Configuration, token);
-                    _checkerTestResults.Enqueue(new(test, compilator, status, output));
-
-                    if (status == test.ExpectedResult)
-                        _logger.LogInformation("CheckerTest {name} with compilator {compilator}: OK",
-                            test.Name, compilator.DisplayName);
-                    else
-                        _logger.LogWarning("CheckerTest {name} with compilator {compilator} error: expected {expected}, actual {actual}",
-                            test.Name, compilator.DisplayName, test.ExpectedResult, status);
+                    _checkerTestResults[resultIndex] = pending with { Result = status, Output = output };
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException)
                 {
-                    _logger.LogWarning(ex, "CheckerTest {name} with compilator {compilator} failed", test.Name, compilator.Configuration.Name);
-                    _checkerTestResults.Enqueue(new(test, compilator, CheckerResultStatus.InternalError, ex.ToString()));
+                    _checkerTestResults[resultIndex] = pending with { Result = CheckerResultStatus.InternalError, Output = ex.ToString() };
                 }
                 finally
                 {
@@ -473,24 +361,18 @@ public class CheckerService(ILogger<CheckerService> logger, IRunnerService runne
             }
         }
 
-        if (compilators.All(x => x.Error is null) && hasTestsForAllCompilators
-            && _checkerTestResults.All(x => x.Result == x.Test.ExpectedResult))
-        {
-            SelfTestingStatus = CheckerSelfTestingStatus.Success;
-            return true;
-        }
-
-        SelfTestingStatus = CheckerSelfTestingStatus.Failed;
-        return false;
+        bool success = compilators.Count > 0 && SelfTestingResults.All(x => x.Result == x.ExpectedResult);
+        SelfTestingStatus = success ? CheckerSelfTestingStatus.Success : CheckerSelfTestingStatus.Failed;
+        return success;
     }
 
     private async Task<(CheckerResultStatus, string)> RunCheckerTest(ICheckerTest test,
         ICompilatorConfiguration configuration, CancellationToken token)
     {
         var encoding = Encoding.UTF8;
-        var compileResult = await Compile(test.Name, configuration, encoding.GetBytes(test.Source), true, token);
+        var compileResult = await Compile(test.Name, configuration, test.Source, true, token);
         var compilationLog = GetCompilationLog(configuration.GetCompileCommand(test.Name), compileResult);
-        if (compileResult.Status is not CommandStatus.Completed)
+        if (compileResult.Status is not RunnerStatus.Completed)
         {
             return (CheckerResultStatus.CompilationError, $"""
                 {compilationLog}
