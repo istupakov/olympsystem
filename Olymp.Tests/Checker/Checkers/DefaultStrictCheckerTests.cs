@@ -3,7 +3,7 @@ using Olymp.Checker.Checkers;
 
 using Xunit;
 
-namespace Olymp.Tests.Checker;
+namespace Olymp.Tests.Checker.Checkers;
 
 public class DefaultStrictCheckerTests
 {
@@ -24,6 +24,9 @@ public class DefaultStrictCheckerTests
     [InlineData("1\n2", "1\n\n2", CheckerResultStatus.WrongAnswer)]
     [InlineData("42\n", "42\n\n", CheckerResultStatus.PresentationError)]
     [InlineData("\n42\n", "42\n", CheckerResultStatus.WrongAnswer)]
+    [InlineData("", "\n", CheckerResultStatus.PresentationError)]
+    [InlineData("1\r2\r", "1\n2\n", CheckerResultStatus.Accepted)]
+    [InlineData("42", "42\n", CheckerResultStatus.PresentationError)]
     public void CheckPreservesWhitespaceAndLineStructure(string expectedOutput, string actualOutput,
         CheckerResultStatus expectedStatus)
     {

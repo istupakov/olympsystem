@@ -1,6 +1,6 @@
 namespace Olymp.Checker.Checkers;
 
-public class DefaultChecker : ISimpleChecker
+public class LegacyChecker : ISimpleChecker
 {
     public int Id => 1;
 
