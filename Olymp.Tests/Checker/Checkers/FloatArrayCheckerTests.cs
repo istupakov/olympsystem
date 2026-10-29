@@ -5,7 +5,7 @@ using Olymp.Checker.Checkers;
 
 using Xunit;
 
-namespace Olymp.Tests.Checker;
+namespace Olymp.Tests.Checker.Checkers;
 
 public class FloatArrayCheckerTests
 {
@@ -24,6 +24,11 @@ public class FloatArrayCheckerTests
     [InlineData("1", "", CheckerResultStatus.PresentationError)]
     [InlineData("1", "NaN", CheckerResultStatus.WrongAnswer)]
     [InlineData("1", "Infinity", CheckerResultStatus.WrongAnswer)]
+    [InlineData("", "", CheckerResultStatus.Accepted)]
+    [InlineData("1\r\n2\r\n", "1\n2\n", CheckerResultStatus.Accepted)]
+    [InlineData("1\n", "1", CheckerResultStatus.Accepted)]
+    [InlineData("-1.5 2e-3", "-1.5 0.002", CheckerResultStatus.Accepted)]
+    [InlineData("1\n2", "1 2", CheckerResultStatus.PresentationError)]
     public void CheckUsesAbsoluteToleranceAndRejectsInvalidOutput(string expectedOutput, string actualOutput,
         CheckerResultStatus expectedStatus)
     {
