@@ -9,7 +9,7 @@ html {
 }
 
 .btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+  box-shadow: 0 0 0 0.1rem var(--bs-body-bg), 0 0 0 0.25rem #258cfb;
 }
 
 html {
@@ -19,4 +19,70 @@ html {
 
 body {
   margin-bottom: 60px;
+}
+
+.site-preferences {
+  flex-shrink: 0;
+}
+
+.preference-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .35rem;
+  min-width: 44px;
+  min-height: 44px;
+  padding: .5rem;
+  color: var(--bs-body-color);
+  border: 0;
+}
+
+.preference-toggle:hover,
+.preference-toggle.show {
+  color: var(--bs-body-color);
+  background-color: var(--bs-tertiary-bg);
+}
+
+.preference-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.site-preferences .dropdown-menu {
+  min-width: 12rem;
+  max-width: calc(100vw - 1rem);
+}
+
+.site-preferences .dropdown-item {
+  min-height: 44px;
+}
+
+.site-preferences [aria-pressed="true"] {
+  background-color: var(--bs-tertiary-bg);
+}
+
+.preference-check {
+  visibility: hidden;
+}
+
+[aria-pressed="true"] > .preference-check {
+  visibility: visible;
+}
+
+.sponsor-logo-dark {
+  display: none;
+}
+
+[data-bs-theme="dark"] .sponsor-logo-light {
+  display: none;
+}
+
+[data-bs-theme="dark"] .sponsor-logo-dark {
+  display: inline;
 }
