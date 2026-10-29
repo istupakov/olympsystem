@@ -35,7 +35,7 @@ public class SendMessageModel(OlympContext context, UserManager<User> userManage
 
         [Required(ErrorMessage = "The {0} field is required.")]
         [Display(Name = "Question")]
-        [StringLength(4 * 1024, MinimumLength = 10, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.")]
+        [StringLength(4 * 1024, MinimumLength = 10, ErrorMessage = "The {0} must be at least {2} and at most {1} characters long.")]
         public string Text { get; set; } = null!;
     }
 

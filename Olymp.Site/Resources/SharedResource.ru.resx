@@ -138,8 +138,8 @@
   <data name="Approve all" xml:space="preserve">
     <value>Одобрить всех</value>
   </data>
-  <data name="Approved" xml:space="preserve">
-    <value>Проверена</value>
+  <data name="Registration approved" xml:space="preserve">
+    <value>Регистрация одобрена</value>
   </data>
   <data name="Cancel" xml:space="preserve">
     <value>Отмена</value>
@@ -183,7 +183,7 @@
   <data name="Compilation errors" xml:space="preserve">
     <value>Ошибки компиляции</value>
   </data>
-  <data name="Compilator" xml:space="preserve">
+  <data name="Compiler" xml:space="preserve">
     <value>Компилятор</value>
   </data>
   <data name="Connecting time" xml:space="preserve">
@@ -204,8 +204,8 @@
   <data name="Create random logins" xml:space="preserve">
     <value>Создать случайные логины</value>
   </data>
-  <data name="Create team for the" xml:space="preserve">
-    <value>Создать команду для</value>
+  <data name="Create a team for {0} ({1})" xml:space="preserve">
+    <value>Создание команды: {0} ({1})</value>
   </data>
   <data name="Date" xml:space="preserve">
     <value>Дата</value>
@@ -243,7 +243,7 @@
   <data name="Expected result" xml:space="preserve">
     <value>Ожидаемый результат</value>
   </data>
-  <data name="Final results of the" xml:space="preserve">
+  <data name="Final results" xml:space="preserve">
     <value>Итоговые результаты</value>
   </data>
   <data name="First name" xml:space="preserve">
@@ -258,8 +258,8 @@
   <data name="Group" xml:space="preserve">
     <value>Группа</value>
   </data>
-  <data name="Hello" xml:space="preserve">
-    <value>Добро пожаловать</value>
+  <data name="Hello, {0}" xml:space="preserve">
+    <value>Добро пожаловать, {0}</value>
   </data>
   <data name="hh:mm tt z" xml:space="preserve">
     <value>HH:mm z</value>
@@ -268,7 +268,7 @@
     <value>Подтверждаю, что данные заполнены правильно</value>
   </data>
   <data name="Idleness limit exceeded on test {0}" xml:space="preserve">
-    <value>Превышение лимита времени на тесте {0}</value>
+    <value>Превышение лимита реального времени на тесте {0}</value>
   </data>
   <data name="In competition" xml:space="preserve">
     <value>В конкурсе</value>
@@ -324,8 +324,8 @@
   <data name="News" xml:space="preserve">
     <value>Новости</value>
   </data>
-  <data name="On verification..." xml:space="preserve">
-    <value>На проверке...</value>
+  <data name="Pending approval" xml:space="preserve">
+    <value>Ожидает одобрения</value>
   </data>
   <data name="Out of competition" xml:space="preserve">
     <value>Вне конкурса</value>
@@ -357,7 +357,7 @@
   <data name="Points" xml:space="preserve">
     <value>Баллы</value>
   </data>
-  <data name="Preliminary results of the" xml:space="preserve">
+  <data name="Preliminary results" xml:space="preserve">
     <value>Предварительные результаты</value>
   </data>
   <data name="Presentation error on test {0}" xml:space="preserve">
@@ -384,14 +384,14 @@
   <data name="Rank" xml:space="preserve">
     <value>Место</value>
   </data>
-  <data name="Reading and writing in all problems from the standard input/output stream." xml:space="preserve">
-    <value>Чтение и запись во всех задачах из стандартного потока ввода/вывода.</value>
+  <data name="All problems use standard input and standard output." xml:space="preserve">
+    <value>Во всех задачах используйте стандартные потоки ввода и вывода.</value>
   </data>
   <data name="Register" xml:space="preserve">
     <value>Регистрация</value>
   </data>
-  <data name="Registraion on" xml:space="preserve">
-    <value>Регистрация на</value>
+  <data name="Registration for {0}" xml:space="preserve">
+    <value>Регистрация: {0}</value>
   </data>
   <data name="Registration date" xml:space="preserve">
     <value>Дата регистрации</value>
@@ -408,8 +408,8 @@
   <data name="Results by tests" xml:space="preserve">
     <value>Результаты по тестам</value>
   </data>
-  <data name="Results of the" xml:space="preserve">
-    <value>Результаты</value>
+  <data name="Results for {0}" xml:space="preserve">
+    <value>Результаты соревнования: {0}</value>
   </data>
   <data name="Rules" xml:space="preserve">
     <value>Правила</value>
@@ -432,8 +432,8 @@
   <data name="Send message" xml:space="preserve">
     <value>Отправить сообщение</value>
   </data>
-  <data name="Send message on the" xml:space="preserve">
-    <value>Отправить сообщения на</value>
+  <data name="Send a message about {0}" xml:space="preserve">
+    <value>Отправка сообщения: {0}</value>
   </data>
   <data name="Server time" xml:space="preserve">
     <value>Время сервера</value>
@@ -465,11 +465,11 @@
   <data name="Submit solution" xml:space="preserve">
     <value>Отправить решение на проверку</value>
   </data>
-  <data name="Submit solution on the" xml:space="preserve">
-    <value>Отправить решение на</value>
+  <data name="Submit a solution for {0}" xml:space="preserve">
+    <value>Отправка решения: {0}</value>
   </data>
   <data name="Team" xml:space="preserve">
-    <value>Комманда</value>
+    <value>Команда</value>
   </data>
   <data name="Team members" xml:space="preserve">
     <value>Участники команды</value>
@@ -495,8 +495,8 @@
   <data name="The {0} field is required." xml:space="preserve">
     <value>Поле {0} является обязательным.</value>
   </data>
-  <data name="The {0} must be at least {2} and at max {1} characters long." xml:space="preserve">
-    <value>{0} должен быть от {2} до {1} символов длиной.</value>
+  <data name="The {0} must be at least {2} and at most {1} characters long." xml:space="preserve">
+    <value>Длина поля «{0}» должна быть от {2} до {1} символов.</value>
   </data>
   <data name="Time" xml:space="preserve">
     <value>Время</value>
@@ -508,7 +508,7 @@
     <value>Превышение лимита времени на тесте {0}</value>
   </data>
   <data name="University" xml:space="preserve">
-    <value>ВУЗ</value>
+    <value>Вуз</value>
   </data>
   <data name="University (team prefix)" xml:space="preserve">
     <value>Университет (префикс команды)</value>
@@ -820,7 +820,7 @@
     <value>Укажите однозначное время в часовом поясе сервера.</value>
   </data>
   <data name="The field {0} must be a string with a maximum length of {1}." xml:space="preserve">
-    <value>Поле {0} должно быть строкой длиной не более {1} символов.</value>
+    <value>Поле «{0}» должно содержать не более {1} символов.</value>
   </data>
   <data name="Too many files in the archive." xml:space="preserve">
     <value>В архиве слишком много файлов.</value>
@@ -932,5 +932,44 @@
   </data>
   <data name="T-Technologies" xml:space="preserve">
     <value>Т-Технологии</value>
+  </data>
+  <data name="The value '{0}' is not valid for {1}." xml:space="preserve">
+    <value>Значение «{0}» недопустимо для поля «{1}».</value>
+  </data>
+  <data name="The value '{0}' is not valid." xml:space="preserve">
+    <value>Значение «{0}» недопустимо.</value>
+  </data>
+  <data name="The supplied value is invalid for {0}." xml:space="preserve">
+    <value>Указано недопустимое значение для поля «{0}».</value>
+  </data>
+  <data name="The supplied value is invalid." xml:space="preserve">
+    <value>Указано недопустимое значение.</value>
+  </data>
+  <data name="The value '{0}' is invalid." xml:space="preserve">
+    <value>Значение «{0}» недопустимо.</value>
+  </data>
+  <data name="The field {0} must be a number." xml:space="preserve">
+    <value>Поле «{0}» должно содержать число.</value>
+  </data>
+  <data name="The field must be a number." xml:space="preserve">
+    <value>Поле должно содержать число.</value>
+  </data>
+  <data name="A value for the '{0}' parameter or property was not provided." xml:space="preserve">
+    <value>Не указано значение параметра или свойства «{0}».</value>
+  </data>
+  <data name="A value is required." xml:space="preserve">
+    <value>Необходимо указать значение.</value>
+  </data>
+  <data name="A non-empty request body is required." xml:space="preserve">
+    <value>Тело запроса не должно быть пустым.</value>
+  </data>
+  <data name="Participants in {0}" xml:space="preserve">
+    <value>Участники: {0}</value>
+  </data>
+  <data name="The {0} field may contain only Russian or Latin letters, digits, spaces or hyphens." xml:space="preserve">
+    <value>В поле «{0}» допускаются только русские и латинские буквы, цифры, пробелы и дефисы.</value>
+  </data>
+  <data name="The {0} field must contain Latin letters, with words separated by a single space or hyphen." xml:space="preserve">
+    <value>В поле «{0}» допускаются латинские буквы. Слова разделяйте одним пробелом или дефисом.</value>
   </data>
 </root>

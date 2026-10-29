@@ -2,7 +2,7 @@
 @attribute [Authorize]
 @model SendMessageModel
 @{
-	ViewData["Title"] = $"{Localizer["Send message on the"]} {Model.Contest.Name}";
+	ViewData["Title"] = Localizer["Send a message about {0}", Model.Contest.Name];
 }
 <h1>@ViewData["Title"]</h1>
 

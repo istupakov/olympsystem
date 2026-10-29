@@ -166,13 +166,13 @@
     <value>Ошибка изменения email.</value>
   </data>
   <data name="Error changing user name." xml:space="preserve">
-    <value>Ошибка изменения имени пользователя.</value>
+    <value>Ошибка изменения логина.</value>
   </data>
   <data name="Error confirming your email." xml:space="preserve">
     <value>Ошибка подтверждения вашего email.</value>
   </data>
   <data name="Error synchronizing username and email." xml:space="preserve">
-    <value>Ошибка при синхронизации имени пользователя и email.</value>
+    <value>Ошибка при синхронизации логина и email.</value>
   </data>
   <data name="Error updating profile." xml:space="preserve">
     <value>Ошибка обновления профиля.</value>
@@ -238,7 +238,7 @@
     <value>Пароли должны иметь хотя бы один символ в нижнем регистре ('a'-'z').</value>
   </data>
   <data name="Passwords must have at least one non alphanumeric character." xml:space="preserve">
-    <value>Пароли должны иметь хотя бы один не цифро-буквенный символ.</value>
+    <value>Пароль должен содержать хотя бы один символ, не являющийся буквой или цифрой.</value>
   </data>
   <data name="Passwords must have at least one uppercase ('A'-'Z')." xml:space="preserve">
     <value>Пароли должны иметь хотя бы один символ в верхнем регистре ('A'-'Z').</value>
@@ -250,10 +250,10 @@
     <value>Номер телефона</value>
   </data>
   <data name="Please check your email to confirm your account." xml:space="preserve">
-    <value>Пожалуйста проверьте свой email для подтверждения вашего аккаунта.</value>
+    <value>Пожалуйста, проверьте свой email для подтверждения вашего аккаунта.</value>
   </data>
   <data name="Please check your email to reset your password." xml:space="preserve">
-    <value>Пожалуйста проверьте свой email для сброса пароля.</value>
+    <value>Пожалуйста, проверьте свой email для сброса пароля.</value>
   </data>
   <data name="Please click here to log in." xml:space="preserve">
     <value>Нажмите для входа.</value>
@@ -304,7 +304,7 @@
     <value>Сохранить</value>
   </data>
   <data name="Sync username and email" xml:space="preserve">
-    <value>Синхронизироать имя пользователя и email</value>
+    <value>Синхронизировать логин и email</value>
   </data>
   <data name="Thank you for confirming your email change." xml:space="preserve">
     <value>Спасибо за подтверждение изменения вашего email.</value>
@@ -313,7 +313,7 @@
     <value>Спасибо за подтверждение вашего email.</value>
   </data>
   <data name="The field {0} must be a string with a maximum length of {1}." xml:space="preserve">
-    <value>Поле {0} должно быть строкой максимальной длины {1}.</value>
+    <value>Поле «{0}» должно содержать не более {1} символов.</value>
   </data>
   <data name="The field {0} must match the regular expression '{1}'." xml:space="preserve">
     <value>Поле {0} должно удовлетворять регулярному выражению '{1}'.</value>
@@ -333,8 +333,8 @@
   <data name="The {0} field is required." xml:space="preserve">
     <value>Поле {0} является обязательным.</value>
   </data>
-  <data name="The {0} must be at least {2} and at max {1} characters long." xml:space="preserve">
-    <value>{0} должен быть от {2} до {1} символов длиной.</value>
+  <data name="The {0} must be at least {2} and at most {1} characters long." xml:space="preserve">
+    <value>Длина поля «{0}» должна быть от {2} до {1} символов.</value>
   </data>
   <data name="This account has been locked out, please try again later." xml:space="preserve">
     <value>Этот аккаунт был заблокирован, попробуйте позднее.</value>
@@ -343,7 +343,7 @@
     <value>Для участия в официальных соревнованиях также требуется заполнить</value>
   </data>
   <data name="University" xml:space="preserve">
-    <value>ВУЗ</value>
+    <value>Вуз</value>
   </data>
   <data name="Update password" xml:space="preserve">
     <value>Обновить пароль</value>
@@ -352,14 +352,14 @@
     <value>Использовать локальный аккаунт для входа.</value>
   </data>
   <data name="Username" xml:space="preserve">
-    <value>Имя пользователя</value>
+    <value>Логин</value>
   </data>
   <data name="Username and email are synchronized." xml:space="preserve">
-    <value>Имя пользователя и email синхронизированы.</value>
+    <value>Логин и email синхронизированы.</value>
     <comment>.</comment>
   </data>
   <data name="Verification email sent. Please check your email." xml:space="preserve">
-    <value>Верификационный email отправлен. Пожалуйста проверьте свой email.</value>
+    <value>Верификационный email отправлен. Пожалуйста, проверьте свой email.</value>
   </data>
   <data name="You do not have access to this resource." xml:space="preserve">
     <value>У вас нет доступа к этому ресурсу.</value>
@@ -381,5 +381,53 @@
   </data>
   <data name="Your profile has been updated" xml:space="preserve">
     <value>Ваш профиль был обновлен</value>
+  </data>
+  <data name="Close" xml:space="preserve">
+    <value>Закрыть</value>
+  </data>
+  <data name="An unknown failure has occurred." xml:space="preserve">
+    <value>Произошла неизвестная ошибка.</value>
+  </data>
+  <data name="Optimistic concurrency failure, object has been modified." xml:space="preserve">
+    <value>Данные уже изменены. Обновите страницу и повторите попытку.</value>
+  </data>
+  <data name="Invalid token." xml:space="preserve">
+    <value>Недействительный код подтверждения.</value>
+  </data>
+  <data name="A user with this login already exists." xml:space="preserve">
+    <value>Пользователь с таким логином уже существует.</value>
+  </data>
+  <data name="User name '{0}' is invalid." xml:space="preserve">
+    <value>Недопустимый логин «{0}».</value>
+  </data>
+  <data name="Email '{0}' is invalid." xml:space="preserve">
+    <value>Недопустимый Email «{0}».</value>
+  </data>
+  <data name="User Name '{0}' is already taken." xml:space="preserve">
+    <value>Логин «{0}» уже занят.</value>
+  </data>
+  <data name="Email '{0}' is already taken." xml:space="preserve">
+    <value>Email «{0}» уже используется.</value>
+  </data>
+  <data name="User already has a password set." xml:space="preserve">
+    <value>У пользователя уже установлен пароль.</value>
+  </data>
+  <data name="Unable to load user with ID '{0}'." xml:space="preserve">
+    <value>Не удалось найти пользователя с ID «{0}».</value>
+  </data>
+  <data name="Unable to load user with email '{0}'." xml:space="preserve">
+    <value>Не удалось найти пользователя с Email «{0}».</value>
+  </data>
+  <data name="A code must be supplied for password reset." xml:space="preserve">
+    <value>Для сброса пароля необходимо указать код.</value>
+  </data>
+  <data name="The {0} field may contain only Russian or Latin letters, digits, spaces or hyphens." xml:space="preserve">
+    <value>В поле «{0}» допускаются только русские и латинские буквы, цифры, пробелы и дефисы.</value>
+  </data>
+  <data name="Use at least two characters in {0}: Russian letters, spaces or hyphens. The last character must be a lowercase letter." xml:space="preserve">
+    <value>В поле «{0}» введите не менее двух символов: русские буквы, пробелы или дефисы. Последний символ должен быть строчной буквой.</value>
+  </data>
+  <data name="The {0} field may contain only uppercase Russian or Latin letters, digits or hyphens." xml:space="preserve">
+    <value>В поле «{0}» допускаются только заглавные русские и латинские буквы, цифры и дефисы.</value>
   </data>
 </root>

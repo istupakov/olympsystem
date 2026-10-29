@@ -2,7 +2,7 @@
 @attribute [Authorize(Policy = PolicyNames.OlympUser)]
 @model IndexModel
 @{
-	ViewData["Title"] = $"{Localizer["Registraion on"]} {Model.Contest.Name}";
+	ViewData["Title"] = Localizer["Registration for {0}", Model.Contest.Name];
 }
 <h1>@ViewData["Title"]</h1>
 

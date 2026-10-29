@@ -1,10 +1,10 @@
 ﻿@page "{id:int}"
 @model IndexModel
 @{
-	ViewData["Title"] = $"{Localizer["Results of the"]} {Model.Contest.Name}";
+	ViewData["Title"] = Localizer["Results for {0}", Model.Contest.Name];
 	ViewData["ShowApprovedBadge"] = false;
 }
-<h1>@ViewData["Title"]</h1>
+<h1>@Model.Contest.Name</h1>
 
 @if (ViewData["Table"] is not null) {
 	@Html.Raw(ViewData["Table"])

@@ -2,7 +2,7 @@
 @model IndexModel
 @using Olymp.Site.Services.Authorization
 @{
-	ViewData["Title"] = $"{Localizer["List of participants of the"]} {Model.Contest.Name}";
+	ViewData["Title"] = Localizer["Participants in {0}", Model.Contest.Name];
 }
 <h1>@ViewData["Title"]</h1>
 @if (ContestAccess.CanManage(User, Model.Contest.Id)) {

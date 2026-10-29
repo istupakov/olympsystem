@@ -40,12 +40,12 @@ public class IndexModel(OlympContext context, UserManager<User> userManager,
         public int? ProblemId { get; set; }
 
         [Required(ErrorMessage = "The {0} field is required.")]
-        [Display(Name = "Compilator")]
+        [Display(Name = "Compiler")]
         public int? CompilatorId { get; set; }
 
         [Required(ErrorMessage = "The {0} field is required.")]
         [Display(Name = "Source code")]
-        [StringLength(32 * 1024, MinimumLength = 10, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.")]
+        [StringLength(32 * 1024, MinimumLength = 10, ErrorMessage = "The {0} must be at least {2} and at most {1} characters long.")]
         public string Code { get; set; } = null!;
     }
 

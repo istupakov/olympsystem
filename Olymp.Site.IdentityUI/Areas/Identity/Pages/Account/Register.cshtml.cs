@@ -80,7 +80,7 @@ namespace Olymp.Site.IdentityUI.Areas.Identity.Pages.Account
         {
             [StringLength(32, ErrorMessage = "The field {0} must be a string with a maximum length of {1}.")]
             [Required(ErrorMessage = "The {0} field is required.")]
-            [RegularExpression(OlympUser.PublicNameRegex, ErrorMessage = "The field {0} must match the regular expression '{1}'.")]
+            [RegularExpression(OlympUser.PublicNameRegex, ErrorMessage = "The {0} field may contain only Russian or Latin letters, digits, spaces or hyphens.")]
             [Display(Name = "Public name")]
             public string PublicName { get; set; }
 
@@ -98,7 +98,7 @@ namespace Olymp.Site.IdentityUI.Areas.Identity.Pages.Account
             ///     directly from your code. This API may change or be removed in future releases.
             /// </summary>
             [Required(ErrorMessage = "The {0} field is required.")]
-            [StringLength(100, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 6)]
+            [StringLength(100, ErrorMessage = "The {0} must be at least {2} and at most {1} characters long.", MinimumLength = 8)]
             [DataType(DataType.Password)]
             [Display(Name = nameof(Password))]
             public string Password { get; set; }
@@ -113,17 +113,17 @@ namespace Olymp.Site.IdentityUI.Areas.Identity.Pages.Account
             public string ConfirmPassword { get; set; }
 
             [StringLength(64, ErrorMessage = "The field {0} must be a string with a maximum length of {1}.")]
-            [RegularExpression(OlympUser.NameRegex, ErrorMessage = "The field {0} must match the regular expression '{1}'.")]
+            [RegularExpression(OlympUser.NameRegex, ErrorMessage = "Use at least two characters in {0}: Russian letters, spaces or hyphens. The last character must be a lowercase letter.")]
             [Display(Name = "First name")]
             public string FirstName { get; set; }
 
             [StringLength(64, ErrorMessage = "The field {0} must be a string with a maximum length of {1}.")]
-            [RegularExpression(OlympUser.NameRegex, ErrorMessage = "The field {0} must match the regular expression '{1}'.")]
+            [RegularExpression(OlympUser.NameRegex, ErrorMessage = "Use at least two characters in {0}: Russian letters, spaces or hyphens. The last character must be a lowercase letter.")]
             [Display(Name = "Last name")]
             public string LastName { get; set; }
 
             [StringLength(64, ErrorMessage = "The field {0} must be a string with a maximum length of {1}.")]
-            [RegularExpression(OlympUser.NameRegex, ErrorMessage = "The field {0} must match the regular expression '{1}'.")]
+            [RegularExpression(OlympUser.NameRegex, ErrorMessage = "Use at least two characters in {0}: Russian letters, spaces or hyphens. The last character must be a lowercase letter.")]
             [Display(Name = nameof(Patronymic))]
             public string Patronymic { get; set; }
 
@@ -131,7 +131,7 @@ namespace Olymp.Site.IdentityUI.Areas.Identity.Pages.Account
             public int? OrganizationId { get; set; }
 
             [StringLength(16, ErrorMessage = "The field {0} must be a string with a maximum length of {1}.")]
-            [RegularExpression(OlympUser.GroupRegex, ErrorMessage = "The field {0} must match the regular expression '{1}'.")]
+            [RegularExpression(OlympUser.GroupRegex, ErrorMessage = "The {0} field may contain only uppercase Russian or Latin letters, digits or hyphens.")]
             [Display(Name = nameof(Group))]
             public string Group { get; set; }
         }

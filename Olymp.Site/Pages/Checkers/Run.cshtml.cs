@@ -33,7 +33,7 @@ public class RunModel(ICheckerManager checkerManager,
         public Guid? CheckerId { get; set; }
 
         [Required(ErrorMessage = "The {0} field is required.")]
-        [Display(Name = "Compilator")]
+        [Display(Name = "Compiler")]
         public string? CompilatorName { get; set; }
 
         [Required(ErrorMessage = "The {0} field is required.")]

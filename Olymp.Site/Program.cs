@@ -126,7 +126,8 @@ builder.Services.AddRazorPages(options =>
     options.Conventions.AuthorizeAreaFolder("Identity", "/Account/Manage", PolicyNames.OlympUser))
     .AddViewLocalization(LanguageViewLocationExpanderFormat.Suffix)
     .AddDataAnnotationsLocalization<SharedResource>()
-    .AddDataAnnotationsLocalization<IdentityUIResources>();
+    .AddDataAnnotationsLocalization<IdentityUIResources>()
+    .AddModelBindingLocalization<SharedResource>();
 
 var dataProtectionPath = builder.Configuration["DataProtection:Path"];
 if (builder.Environment.IsProduction() && dataProtectionPath is not null)

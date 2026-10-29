@@ -7,6 +7,7 @@ using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
 
 using Olymp.Domain.Models;
@@ -16,15 +17,18 @@ namespace Olymp.Site.IdentityUI.Areas.Identity.Pages.Account.Manage
     public class ChangePasswordModel : PageModel
     {
         private readonly UserManager<User> _userManager;
+        private readonly IStringLocalizer<IdentityUIResources> _localizer;
         private readonly SignInManager<User> _signInManager;
         private readonly ILogger<ChangePasswordModel> _logger;
 
         public ChangePasswordModel(
             UserManager<User> userManager,
             SignInManager<User> signInManager,
-            ILogger<ChangePasswordModel> logger)
+            ILogger<ChangePasswordModel> logger,
+            IStringLocalizer<IdentityUIResources> localizer)
         {
             _userManager = userManager;
+            _localizer = localizer;
             _signInManager = signInManager;
             _logger = logger;
         }
@@ -63,7 +67,7 @@ namespace Olymp.Site.IdentityUI.Areas.Identity.Pages.Account.Manage
             ///     directly from your code. This API may change or be removed in future releases.
             /// </summary>
             [Required(ErrorMessage = "The {0} field is required.")]
-            [StringLength(100, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 6)]
+            [StringLength(100, ErrorMessage = "The {0} must be at least {2} and at most {1} characters long.", MinimumLength = 8)]
             [DataType(DataType.Password)]
             [Display(Name = "New password")]
             public string NewPassword { get; set; }
@@ -83,7 +87,7 @@ namespace Olymp.Site.IdentityUI.Areas.Identity.Pages.Account.Manage
             var user = await _userManager.GetUserAsync(User);
             if (user == null)
             {
-                return NotFound($"Unable to load user with ID '{_userManager.GetUserId(User)}'.");
+                return NotFound(_localizer["Unable to load user with ID '{0}'.", _userManager.GetUserId(User)].Value);
             }
 
             var hasPassword = await _userManager.HasPasswordAsync(user);
@@ -105,7 +109,7 @@ namespace Olymp.Site.IdentityUI.Areas.Identity.Pages.Account.Manage
             var user = await _userManager.GetUserAsync(User);
             if (user == null)
             {
-                return NotFound($"Unable to load user with ID '{_userManager.GetUserId(User)}'.");
+                return NotFound(_localizer["Unable to load user with ID '{0}'.", _userManager.GetUserId(User)].Value);
             }
 
             var changePasswordResult = await _userManager.ChangePasswordAsync(user, Input.OldPassword, Input.NewPassword);

@@ -47,8 +47,8 @@ public class CreateModel(OlympContext context, UserManager<User> userManager,
         private const string ParticipantReqex = @"[А-ЯЁа-яёA-Za-z0-9- ]+";
 
         [Required(ErrorMessage = "The {0} field is required.")]
-        [StringLength(32)]
-        [RegularExpression(TeamReqex, ErrorMessage = "The field {0} must match the regular expression '{1}'.")]
+        [StringLength(32, ErrorMessage = "The field {0} must be a string with a maximum length of {1}.")]
+        [RegularExpression(TeamReqex, ErrorMessage = "The {0} field must contain Latin letters, with words separated by a single space or hyphen.")]
         [Display(Name = "University (team prefix)")]
         public string? TeamPrefix { get; set; } = null!;
 
@@ -56,26 +56,26 @@ public class CreateModel(OlympContext context, UserManager<User> userManager,
         [Range(1, 32, ErrorMessage = "The field {0} must be between {1} and {2}.")]
         public int? TeamNumber { get; set; } = null!;
 
-        [StringLength(32)]
-        [RegularExpression(TeamReqex, ErrorMessage = "The field {0} must match the regular expression '{1}'.")]
+        [StringLength(32, ErrorMessage = "The field {0} must be a string with a maximum length of {1}.")]
+        [RegularExpression(TeamReqex, ErrorMessage = "The {0} field must contain Latin letters, with words separated by a single space or hyphen.")]
         [Display(Name = "Name (team suffix)")]
         public string? TeamSuffix { get; set; } = null!;
 
         [Required(ErrorMessage = "The {0} field is required.")]
-        [StringLength(32)]
-        [RegularExpression(ParticipantReqex, ErrorMessage = "The field {0} must match the regular expression '{1}'.")]
+        [StringLength(32, ErrorMessage = "The field {0} must be a string with a maximum length of {1}.")]
+        [RegularExpression(ParticipantReqex, ErrorMessage = "The {0} field may contain only Russian or Latin letters, digits, spaces or hyphens.")]
         [Display(Name = "Participant 1")]
         public string Participant1 { get; set; } = null!;
 
         [Required(ErrorMessage = "The {0} field is required.")]
-        [StringLength(32)]
-        [RegularExpression(ParticipantReqex, ErrorMessage = "The field {0} must match the regular expression '{1}'.")]
+        [StringLength(32, ErrorMessage = "The field {0} must be a string with a maximum length of {1}.")]
+        [RegularExpression(ParticipantReqex, ErrorMessage = "The {0} field may contain only Russian or Latin letters, digits, spaces or hyphens.")]
         [Display(Name = "Participant 2")]
         public string Participant2 { get; set; } = null!;
 
         [Required(ErrorMessage = "The {0} field is required.")]
-        [StringLength(32)]
-        [RegularExpression(ParticipantReqex, ErrorMessage = "The field {0} must match the regular expression '{1}'.")]
+        [StringLength(32, ErrorMessage = "The field {0} must be a string with a maximum length of {1}.")]
+        [RegularExpression(ParticipantReqex, ErrorMessage = "The {0} field may contain only Russian or Latin letters, digits, spaces or hyphens.")]
         [Display(Name = "Participant 3")]
         public string Participant3 { get; set; } = null!;
 
