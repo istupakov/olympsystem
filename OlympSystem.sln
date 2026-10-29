@@ -13,6 +13,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Olymp.Site.IdentityUI", "Ol
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Olymp.Runner", "Olymp.Runner\Olymp.Runner.csproj", "{535497B2-1ACD-401E-9081-6190655E00E8}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Olymp.Tests", "Olymp.Tests\Olymp.Tests.csproj", "{7297BC71-D166-4C35-AA4A-DF5F69AFABB6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Olymp.IntegrationTests", "Olymp.IntegrationTests\Olymp.IntegrationTests.csproj", "{018D436E-F928-48F2-BFAD-AF17ABC8F2B4}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -39,6 +43,14 @@ Global
 		{535497B2-1ACD-401E-9081-6190655E00E8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{535497B2-1ACD-401E-9081-6190655E00E8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{535497B2-1ACD-401E-9081-6190655E00E8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7297BC71-D166-4C35-AA4A-DF5F69AFABB6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7297BC71-D166-4C35-AA4A-DF5F69AFABB6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7297BC71-D166-4C35-AA4A-DF5F69AFABB6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7297BC71-D166-4C35-AA4A-DF5F69AFABB6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{018D436E-F928-48F2-BFAD-AF17ABC8F2B4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{018D436E-F928-48F2-BFAD-AF17ABC8F2B4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{018D436E-F928-48F2-BFAD-AF17ABC8F2B4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{018D436E-F928-48F2-BFAD-AF17ABC8F2B4}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

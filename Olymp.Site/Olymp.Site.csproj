@@ -28,4 +28,8 @@
     <Protobuf Include="Protos\runner.proto" GrpcServices="Server" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="Olymp.IntegrationTests" />
+  </ItemGroup>
+
 </Project>

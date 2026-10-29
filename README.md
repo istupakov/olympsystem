@@ -1,5 +1,9 @@
 # OlympSystem
 
+[![.NET](https://img.shields.io/badge/.NET-10-512BD4)](https://dotnet.microsoft.com/)
+[![License](https://img.shields.io/github/license/istupakov/olympsystem)](LICENSE)
+[![CI](https://github.com/istupakov/olympsystem/actions/workflows/ci.yml/badge.svg?branch=master&event=push)](https://github.com/istupakov/olympsystem/actions/workflows/ci.yml)
+
 Programming contest system with automated judging and standings. Used at [olymp.nstu.ru](https://olymp.nstu.ru).
 
 ## Projects
@@ -45,4 +49,10 @@ Open https://localhost:5001.
 
 Judging requires a separate Runner, a trusted HTTPS endpoint and matching site `ApiKeys` / Runner `ApiKey` settings. Its Compose file is [Olymp.Runner/docker-compose.yml](Olymp.Runner/docker-compose.yml).
 
-[CI workflow](.github/workflows/ci.yml) · [License](LICENSE).
+### Tests
+
+```bash
+dotnet test
+```
+
+Integration tests create and delete a temporary database from the current EF model.
