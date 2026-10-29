@@ -7,18 +7,15 @@ public sealed partial class CSharpFrameworkConfiguration() : CompilatorConfigura
 {
     public override string Name => "C# .NET Framework";
     public override string GetVersionCommand() =>
-        "csc /help && reg query \"HKLM\\SOFTWARE\\Microsoft\\NET Framework Setup\\NDP\\v4\\Full\" /v Version";
-    protected override string GetDisplayName(string version) => $"C# (.NET Framework{VersionSuffix(version)})";
+        "csc -version && reg query \"HKLM\\SOFTWARE\\Microsoft\\NET Framework Setup\\NDP\\v4\\Full\" /v Version";
 
     public override CompilatorInfo ParseInfo(string output)
     {
-        var compiler = ReadVersion(output, CompilerVersionRegex);
+        var compiler = ReadVersion(output, NumericVersionRegex);
         var framework = ReadVersion(output, FrameworkVersionRegex);
-        return CreateInfo(framework, $"Compiler {compiler}; .NET Framework {framework}");
+        return new(this, $"C# (.NET Framework{VersionSuffix(framework)})",
+            $"Compiler {compiler}; .NET Framework {framework}");
     }
-
-    [GeneratedRegex(@"^[^\r\n]*C#[^\r\n]*?\b(?<v>" + VersionNumberPattern + ")", RegexOptions.Multiline | RegexOptions.CultureInvariant)]
-    private static partial Regex CompilerVersionRegex { get; }
 
     [GeneratedRegex(@"^\s*Version\s+REG_SZ\s+(?<v>" + VersionNumberPattern + @")\s*$", RegexOptions.Multiline | RegexOptions.CultureInvariant)]
     private static partial Regex FrameworkVersionRegex { get; }
@@ -30,7 +27,6 @@ public sealed partial class CSharpDotnetConfiguration() : CompilatorConfiguratio
     public override string Name => "C# .NET";
     public override string GetVersionCommand() =>
         "dotnet --version && dotnet --list-runtimes && dotnet-csc.cmd -out:version-probe.dll -langversion:?";
-    protected override string GetDisplayName(string version) => $"C# (.NET{VersionSuffix(version)})";
     public override string RunCommand(string name, int memoryMb) => $"dotnet {Path.ChangeExtension(name, ".dll")}";
 
     public override CompilatorInfo ParseInfo(string output)

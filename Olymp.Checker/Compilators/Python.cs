@@ -8,12 +8,11 @@ public sealed partial class CPythonConfiguration() : CompilatorConfiguration(
     public override string Name => "Python";
     public override bool UseSlowTimeLimit => true;
     public override string GetVersionCommand() => "python --version";
-    protected override string GetDisplayName(string version) => $"Python{VersionSuffix(version)} (CPython)";
     public override string RunCommand(string name, int memoryMb) => $"python {Path.ChangeExtension(name, ".pyc")}";
     public override CompilatorInfo ParseInfo(string output)
     {
         var version = ReadVersion(output, PythonVersionRegex);
-        return CreateInfo(version, $"CPython {version}");
+        return new(this, $"Python{VersionSuffix(version)} (CPython)", $"CPython {version}");
     }
 
     [GeneratedRegex(@"^Python\s+(?<v>" + VersionNumberPattern + @")\b", RegexOptions.Multiline | RegexOptions.CultureInvariant)]
@@ -26,7 +25,6 @@ public sealed partial class PyPyConfiguration() : CompilatorConfiguration(
     public override string Name => "PyPy";
     public override bool UseSlowTimeLimit => true;
     public override string GetVersionCommand() => "pypy --version";
-    protected override string GetDisplayName(string version) => $"Python{VersionSuffix(version)} (PyPy)";
     public override string RunCommand(string name, int memoryMb) => $"pypy {Path.ChangeExtension(name, ".pyc")}";
 
     public override CompilatorInfo ParseInfo(string output)

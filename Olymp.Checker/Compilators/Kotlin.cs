@@ -9,7 +9,6 @@ public sealed partial class KotlinConfiguration() : CompilatorConfiguration(
     public override bool UseSlowTimeLimit => true;
     public override int MemoryOverheadMb => 128;
     public override string GetVersionCommand() => "kotlinc -version && java -version";
-    protected override string GetDisplayName(string version) => $"Kotlin{VersionSuffix(version)}";
     public override string RunCommand(string name, int memoryMb) =>
         $"java -Xmx{memoryMb}M -Xss64M -jar {Path.ChangeExtension(name, ".jar")}";
 
@@ -17,7 +16,7 @@ public sealed partial class KotlinConfiguration() : CompilatorConfiguration(
     {
         var kotlin = ReadVersion(output, CompilerVersionRegex);
         var jre = ReadVersion(output, RuntimeVersionRegex);
-        return new(this, $"{GetDisplayName(kotlin)} (OpenJDK{VersionSuffix(jre)})",
+        return new(this, $"Kotlin{VersionSuffix(kotlin)} (OpenJDK{VersionSuffix(jre)})",
             $"Kotlin {kotlin}; OpenJDK {jre}");
     }
 
