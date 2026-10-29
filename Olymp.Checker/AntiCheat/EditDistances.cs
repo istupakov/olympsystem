@@ -1,4 +1,4 @@
-namespace Olymp.Site.Services.AntiCheat;
+namespace Olymp.Checker.AntiCheat;
 
 public static class EditDistances
 {
@@ -25,11 +25,15 @@ public static class EditDistances
 
     public static float LevenshteinSimilarity(string source1, string source2)
     {
+        if (source1.Length == 0 && source2.Length == 0)
+            return 0;
         return 1 - (LevenshteinDistance(source1, source2) / Math.Max(source1.Length, source2.Length));
     }
 
     public static float LongestCommonSubsequenceSimilarity(string source1, string source2)
     {
+        if (source1.Length == 0 && source2.Length == 0)
+            return 0;
         return 1 - (LevenshteinDistance(source1, source2, replaceCost: 2) / (source1.Length + source2.Length));
     }
 }

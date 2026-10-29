@@ -11,11 +11,12 @@ using Microsoft.AspNetCore.Mvc.Razor;
 using Microsoft.AspNetCore.Rewrite;
 using Microsoft.EntityFrameworkCore;
 
+using Olymp.Checker;
+using Olymp.Checker.AntiCheat;
 using Olymp.Domain;
 using Olymp.Domain.Models;
 using Olymp.Site;
 using Olymp.Site.IdentityUI;
-using Olymp.Site.Services.AntiCheat;
 using Olymp.Site.Services.Authentication;
 using Olymp.Site.Services.Authorization;
 using Olymp.Site.Services.Checker;
@@ -112,7 +113,7 @@ builder.Services.AddCompilators();
 builder.Services.AddSingleton<ICheckerManager, CheckerManager>();
 
 builder.Services.AddTransient<ISubmissionSimilarityService, SimpleSubmissionSimilarityService>();
-builder.Services.AddTransient<IAIDetectionServiceService, SimpleAIDetectionServiceService>();
+builder.Services.AddTransient<IAIDetectionService, SimpleAIDetectionService>();
 
 builder.Services.AddGrpc();
 builder.Services.AddRazorPages(options =>

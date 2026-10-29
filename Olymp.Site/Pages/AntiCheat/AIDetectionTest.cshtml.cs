@@ -5,15 +5,15 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Localization;
 
+using Olymp.Checker;
 using Olymp.Domain;
-using Olymp.Site.Services.AntiCheat;
 
 namespace Olymp.Site.Pages.AntiCheat;
 
-public class AIDetectionTestModel(OlympContext context, IAIDetectionServiceService aiDetectionServiceService, IStringLocalizer<SharedResource> localizer) : PageModel
+public class AIDetectionTestModel(OlympContext context, IAIDetectionService aiDetectionService, IStringLocalizer<SharedResource> localizer) : PageModel
 {
     private readonly OlympContext _context = context;
-    private readonly IAIDetectionServiceService _aiDetectionServiceService = aiDetectionServiceService;
+    private readonly IAIDetectionService _aiDetectionService = aiDetectionService;
     private readonly IStringLocalizer<SharedResource> _localizer = localizer;
 
     [BindProperty]
@@ -44,7 +44,7 @@ public class AIDetectionTestModel(OlympContext context, IAIDetectionServiceServi
 
         if (ModelState.IsValid)
         {
-            Report = _aiDetectionServiceService.DetectAI(submission!);
+            Report = _aiDetectionService.DetectAI(submission!.Text, submission!.Compilator.Language);
         }
 
         return Page();

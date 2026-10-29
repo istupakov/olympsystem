@@ -1,6 +1,6 @@
 @model IEnumerable<PlagiarismReport>
 
-<div class="accordion" id="aireport">
+<div class="accordion" id="plagiarism-report">
     @foreach (var report in Model)
     {
         <div class="accordion-item">
@@ -13,7 +13,7 @@
                 </button>
             </h2>
             <div id="user-@report.Competitor1.Id-@report.Competitor2.Id" class="accordion-collapse collapse"
-                data-bs-parent="#aireport">
+                data-bs-parent="#plagiarism-report">
                 <div class="accordion-body">
                     <ul>
                         @foreach (var group in report.Cases.GroupBy(x => x.Submission1.Problem))

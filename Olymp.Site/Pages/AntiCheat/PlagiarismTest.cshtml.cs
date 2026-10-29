@@ -5,8 +5,8 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Localization;
 
+using Olymp.Checker;
 using Olymp.Domain;
-using Olymp.Site.Services.AntiCheat;
 
 namespace Olymp.Site.Pages.AntiCheat;
 
@@ -49,7 +49,7 @@ public class PlagiarismTestModel(OlympContext context, ISubmissionSimilarityServ
 
         if (ModelState.IsValid)
         {
-            Similarity = _submissionSimilarityService.CompareSimilarity(submission1!, submission2!);
+            Similarity = _submissionSimilarityService.CompareSimilarity(submission1!.Text, submission2!.Text);
         }
 
         return Page();
