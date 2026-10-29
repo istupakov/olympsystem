@@ -39,6 +39,12 @@ public class ErrorsModel(OlympContext context, IAuthorizationService authorizati
         }
 
         Error = last.Log;
+        if (Error.StartsWith("Runner:", StringComparison.Ordinal) || Error.StartsWith("Compilation:", StringComparison.Ordinal))
+        {
+            var index = Error.IndexOf("Compilation:", StringComparison.Ordinal);
+            // Skip runner metadata, the compilation heading and its two timing lines.
+            Error = index >= 0 ? string.Join('\n', Error[index..].Split('\n').Skip(3)) : "Internal error!";
+        }
         return Page();
     }
 }

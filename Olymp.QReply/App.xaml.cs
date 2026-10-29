@@ -1,3 +1,4 @@
+using System.Text;
 using System.Windows;
 
 namespace Olymp.QReply;
@@ -7,5 +8,8 @@ namespace Olymp.QReply;
 /// </summary>
 public partial class App : Application
 {
-
+    public App()
+    {
+        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+    }
 }

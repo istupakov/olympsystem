@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Unicode;
 
@@ -20,6 +21,8 @@ using Olymp.Site.Services.Authorization;
 using Olymp.Site.Services.Checker;
 using Olymp.Site.Services.Identity;
 using Olymp.Site.Services.Mail;
+
+Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
 var builder = WebApplication.CreateBuilder(args);
 

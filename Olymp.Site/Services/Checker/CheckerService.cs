@@ -273,7 +273,7 @@ public class CheckerService(ILogger<CheckerService> logger, IRunnerService runne
                 Versions: {compilator.Description}
                 """);
 
-            var compileResult = await Compile(name, configuration, submission.SourceCode, true, token);
+            var compileResult = await Compile(name, configuration, Encoding.UTF8.GetBytes(submission.Text), true, token);
             log.AppendLine($"""
                 Compilation:
                 user time: {compileResult.ResourceConsumption.UserTime}
@@ -329,7 +329,7 @@ public class CheckerService(ILogger<CheckerService> logger, IRunnerService runne
                     exit code: {result.ExitCode}
                     """);
 
-                if (status is CheckerResultStatus.TimeLimit or CheckerResultStatus.MemoryLimit && ++counter < 3)
+                if (status is CheckerResultStatus.TimeLimit or CheckerResultStatus.MemoryLimit && ++counter < 2)
                     goto test;
 
                 testResults.Add(status);

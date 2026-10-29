@@ -20,9 +20,9 @@ public abstract partial class MsvcConfiguration(
 }
 
 public sealed class MsvcCConfiguration() : MsvcConfiguration(
-    "C", "C", ".c", "cl /O2 /TC !.!")
+    "C", "C", ".c", "cl /O2 /TC /utf-8 !.!")
 { }
 
 public sealed class MsvcCpp20Configuration() : MsvcConfiguration(
-    "C++", "C++20", ".cpp", "cl /O2 /EHs /TP /std:c++20 !.!")
+    "C++", "C++20", ".cpp", "cl /O2 /EHs /TP /std:c++20 /utf-8 !.!")
 { }

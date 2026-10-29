@@ -194,7 +194,8 @@ public class RunnerClientService(Site.Protos.Runner.RunnerClient runnerClient,
         var totalTimeLimit = request.ResourceLimits.TotalTime.ToTimeSpan();
         while (!process.Process.HasExited)
         {
-            if (DateTime.Now - process.Process.StartTime > totalTimeLimit)
+            if (process.TotalUserTime > userTimeLimit
+                || DateTime.Now - process.Process.StartTime > totalTimeLimit)
                 process.Terminate(0xffff);
             using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(50));
             try

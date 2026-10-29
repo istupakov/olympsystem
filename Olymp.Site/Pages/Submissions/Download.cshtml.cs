@@ -1,4 +1,4 @@
-using System.Net.Mime;
+using System.Text;
 
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authorization.Infrastructure;
@@ -31,6 +31,6 @@ public class DownloadModel(OlympContext context, IAuthorizationService authoriza
         if (!res.Succeeded)
             return Forbid();
 
-        return File(data.submission.SourceCode, MediaTypeNames.Text.Plain, Path.ChangeExtension(data.submission.DescriptionOrId, data.SourceExtension));
+        return File(Encoding.UTF8.GetBytes(data.submission.Text), "text/plain; charset=utf-8", Path.ChangeExtension(data.submission.DescriptionOrId, data.SourceExtension));
     }
 }
