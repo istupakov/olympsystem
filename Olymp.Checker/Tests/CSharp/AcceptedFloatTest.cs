@@ -5,9 +5,12 @@ namespace Olymp.Checker.Tests.CSharp;
 public class AcceptedFloatTest : ICheckerTest
 {
     public string Source => """
-            System.Console.WriteLine(42.0009);
+            double a = double.Parse(System.Console.ReadLine());
+            double b = double.Parse(System.Console.ReadLine());
+            System.Console.WriteLine(a + b);
             """;
     public CheckerResultStatus ExpectedResult => CheckerResultStatus.Accepted;
-    public string Output => $"42\r\n";
+    public string Input => "1.5\r\n2.75";
+    public string Output => "4.25\r\n";
     public ISimpleChecker Checker => new FloatArrayChecker();
 }

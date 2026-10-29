@@ -8,6 +8,6 @@ public class AcceptedUnicodeTest : ICheckerTest
             System.Console.WriteLine("Привет, " + System.Console.ReadLine());
             """;
     public CheckerResultStatus ExpectedResult => CheckerResultStatus.Accepted;
-    public string Input => "мир\r\n";
-    public string Output => "Привет, мир\r\n";
+    public string Input => "  мир  ";
+    public string Output => "Привет,   мир  \r\n";
 }
