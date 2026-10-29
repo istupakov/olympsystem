@@ -7,12 +7,6 @@ public class AcceptedEchoTest : ICheckerTest
                 System.Console.WriteLine(line);
             """;
     public CheckerResultStatus ExpectedResult => CheckerResultStatus.Accepted;
-    public string Input => """
-
-        1 2 3
-          x  
-        xxxxxxxxxxxxx
-
-        """;
-    public string Output => Input;
+    public string Input => "\r\n1 2 3\r\n  x  \r\nxxxxxxxxxxxxx\r\n\r\n  last line  ";
+    public string Output => Input + "\r\n";
 }

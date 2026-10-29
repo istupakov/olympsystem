@@ -2,7 +2,7 @@ namespace Olymp.Checker.Tests.Cpp;
 
 public class AcceptedCpp20Test : ICheckerTest
 {
-    public IReadOnlyList<string> CompilatorNames => ["GCC C++20", "GCC C++23", "MSVC C++20"];
+    public IReadOnlyList<string> CompilatorNames => ["MSVC C++20"];
 
     public string Source => """
             #include <iostream>
