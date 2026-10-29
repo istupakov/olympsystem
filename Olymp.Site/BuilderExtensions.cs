@@ -1,3 +1,6 @@
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Localization;
+
 using Olymp.Checker;
 
 namespace Olymp.Site;
@@ -14,6 +17,28 @@ public static class BuilderExtensions
                 type.Assembly == assembly ? factory.Create(typeof(T)) :
                 oldProvider?.Invoke(type, factory) ?? null!;
         });
+    }
+
+    public static IMvcBuilder AddModelBindingLocalization<T>(this IMvcBuilder builder)
+    {
+        builder.Services.AddOptions<MvcOptions>()
+            .Configure<IStringLocalizer<T>>((options, localizer) =>
+            {
+                var messages = options.ModelBindingMessageProvider;
+                messages.SetAttemptedValueIsInvalidAccessor((value, field) => localizer["The value '{0}' is not valid for {1}.", value, field]);
+                messages.SetNonPropertyAttemptedValueIsInvalidAccessor(value => localizer["The value '{0}' is not valid.", value]);
+                messages.SetUnknownValueIsInvalidAccessor(field => localizer["The supplied value is invalid for {0}.", field]);
+                messages.SetNonPropertyUnknownValueIsInvalidAccessor(() => localizer["The supplied value is invalid."]);
+                messages.SetValueIsInvalidAccessor(value => localizer["The value '{0}' is invalid.", value]);
+                messages.SetValueMustNotBeNullAccessor(value => localizer["The value '{0}' is invalid.", value]);
+                messages.SetValueMustBeANumberAccessor(field => localizer["The field {0} must be a number.", field]);
+                messages.SetNonPropertyValueMustBeANumberAccessor(() => localizer["The field must be a number."]);
+                messages.SetMissingBindRequiredValueAccessor(field => localizer["A value for the '{0}' parameter or property was not provided.", field]);
+                messages.SetMissingKeyOrValueAccessor(() => localizer["A value is required."]);
+                messages.SetMissingRequestBodyRequiredValueAccessor(() => localizer["A non-empty request body is required."]);
+            });
+
+        return builder;
     }
 
     public static IServiceCollection AddCheckerTests(this IServiceCollection services)

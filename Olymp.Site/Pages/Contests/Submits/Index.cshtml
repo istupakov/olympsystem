@@ -4,7 +4,7 @@
 @model IndexModel
 @inject IHtmlLocalizer<SharedResource> HtmlLocalizer
 @{
-	ViewData["Title"] = $"{Localizer["Submit solution on the"]} {Model.Contest.Name}";
+	ViewData["Title"] = Localizer["Submit a solution for {0}", Model.Contest.Name];
 }
 <h1>@ViewData["Title"]</h1>
 
@@ -21,7 +21,7 @@
 	<div class="tab-pane fade" id="submit-tab-pane" role="tabpanel">
 		<h2>@Localizer["Submit solution"]</h2>
 		<div class="alert alert-warning" role="alert">
-			@Localizer["Reading and writing in all problems from the standard input/output stream."]
+			@Localizer["All problems use standard input and standard output."]
 		</div>
 		<div class="alert alert-warning" role="alert">
 			@HtmlLocalizer["For <em>Java</em> solutions, the main class should be named <strong>Main</strong>."]

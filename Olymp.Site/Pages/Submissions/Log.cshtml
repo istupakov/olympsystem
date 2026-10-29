@@ -15,11 +15,11 @@
 				<li>@Localizer["User"]: @item.Submission.User.Name</li>
 				<li>@Localizer["Problem"]: @item.Submission.Problem.Contest.Name @item.Submission.Problem.NameWithNumber</li>
 				@if (!string.IsNullOrWhiteSpace(item.Submission.Compilator.Description)) {
-					<li>@Localizer["Compilator"]: @item.Submission.Compilator.Description</li>
+					<li>@Localizer["Compiler"]: @item.Submission.Compilator.Description</li>
 					<li>@Localizer["Configuration"]: @item.Submission.Compilator.Name</li>
 				}
 				else {
-					<li>@Localizer["Compilator"]: @item.Submission.Compilator.Name</li>
+					<li>@Localizer["Compiler"]: @item.Submission.Compilator.Name</li>
 				}
 				<li>@Localizer["Submission time"]: @item.Submission.CommitTime</li>
 				<li>@Localizer["Status"]: @string.Format(Localizer[CheckStatusCodes.Template(item.StatusCode)], CheckStatusCodes.TestNumber(item.StatusCode))</li>

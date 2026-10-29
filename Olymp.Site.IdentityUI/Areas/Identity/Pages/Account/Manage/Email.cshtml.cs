@@ -100,7 +100,7 @@ namespace Olymp.Site.IdentityUI.Areas.Identity.Pages.Account.Manage
             var user = await _userManager.GetUserAsync(User);
             if (user == null)
             {
-                return NotFound($"Unable to load user with ID '{_userManager.GetUserId(User)}'.");
+                return NotFound(_localizer["Unable to load user with ID '{0}'.", _userManager.GetUserId(User)].Value);
             }
 
             await LoadAsync(user);
@@ -112,7 +112,7 @@ namespace Olymp.Site.IdentityUI.Areas.Identity.Pages.Account.Manage
             var user = await _userManager.GetUserAsync(User);
             if (user == null)
             {
-                return NotFound($"Unable to load user with ID '{_userManager.GetUserId(User)}'.");
+                return NotFound(_localizer["Unable to load user with ID '{0}'.", _userManager.GetUserId(User)].Value);
             }
 
             if (!ModelState.IsValid)
@@ -151,7 +151,7 @@ namespace Olymp.Site.IdentityUI.Areas.Identity.Pages.Account.Manage
             var user = await _userManager.GetUserAsync(User);
             if (user == null)
             {
-                return NotFound($"Unable to load user with ID '{_userManager.GetUserId(User)}'.");
+                return NotFound(_localizer["Unable to load user with ID '{0}'.", _userManager.GetUserId(User)].Value);
             }
 
             if (!ModelState.IsValid)

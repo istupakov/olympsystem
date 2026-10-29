@@ -1,10 +1,10 @@
 ﻿@model User
 
 @if (Model is Competitor { IsApproved: false }) {
-	<span class="badge text-bg-info">@Localizer["On verification..."]</span>
+	<span class="badge text-bg-info">@Localizer["Pending approval"]</span>
 }
 else if (ViewData["ShowApprovedBadge"] is not false) {
-	<span class="badge text-bg-success">@Localizer["Approved"]</span>
+	<span class="badge text-bg-success">@Localizer["Registration approved"]</span>
 }
 @if (Model is Competitor { IsOutOfCompetition: true }) {
 	<span class="badge text-bg-warning">@Localizer["Out of competition"]</span>

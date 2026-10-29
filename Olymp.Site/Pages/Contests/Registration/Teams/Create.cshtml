@@ -2,7 +2,7 @@
 @attribute [Authorize(Policy = PolicyNames.Coach)]
 @model CreateModel
 @{
-	ViewData["Title"] = $"{Localizer["Create team for the"]} {Model.Contest!.Name} ({Model.Organization!.Name})";
+	ViewData["Title"] = Localizer["Create a team for {0} ({1})", Model.Contest!.Name, Model.Organization!.Name];
 }
 <h1>@ViewData["Title"]</h1>
 

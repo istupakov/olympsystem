@@ -13,14 +13,14 @@
 		<form id="email-form" method="post">
 			<div asp-validation-summary="All" class="text-danger" role="alert"></div>
 			<div class="form-floating mb-3 input-group">
-				<input asp-for="Email" class="form-control" placeholder="Please enter your email." disabled />
+				<input asp-for="Email" class="form-control" placeholder="Email" disabled />
 				<div class="input-group-append">
 					<span class="h-100 input-group-text text-success font-weight-bold">✓</span>
 				</div>
 				<label asp-for="Email" class="form-label"></label>
 			</div>
 			<div class="form-floating mb-3">
-				<input asp-for="Input.NewEmail" class="form-control" autocomplete="email" aria-required="true" placeholder="Please enter new email." />
+				<input asp-for="Input.NewEmail" class="form-control" autocomplete="email" aria-required="true" placeholder="@Localizer["New email"]" />
                 <label asp-for="Input.NewEmail" class="form-label"></label>
 				<span asp-validation-for="Input.NewEmail" class="text-danger"></span>
 			</div>

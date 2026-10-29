@@ -1,6 +1,8 @@
 ﻿@model Standing
 
-@(!Model.Contest.IsOpen ? @Localizer["Preliminary results of the"] : @Localizer["Final results of the"]) @Model.Contest.Name
+@(Model.Contest.IsOpen
+    ? Localizer["Final results"]
+    : Localizer["Preliminary results"])
 @if (DateTimeOffset.Now < Model.Contest.EndTime) {
 	<span class="badge text-bg-primary">
 		@string.Format(@Localizer["{0:hh\\:mm\\:ss} left"], Model.Contest.EndTime - DateTimeOffset.Now)

@@ -67,22 +67,22 @@ namespace Olymp.Site.IdentityUI.Areas.Identity.Pages.Account.Manage
         {
             [StringLength(32, ErrorMessage = "The field {0} must be a string with a maximum length of {1}.")]
             [Required(ErrorMessage = "The {0} field is required.")]
-            [RegularExpression(OlympUser.PublicNameRegex, ErrorMessage = "The field {0} must match the regular expression '{1}'.")]
+            [RegularExpression(OlympUser.PublicNameRegex, ErrorMessage = "The {0} field may contain only Russian or Latin letters, digits, spaces or hyphens.")]
             [Display(Name = "Public name")]
             public string PublicName { get; set; }
 
             [StringLength(64, ErrorMessage = "The field {0} must be a string with a maximum length of {1}.")]
-            [RegularExpression(OlympUser.NameRegex, ErrorMessage = "The field {0} must match the regular expression '{1}'.")]
+            [RegularExpression(OlympUser.NameRegex, ErrorMessage = "Use at least two characters in {0}: Russian letters, spaces or hyphens. The last character must be a lowercase letter.")]
             [Display(Name = "First name")]
             public string FirstName { get; set; }
 
             [StringLength(64, ErrorMessage = "The field {0} must be a string with a maximum length of {1}.")]
-            [RegularExpression(OlympUser.NameRegex, ErrorMessage = "The field {0} must match the regular expression '{1}'.")]
+            [RegularExpression(OlympUser.NameRegex, ErrorMessage = "Use at least two characters in {0}: Russian letters, spaces or hyphens. The last character must be a lowercase letter.")]
             [Display(Name = "Last name")]
             public string LastName { get; set; }
 
             [StringLength(64, ErrorMessage = "The field {0} must be a string with a maximum length of {1}.")]
-            [RegularExpression(OlympUser.NameRegex, ErrorMessage = "The field {0} must match the regular expression '{1}'.")]
+            [RegularExpression(OlympUser.NameRegex, ErrorMessage = "Use at least two characters in {0}: Russian letters, spaces or hyphens. The last character must be a lowercase letter.")]
             [Display(Name = nameof(Patronymic))]
             public string Patronymic { get; set; }
 
@@ -90,7 +90,7 @@ namespace Olymp.Site.IdentityUI.Areas.Identity.Pages.Account.Manage
             public int? OrganizationId { get; set; }
 
             [StringLength(16, ErrorMessage = "The field {0} must be a string with a maximum length of {1}.")]
-            [RegularExpression(OlympUser.GroupRegex, ErrorMessage = "The field {0} must match the regular expression '{1}'.")]
+            [RegularExpression(OlympUser.GroupRegex, ErrorMessage = "The {0} field may contain only uppercase Russian or Latin letters, digits or hyphens.")]
             [Display(Name = nameof(Group))]
             public string Group { get; set; }
         }
@@ -118,7 +118,7 @@ namespace Olymp.Site.IdentityUI.Areas.Identity.Pages.Account.Manage
             var user = await _userManager.GetUserAsync(User) as OlympUser;
             if (user is null)
             {
-                return NotFound($"Unable to load user with ID '{_userManager.GetUserId(User)}'.");
+                return NotFound(_localizer["Unable to load user with ID '{0}'.", _userManager.GetUserId(User)].Value);
             }
 
             await LoadAsync(user);
@@ -130,7 +130,7 @@ namespace Olymp.Site.IdentityUI.Areas.Identity.Pages.Account.Manage
             var user = await _userManager.GetUserAsync(User) as OlympUser;
             if (user is null)
             {
-                return NotFound($"Unable to load user with ID '{_userManager.GetUserId(User)}'.");
+                return NotFound(_localizer["Unable to load user with ID '{0}'.", _userManager.GetUserId(User)].Value);
             }
 
             if (Input.OrganizationId is not null && !(await _context.Organizations.AnyAsync(x => x.Id == Input.OrganizationId)))
