@@ -7,7 +7,7 @@ using Olymp.Site.Services.Checker;
 
 namespace Olymp.Site.Pages.Checkers;
 
-public class IndexModel(ICheckerManager checkerManager, IEnumerable<ICheckerTest> checkerTests,
+public class IndexModel(ICheckerManager checkerManager,
     IStringLocalizer<SharedResource> localizer) : PageModel
 {
     private readonly ICheckerManager _checkerManager = checkerManager;
@@ -16,10 +16,6 @@ public class IndexModel(ICheckerManager checkerManager, IEnumerable<ICheckerTest
     public string? StatusMessage { get; set; }
 
     public IEnumerable<ICheckerService> Checkers => _checkerManager.Checkers.Values;
-
-    public int GetTestCount(ICompilatorConfiguration configuration) => checkerTests.Count(x =>
-        x.Language == configuration.Language
-        && (x.CompilatorNames.Count == 0 || x.CompilatorNames.Contains(configuration.Name)));
 
     public async Task<IActionResult> OnPostAddCompilatorsAsync(Guid checkerId, CancellationToken token)
     {

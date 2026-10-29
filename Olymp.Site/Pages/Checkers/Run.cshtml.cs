@@ -5,20 +5,17 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.Extensions.Localization;
 
-using Olymp.Checker;
 using Olymp.Site.Services.Checker;
 
 namespace Olymp.Site.Pages.Checkers;
 
 public class RunModel(ICheckerManager checkerManager,
-    IEnumerable<ICompilatorConfiguration> compilatorConfigurations,
     IStringLocalizer<SharedResource> localizer) : PageModel
 {
     public const int TimeLimitSeconds = 1;
     public const int MemoryLimitMb = 128;
 
     private readonly ICheckerManager _checkerManager = checkerManager;
-    private readonly IReadOnlyList<ICompilatorConfiguration> _configurations = [.. compilatorConfigurations];
     private readonly IStringLocalizer<SharedResource> _localizer = localizer;
 
     public IReadOnlyList<SelectListItem> CheckerList { get; private set; } = [];
@@ -54,8 +51,8 @@ public class RunModel(ICheckerManager checkerManager,
             new SelectListItem { Text = $"{x.Name} ({x.Id})", Value = x.Id.ToString() })];
 
         var checker = checkers.SingleOrDefault(x => x.Id == Input.CheckerId);
-        CompilatorList = [.. _configurations
-            .Where(c => checkers.Any(x => x.SupportedEnvs.Contains(c.ConfigName)))
+        CompilatorList = [.. checkers.SelectMany(x => x.Configurations)
+            .DistinctBy(c => c.Name)
             .Select(c => new SelectListItem
             {
                 Value = c.Name,
@@ -88,8 +85,8 @@ public class RunModel(ICheckerManager checkerManager,
             return Page();
         }
 
-        var configuration = _configurations.SingleOrDefault(x => x.Name == Input.CompilatorName);
-        if (configuration is null || !checker.SupportedEnvs.Contains(configuration.ConfigName))
+        var configuration = checker.Configurations.SingleOrDefault(x => x.Name == Input.CompilatorName);
+        if (configuration is null)
         {
             ModelState.AddModelError($"{nameof(Input)}.{nameof(Input.CompilatorName)}",
                 _localizer["The selected compilator is unavailable on this runner."]);

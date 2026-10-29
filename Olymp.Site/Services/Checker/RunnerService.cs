@@ -5,35 +5,12 @@ using Google.Protobuf.WellKnownTypes;
 
 using Grpc.Core;
 
+using Olymp.Checker;
 using Olymp.Site.Protos;
 
 namespace Olymp.Site.Services.Checker;
 
-public record RunnerFile(string Filename, ReadOnlyMemory<byte> Content);
-
-public record RunnerResources(TimeSpan UserTime, TimeSpan TotalTime,
-    ulong Memory, ulong Stdout, ulong Stderr);
-
-public record RunnerTask(string Command, ReadOnlyMemory<byte> Stdin,
-    bool ClearWorkdir, bool ReadOnly,
-    ICollection<string> EnvFiles, ICollection<RunnerFile> Files,
-    RunnerResources ResourceLimits);
-
-public record RunnerResult(CommandStatus Status, int ExitCode,
-    ReadOnlyMemory<byte> Stdout, ReadOnlyMemory<byte> Stderr,
-    RunnerResources ResourceConsumption);
-
-public interface IRunnerService
-{
-    Guid Id { get; }
-    string Name { get; }
-    DateTimeOffset ConnectingTime { get; }
-    IReadOnlySet<string> SupportedEnvs { get; }
-
-    Task<RunnerResult> Run(RunnerTask request, CancellationToken token = default);
-}
-
-public class RunnerService(ILogger<RunnerService> logger, ICheckerManager manager) : Runner.RunnerBase, IRunnerService
+public sealed class RunnerService(ILogger<RunnerService> logger, ICheckerManager manager) : Runner.RunnerBase, IRunnerService
 {
     private readonly ILogger _logger = logger;
     private readonly ICheckerManager _manager = manager;
@@ -75,7 +52,18 @@ public class RunnerService(ILogger<RunnerService> logger, ICheckerManager manage
         await _request.Writer.WriteAsync(request, token);
         var response = await _response.Reader.ReadAsync(CancellationToken.None);
 
-        var result = new RunnerResult(response.Status, response.ExitCode, response.Stdout.Memory, response.Stderr.Memory,
+        var status = response.Status switch
+        {
+            CommandStatus.Completed => RunnerStatus.Completed,
+            CommandStatus.Error => RunnerStatus.Error,
+            CommandStatus.UserTimeLimit => RunnerStatus.UserTimeLimit,
+            CommandStatus.TotalTimeLimit => RunnerStatus.TotalTimeLimit,
+            CommandStatus.MemoryLimit => RunnerStatus.MemoryLimit,
+            CommandStatus.StdoutLimit => RunnerStatus.StdoutLimit,
+            CommandStatus.StderrLimit => RunnerStatus.StderrLimit,
+            _ => RunnerStatus.Unspecified
+        };
+        var result = new RunnerResult(status, response.ExitCode, response.Stdout.Memory, response.Stderr.Memory,
             new RunnerResources(response.ResourceConsumption.UserTime.ToTimeSpan(),
                 response.ResourceConsumption.TotalTime.ToTimeSpan(),
                 response.ResourceConsumption.MemoryBytes,

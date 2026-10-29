@@ -621,9 +621,6 @@
   <data name="The selected compilator is unavailable on this runner." xml:space="preserve">
     <value>Выбранный компилятор недоступен на этом Runner.</value>
   </data>
-  <data name="Version probe log" xml:space="preserve">
-    <value>Журнал опроса версий</value>
-  </data>
   <data name="Add runner compilators" xml:space="preserve">
     <value>Добавить компиляторы Runner</value>
   </data>
@@ -641,5 +638,8 @@
   </data>
   <data name="Wait for runner self-testing to finish." xml:space="preserve">
     <value>Дождитесь завершения самопроверки Runner.</value>
+  </data>
+  <data name="Not run" xml:space="preserve">
+    <value>Не выполнялся</value>
   </data>
 </root>
