@@ -149,7 +149,7 @@ public partial class MainWindow : Window
         {
             var problem = Context.CreateProxy<Problem>(x =>
             {
-                x.CheckerId = 1;
+                x.CheckerId = 4;
                 x.Name = "Новая Задача";
                 x.TimeLimit = 1;
                 x.SlowTimeLimit = 1;

@@ -1,3 +1,4 @@
+using System.Text;
 using System.Windows;
 
 namespace Olymp.Manager;
@@ -7,4 +8,8 @@ namespace Olymp.Manager;
 /// </summary>
 public partial class App : Application
 {
+    public App()
+    {
+        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+    }
 }
