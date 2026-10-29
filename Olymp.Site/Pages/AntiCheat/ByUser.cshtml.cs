@@ -4,8 +4,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 
+using Olymp.Checker;
 using Olymp.Domain;
-using Olymp.Site.Services.AntiCheat;
 
 namespace Olymp.Site.Pages.AntiCheat;
 
@@ -56,7 +56,7 @@ public class ByUserModel(OlympContext context, ISubmissionSimilarityService subm
                   let cases = from sol1 in user1.Submissions
                               from sol2 in user2.Submissions
                               where sol1.ProblemId == sol2.ProblemId
-                              let similarity = _submissionSimilarityService.CompareSimilarity(sol1, sol2)
+                              let similarity = _submissionSimilarityService.CompareSimilarity(sol1.Text, sol2.Text)
                               where similarity > Input.Threshold!.Value
                               select new PlagiarismCase(sol1, sol2, similarity)
                   where cases.Any()

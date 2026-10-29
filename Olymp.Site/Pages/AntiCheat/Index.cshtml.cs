@@ -6,9 +6,9 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Localization;
 
+using Olymp.Checker;
 using Olymp.Domain;
 using Olymp.Domain.Models;
-using Olymp.Site.Services.AntiCheat;
 
 namespace Olymp.Site.Pages.AntiCheat;
 
@@ -19,11 +19,11 @@ public record AIUsingCase(Submission Submission, AIDetectionResult Result);
 public record AIUsingReport(User Competitor, IEnumerable<AIUsingCase> Cases);
 
 public class IndexModel(OlympContext context, ISubmissionSimilarityService submissionSimilarityService,
-    IAIDetectionServiceService aiDetectionServiceService, IStringLocalizer<SharedResource> localizer) : PageModel
+    IAIDetectionService aiDetectionService, IStringLocalizer<SharedResource> localizer) : PageModel
 {
     private readonly OlympContext _context = context;
     private readonly ISubmissionSimilarityService _submissionSimilarityService = submissionSimilarityService;
-    private readonly IAIDetectionServiceService _aiDetectionServiceService = aiDetectionServiceService;
+    private readonly IAIDetectionService _aiDetectionService = aiDetectionService;
     private readonly IStringLocalizer<SharedResource> _localizer = localizer;
 
     [BindProperty]
@@ -82,8 +82,8 @@ public class IndexModel(OlympContext context, ISubmissionSimilarityService submi
         {
             AIUsingReports = from user in contest!.Competitors
                              let cases = from sol in user.Submissions
-                                         let result = _aiDetectionServiceService.DetectAI(sol)
-                                         where result.Probability > Input.Threshold
+                                         let result = _aiDetectionService.DetectAI(sol.Text, sol.Compilator.Language)
+                                         where result.Score > Input.Threshold
                                          select new AIUsingCase(sol, result)
                              where cases.Any()
                              select new AIUsingReport(user, cases);
@@ -96,7 +96,7 @@ public class IndexModel(OlympContext context, ISubmissionSimilarityService submi
                                 let cases = from sol1 in user1.Submissions
                                             from sol2 in user2.Submissions
                                             where sol1.ProblemId == sol2.ProblemId
-                                            let similarity = _submissionSimilarityService.CompareSimilarity(sol1, sol2)
+                                            let similarity = _submissionSimilarityService.CompareSimilarity(sol1.Text, sol2.Text)
                                             where similarity > Input.Threshold
                                             select new PlagiarismCase(sol1, sol2, similarity)
                                 where cases.Any()

@@ -1,17 +1,8 @@
 using System.Text.RegularExpressions;
 
-using Olymp.Domain.Models;
+namespace Olymp.Checker.AntiCheat;
 
-namespace Olymp.Site.Services.AntiCheat;
-
-public record AIDetectionResult(double Probability, int CyrillicComments, int EnglishComments, IEnumerable<string> SuspiciousFragments);
-
-public interface IAIDetectionServiceService
-{
-    AIDetectionResult DetectAI(Submission submission);
-}
-
-public partial class SimpleAIDetectionServiceService : IAIDetectionServiceService
+public sealed partial class SimpleAIDetectionService : IAIDetectionService
 {
     [GeneratedRegex(@"#(.*)$", RegexOptions.Multiline)]
     private static partial Regex PythonComments { get; }
@@ -30,16 +21,16 @@ public partial class SimpleAIDetectionServiceService : IAIDetectionServiceServic
 
     private static double Sigmoid(double x) => 1.0 / (1 + Math.Exp(-x));
 
-    public AIDetectionResult DetectAI(Submission submission)
+    public AIDetectionResult DetectAI(string source, string language)
     {
-        var comments = (submission.Compilator.Language == "Python" ? PythonComments : CppStyleComments)
-            .Matches(submission.Text).Select(x => x.Groups[1].Value);
+        var comments = (language == "Python" ? PythonComments : CppStyleComments)
+            .Matches(source).Select(x => x.Groups[1].Value);
 
         comments = [.. comments.Where(x => !x.Contains("Этот файл содержит функцию \"main\". Здесь начинается и заканчивается выполнение программы."))];
 
         var cyrillicComments = comments.Where(x => CyrillicRegex.IsMatch(x)).ToList();
         var englishComments = comments.Where(x => !CodeRegex.IsMatch(x) && EnglishRegex.IsMatch(x)).Except(cyrillicComments).ToList();
 
-        return new AIDetectionResult(Sigmoid((cyrillicComments.Count / 2.0) + (englishComments.Count / 4.0)), cyrillicComments.Count, englishComments.Count, cyrillicComments.Concat(englishComments));
+        return new AIDetectionResult(Sigmoid((cyrillicComments.Count / 2.0) + (englishComments.Count / 4.0)), cyrillicComments.Count, englishComments.Count, [.. cyrillicComments, .. englishComments]);
     }
 }

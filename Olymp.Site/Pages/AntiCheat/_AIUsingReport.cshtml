@@ -1,6 +1,6 @@
 @model IEnumerable<AIUsingReport>
 
-<div class="accordion" id="aireport">
+<div class="accordion" id="ai-report">
     @foreach (var report in Model)
     {
         <div class="accordion-item">
@@ -9,22 +9,22 @@
                     data-bs-target="#user-@report.Competitor.Id" aria-expanded="false"
                     aria-controls="user-@report.Competitor.Id">
                     @report.Competitor.Name
-                    (@string.Format("probability {0:p2}", report.Cases.Max(x => x.Result.Probability)))
+                    (@string.Format("score {0:p2}", report.Cases.Max(x => x.Result.Score)))
                 </button>
             </h2>
-            <div id="user-@report.Competitor.Id" class="accordion-collapse collapse" data-bs-parent="#aireport">
+            <div id="user-@report.Competitor.Id" class="accordion-collapse collapse" data-bs-parent="#ai-report">
                 <div class="accordion-body">
                     <ul>
                         @foreach (var group in report.Cases.GroupBy(x => x.Submission.Problem))
                         {
                             <li>
                                 <h3>@group.Key.NameWithNumber
-                                    (@string.Format("probability {0:p2}", group.Max(x => x.Result.Probability)))</h3>
+                                    (@string.Format("score {0:p2}", group.Max(x => x.Result.Score)))</h3>
                                 <ul>
                                     @foreach (var c in group)
                                     {
                                         <li>
-                                            <h4>@string.Format("probability {0:p2}", c.Result.Probability)</h4>
+                                            <h4>@string.Format("score {0:p2}", c.Result.Score)</h4>
                                             <p>@c.Submission.Id
                                                 (@c.Submission.CommitTime, <span title="@c.Submission.Compilator.Description">@c.Submission.Compilator.Name</span>,
                                                 @string.Format(Localizer[c.Submission.StatusTemplate],
@@ -36,7 +36,7 @@
                                         asp-route-id="@c.Submission.Id">@Localizer["view"]</a>
 
                                     <samp>
-                                        <p>Probability: @c.Result.Probability</p>
+                                        <p>Score: @c.Result.Score</p>
                                         <p>Cyrillic Comments: @c.Result.CyrillicComments</p>
                                         <p>English comments: @c.Result.EnglishComments</p>
                                         @foreach (var fragment in c.Result.SuspiciousFragments ?? [])
