@@ -1,9 +1,11 @@
 ﻿@model Competitor
 
 <form method="post" class="btn-toolbar" role="toolbar">
-	<div class="btn-group btn-group-sm my-1 me-2" role="group">
-		<button class="btn btn-info" asp-route-action="Manage" asp-route-userId="@Model.Id">@Localizer["Manage"]</button>
-	</div>
+	@if (User.IsInRole(RoleNames.Admin)) {
+		<div class="btn-group btn-group-sm my-1 me-2" role="group">
+			<button class="btn btn-info" asp-route-action="Manage" asp-route-userId="@Model.Id">@Localizer["Manage"]</button>
+		</div>
+	}
 	<div class="btn-group btn-group-sm my-1 me-2" role="group">
 		<button class="btn btn-success" asp-route-action="Approve" asp-route-userId="@Model.Id">@Localizer["Approve"]</button>
 		<button class="btn btn-warning" asp-route-action="Disapprove" asp-route-userId="@Model.Id">@Localizer["Disapprove"]</button>

@@ -2,13 +2,15 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Localization;
 
 using Olymp.Domain;
 using Olymp.Domain.Models;
 
 namespace Olymp.Site.Pages.Contests.Registration.Teams;
 
-public class IndexModel(OlympContext context, UserManager<User> userManager) : PageModel
+public class IndexModel(OlympContext context, UserManager<User> userManager, ILogger<IndexModel> logger,
+    IStringLocalizer<SharedResource> localizer) : PageModel
 {
     private readonly OlympContext _context = context;
     private readonly UserManager<User> _userManager = userManager;
@@ -21,9 +23,9 @@ public class IndexModel(OlympContext context, UserManager<User> userManager) : P
     public async Task<IActionResult> OnGetAsync(int id)
     {
         var contest = await _context.Contests
-            .SingleOrDefaultAsync(x => x.Id == id);
+            .SingleOrDefaultAsync(x => x.Id == id && !x.IsHidden);
 
-        if (contest is null)
+        if (contest is null || !contest.IsAcm)
             return NotFound();
 
         if (DateTimeOffset.Now > contest.EndTime)
@@ -52,14 +54,14 @@ public class IndexModel(OlympContext context, UserManager<User> userManager) : P
     public async Task<IActionResult> OnPostDeleteAsync(int id, int teamId)
     {
         var contest = await _context.Contests
-            .SingleOrDefaultAsync(x => x.Id == id);
+            .SingleOrDefaultAsync(x => x.Id == id && !x.IsHidden);
 
         var team = await _context.Competitors
             .Include(x => x.Members)
             .AsTracking()
             .SingleOrDefaultAsync(x => x.ContestId == id && x.Id == teamId);
 
-        if (contest is null || team is null)
+        if (contest is null || !contest.IsAcm || team is null)
             return NotFound();
 
         var coachId = int.Parse(_userManager.GetUserId(User)!);
@@ -68,8 +70,22 @@ public class IndexModel(OlympContext context, UserManager<User> userManager) : P
             !orgIds.Contains(team.OrganizationId!.Value))
             return Forbid();
 
+        if (await _context.Submissions.AnyAsync(x => x.UserId == team.Id)
+            || await _context.Messages.AnyAsync(x => x.UserId == team.Id))
+            return BadRequest(localizer["The participant cannot be deleted because submissions or other related records exist."].Value);
+
         team.Members.Clear();
-        await _userManager.DeleteAsync(team);
+        try
+        {
+            var result = await _userManager.DeleteAsync(team);
+            if (!result.Succeeded)
+                return BadRequest(result.Errors);
+        }
+        catch (DbUpdateException ex)
+        {
+            logger.LogError(ex, "Failed to delete participant {CompetitorId}", team.Id);
+            return BadRequest(localizer["Could not delete the participant. Please contact the administrator."].Value);
+        }
 
         return RedirectToPage();
     }

@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 using Olymp.Domain;
 using Olymp.Domain.Models;
+using Olymp.Site.Services.Authorization;
 
 namespace Olymp.Site.Pages.Contests.Competitors;
 
@@ -16,8 +17,9 @@ public class IndexModel(OlympContext context) : PageModel
 
     public async Task<IActionResult> OnGetAsync(int id)
     {
+        var canManage = ContestAccess.CanManage(User, id);
         var contest = await _context.Contests
-            .Where(x => !x.IsHidden || User.IsInRole(RoleNames.Admin))
+            .Where(x => !x.IsHidden || canManage)
             .Include(x => x.Competitors)
             .ThenInclude(x => x.Organization)
             .Include(x => x.Competitors)

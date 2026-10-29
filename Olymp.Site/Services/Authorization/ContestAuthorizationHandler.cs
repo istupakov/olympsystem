@@ -34,9 +34,9 @@ public class ContestAuthorizationHandler(OlympContext context, UserManager<User>
         var user = await _userManager.GetUserAsync(context.User);
         if (!allow || user is null || user.IsDisqualified)
             context.Fail();
-        else if (user is Competitor { ContestId: int contestId })
+        else if (user is Competitor competitor)
         {
-            if (contestId == contest.Id && DateTimeOffset.Now <= contest.EndTime)
+            if (competitor.IsApproved && competitor.ContestId == contest.Id && DateTimeOffset.Now <= contest.EndTime)
                 context.Succeed(requirement);
             else
                 context.Fail();

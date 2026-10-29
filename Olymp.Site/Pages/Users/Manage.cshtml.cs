@@ -4,13 +4,15 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Localization;
 
 using Olymp.Domain;
 using Olymp.Domain.Models;
 
 namespace Olymp.Site.Pages.Users;
 
-public class ManageModel(OlympContext context, UserManager<User> userManager) : PageModel
+public class ManageModel(OlympContext context, UserManager<User> userManager,
+    IStringLocalizer<SharedResource> localizer) : PageModel
 {
     private readonly OlympContext _context = context;
     private readonly UserManager<User> _userManager = userManager;
@@ -20,20 +22,21 @@ public class ManageModel(OlympContext context, UserManager<User> userManager) : 
     public IEnumerable<string> Roles { get; private set; } = null!;
     public IEnumerable<Claim> Claims { get; private set; } = null!;
 
-    private async Task<User?> FindUser(int? id, string? username, string? email)
-    {
-        if (id is int x)
-            return await _userManager.FindByIdAsync(x.ToString());
-        if (username is not null)
-            return await _userManager.FindByNameAsync(username);
-        if (email is not null)
-            return await _userManager.FindByEmailAsync(email);
-        return null;
-    }
-
     public async Task<IActionResult> OnGetAsync(int? id, string? username, string? email)
     {
-        var user = await FindUser(id, username, email);
+        User? user = null;
+        if (id is int userId)
+            user = await _userManager.FindByIdAsync(userId.ToString());
+        else if (username is not null)
+            user = await _userManager.FindByNameAsync(username);
+        else if (email is not null)
+        {
+            var normalizedEmail = _userManager.NormalizeEmail(email);
+            var users = await _userManager.Users.Where(x => x.NormalizedEmail == normalizedEmail).Take(2).ToListAsync();
+            if (users.Count > 1)
+                return BadRequest(localizer["More than one account was found with this email. Specify the username or user ID."].Value);
+            user = users.SingleOrDefault();
+        }
 
         if (user is null)
             return NotFound();
@@ -112,7 +115,8 @@ public class ManageModel(OlympContext context, UserManager<User> userManager) : 
             case "RemoveCoachOrgClaim":
                 {
                     var claims = await _userManager.GetClaimsAsync(user);
-                    var res = await _userManager.RemoveClaimsAsync(user, claims);
+                    var res = await _userManager.RemoveClaimsAsync(
+                        user, claims.Where(x => x.Type == ClaimNames.CoachOrg));
                     if (!res.Succeeded)
                         return BadRequest(res.Errors);
                 }
@@ -134,7 +138,10 @@ public class ManageModel(OlympContext context, UserManager<User> userManager) : 
                 break;
             case "Ban":
                 {
-                    var res = await _userManager.SetLockoutEndDateAsync(user, DateTimeOffset.Now.AddYears(100));
+                    var res = await _userManager.SetLockoutEnabledAsync(user, true);
+                    if (!res.Succeeded)
+                        return BadRequest(res.Errors);
+                    res = await _userManager.SetLockoutEndDateAsync(user, DateTimeOffset.Now.AddYears(100));
                     if (!res.Succeeded)
                         return BadRequest(res.Errors);
                 }
@@ -146,6 +153,13 @@ public class ManageModel(OlympContext context, UserManager<User> userManager) : 
                         return BadRequest(res.Errors);
                 }
                 break;
+        }
+
+        if (action is "Ban" or "RemoveCoachOrgClaim" || (action == "RemoveRole" && role is not null))
+        {
+            var res = await _userManager.UpdateSecurityStampAsync(user);
+            if (!res.Succeeded)
+                return BadRequest(res.Errors);
         }
 
         return RedirectToPage();
