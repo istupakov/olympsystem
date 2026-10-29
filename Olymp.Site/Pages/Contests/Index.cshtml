@@ -1,10 +1,14 @@
 ﻿@page
 @model IndexModel
+@using Olymp.Site.Services.Authorization
 @{
 	ViewData["Title"] = Localizer["Contests"];
 }
 <h1>@ViewData["Title"]</h1>
 
+@if (ContestAccess.CanCreate(User)) {
+	<p><a asp-page="./Edit" class="btn btn-primary">@Localizer["Create contest"]</a></p>
+}
 <div class="accordion" id="accordion">
 	@foreach (var contest in Model.Contests) {
 		<article class="accordion-item">
@@ -17,6 +21,9 @@
 				<div class="accordion-body">
 					<ul class="list-unstyled">
 						<li>@Localizer["Date"]: @contest.Date.ToShortDateString()</li>
+						@if (ContestAccess.CanManage(User, contest.Id)) {
+							<li><a asp-page="./Edit" asp-route-id="@contest.Id">@Localizer["Edit contest"]</a></li>
+						}
 						@if (contest.StartTime > new DateTime(2010, 1, 1)) {
 							<li><a asp-page="./Competitors/Index" asp-route-id="@contest.Id">@Localizer["List of participants"]</a></li>
 						}

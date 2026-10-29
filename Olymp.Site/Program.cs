@@ -20,6 +20,7 @@ using Olymp.Site.IdentityUI;
 using Olymp.Site.Services.Authentication;
 using Olymp.Site.Services.Authorization;
 using Olymp.Site.Services.Checker;
+using Olymp.Site.Services.Contests;
 using Olymp.Site.Services.Identity;
 using Olymp.Site.Services.Mail;
 
@@ -114,6 +115,7 @@ builder.Services.AddSimpleCheckers();
 builder.Services.AddCheckerTests();
 builder.Services.AddCompilators();
 builder.Services.AddSingleton<ICheckerManager, CheckerManager>();
+builder.Services.Configure<ContestImportOptions>(builder.Configuration.GetSection("ContestImport"));
 
 builder.Services.AddTransient<ISubmissionSimilarityService, SimpleSubmissionSimilarityService>();
 builder.Services.AddTransient<IAIDetectionService, SimpleAIDetectionService>();
