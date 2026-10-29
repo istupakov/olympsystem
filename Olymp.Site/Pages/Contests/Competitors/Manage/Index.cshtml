@@ -1,10 +1,13 @@
 ﻿@page "{id:int}"
-@attribute [Authorize(Policy = PolicyNames.Admin)]
 @model IndexModel
 @{
 	ViewData["Title"] = $"{Localizer["List of participants of the"]} {Model.Contest.Name}";
 }
 <h1>@ViewData["Title"]</h1>
+<div asp-validation-summary="All" class="text-danger"></div>
+@if (Model.StatusMessage is not null) {
+	<div class="alert alert-success" role="status">@Model.StatusMessage</div>
+}
 
 <form method="post" class="mb-2">
 	<button class="btn btn-warning" asp-route-handler="ApproveAll" asp-route-id="@Model.Contest.Id">@Localizer["Approve all"]</button>
@@ -18,6 +21,15 @@
 		<button class="btn btn-primary" asp-page-handler="UploadLogins" type="submit" value="Upload">@Localizer["Upload logins file"]</button>
 	</div>
 </form>
+@if (!Model.Contest.IsAcm) {
+	<form class="col-md-6 mt-3" enctype="multipart/form-data" method="post" asp-page-handler="UploadParticipants">
+		<div class="input-group">
+			<input type="file" asp-for="ParticipantsFile" class="form-control" accept=".csv,.txt" required aria-label="@Localizer["Participants list"]" />
+			<button class="btn btn-primary" type="submit">@Localizer["Upload participants list"]</button>
+		</div>
+		<div class="form-text">@Localizer["UTF-8, one name per line, no header. Logins can be assigned afterwards."]</div>
+	</form>
+}
 <hr />
 
 <table class="table table-sm table-hover">
@@ -41,9 +53,12 @@
 					@if (team.Members.Count == 1 && team.Members.Single() is OlympUser single) {
 						<a href="mailto:@single.Email">@single.Name</a>
 					}
+					else if (!Model.Contest.IsAcm && team.Members.Count == 0) {
+						@team.Name
+					}
 					else {
 						<ul class="list-unstyled">
-							@foreach (var (name, member) in team.GetMembers()!) {
+							@foreach (var (name, member) in team.GetMembers() ?? []) {
 								<li>
 									@if (member is null) {
 										@name

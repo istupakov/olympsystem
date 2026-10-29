@@ -19,6 +19,7 @@ public static class ClaimNames
 {
     public const string CoachOrg = "coach-org";
     public const string CompetitorContest = "competitor-contest";
+    public const string ContestManage = "contest-manage";
 }
 
 public static class OperationNames

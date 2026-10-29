@@ -1,4 +1,6 @@
 using System.ComponentModel.DataAnnotations;
+using System.Data;
+using System.Data.Common;
 
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -12,7 +14,7 @@ using Olymp.Domain.Models;
 namespace Olymp.Site.Pages.Contests.Registration;
 
 public class IndexModel(OlympContext context, UserManager<User> userManager,
-    IStringLocalizer<SharedResource> localizer) : PageModel
+    IStringLocalizer<SharedResource> localizer, ILogger<IndexModel> logger) : PageModel
 {
     private readonly OlympContext _context = context;
     private readonly UserManager<User> _userManager = userManager;
@@ -68,7 +70,7 @@ public class IndexModel(OlympContext context, UserManager<User> userManager,
     public async Task<IActionResult> OnGetAsync(int id)
     {
         var contest = await _context.Contests
-            .SingleOrDefaultAsync(x => x.Id == id);
+            .SingleOrDefaultAsync(x => x.Id == id && !x.IsHidden);
 
         if (contest is null)
             return NotFound();
@@ -89,48 +91,66 @@ public class IndexModel(OlympContext context, UserManager<User> userManager,
     public async Task<IActionResult> OnPostCreateAsync(int id, bool ooc)
     {
         var contest = await _context.Contests
-            .SingleOrDefaultAsync(x => x.Id == id);
+            .SingleOrDefaultAsync(x => x.Id == id && !x.IsHidden);
 
         if (contest is null)
             return NotFound();
 
-        Contest = contest;
-
-        var user = await LoadUser();
-
-        if (DateTimeOffset.Now > contest.EndTime || AlreadyRegistered || (!HasGroup && !ooc))
+        if (contest.IsAcm)
             return Forbid();
 
-        if (!ModelState.IsValid)
-            return Page();
+        Contest = contest;
 
-        var competitor = new Competitor
+        try
         {
-            Name = CompetitorName,
-            Contest = null!,
-            ContestId = Contest.Id,
-            IsHidden = user.IsHidden,
-            IsOutOfCompetition = ooc,
-            OrganizationId = user.OrganizationId,
-            RegistrationDate = DateTimeOffset.Now,
-            SecurityStamp = Guid.NewGuid().ToString(),
-            Members = [],
-            Messages = [],
-            Submissions = []
-        };
-        competitor.Members.Add(user);
-        await _userManager.CreateAsync(competitor);
+            await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+            var user = await LoadUser();
 
-        return RedirectToPage("/Contests/Competitors/Index", new { id });
+            if (DateTimeOffset.Now > contest.EndTime || AlreadyRegistered || (!HasGroup && !ooc))
+                return Forbid();
+
+            if (!ModelState.IsValid)
+                return Page();
+
+            var competitor = new Competitor
+            {
+                Name = CompetitorName,
+                Contest = null!,
+                ContestId = Contest.Id,
+                IsHidden = user.IsHidden,
+                IsOutOfCompetition = ooc,
+                OrganizationId = user.OrganizationId,
+                RegistrationDate = DateTimeOffset.Now,
+                SecurityStamp = Guid.NewGuid().ToString(),
+                Members = [],
+                Messages = [],
+                Submissions = []
+            };
+            competitor.Members.Add(user);
+            var result = await _userManager.CreateAsync(competitor);
+            if (!result.Succeeded)
+                return BadRequest(result.Errors);
+            await transaction.CommitAsync();
+
+            return RedirectToPage("/Contests/Competitors/Index", new { id });
+        }
+        catch (Exception ex) when (ex is DbUpdateException || ex.GetBaseException() is DbException)
+        {
+            logger.LogError(ex, "Failed to register participants for contest {ContestId}", id);
+            return BadRequest(_localizer["Could not save the registration. Please try again."].Value);
+        }
     }
 
     public async Task<IActionResult> OnPostDeleteAsync(int id)
     {
         var contest = await _context.Contests
-            .SingleOrDefaultAsync(x => x.Id == id);
+            .SingleOrDefaultAsync(x => x.Id == id && !x.IsHidden);
 
         if (contest is null)
             return NotFound();
+
+        if (contest.IsAcm)
+            return Forbid();
 
         Contest = contest;
 
@@ -149,8 +169,22 @@ public class IndexModel(OlympContext context, UserManager<User> userManager,
         if (competitor is null)
             return Forbid();
 
+        if (await _context.Submissions.AnyAsync(x => x.UserId == competitor.Id)
+            || await _context.Messages.AnyAsync(x => x.UserId == competitor.Id))
+            return BadRequest(_localizer["The participant cannot be deleted because submissions or other related records exist."].Value);
+
         competitor.Members.Clear();
-        await _userManager.DeleteAsync(competitor);
+        try
+        {
+            var result = await _userManager.DeleteAsync(competitor);
+            if (!result.Succeeded)
+                return BadRequest(result.Errors);
+        }
+        catch (DbUpdateException ex)
+        {
+            logger.LogError(ex, "Failed to delete participant {CompetitorId}", competitor.Id);
+            return BadRequest(_localizer["Could not delete the participant. Please contact the administrator."].Value);
+        }
 
         return RedirectToPage("/Contests/Competitors/Index", new { id });
     }

@@ -104,14 +104,17 @@
 						<th scope="row">@Localizer["Members"]</th>
 						<td>
 							<ul class="list-unstyled">
-								@if (competitor.MemberInfos is null) {
+								@if (competitor.MemberInfos is null && competitor.Members.Count == 1) {
 									var member = competitor.Members.Single();
 									<li>
 										<a asp-route-id="@member.Id">@member.Name (@member.Email)</a>
 									</li>
 								}
+								else if (competitor.MemberInfos is null && competitor.Members.Count == 0) {
+									<li>@competitor.Name</li>
+								}
 								else {
-									foreach (var (name, member) in competitor.GetMembers()!) {
+									foreach (var (name, member) in competitor.GetMembers() ?? []) {
 										if (member is null) {
 											<li>@name</li>
 										}

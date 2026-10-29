@@ -642,4 +642,43 @@
   <data name="Not run" xml:space="preserve">
     <value>Не выполнялся</value>
   </data>
+  <data name="Participants list" xml:space="preserve">
+    <value>Список участников</value>
+  </data>
+  <data name="Upload participants list" xml:space="preserve">
+    <value>Загрузить список участников</value>
+  </data>
+  <data name="UTF-8, one name per line, no header. Logins can be assigned afterwards." xml:space="preserve">
+    <value>UTF-8, одно имя на строку, без заголовка. Логины можно назначить после загрузки.</value>
+  </data>
+  <data name="One or more participants are already registered for this contest." xml:space="preserve">
+    <value>Один или несколько участников уже зарегистрированы в этом контесте.</value>
+  </data>
+  <data name="Could not save the registration. Please try again." xml:space="preserve">
+    <value>Не удалось сохранить регистрацию. Повторите попытку.</value>
+  </data>
+  <data name="The participant cannot be deleted because submissions or other related records exist." xml:space="preserve">
+    <value>Нельзя удалить участника: есть посылки или другие связанные записи.</value>
+  </data>
+  <data name="Could not delete the participant. Please contact the administrator." xml:space="preserve">
+    <value>Не удалось удалить участника. Обратитесь к администратору.</value>
+  </data>
+  <data name="More than one account was found with this email. Specify the username or user ID." xml:space="preserve">
+    <value>Найдено несколько аккаунтов с этим email. Укажите логин или ID пользователя.</value>
+  </data>
+  <data name="The file contains no participant names." xml:space="preserve">
+    <value>Файл не содержит имён участников.</value>
+  </data>
+  <data name="The file contains duplicate participant names." xml:space="preserve">
+    <value>В файле повторяются имена участников.</value>
+  </data>
+  <data name="Participant names can only be imported into individual contests." xml:space="preserve">
+    <value>Импорт списка имён доступен только для личных контестов.</value>
+  </data>
+  <data name="The contest contains multiple participants named '{0}'." xml:space="preserve">
+    <value>В контесте несколько участников с именем «{0}».</value>
+  </data>
+  <data name="Added participants: {0}; already existed: {1}." xml:space="preserve">
+    <value>Добавлено участников: {0}; уже существовало: {1}.</value>
+  </data>
 </root>
