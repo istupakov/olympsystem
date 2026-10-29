@@ -693,6 +693,45 @@
   <data name="Upload PDF" xml:space="preserve">
     <value>Загрузить PDF</value>
   </data>
+  <data name="Import updates problems by number and replaces their tests. Other problems are kept." xml:space="preserve">
+    <value>Импорт обновляет задачи по номеру и заменяет их тесты. Остальные задачи сохраняются.</value>
+  </data>
+  <data name="Problems ZIP" xml:space="preserve">
+    <value>ZIP задач</value>
+  </data>
+  <data name="Import problems ZIP" xml:space="preserve">
+    <value>Импортировать ZIP задач</value>
+  </data>
+  <data name="Active" xml:space="preserve">
+    <value>Активна</value>
+  </data>
+  <data name="Tests / examples" xml:space="preserve">
+    <value>Тестов / примеров</value>
+  </data>
+  <data name="Retest" xml:space="preserve">
+    <value>Ретест</value>
+  </data>
+  <data name="Full retest" xml:space="preserve">
+    <value>Полный ретест</value>
+  </data>
+  <data name="Retest except accepted" xml:space="preserve">
+    <value>Ретест кроме успешных</value>
+  </data>
+  <data name="Retest compilation errors for the whole contest" xml:space="preserve">
+    <value>Ретест ошибок компиляции во всём контесте</value>
+  </data>
+  <data name="Import and retest are unavailable while a related submission is being checked." xml:space="preserve">
+    <value>Импорт и ретест недоступны, пока по затрагиваемой задаче идут проверки.</value>
+  </data>
+  <data name="Tests archive" xml:space="preserve">
+    <value>Архив тестов</value>
+  </data>
+  <data name="Generate tests ZIP" xml:space="preserve">
+    <value>Сформировать ZIP тестов</value>
+  </data>
+  <data name="Generate the tests ZIP again after changing tests." xml:space="preserve">
+    <value>После изменения тестов сформируйте ZIP заново.</value>
+  </data>
   <data name="Participants list" xml:space="preserve">
     <value>Список участников</value>
   </data>
@@ -756,6 +795,18 @@
   <data name="Statements PDF removed." xml:space="preserve">
     <value>PDF условий удалён.</value>
   </data>
+  <data name="Tests ZIP generated." xml:space="preserve">
+    <value>ZIP тестов сформирован.</value>
+  </data>
+  <data name="Select a problems ZIP." xml:space="preserve">
+    <value>Выберите ZIP задач.</value>
+  </data>
+  <data name="Imported problems: {0}. After changing tests, retest submissions and regenerate the tests ZIP." xml:space="preserve">
+    <value>Импортировано задач: {0}. При изменении тестов запустите ретест и пересоздайте ZIP тестов.</value>
+  </data>
+  <data name="Submissions queued for retesting: {0}." xml:space="preserve">
+    <value>Поставлено на ретест посылок: {0}.</value>
+  </data>
   <data name="Could not save the changes. Refresh the page and try again." xml:space="preserve">
     <value>Не удалось сохранить изменения. Обновите страницу и повторите действие.</value>
   </data>
@@ -770,5 +821,89 @@
   </data>
   <data name="The field {0} must be a string with a maximum length of {1}." xml:space="preserve">
     <value>Поле {0} должно быть строкой длиной не более {1} символов.</value>
+  </data>
+  <data name="Too many files in the archive." xml:space="preserve">
+    <value>В архиве слишком много файлов.</value>
+  </data>
+  <data name="Invalid path: {0}" xml:space="preserve">
+    <value>Недопустимый путь: {0}</value>
+  </data>
+  <data name="Invalid folder: {0}" xml:space="preserve">
+    <value>Недопустимая папка: {0}</value>
+  </data>
+  <data name="Invalid or duplicate file: {0}" xml:space="preserve">
+    <value>Недопустимый или повторяющийся файл: {0}</value>
+  </data>
+  <data name="The expanded archive exceeds the size limit." xml:space="preserve">
+    <value>Превышен допустимый размер распакованных данных.</value>
+  </data>
+  <data name="{0}: file not found." xml:space="preserve">
+    <value>{0}: файл не найден.</value>
+  </data>
+  <data name="A JSON object is required." xml:space="preserve">
+    <value>Ожидался объект.</value>
+  </data>
+  <data name="{0}: invalid JSON: {1}" xml:space="preserve">
+    <value>{0}: некорректный JSON: {1}</value>
+  </data>
+  <data name="{0}: a unique positive number and a non-empty name are required." xml:space="preserve">
+    <value>{0}: нужны уникальный положительный number и непустое name.</value>
+  </data>
+  <data name="{0}: limits and checkerId must be positive." xml:space="preserve">
+    <value>{0}: лимиты и checkerId должны быть положительными.</value>
+  </data>
+  <data name="{0}: expected inputN.txt or outputN.txt, with N from 1 to 999." xml:space="preserve">
+    <value>{0}: ожидается inputN.txt или outputN.txt, N от 1 до 999.</value>
+  </data>
+  <data name="{0}: duplicate test number {1}." xml:space="preserve">
+    <value>{0}: повтор номера теста {1}.</value>
+  </data>
+  <data name="{0}: each inputN.txt must have an outputN.txt; at least one test is required." xml:space="preserve">
+    <value>{0}: каждому inputN.txt нужен outputN.txt; нужен хотя бы один тест.</value>
+  </data>
+  <data name="{0}: openTestCount must be between 0 and {1}." xml:space="preserve">
+    <value>{0}: openTestCount вне диапазона от 0 до {1}.</value>
+  </data>
+  <data name="{0}: scores contain an unknown test, negative scores or scores that are too large." xml:space="preserve">
+    <value>{0}: scores содержит неизвестный тест, отрицательные или слишком большие баллы.</value>
+  </data>
+  <data name="The archive contains no problems." xml:space="preserve">
+    <value>Архив не содержит задач.</value>
+  </data>
+  <data name="{0}: the file is too large." xml:space="preserve">
+    <value>{0}: файл слишком большой.</value>
+  </data>
+  <data name="{0}: the file size does not match the ZIP entry." xml:space="preserve">
+    <value>{0}: размер файла не соответствует ZIP.</value>
+  </data>
+  <data name="A related submission is still being checked. Please try again after checking finishes." xml:space="preserve">
+    <value>По этой задаче ещё идут проверки. Повторите действие после их завершения.</value>
+  </data>
+  <data name="The contest already contains problems with duplicate numbers." xml:space="preserve">
+    <value>В контесте уже есть задачи с одинаковыми номерами.</value>
+  </data>
+  <data name="{0}/problem.json: checkerId={1} is not supported." xml:space="preserve">
+    <value>{0}/problem.json: checkerId={1} не поддерживается.</value>
+  </data>
+  <data name="{0}/problem.json: a non-example test is required to distribute scores." xml:space="preserve">
+    <value>{0}/problem.json: для распределения баллов нужен закрытый тест.</value>
+  </data>
+  <data name="The problem was not found in this contest." xml:space="preserve">
+    <value>Задача не найдена в этом контесте.</value>
+  </data>
+  <data name="The problem must be active for retesting." xml:space="preserve">
+    <value>Для ретеста задача должна быть активной.</value>
+  </data>
+  <data name="The contest has no active tests." xml:space="preserve">
+    <value>В контесте нет активных тестов.</value>
+  </data>
+  <data name="The test archive exceeds the expanded size limit." xml:space="preserve">
+    <value>Превышен допустимый размер архива тестов.</value>
+  </data>
+  <data name="Duplicate test path: {0}" xml:space="preserve">
+    <value>Повторяющийся путь теста: {0}</value>
+  </data>
+  <data name="The tests ZIP exceeds the size limit." xml:space="preserve">
+    <value>Превышен допустимый размер ZIP тестов.</value>
   </data>
 </root>

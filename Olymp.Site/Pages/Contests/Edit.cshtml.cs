@@ -20,7 +20,7 @@ namespace Olymp.Site.Pages.Contests;
 [Authorize(Policy = PolicyNames.JuryOrAdmin)]
 [RequestSizeLimit(128 * 1024 * 1024)]
 [RequestFormLimits(MultipartBodyLengthLimit = 128 * 1024 * 1024)]
-public class EditModel(OlympContext context,
+public class EditModel(OlympContext context, ContestProblemService problems,
     IOptions<ContestImportOptions> options, ILogger<EditModel> logger,
     UserManager<User> users, SignInManager<User> signIn, IStringLocalizer<SharedResource> localizer) : PageModel
 {
@@ -33,8 +33,12 @@ public class EditModel(OlympContext context,
         Competitors = []
     };
     public bool IsNew { get; private set; } = true;
+    public IReadOnlyList<ProblemSummary> Problems { get; private set; } = [];
+    public record ProblemSummary(int Id, int Number, string Name, bool IsActive, int TestCount, int OpenTestCount);
 
     public InputModel Input { get; set; } = new();
+    [BindProperty]
+    public IFormFile? ProblemsFile { get; set; }
     [BindProperty]
     public IFormFile? PdfFile { get; set; }
     [TempData]
@@ -47,6 +51,9 @@ public class EditModel(OlympContext context,
             return false;
         Contest = contest;
         IsNew = false;
+        Problems = await context.Problems.Where(x => x.ContestId == id).OrderBy(x => x.Number)
+            .Select(x => new ProblemSummary(x.Id, x.Number, x.Name, x.IsActive, x.Tests.Count, x.Tests.Count(t => t.IsOpen)))
+            .ToListAsync(HttpContext.RequestAborted);
         return true;
     }
 
@@ -141,6 +148,38 @@ public class EditModel(OlympContext context,
                 .ExecuteDeleteAsync(HttpContext.RequestAborted);
         await transaction.CommitAsync(HttpContext.RequestAborted);
         return localizer["Statements PDF removed."];
+    });
+
+    public Task<IActionResult> OnPostGenerateTestsAsync(int id) => RunAsync(id, async () =>
+    {
+        await problems.GenerateTestZipAsync(id, HttpContext.RequestAborted);
+        return localizer["Tests ZIP generated."];
+    });
+
+    public Task<IActionResult> OnPostImportProblemsAsync(int id) => RunAsync(id, async () =>
+    {
+        if (ProblemsFile is null)
+            throw new InvalidDataException(localizer["Select a problems ZIP."]);
+        if (ProblemsFile.Length <= 0 || ProblemsFile.Length > options.Value.MaxZipBytes)
+            throw new InvalidDataException(localizer["Invalid file size. Maximum: {0} MiB.", options.Value.MaxZipBytes / 1024 / 1024]);
+        using var source = ProblemsFile.OpenReadStream();
+        var count = await problems.ImportAsync(id, source, HttpContext.RequestAborted);
+        return localizer["Imported problems: {0}. After changing tests, retest submissions and regenerate the tests ZIP.", count];
+    });
+
+    public Task<IActionResult> OnPostRetestAllAsync(int id, int problemId) => RetestAsync(id, problemId, false);
+    public Task<IActionResult> OnPostRetestExceptAcceptedAsync(int id, int problemId) => RetestAsync(id, problemId, true);
+
+    public Task<IActionResult> OnPostRetestCompilationErrorsAsync(int id) => RunAsync(id, async () =>
+    {
+        var count = await problems.RetestCompilationErrorsAsync(id, HttpContext.RequestAborted);
+        return localizer["Submissions queued for retesting: {0}.", count];
+    });
+
+    private Task<IActionResult> RetestAsync(int id, int problemId, bool exceptAccepted) => RunAsync(id, async () =>
+    {
+        var count = await problems.RetestAsync(id, problemId, exceptAccepted, HttpContext.RequestAborted);
+        return localizer["Submissions queued for retesting: {0}.", count];
     });
 
     private async Task<IActionResult> RunAsync(int id, Func<Task<string>> action)

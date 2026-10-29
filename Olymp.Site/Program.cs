@@ -116,6 +116,7 @@ builder.Services.AddCheckerTests();
 builder.Services.AddCompilators();
 builder.Services.AddSingleton<ICheckerManager, CheckerManager>();
 builder.Services.Configure<ContestImportOptions>(builder.Configuration.GetSection("ContestImport"));
+builder.Services.AddScoped<ContestProblemService>();
 
 builder.Services.AddTransient<ISubmissionSimilarityService, SimpleSubmissionSimilarityService>();
 builder.Services.AddTransient<IAIDetectionService, SimpleAIDetectionService>();

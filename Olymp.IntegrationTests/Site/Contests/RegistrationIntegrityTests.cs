@@ -15,6 +15,7 @@ using Olymp.Domain;
 using Olymp.Domain.Models;
 using Olymp.IntegrationTests.Shared;
 using Olymp.Site;
+using Olymp.Tests.Shared;
 
 using Xunit;
 
@@ -88,6 +89,37 @@ public class RegistrationIntegrityTests(SiteFixture site) : IClassFixture<SiteFi
         using var final = site.Services.CreateScope();
         Assert.True(await final.ServiceProvider.GetRequiredService<OlympContext>().Competitors
             .AnyAsync(x => x.Id == id && x.Members.Any(m => m.Id == setup.Member.Id), cancellationToken: TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task ParticipantWithSubmissionsCannotBeDeletedAndHistoryIsPreserved()
+    {
+        var owner = await site.AddUserAsync(RoleNames.Jury);
+        var contest = await site.AddContestAsync(owner);
+        int id;
+        using (var scope = site.Services.CreateScope())
+        {
+            var competitor = Participant(contest.Id);
+            Assert.True((await scope.ServiceProvider.GetRequiredService<UserManager<User>>().CreateAsync(competitor)).Succeeded);
+            id = competitor.Id;
+            await ContestManagementTests.ImportAsync(scope.ServiceProvider, contest.Id, ProblemArchives.ProblemZip());
+            var db = scope.ServiceProvider.GetRequiredService<OlympContext>();
+            var problem = await db.Problems.SingleAsync(x => x.ContestId == contest.Id, cancellationToken: TestContext.Current.CancellationToken);
+            await ContestManagementTests.AddSubmissionsAsync(db, id, problem, [2]);
+        }
+        using var client = await site.LoginAsync(owner);
+        var response = await SiteFixture.PostAsync(client, $"/Contests/Competitors/Manage/{contest.Id}", new()
+        {
+            ["userId"] = id.ToString(),
+            ["action"] = "Delete"
+        });
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Contains("связанные записи", await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
+        using var final = site.Services.CreateScope();
+        var saved = final.ServiceProvider.GetRequiredService<OlympContext>();
+        Assert.True(await saved.Competitors.AnyAsync(x => x.Id == id, cancellationToken: TestContext.Current.CancellationToken));
+        Assert.Equal(1, await saved.Submissions.CountAsync(x => x.UserId == id, cancellationToken: TestContext.Current.CancellationToken));
+        Assert.Equal(1, await saved.CheckResults.CountAsync(x => x.Submission.UserId == id, cancellationToken: TestContext.Current.CancellationToken));
     }
 
     [Fact]

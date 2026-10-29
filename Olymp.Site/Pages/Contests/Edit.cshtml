@@ -74,4 +74,46 @@
             <button type="submit" class="btn btn-primary">@Localizer["Upload PDF"]</button>
         </div>
     </form>
+    <hr />
+    <h2>@Localizer["Problems"]</h2>
+    <p>@Localizer["Import updates problems by number and replaces their tests. Other problems are kept."]</p>
+    <form method="post" enctype="multipart/form-data" asp-page-handler="ImportProblems" class="col-lg-8 mb-3">
+        <div class="input-group">
+            <input asp-for="ProblemsFile" type="file" accept=".zip" class="form-control" required aria-label="@Localizer["Problems ZIP"]" />
+            <button class="btn btn-primary" type="submit">@Localizer["Import problems ZIP"]</button>
+        </div>
+    </form>
+    <table class="table table-sm">
+        <thead><tr><th>№</th><th>@Localizer["Name"]</th><th>@Localizer["Active"]</th><th>@Localizer["Tests / examples"]</th><th>@Localizer["Retest"]</th></tr></thead>
+        <tbody>
+        @foreach (var problem in Model.Problems) {
+            <tr>
+                <td>@problem.Number</td><td>@problem.Name</td><td>@Localizer[problem.IsActive ? "Yes" : "No"]</td>
+                <td>@problem.TestCount / @problem.OpenTestCount</td>
+                <td>
+                    @if (problem.IsActive) {
+                        <form method="post" class="d-flex gap-2">
+                            <input type="hidden" name="problemId" value="@problem.Id" />
+                            <button class="btn btn-sm btn-warning" asp-page-handler="RetestAll">@Localizer["Full retest"]</button>
+                            <button class="btn btn-sm btn-secondary" asp-page-handler="RetestExceptAccepted">@Localizer["Retest except accepted"]</button>
+                        </form>
+                    }
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+    <form method="post" asp-page-handler="RetestCompilationErrors" class="mb-3">
+        <button class="btn btn-secondary" type="submit">@Localizer["Retest compilation errors for the whole contest"]</button>
+    </form>
+    <p>@Localizer["Import and retest are unavailable while a related submission is being checked."]</p>
+    <hr />
+    <h2>@Localizer["Tests archive"]</h2>
+    <form method="post" asp-page-handler="GenerateTests" class="mb-3">
+        <button type="submit" class="btn btn-primary">@Localizer["Generate tests ZIP"]</button>
+    </form>
+    @if (Model.Contest.TestZipId is not null) {
+        <a asp-page="./DownloadTests" asp-route-id="@Model.Contest.Id">@Localizer["Download tests"]</a>
+    }
+    <p class="form-text">@Localizer["Generate the tests ZIP again after changing tests."]</p>
 }
