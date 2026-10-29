@@ -11,6 +11,7 @@ using Olymp.Domain;
 using Olymp.Domain.Models;
 using Olymp.Site;
 using Olymp.Site.Services.Contests;
+using Olymp.Tests.Shared;
 
 using Xunit;
 
@@ -62,6 +63,22 @@ public class ContestManagementTests(SiteFixture site) : IClassFixture<SiteFixtur
         Assert.Contains(status, WebUtility.HtmlDecode(await client.GetStringAsync(path, TestContext.Current.CancellationToken)));
     }
 
+    [Theory]
+    [InlineData("en", "A/problem.json: file not found.")]
+    [InlineData("ru", "A/problem.json: файл не найден.")]
+    public async Task ArchiveErrorsFormatPathsUsingRequestCulture(string culture, string error)
+    {
+        var owner = await site.AddUserAsync(RoleNames.Jury);
+        var contest = await site.AddContestAsync(owner);
+        using var client = await site.LoginAsync(owner);
+        client.DefaultRequestHeaders.AcceptLanguage.ParseAdd(culture);
+        var zip = ProblemArchives.Zip(("A/input1.txt", [1]), ("A/output1.txt", [2]));
+        var response = await SiteFixture.UploadAsync(client, $"/Contests/Edit/{contest.Id}?handler=ImportProblems",
+            "ProblemsFile", zip, "problems.zip");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains(error, WebUtility.HtmlDecode(await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken)));
+    }
+
     [Fact]
     public async Task CreateUsesPrefixedFormAndRefreshesOwnerCookie()
     {
@@ -82,7 +99,7 @@ public class ContestManagementTests(SiteFixture site) : IClassFixture<SiteFixtur
         var location = response.Headers.Location!.ToString();
         Assert.Contains("/contests/edit/", location);
         // Uses a real Identity cookie obtained before the claim existed.
-        Assert.Contains("name=\"Input.Name\"", await client.GetStringAsync(location, TestContext.Current.CancellationToken));
+        Assert.Contains("name=\"ProblemsFile\"", await client.GetStringAsync(location, TestContext.Current.CancellationToken));
         var list = await client.GetStringAsync("/Contests", TestContext.Current.CancellationToken);
         Assert.Contains($"href=\"{location}\"", list);
         using var scope = site.Services.CreateScope();
@@ -167,6 +184,53 @@ public class ContestManagementTests(SiteFixture site) : IClassFixture<SiteFixtur
     }
 
     [Fact]
+    public async Task ImportPreservesProblemIdentitySubmissionsOtherProblemsAndBuildsManagerArchive()
+    {
+        var owner = await site.AddUserAsync(RoleNames.Jury);
+        var contest = await site.AddContestAsync(owner);
+        using var client = await site.LoginAsync(owner);
+        var path = $"/Contests/Edit/{contest.Id}";
+        var response = await SiteFixture.UploadAsync(client, path + "?handler=ImportProblems", "ProblemsFile", ProblemArchives.ProblemZip(), "problems.zip");
+        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+        int id;
+        using (var scope = site.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<OlympContext>();
+            var problem = await db.Problems.Include(x => x.Tests).SingleAsync(x => x.ContestId == contest.Id, cancellationToken: TestContext.Current.CancellationToken);
+            id = problem.Id;
+            Assert.Equal([0, 100], problem.Tests.OrderBy(x => x.Number).Select(x => x.Score));
+            Assert.True(problem.Tests.Single(x => x.Number == 1).IsOpen);
+            await ImportAsync(scope.ServiceProvider, contest.Id, ProblemArchives.ProblemZip(2, "Другая"));
+            await AddSubmissionsAsync(db, owner.Id, problem, [2]);
+        }
+        response = await SiteFixture.UploadAsync(client, path + "?handler=ImportProblems", "ProblemsFile",
+            ProblemArchives.ProblemZip(name: "Новое имя", openTestCount: 0, scores: new() { [1] = 30, [2] = 70 }), "problems.zip");
+        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+        using (var scope = site.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<OlympContext>();
+            var problem = await db.Problems.Include(x => x.Tests).SingleAsync(x => x.Id == id, cancellationToken: TestContext.Current.CancellationToken);
+            Assert.Equal("Новое имя", problem.Name);
+            Assert.Equal(2, await db.Problems.CountAsync(x => x.ContestId == contest.Id, cancellationToken: TestContext.Current.CancellationToken));
+            Assert.Equal(1, await db.Submissions.CountAsync(x => x.ProblemId == id, cancellationToken: TestContext.Current.CancellationToken));
+            Assert.Equal([30, 70], problem.Tests.OrderBy(x => x.Number).Select(x => x.Score));
+            // Inactive tests must not enter the downloadable archive.
+            await db.Tests.Where(x => x.ProblemId == id && x.Number == 2).ExecuteUpdateAsync(s => s.SetProperty(x => x.IsActive, false), cancellationToken: TestContext.Current.CancellationToken);
+        }
+        Assert.Equal(HttpStatusCode.Redirect, (await SiteFixture.PostAsync(client, path + "?handler=GenerateTests", [])).StatusCode);
+        response = await client.GetAsync($"/Contests/DownloadTests/{contest.Id}", TestContext.Current.CancellationToken);
+        using var memory = new MemoryStream(await response.Content.ReadAsByteArrayAsync(TestContext.Current.CancellationToken));
+        using var zip = new ZipArchive(memory);
+        var entry = zip.GetEntry($"Test{contest.Abbr}/1. Новое имя/input01.txt");
+        Assert.NotNull(entry);
+        using var input = entry.Open();
+        using var bytes = new MemoryStream();
+        await input.CopyToAsync(bytes, TestContext.Current.CancellationToken);
+        Assert.Equal(new byte[] { 0, 255, 13, 10 }, bytes.ToArray());
+        Assert.Null(zip.GetEntry($"Test{contest.Abbr}/1. Новое имя/input02.txt"));
+    }
+
+    [Fact]
     public async Task CsvIsIdempotentAndExistingLoginButtonsProduceUsableAccounts()
     {
         var owner = await site.AddUserAsync(RoleNames.Jury);
@@ -241,6 +305,45 @@ public class ContestManagementTests(SiteFixture site) : IClassFixture<SiteFixtur
         var db = finalScope.ServiceProvider.GetRequiredService<OlympContext>();
         Assert.False((await db.Competitors.SingleAsync(x => x.Id == victim, cancellationToken: TestContext.Current.CancellationToken)).IsDisqualified);
         Assert.False(await db.Competitors.AnyAsync(x => x.ContestId == teamContest.Id, cancellationToken: TestContext.Current.CancellationToken));
+    }
+
+    internal static async Task ImportAsync(IServiceProvider provider, int contestId, byte[] zip)
+    {
+        using var stream = new MemoryStream(zip);
+        await provider.GetRequiredService<ContestProblemService>().ImportAsync(contestId, stream);
+    }
+
+    internal static async Task AddSubmissionsAsync(OlympContext db, int userId, Problem problem, int[] statuses)
+    {
+        var compilator = new Compilator
+        {
+            Name = "test",
+            Description = "Test compiler",
+            Language = "C",
+            SourceExtension = ".c",
+            CommandLine = "compile",
+            ConfigName = "test",
+            IsActive = true,
+            Submissions = []
+        };
+        db.Compilators.Add(compilator);
+        foreach (var status in statuses)
+            db.Submissions.Add(new Submission
+            {
+                ProblemId = problem.Id,
+                Problem = null!,
+                UserId = userId,
+                User = null!,
+                Compilator = compilator,
+                SourceCode = "test"u8.ToArray(),
+                StatusCode = status,
+                Score = status == 2 ? 100 : 25,
+                ScoresByTest = "25;0",
+                CommitTime = DateTimeOffset.Now,
+                LastModification = DateTimeOffset.Now,
+                CheckResults = [new CheckResult { Submission = null!, StatusCode = status, CheckTime = DateTimeOffset.Now, Log = "Old check" }]
+            });
+        await db.SaveChangesAsync();
     }
 
     private static Dictionary<string, string> Settings(string abbr) => new()

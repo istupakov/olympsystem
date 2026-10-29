@@ -9,6 +9,7 @@ using Microsoft.Extensions.Options;
 using Olymp.Domain;
 using Olymp.Domain.Models;
 using Olymp.Site;
+using Olymp.Tests.Shared;
 
 using Xunit;
 
@@ -98,6 +99,80 @@ public class AuthorizationTests(SiteFixture site) : IClassFixture<SiteFixture>
             Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
             Assert.Contains("AccessDenied", (await freshClient.GetAsync(protectedPage, TestContext.Current.CancellationToken)).Headers.Location!.ToString());
         }
+    }
+
+    [Theory]
+    [InlineData("Disapprove")]
+    [InlineData("Disqualify")]
+    public async Task RestrictedCompetitorCannotSubmitOrSendMessagesWithExistingCookie(string action)
+    {
+        var owner = await site.AddUserAsync(RoleNames.Jury);
+        var contest = await site.AddContestAsync(owner);
+        Competitor competitor;
+        int problemId, compilerId;
+        using (var scope = site.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<OlympContext>();
+            await db.Contests.Where(x => x.Id == contest.Id).ExecuteUpdateAsync(s => s.SetProperty(x => x.IsHidden, false), cancellationToken: TestContext.Current.CancellationToken);
+            await ContestManagementTests.ImportAsync(scope.ServiceProvider, contest.Id, ProblemArchives.ProblemZip());
+            problemId = await db.Problems.Where(x => x.ContestId == contest.Id).Select(x => x.Id).SingleAsync(cancellationToken: TestContext.Current.CancellationToken);
+            var compiler = new Compilator
+            {
+                Name = "auth-test",
+                Description = "Auth test",
+                Language = "C",
+                ConfigName = "test",
+                SourceExtension = ".c",
+                CommandLine = "compile",
+                IsActive = true,
+                Submissions = []
+            };
+            db.Compilators.Add(compiler);
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+            compilerId = compiler.Id;
+            competitor = new Competitor
+            {
+                Name = "Participant",
+                UserName = "auth" + Guid.NewGuid().ToString("N"),
+                PasswordHash = SiteFixture.Password,
+                ContestId = contest.Id,
+                Contest = null!,
+                IsApproved = true,
+                SecurityStamp = Guid.NewGuid().ToString(),
+                Members = [],
+                Messages = [],
+                Submissions = []
+            };
+            var users = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
+            Assert.True((await users.CreateAsync(competitor)).Succeeded);
+            Assert.True((await users.AddClaimAsync(competitor, new(ClaimNames.CompetitorContest, contest.Id.ToString()))).Succeeded);
+        }
+        using var client = await site.LoginAsync(competitor);
+        var submissionsPath = $"/Contests/Submits/{contest.Id}";
+        var messagesPath = $"/Contests/Submits/SendMessage/{contest.Id}";
+        var submit = new Dictionary<string, string>
+        {
+            ["Input.ProblemId"] = problemId.ToString(),
+            ["Input.CompilatorId"] = compilerId.ToString(),
+            ["Input.Code"] = "int main() { return 0; }"
+        };
+        var message = new Dictionary<string, string> { ["Input.Text"] = "Question for the jury" };
+        Assert.Equal(HttpStatusCode.Redirect, (await SiteFixture.PostAsync(client, submissionsPath, submit)).StatusCode);
+        Assert.Equal(HttpStatusCode.Redirect, (await SiteFixture.PostAsync(client, messagesPath, message)).StatusCode);
+        using var ownerClient = await site.LoginAsync(owner);
+        Assert.Equal(HttpStatusCode.Redirect, (await SiteFixture.PostAsync(ownerClient, $"/Contests/Competitors/Manage/{contest.Id}", new()
+        {
+            ["userId"] = competitor.Id.ToString(),
+            ["action"] = action
+        })).StatusCode);
+        foreach (var path in new[] { submissionsPath, messagesPath })
+            Assert.Contains("AccessDenied", (await client.GetAsync(path, TestContext.Current.CancellationToken)).Headers.Location!.ToString());
+        foreach (var (path, values) in new[] { (submissionsPath, submit), (messagesPath, message) })
+            Assert.Contains("AccessDenied", (await client.PostAsync(path, new FormUrlEncodedContent(values), TestContext.Current.CancellationToken)).Headers.Location!.ToString());
+        using var finalScope = site.Services.CreateScope();
+        var saved = finalScope.ServiceProvider.GetRequiredService<OlympContext>();
+        Assert.Equal(1, await saved.Submissions.CountAsync(x => x.UserId == competitor.Id, cancellationToken: TestContext.Current.CancellationToken));
+        Assert.Equal(1, await saved.Messages.CountAsync(x => x.UserId == competitor.Id, cancellationToken: TestContext.Current.CancellationToken));
     }
 
     [Theory]
