@@ -1,12 +1,56 @@
-﻿// Please see documentation at https://learn.microsoft.com/aspnet/core/client-side/bundling-and-minification
-// for details on configuring this project to bundle and minify static web assets.
+// Loaded synchronously before styles so each page starts with the selected theme.
+(() => {
+    const systemTheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const validTheme = value => ['light', 'dark', 'auto'].includes(value) ? value : 'auto';
+    const readTheme = () => {
+        try {
+            return validTheme(localStorage.getItem('theme'));
+        } catch {
+            return 'auto';
+        }
+    };
+    let theme = readTheme();
 
-function updateTheme() {
-    const colorMode = window.matchMedia("(prefers-color-scheme: dark)").matches ?
-        "dark" :
-        "light";
-    document.querySelector("html").setAttribute("data-bs-theme", colorMode);
-}
+    function applyTheme() {
+        document.documentElement.dataset.bsTheme = theme === 'auto'
+            ? (systemTheme.matches ? 'dark' : 'light')
+            : theme;
 
-updateTheme();
-window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', updateTheme);
+        const toggle = document.getElementById('theme-toggle');
+        if (!toggle)
+            return;
+
+        const selected = document.querySelector(`[data-theme-value="${theme}"]`);
+        const label = `${toggle.dataset.label}: ${selected.querySelector('span').textContent}`;
+        toggle.setAttribute('aria-label', label);
+        toggle.setAttribute('title', label);
+        toggle.querySelector('use').setAttribute('href', `#preference-${theme}`);
+        document.querySelectorAll('[data-theme-value]').forEach(button => {
+            button.setAttribute('aria-pressed', String(button.dataset.themeValue === theme));
+        });
+    }
+
+    applyTheme();
+    systemTheme.addEventListener('change', () => {
+        if (theme === 'auto')
+            applyTheme();
+    });
+    window.addEventListener('pageshow', () => {
+        theme = readTheme();
+        applyTheme();
+    });
+    document.addEventListener('DOMContentLoaded', () => {
+        applyTheme();
+        document.querySelectorAll('[data-theme-value]').forEach(button => {
+            button.addEventListener('click', () => {
+                theme = validTheme(button.dataset.themeValue);
+                try {
+                    localStorage.setItem('theme', theme);
+                } catch {
+                    // Keep switching available even when browser storage is disabled.
+                }
+                applyTheme();
+            });
+        });
+    });
+})();

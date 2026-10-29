@@ -1,0 +1,71 @@
+@using Microsoft.AspNetCore.Localization
+@using Microsoft.Extensions.Options
+@inject IOptions<RequestLocalizationOptions> LocalizationOptions
+@{
+    var cultures = LocalizationOptions.Value.SupportedUICultures!;
+    var currentCulture = Context.Features.Get<IRequestCultureFeature>()!.RequestCulture.UICulture;
+    var cookieCulture = CookieRequestCultureProvider.ParseCookieValue(
+        Context.Request.Cookies[CookieRequestCultureProvider.DefaultCookieName] ?? "")?.UICultures.FirstOrDefault().Value;
+    var selectedCulture = cultures.FirstOrDefault(culture => culture.Name == cookieCulture)?.Name ?? "";
+    var currentLanguage = currentCulture.TwoLetterISOLanguageName.ToUpperInvariant();
+    var languageTitle = selectedCulture.Length == 0
+        ? Localizer["Language: {0} (browser settings)", currentCulture.NativeName]
+        : Localizer["Language: {0}", currentCulture.NativeName];
+    var returnUrl = Context.Request.PathBase + Context.Request.Path + Context.Request.QueryString;
+    var themes = new[] { (Value: "light", Text: Localizer["Light"]), (Value: "dark", Text: Localizer["Dark"]), (Value: "auto", Text: Localizer["System"]) };
+}
+<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" class="position-absolute" aria-hidden="true" focusable="false">
+    <defs>
+        <symbol id="preference-light" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="4" />
+            <path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5" />
+        </symbol>
+        <symbol id="preference-dark" viewBox="0 0 24 24">
+            <path d="M20.5 13.5A9 9 0 0 1 10.5 3.5a9 9 0 1 0 10 10Z" />
+        </symbol>
+        <symbol id="preference-auto" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="9" />
+            <path d="M12 3a9 9 0 0 1 0 18Z" fill="currentColor" stroke="none" />
+        </symbol>
+    </defs>
+</svg>
+<div class="site-preferences d-flex align-items-center gap-1 ms-auto ms-lg-2 order-1 order-lg-2">
+    <div class="dropdown">
+        <button id="theme-toggle" class="btn preference-toggle dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                aria-expanded="false" aria-label="@Localizer["Theme"]" title="@Localizer["Theme"]"
+                data-label="@Localizer["Theme"]">
+            <svg class="preference-icon" aria-hidden="true" focusable="false"><use href="#preference-auto" /></svg>
+        </button>
+        <div class="dropdown-menu dropdown-menu-end" aria-labelledby="theme-toggle">
+            <h6 class="dropdown-header">@Localizer["Theme"]</h6>
+            @foreach (var theme in themes) {
+                <button type="button" class="dropdown-item d-flex align-items-center gap-2" data-theme-value="@theme.Value" aria-pressed="false">
+                    <svg class="preference-icon" aria-hidden="true" focusable="false"><use href="#preference-@theme.Value" /></svg>
+                    <span class="flex-grow-1">@theme.Text</span>
+                    <span class="preference-check" aria-hidden="true">✓</span>
+                </button>
+            }
+        </div>
+    </div>
+    <div class="dropdown">
+        <button id="language-toggle" class="btn preference-toggle dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                aria-expanded="false" aria-label="@languageTitle" title="@languageTitle">
+            @currentLanguage
+        </button>
+        <form method="post" asp-area="" asp-page="/Language" class="dropdown-menu dropdown-menu-end" aria-labelledby="language-toggle">
+            <h6 class="dropdown-header">Язык / Language</h6>
+            <input type="hidden" name="ReturnUrl" value="@returnUrl" />
+            @foreach (var culture in cultures) {
+                <button type="submit" name="Language" value="@culture.Name" class="dropdown-item d-flex align-items-center gap-2" aria-pressed="@(selectedCulture == culture.Name ? "true" : "false")">
+                    <span class="flex-grow-1" lang="@culture.Name">@culture.TextInfo.ToTitleCase(culture.NativeName)</span>
+                    <span class="preference-check" aria-hidden="true">✓</span>
+                </button>
+            }
+            <hr class="dropdown-divider" />
+            <button type="submit" name="Language" value="" class="dropdown-item d-flex align-items-center gap-2" aria-pressed="@(selectedCulture.Length == 0 ? "true" : "false")">
+                <span class="flex-grow-1">@Localizer["Browser settings"]</span>
+                <span class="preference-check" aria-hidden="true">✓</span>
+            </button>
+        </form>
+    </div>
+</div>

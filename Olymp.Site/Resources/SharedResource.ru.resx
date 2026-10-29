@@ -906,4 +906,31 @@
   <data name="The tests ZIP exceeds the size limit." xml:space="preserve">
     <value>Превышен допустимый размер ZIP тестов.</value>
   </data>
+  <data name="Theme" xml:space="preserve">
+    <value>Тема</value>
+  </data>
+  <data name="Light" xml:space="preserve">
+    <value>Светлая</value>
+  </data>
+  <data name="Dark" xml:space="preserve">
+    <value>Тёмная</value>
+  </data>
+  <data name="System" xml:space="preserve">
+    <value>Как в системе</value>
+  </data>
+  <data name="Browser settings" xml:space="preserve">
+    <value>Как в браузере</value>
+  </data>
+  <data name="Language: {0}" xml:space="preserve">
+    <value>Язык: {0}</value>
+  </data>
+  <data name="Language: {0} (browser settings)" xml:space="preserve">
+    <value>Язык: {0} (как в браузере)</value>
+  </data>
+  <data name="Toggle navigation" xml:space="preserve">
+    <value>Открыть или закрыть навигацию</value>
+  </data>
+  <data name="T-Technologies" xml:space="preserve">
+    <value>Т-Технологии</value>
+  </data>
 </root>
