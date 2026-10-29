@@ -1,0 +1,77 @@
+@page "{id:int?}"
+@model EditModel
+@{
+    ViewData["Title"] = Model.IsNew ? Localizer["Create contest"].Value : $"{Localizer["Edit contest"]}: {Model.Contest.Name}";
+}
+<h1>@ViewData["Title"]</h1>
+@if (Model.StatusMessage is not null) {
+    <div class="alert alert-success" role="status">@Model.StatusMessage</div>
+}
+<p>
+    @if (!Model.IsNew) {
+        <a asp-page="./Competitors/Manage/Index" asp-route-id="@Model.Contest.Id">@Localizer["Manage participants"]</a>
+    }
+    <a asp-page="./Index">@Localizer["Contests"]</a>
+</p>
+<form method="post" class="col-lg-8">
+    <div asp-validation-summary="All" class="text-danger"></div>
+    <div class="mb-3">
+        <label asp-for="Input.Name" class="form-label"></label>
+        <input asp-for="Input.Name" class="form-control" />
+    </div>
+    <div class="mb-3">
+        <label asp-for="Input.Abbr" class="form-label"></label>
+        <input asp-for="Input.Abbr" class="form-control" />
+        <div class="form-text">@Localizer["Prefixes acm and school select team and school modes."]</div>
+    </div>
+    <div class="mb-3">
+        <label asp-for="Input.Description" class="form-label"></label>
+        <textarea asp-for="Input.Description" rows="6" class="form-control"></textarea>
+        <div class="form-text">@Localizer["HTML is supported."]</div>
+    </div>
+    <p>@Localizer["Server time zone"]: @TimeZoneInfo.Local.Id (@DateTimeOffset.Now.ToString("zzz"))</p>
+    <div class="mb-3">
+        <label asp-for="Input.StartTime" class="form-label"></label>
+        <input asp-for="Input.StartTime" type="datetime-local" asp-format="{0:yyyy-MM-ddTHH:mm}" class="form-control" />
+    </div>
+    <div class="mb-3">
+        <label asp-for="Input.EndTime" class="form-label"></label>
+        <input asp-for="Input.EndTime" type="datetime-local" asp-format="{0:yyyy-MM-ddTHH:mm}" class="form-control" />
+    </div>
+    <div class="mb-3">
+        <label asp-for="Input.ProblemShowTime" class="form-label"></label>
+        <input asp-for="Input.ProblemShowTime" type="datetime-local" asp-format="{0:yyyy-MM-ddTHH:mm}" class="form-control" />
+    </div>
+    <div class="mb-3">
+        <label asp-for="Input.FreezeTime" class="form-label"></label>
+        <input asp-for="Input.FreezeTime" type="datetime-local" asp-format="{0:yyyy-MM-ddTHH:mm}" class="form-control" />
+    </div>
+    <div class="form-check mb-2">
+        <input asp-for="Input.IsHidden" class="form-check-input" />
+        <label asp-for="Input.IsHidden" class="form-check-label"></label>
+    </div>
+    <div class="form-check mb-3">
+        <input asp-for="Input.IsOpen" class="form-check-input" />
+        <label asp-for="Input.IsOpen" class="form-check-label"></label>
+    </div>
+    <button type="submit" class="btn btn-primary">@Localizer[Model.IsNew ? "Create contest" : "Save"]</button>
+</form>
+@if (!Model.IsNew) {
+    <form method="post" asp-page-handler="Unfreeze" class="my-3">
+        <button class="btn btn-warning" type="submit">@Localizer["Unfreeze standings"]</button>
+    </form>
+    <hr />
+    <h2>@Localizer["Contest statements"]</h2>
+    @if (Model.Contest.ProblemPdfId is not null) {
+        <p><a asp-page="./DownloadProblems" asp-route-id="@Model.Contest.Id">@Localizer["Download statements"]</a></p>
+        <form method="post" asp-page-handler="RemovePdf" class="mb-3">
+            <button class="btn btn-danger" type="submit">@Localizer["Remove statements"]</button>
+        </form>
+    }
+    <form method="post" enctype="multipart/form-data" asp-page-handler="UploadPdf" class="col-lg-8">
+        <div class="input-group">
+            <input asp-for="PdfFile" type="file" accept=".pdf" class="form-control" required aria-label="@Localizer["Contest statements"]" />
+            <button type="submit" class="btn btn-primary">@Localizer["Upload PDF"]</button>
+        </div>
+    </form>
+}

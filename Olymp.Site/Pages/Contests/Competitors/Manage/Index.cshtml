@@ -4,6 +4,7 @@
 	ViewData["Title"] = $"{Localizer["List of participants of the"]} {Model.Contest.Name}";
 }
 <h1>@ViewData["Title"]</h1>
+<p><a asp-page="/Contests/Edit" asp-route-id="@Model.Contest.Id">@Localizer["Edit contest"]</a></p>
 <div asp-validation-summary="All" class="text-danger"></div>
 @if (Model.StatusMessage is not null) {
 	<div class="alert alert-success" role="status">@Model.StatusMessage</div>

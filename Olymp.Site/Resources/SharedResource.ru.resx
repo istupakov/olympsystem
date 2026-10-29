@@ -642,6 +642,57 @@
   <data name="Not run" xml:space="preserve">
     <value>Не выполнялся</value>
   </data>
+  <data name="Create contest" xml:space="preserve">
+    <value>Создать контест</value>
+  </data>
+  <data name="Edit contest" xml:space="preserve">
+    <value>Редактировать контест</value>
+  </data>
+  <data name="Abbreviation" xml:space="preserve">
+    <value>Сокращение</value>
+  </data>
+  <data name="Start time" xml:space="preserve">
+    <value>Начало</value>
+  </data>
+  <data name="End time" xml:space="preserve">
+    <value>Окончание</value>
+  </data>
+  <data name="Problem show time" xml:space="preserve">
+    <value>Показ условий</value>
+  </data>
+  <data name="Freeze time" xml:space="preserve">
+    <value>Заморозка</value>
+  </data>
+  <data name="Hidden contest" xml:space="preserve">
+    <value>Скрытый контест</value>
+  </data>
+  <data name="Open participation" xml:space="preserve">
+    <value>Свободное участие</value>
+  </data>
+  <data name="Prefixes acm and school select team and school modes." xml:space="preserve">
+    <value>Префиксы acm и school задают командный и школьный режимы.</value>
+  </data>
+  <data name="HTML is supported." xml:space="preserve">
+    <value>Поддерживается HTML.</value>
+  </data>
+  <data name="Server time zone" xml:space="preserve">
+    <value>Часовой пояс сервера</value>
+  </data>
+  <data name="Manage participants" xml:space="preserve">
+    <value>Управление участниками</value>
+  </data>
+  <data name="Unfreeze standings" xml:space="preserve">
+    <value>Разморозить таблицу</value>
+  </data>
+  <data name="Contest statements" xml:space="preserve">
+    <value>Условия контеста</value>
+  </data>
+  <data name="Remove statements" xml:space="preserve">
+    <value>Удалить условия</value>
+  </data>
+  <data name="Upload PDF" xml:space="preserve">
+    <value>Загрузить PDF</value>
+  </data>
   <data name="Participants list" xml:space="preserve">
     <value>Список участников</value>
   </data>
@@ -680,5 +731,44 @@
   </data>
   <data name="Added participants: {0}; already existed: {1}." xml:space="preserve">
     <value>Добавлено участников: {0}; уже существовало: {1}.</value>
+  </data>
+  <data name="This abbreviation is already in use." xml:space="preserve">
+    <value>Такое сокращение уже используется.</value>
+  </data>
+  <data name="Settings saved." xml:space="preserve">
+    <value>Настройки сохранены.</value>
+  </data>
+  <data name="Standings unfrozen." xml:space="preserve">
+    <value>Таблица разморожена.</value>
+  </data>
+  <data name="Select a statements PDF." xml:space="preserve">
+    <value>Выберите PDF условий.</value>
+  </data>
+  <data name="Invalid file size. Maximum: {0} MiB." xml:space="preserve">
+    <value>Недопустимый размер файла. Максимум: {0} МиБ.</value>
+  </data>
+  <data name="The file is not a PDF." xml:space="preserve">
+    <value>Файл не является PDF.</value>
+  </data>
+  <data name="Statements PDF uploaded." xml:space="preserve">
+    <value>PDF условий загружен.</value>
+  </data>
+  <data name="Statements PDF removed." xml:space="preserve">
+    <value>PDF условий удалён.</value>
+  </data>
+  <data name="Could not save the changes. Refresh the page and try again." xml:space="preserve">
+    <value>Не удалось сохранить изменения. Обновите страницу и повторите действие.</value>
+  </data>
+  <data name="Start time must be before end time." xml:space="preserve">
+    <value>Начало должно быть раньше окончания.</value>
+  </data>
+  <data name="Freeze time must be within the contest." xml:space="preserve">
+    <value>Заморозка должна быть в пределах контеста.</value>
+  </data>
+  <data name="Specify an unambiguous time in the server time zone." xml:space="preserve">
+    <value>Укажите однозначное время в часовом поясе сервера.</value>
+  </data>
+  <data name="The field {0} must be a string with a maximum length of {1}." xml:space="preserve">
+    <value>Поле {0} должно быть строкой длиной не более {1} символов.</value>
   </data>
 </root>
