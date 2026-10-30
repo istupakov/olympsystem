@@ -10,23 +10,23 @@
 	<meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 	<title>@ViewData["Title"] - OlympSystem</title>
+	<link rel="icon" href="~/favicon.ico" type="image/x-icon" sizes="16x16 32x32 48x48" asp-append-version="true" />
+	<link rel="icon" href="~/favicon.svg" type="image/svg+xml" sizes="any" asp-append-version="true" />
 	<script src="~/js/site.js" asp-append-version="true"></script>
 	<script type="importmap"></script>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
 	<link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 	<link rel="stylesheet" href="~/Olymp.Site.styles.css" asp-append-version="true" />
 </head>
-<body>
-	<header>
-		<nav class="navbar navbar-expand-lg border-bottom box-shadow mb-3">
+<body class="d-flex flex-column min-vh-100">
+	<header class="flex-shrink-0">
+		<nav class="navbar navbar-expand-xl border-bottom box-shadow mb-3">
 			<div class="container">
-				<a class="navbar-brand" asp-area="" asp-page="/Index">OlympSystem</a>
-				<partial name="_Preferences" />
-				<button class="navbar-toggler ms-2 order-2" type="button" data-bs-toggle="collapse" data-bs-target="#site-navigation" aria-controls="site-navigation"
-						aria-expanded="false" aria-label="@Localizer["Toggle navigation"]">
-					<span class="navbar-toggler-icon"></span>
-				</button>
-				<div id="site-navigation" class="navbar-collapse collapse justify-content-between order-3 order-lg-1">
+				<a class="navbar-brand" asp-area="" asp-page="/Index">
+					<img src="~/favicon.svg" width="28" height="28" alt="" asp-append-version="true" />
+					<span>OlympSystem</span>
+				</a>
+				<div id="site-navigation" class="navbar-collapse collapse justify-content-between order-3 order-xl-1">
 					<ul class="navbar-nav flex-grow-1">
 						<li class="nav-item">
 							<a class="nav-link @(currentPage is "/Index"? "active": null)" asp-area="" asp-page="/Index">@Localizer["News"]</a>
@@ -75,22 +75,20 @@
 					</ul>
 					<partial name="_LoginPartial" />
 				</div>
+				<partial name="_Preferences" />
+				<button class="navbar-toggler ms-2 order-2" type="button" data-bs-toggle="collapse" data-bs-target="#site-navigation" aria-controls="site-navigation"
+						aria-expanded="false" aria-label="@Localizer["Toggle navigation"]">
+					<span class="navbar-toggler-icon"></span>
+				</button>
 			</div>
 		</nav>
 	</header>
-	<main role="main" class="pb-3">
+	<main role="main" class="pb-3 flex-grow-1">
 		<div class="container">
 			@RenderBody()
 		</div>
 	</main>
-	<footer class="border-top text-muted">
-		<div class="container">
-			<partial name="_Footer" />
-			<div class="text-end">
-				@Localizer["Server time"]: @DateTimeOffset.Now
-			</div>
-		</div>
-	</footer>
+	<partial name="_Footer" />
 
 	<script src="~/lib/jquery/dist/jquery.min.js"></script>
 	<script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>

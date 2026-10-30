@@ -12,13 +12,56 @@ html {
   box-shadow: 0 0 0 0.1rem var(--bs-body-bg), 0 0 0 0.25rem #258cfb;
 }
 
-html {
-  position: relative;
-  min-height: 100%;
+.navbar > .container {
+  reading-flow: flex-visual;
 }
 
-body {
-  margin-bottom: 60px;
+.navbar-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  white-space: nowrap;
+}
+
+.navbar-brand img {
+  flex-shrink: 0;
+}
+
+@media (max-width: 359.98px) {
+  .navbar-brand {
+    font-size: 1rem;
+    gap: .25rem;
+    margin-right: .5rem;
+  }
+}
+
+#site-navigation {
+  min-width: 0;
+}
+
+.navbar-user-name {
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 1200px) {
+  .navbar-account {
+    flex-shrink: 0;
+  }
+
+  .navbar-user-name {
+    max-width: 12rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.problem-examples {
+  table-layout: fixed;
+}
+
+.problem-examples pre {
+  margin-bottom: 0;
 }
 
 .site-preferences {

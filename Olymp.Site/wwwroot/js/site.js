@@ -12,9 +12,13 @@
     let theme = readTheme();
 
     function applyTheme() {
-        document.documentElement.dataset.bsTheme = theme === 'auto'
+        const appliedTheme = theme === 'auto'
             ? (systemTheme.matches ? 'dark' : 'light')
             : theme;
+        document.documentElement.dataset.bsTheme = appliedTheme;
+        document.querySelectorAll('link[data-highlight-theme]').forEach(stylesheet => {
+            stylesheet.media = stylesheet.dataset.highlightTheme === appliedTheme ? 'all' : 'not all';
+        });
 
         const toggle = document.getElementById('theme-toggle');
         if (!toggle)
