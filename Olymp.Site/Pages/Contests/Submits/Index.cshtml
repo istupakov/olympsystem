@@ -10,15 +10,15 @@
 
 <nav>
 	<div class="nav nav-tabs" id="submitTab" role="tablist">
-		<button class="nav-link" id="submit-tab" data-bs-toggle="tab" data-bs-target="#submit-tab-pane" type="button" role="tab">@Localizer["Submit"]</button>
-		<button class="nav-link" id="submissions-tab" data-bs-toggle="tab" data-bs-target="#submissions-tab-pane" type="button" role="tab">@Localizer["Submissions"]</button>
-		<button class="nav-link" id="problems-tab" data-bs-toggle="tab" data-bs-target="#problems-tab-pane" type="button" role="tab">@Localizer["Problems"]</button>
-		<button class="nav-link" id="messages-tab" data-bs-toggle="tab" data-bs-target="#messages-tab-pane" type="button" role="tab">@Localizer["Communication with the jury"] (@Localizer["common messages"]: @Model.CommonMessageCount)</button>
+		<button class="nav-link active" id="submit-tab" data-bs-toggle="tab" data-bs-target="#submit-tab-pane" type="button" role="tab" aria-selected="true">@Localizer["Submit"]</button>
+		<button class="nav-link" id="submissions-tab" data-bs-toggle="tab" data-bs-target="#submissions-tab-pane" type="button" role="tab" aria-selected="false">@Localizer["Submissions"]</button>
+		<button class="nav-link" id="problems-tab" data-bs-toggle="tab" data-bs-target="#problems-tab-pane" type="button" role="tab" aria-selected="false">@Localizer["Problems"]</button>
+		<button class="nav-link" id="messages-tab" data-bs-toggle="tab" data-bs-target="#messages-tab-pane" type="button" role="tab" aria-selected="false">@Localizer["Communication with the jury"] (@Localizer["common messages"]: @Model.CommonMessageCount)</button>
 	</div>
 </nav>
 
 <div class="tab-content" id="submitTabContent">
-	<div class="tab-pane fade" id="submit-tab-pane" role="tabpanel">
+	<div class="tab-pane fade show active" id="submit-tab-pane" role="tabpanel">
 		<h2>@Localizer["Submit solution"]</h2>
 		<div class="alert alert-warning" role="alert">
 			@Localizer["All problems use standard input and standard output."]
@@ -75,8 +75,10 @@
 	<partial name="_ValidationScriptsPartial" />
 	<script>
 		$(document).ready(function () {
-			$('button[data-bs-toggle="tab"]').on('shown.bs.tab', e => location.replace($(e.target).attr("data-bs-target")));
-			$('.nav-tabs button[data-bs-target="' + (location.hash || "#submit-tab-pane") + '"]').tab('show');
+			const tabs = $('#submitTab button[data-bs-toggle="tab"]');
+			tabs.on('shown.bs.tab', e => location.replace(e.target.dataset.bsTarget));
+			const selectedTab = tabs.filter((_, tab) => tab.dataset.bsTarget === location.hash);
+			(selectedTab.length ? selectedTab : $('#submit-tab')).tab('show');
 		});
 		$(".successmark").addClass("text-center")
 		$(".failmark").addClass("text-center")

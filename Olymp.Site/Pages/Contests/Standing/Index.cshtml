@@ -6,18 +6,20 @@
 }
 <h1>@Model.Contest.Name</h1>
 
-@if (ViewData["Table"] is not null) {
-	@Html.Raw(ViewData["Table"])
-}
-else {
-	<partial name="_StandingTable" for="Standing" />
-}
+<div class="table-responsive">
+	@if (ViewData["Table"] is not null) {
+		@Html.Raw(ViewData["Table"])
+	}
+	else {
+		<partial name="_StandingTable" for="Standing" />
+	}
+</div>
 
 @section Scripts {
 	<script>
 		$("table").addClass("table caption-top table-sm table-hover table-striped table-bordered")
-		$(".successmark").addClass("text-success text-center")
-		$(".failmark").addClass("text-danger text-center")
+		$(".successmark").addClass("text-success-emphasis text-center")
+		$(".failmark").addClass("text-danger-emphasis text-center")
 		$(".firstmark").addClass("table-success text-center")
 	</script>
 }

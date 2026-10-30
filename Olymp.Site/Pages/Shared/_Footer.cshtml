@@ -1,0 +1,35 @@
+@using System.Globalization
+@{
+    var serverTime = DateTimeOffset.Now;
+    var universityUrl = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "en"
+        ? "https://en.nstu.ru"
+        : "https://nstu.ru";
+}
+<footer class="border-top text-body-secondary py-3 small flex-shrink-0">
+    <div class="container d-flex flex-column flex-md-row justify-content-between gap-3">
+        <div>
+            <div class="mb-1">
+                &copy; 2010–@serverTime.Year
+                <a class="link-body-emphasis link-offset-2 link-underline-opacity-25 link-underline-opacity-100-hover" href="@universityUrl">@Localizer["NSTU"]</a>
+            </div>
+            <a class="link-body-emphasis link-offset-2 link-underline-opacity-25 link-underline-opacity-100-hover" href="https://ami.nstu.ru">@Localizer["Applied Mathematics and Computer Science"]</a>
+        </div>
+        <div class="text-md-end">
+            <div class="d-flex flex-wrap align-items-center justify-content-md-end gap-3 mb-1">
+                <span>@Localizer["Support"]:</span>
+                <a class="link-body-emphasis link-offset-2 link-underline-opacity-25 link-underline-opacity-100-hover d-inline-flex align-items-center gap-1 text-nowrap" href="https://t.me/olymp_nstu">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                        <path d="m22 2-7 20-4-9-9-4Z" />
+                        <path d="M22 2 11 13" />
+                    </svg>
+                    <span>Telegram</span>
+                </a>
+                <a class="link-body-emphasis link-offset-2 link-underline-opacity-25 link-underline-opacity-100-hover" href="mailto:olymp@ami.nstu.ru">olymp@ami.nstu.ru</a>
+            </div>
+            <div>
+                @Localizer["Server time"]:
+                <time class="text-nowrap" datetime="@serverTime.ToString("O")">@serverTime.ToString("G") @serverTime.ToString("zzz")</time>
+            </div>
+        </div>
+    </div>
+</footer>

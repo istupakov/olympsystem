@@ -6,12 +6,11 @@
 }
 <h1>@ViewData["Title"]</h1>
 
-<pre>
-	<code class="language-@Model.Lang">@Model.Code</code>
-</pre>
+<pre><code class="language-@Model.Lang">@Model.Code</code></pre>
 
 @section Scripts {
-	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/github.min.css">
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/github.min.css" data-highlight-theme="light" media="not all">
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/github-dark.min.css" data-highlight-theme="dark" media="not all">
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
 	<script>hljs.highlightAll();</script>
 }

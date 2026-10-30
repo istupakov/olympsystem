@@ -20,23 +20,25 @@ else {
 <hr />
 
 <h3>@Localizer["Examples"]</h3>
-<table class="table table-sm table-bordered">
-	<thead>
-		<tr>
-			<th scope="col">@Localizer["standard input"]</th>
-			<th scope="col">@Localizer["standard output"]</th>
-		</tr>
-	</thead>
-	<tbody>
-		@foreach (var test in Model.Problem.Tests) {
+<div class="table-responsive">
+	<table class="table table-sm table-bordered problem-examples">
+		<thead>
 			<tr>
-				<td>
-					<pre><samp>@System.Text.Encoding.Default.GetString(test.Input)</samp></pre>
-				</td>
-				<td>
-					<pre><samp>@System.Text.Encoding.Default.GetString(test.Output)</samp></pre>
-				</td>
+				<th scope="col">@Localizer["standard input"]</th>
+				<th scope="col">@Localizer["standard output"]</th>
 			</tr>
-		}
-	</tbody>
-</table>
+		</thead>
+		<tbody>
+			@foreach (var test in Model.Problem.Tests) {
+				<tr>
+					<td>
+						<pre><samp>@System.Text.Encoding.Default.GetString(test.Input)</samp></pre>
+					</td>
+					<td>
+						<pre><samp>@System.Text.Encoding.Default.GetString(test.Output)</samp></pre>
+					</td>
+				</tr>
+			}
+		</tbody>
+	</table>
+</div>

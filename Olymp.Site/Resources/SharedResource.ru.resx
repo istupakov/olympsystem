@@ -132,6 +132,9 @@
   <data name="Answer" xml:space="preserve">
     <value>Ответ</value>
   </data>
+  <data name="Applied Mathematics and Computer Science" xml:space="preserve">
+    <value>Факультет прикладной математики и информатики</value>
+  </data>
   <data name="Approve" xml:space="preserve">
     <value>Одобрить</value>
   </data>
@@ -324,6 +327,9 @@
   <data name="News" xml:space="preserve">
     <value>Новости</value>
   </data>
+  <data name="NSTU" xml:space="preserve">
+    <value>НГТУ</value>
+  </data>
   <data name="Pending approval" xml:space="preserve">
     <value>Ожидает одобрения</value>
   </data>
@@ -437,6 +443,9 @@
   </data>
   <data name="Server time" xml:space="preserve">
     <value>Время сервера</value>
+  </data>
+  <data name="Support" xml:space="preserve">
+    <value>Поддержка</value>
   </data>
   <data name="Source code" xml:space="preserve">
     <value>Код решения</value>
