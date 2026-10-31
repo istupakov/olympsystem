@@ -17,11 +17,6 @@ namespace Olymp.Site.Pages.Contests.Submits;
 public class SendMessageModel(OlympContext context, UserManager<User> userManager,
     IAuthorizationService authorizationService, IStringLocalizer<SharedResource> localizer) : PageModel
 {
-    private readonly OlympContext _context = context;
-    private readonly UserManager<User> _userManager = userManager;
-    private readonly IAuthorizationService _authorizationService = authorizationService;
-    private readonly IStringLocalizer<SharedResource> _localizer = localizer;
-
     public Contest Contest { get; private set; } = null!;
     public SelectList Problems { get; private set; } = null!;
 
@@ -41,7 +36,7 @@ public class SendMessageModel(OlympContext context, UserManager<User> userManage
 
     private async Task<bool> LoadAsync(int id)
     {
-        var contest = await _context.Contests
+        var contest = await context.Contests
             .Include(x => x.Problems.Where(x => x.IsActive).OrderBy(x => x.Number))
             .SingleOrDefaultAsync(x => x.Id == id);
 
@@ -60,7 +55,7 @@ public class SendMessageModel(OlympContext context, UserManager<User> userManage
         if (!load)
             return NotFound();
 
-        var res = await _authorizationService.AuthorizeAsync(User, Contest,
+        var res = await authorizationService.AuthorizeAsync(User, Contest,
             new OperationAuthorizationRequirement { Name = OperationNames.SendMessage });
 
         return res.Succeeded ? Page() : Forbid();
@@ -72,20 +67,20 @@ public class SendMessageModel(OlympContext context, UserManager<User> userManage
         if (!load)
             return NotFound();
 
-        var res = await _authorizationService.AuthorizeAsync(User, Contest,
+        var res = await authorizationService.AuthorizeAsync(User, Contest,
             new OperationAuthorizationRequirement { Name = OperationNames.SendMessage });
 
         if (!res.Succeeded)
             return Forbid();
 
         if (Input.ProblemId is not null && !Contest.Problems.Any(x => x.Id == Input.ProblemId))
-            ModelState.AddModelError($"{nameof(Input)}.{nameof(Input.ProblemId)}", _localizer["Invalid value"]);
+            ModelState.AddModelError($"{nameof(Input)}.{nameof(Input.ProblemId)}", localizer["Invalid value"]);
 
         if (!ModelState.IsValid)
             return Page();
 
-        var userId = int.Parse(_userManager.GetUserId(User)!);
-        var competitorId = await _context.Competitors
+        var userId = int.Parse(userManager.GetUserId(User)!);
+        var competitorId = await context.Competitors
             .Where(x => x.ContestId == id && x.Members.Any(x => x.Id == userId))
             .Select(x => (int?)x.Id)
             .SingleOrDefaultAsync();
@@ -102,8 +97,8 @@ public class SendMessageModel(OlympContext context, UserManager<User> userManage
             SendTime = DateTimeOffset.Now
         };
 
-        _context.Messages.Add(message);
-        await _context.SaveChangesAsync();
+        context.Messages.Add(message);
+        await context.SaveChangesAsync();
 
         return RedirectToPage("./Index", null, new { id }, "messages-tab-pane");
     }

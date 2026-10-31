@@ -8,12 +8,9 @@ using Olymp.Domain.Models;
 
 namespace Olymp.Site.Services.Authorization;
 
-public class ContestAuthorizationHandler(OlympContext context, UserManager<User> userManager) :
+public class ContestAuthorizationHandler(OlympContext dbContext, UserManager<User> userManager) :
     AuthorizationHandler<OperationAuthorizationRequirement, Contest>
 {
-    private readonly OlympContext _context = context;
-    private readonly UserManager<User> _userManager = userManager;
-
     protected override async Task HandleRequirementAsync(AuthorizationHandlerContext context,
                                                          OperationAuthorizationRequirement requirement,
                                                          Contest contest)
@@ -31,7 +28,7 @@ public class ContestAuthorizationHandler(OlympContext context, UserManager<User>
             _ => false
         };
 
-        var user = await _userManager.GetUserAsync(context.User);
+        var user = await userManager.GetUserAsync(context.User);
         if (!allow || user is null || user.IsDisqualified)
             context.Fail();
         else if (user is Competitor competitor)
@@ -47,7 +44,7 @@ public class ContestAuthorizationHandler(OlympContext context, UserManager<User>
                 context.Succeed(requirement);
             else
             {
-                var hasCompetitor = await _context.Competitors
+                var hasCompetitor = await dbContext.Competitors
                     .Where(x => x.ContestId == contest.Id && x.Members.Any(x => x.Id == user.Id))
                     .AnyAsync(x => x.IsApproved && x.IsOutOfCompetition && !x.IsDisqualified);
 

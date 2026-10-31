@@ -11,9 +11,6 @@ namespace Olymp.Site.Pages.AntiCheat;
 
 public class ByUserModel(OlympContext context, ISubmissionSimilarityService submissionSimilarityService) : PageModel
 {
-    private readonly OlympContext _context = context;
-    private readonly ISubmissionSimilarityService _submissionSimilarityService = submissionSimilarityService;
-
     [BindProperty]
     public InputModel Input { get; set; } = new();
 
@@ -33,7 +30,6 @@ public class ByUserModel(OlympContext context, ISubmissionSimilarityService subm
 
     public void OnGet()
     {
-
     }
 
     public async Task<IActionResult> OnPost()
@@ -43,7 +39,7 @@ public class ByUserModel(OlympContext context, ISubmissionSimilarityService subm
             return Page();
         }
 
-        var users = await _context.Users.AsSplitQuery()
+        var users = await context.Users.AsSplitQuery()
                                     .Include(x => x.Submissions)
                                     .ThenInclude(x => x.Problem)
                                     .Include(x => x.Submissions)
@@ -56,7 +52,7 @@ public class ByUserModel(OlympContext context, ISubmissionSimilarityService subm
                   let cases = from sol1 in user1.Submissions
                               from sol2 in user2.Submissions
                               where sol1.ProblemId == sol2.ProblemId
-                              let similarity = _submissionSimilarityService.CompareSimilarity(sol1.Text, sol2.Text)
+                              let similarity = submissionSimilarityService.CompareSimilarity(sol1.Text, sol2.Text)
                               where similarity > Input.Threshold!.Value
                               select new PlagiarismCase(sol1, sol2, similarity)
                   where cases.Any()

@@ -16,9 +16,6 @@ public class RunnerClientService(Site.Protos.Runner.RunnerClient runnerClient,
     ILogger<RunnerClientService> logger,
     IRestrictedProcessFactory processFactory) : BackgroundService
 {
-    private readonly Site.Protos.Runner.RunnerClient _runnerClient = runnerClient;
-    private readonly ILogger<RunnerClientService> _logger = logger;
-    private readonly IRestrictedProcessFactory _processFactory = processFactory;
     private readonly string _workDirectory = Path.GetFullPath(options.Value.WorkingDirectory);
     private readonly string _envFilesDirectory = Path.GetFullPath(options.Value.EnvFilesDirectory);
     private readonly string? _readOnlyUser = options.Value.ReadOnlyUser;
@@ -45,13 +42,13 @@ public class RunnerClientService(Site.Protos.Runner.RunnerClient runnerClient,
                     { "runner-envs", string.Join(';', supportedEnvs) }
                 };
 
-                using var connect = _runnerClient.Connect(metadata, cancellationToken: stoppingToken);
+                using var connect = runnerClient.Connect(metadata, cancellationToken: stoppingToken);
                 await foreach (var request in connect.ResponseStream.ReadAllAsync(stoppingToken))
                 {
-                    _logger.LogDebug("Received command: {command}", request.Command);
+                    logger.LogDebug("Received command: {command}", request.Command);
                     var response = await Run(request, stoppingToken);
 
-                    _logger.LogInformation("""
+                    logger.LogInformation("""
                         Command {command}:
                         status {status}, exit code {exitCode},
                         user time {userTime}, total time {totalTime},
@@ -66,12 +63,12 @@ public class RunnerClientService(Site.Protos.Runner.RunnerClient runnerClient,
             }
             catch (IOException ex)
             {
-                _logger.LogError(ex, "IO Error");
+                logger.LogError(ex, "IO Error");
                 await Task.Delay(TimeSpan.FromSeconds(10), stoppingToken);
             }
             catch (RpcException ex)
             {
-                _logger.LogError(ex, "Rpc Error");
+                logger.LogError(ex, "Rpc Error");
                 await Task.Delay(TimeSpan.FromSeconds(10), stoppingToken);
             }
         }
@@ -90,7 +87,7 @@ public class RunnerClientService(Site.Protos.Runner.RunnerClient runnerClient,
             }
             catch (UnauthorizedAccessException ex)
             {
-                _logger.LogError(ex, "Error clearing work directory");
+                logger.LogError(ex, "Error clearing work directory");
                 await Task.Delay(1000, token);
                 goto delete;
             }
@@ -99,13 +96,13 @@ public class RunnerClientService(Site.Protos.Runner.RunnerClient runnerClient,
 
     private async Task LogWhoami(string? user, CancellationToken token)
     {
-        using var process = _processFactory.Create("whoami", _workDirectory,
+        using var process = processFactory.Create("whoami", _workDirectory,
             user, CreateEnvironmentVariables([]),
             2, ProcessPriorityClass.Normal, TimeSpan.FromSeconds(1), 128_000_000);
 
         await process.Process.WaitForExitAsync(token);
 
-        _logger.LogInformation("""
+        logger.LogInformation("""
             whoami as: {username}
             exitcode: {exitcode}
             stdout: {stdout}
@@ -145,13 +142,13 @@ public class RunnerClientService(Site.Protos.Runner.RunnerClient runnerClient,
     {
         if (request.ClearWorkdir)
         {
-            _logger.LogDebug("Clear workdir");
+            logger.LogDebug("Clear workdir");
             await ClearWorkDir(token);
         }
 
         foreach (var file in request.Files)
         {
-            _logger.LogDebug("Create file {filename}", file.Filename);
+            logger.LogDebug("Create file {filename}", file.Filename);
             await CreateFile(file.Filename, file.Content.Memory, token);
         }
 
@@ -159,7 +156,7 @@ public class RunnerClientService(Site.Protos.Runner.RunnerClient runnerClient,
 
         var userTimeLimit = request.ResourceLimits.UserTime.ToTimeSpan();
         nuint memoryLimit = new(request.ResourceLimits.MemoryBytes);
-        using var process = _processFactory.Create(request.Command, _workDirectory,
+        using var process = processFactory.Create(request.Command, _workDirectory,
             request.ReadOnly ? _readOnlyUser : null, envs,
             5, ProcessPriorityClass.Normal, userTimeLimit, memoryLimit);
 

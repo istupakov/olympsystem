@@ -12,8 +12,6 @@ namespace Olymp.Site.Services.Checker;
 
 public sealed class RunnerService(ILogger<RunnerService> logger, ICheckerManager manager) : Runner.RunnerBase, IRunnerService
 {
-    private readonly ILogger _logger = logger;
-    private readonly ICheckerManager _manager = manager;
     private readonly Channel<CommandRequest> _request = Channel.CreateBounded<CommandRequest>(1);
     private readonly Channel<CommandResponse> _response = Channel.CreateBounded<CommandResponse>(1);
     private readonly HashSet<string> _supportedEnvs = [];
@@ -25,7 +23,7 @@ public sealed class RunnerService(ILogger<RunnerService> logger, ICheckerManager
 
     public async Task<RunnerResult> Run(RunnerTask task, CancellationToken token = default)
     {
-        _logger.LogDebug("Trying run command: {command}", task);
+        logger.LogDebug("Trying run command: {command}", task);
 
         var request = new CommandRequest()
         {
@@ -70,7 +68,7 @@ public sealed class RunnerService(ILogger<RunnerService> logger, ICheckerManager
                 response.ResourceConsumption.StdoutBytes,
                 response.ResourceConsumption.StderrBytes));
 
-        _logger.LogDebug("Received command result: {result}", result);
+        logger.LogDebug("Received command result: {result}", result);
         return result;
     }
 
@@ -84,10 +82,10 @@ public sealed class RunnerService(ILogger<RunnerService> logger, ICheckerManager
             foreach (var env in supportedEnvs.Split(';'))
                 _supportedEnvs.Add(env);
 
-            _logger.LogDebug("Connecting runner: runner-id {id}, runner-name {name}, runner-envs {supportedEnvs}",
+            logger.LogDebug("Connecting runner: runner-id {id}, runner-name {name}, runner-envs {supportedEnvs}",
                 Id, Name, supportedEnvs);
 
-            _manager.Register(this, context.CancellationToken);
+            manager.Register(this, context.CancellationToken);
 
             await foreach (var command in _request.Reader.ReadAllAsync(context.CancellationToken))
             {
@@ -100,7 +98,7 @@ public sealed class RunnerService(ILogger<RunnerService> logger, ICheckerManager
         }
         finally
         {
-            _manager.Unregister(this);
+            manager.Unregister(this);
             _request.Writer.TryComplete();
             _response.Writer.TryComplete();
         }

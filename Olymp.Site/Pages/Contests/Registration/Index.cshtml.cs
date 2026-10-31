@@ -18,10 +18,6 @@ public class IndexModel(OlympContext context, UserManager<User> userManager,
     CompetitorManagementService competitors,
     IStringLocalizer<SharedResource> localizer) : PageModel
 {
-    private readonly OlympContext _context = context;
-    private readonly UserManager<User> _userManager = userManager;
-    private readonly IStringLocalizer<SharedResource> _localizer = localizer;
-
     public Contest Contest { get; private set; } = null!;
 
     [Display(Name = "Competitor's name")]
@@ -30,7 +26,7 @@ public class IndexModel(OlympContext context, UserManager<User> userManager,
     public bool HasGroup { get; private set; }
     public bool AlreadyRegistered { get; private set; }
 
-    public override async Task OnPageHandlerExecutionAsync(PageHandlerExecutingContext context, PageHandlerExecutionDelegate next)
+    public override async Task OnPageHandlerExecutionAsync(PageHandlerExecutingContext handlerContext, PageHandlerExecutionDelegate next)
     {
         var executed = await next();
         IActionResult? result = executed.Exception switch
@@ -49,8 +45,8 @@ public class IndexModel(OlympContext context, UserManager<User> userManager,
 
     private async Task<Competitor?> LoadUserAsync()
     {
-        var userId = int.Parse(_userManager.GetUserId(User)!);
-        var user = await _context.OlympUsers
+        var userId = int.Parse(userManager.GetUserId(User)!);
+        var user = await context.OlympUsers
             .Include(x => x.Organization)
             .Include(x => x.Memberships.Where(x => x.ContestId == Contest.Id))
             .SingleOrDefaultAsync(x => x.Id == userId, HttpContext.RequestAborted) ?? throw new EntityNotFoundException();
@@ -66,23 +62,23 @@ public class IndexModel(OlympContext context, UserManager<User> userManager,
         CompetitorName = CompetitorManagementService.GetParticipantName(user);
         HasGroup = user.Details is not null;
 
-        var template = _localizer["The {0} field in the profile must be filled in."];
+        var template = localizer["The {0} field in the profile must be filled in."];
         if (user.FirstName is null)
-            ModelState.AddModelError(string.Empty, string.Format(template, _localizer["First name"]));
+            ModelState.AddModelError(string.Empty, string.Format(template, localizer["First name"]));
         if (user.LastName is null)
-            ModelState.AddModelError(string.Empty, string.Format(template, _localizer["Last name"]));
+            ModelState.AddModelError(string.Empty, string.Format(template, localizer["Last name"]));
         if (user.Organization?.Name is null)
-            ModelState.AddModelError(string.Empty, string.Format(template, _localizer["University"]));
+            ModelState.AddModelError(string.Empty, string.Format(template, localizer["University"]));
 
         if (!ModelState.IsValid)
-            ModelState.AddModelError(nameof(CompetitorName), _localizer["Registration information is incorrect."]);
+            ModelState.AddModelError(nameof(CompetitorName), localizer["Registration information is incorrect."]);
 
         return null;
     }
 
     public async Task<IActionResult> OnGetAsync(int id)
     {
-        var contest = await _context.Contests
+        var contest = await context.Contests
             .SingleOrDefaultAsync(x => x.Id == id && !x.IsHidden);
 
         if (contest is null)
@@ -103,7 +99,7 @@ public class IndexModel(OlympContext context, UserManager<User> userManager,
 
     public async Task<IActionResult> OnPostCreateAsync(int id, bool ooc)
     {
-        var contest = await _context.Contests
+        var contest = await context.Contests
             .SingleOrDefaultAsync(x => x.Id == id && !x.IsHidden);
 
         if (contest is null)
@@ -122,7 +118,7 @@ public class IndexModel(OlympContext context, UserManager<User> userManager,
         if (!ModelState.IsValid)
             return Page();
 
-        var userId = int.Parse(_userManager.GetUserId(User)!);
+        var userId = int.Parse(userManager.GetUserId(User)!);
         await competitors.RegisterIndividualAsync(id, userId, ooc, HttpContext.RequestAborted);
 
         return RedirectToPage("/Contests/Competitors/Index", new { id });
@@ -130,7 +126,7 @@ public class IndexModel(OlympContext context, UserManager<User> userManager,
 
     public async Task<IActionResult> OnPostDeleteAsync(int id)
     {
-        var contest = await _context.Contests
+        var contest = await context.Contests
             .SingleOrDefaultAsync(x => x.Id == id && !x.IsHidden);
 
         if (contest is null)

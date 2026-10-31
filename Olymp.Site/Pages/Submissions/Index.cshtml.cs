@@ -9,8 +9,6 @@ namespace Olymp.Site.Pages.Submissions;
 
 public class IndexModel(OlympContext context) : PageModel
 {
-    private readonly OlympContext _context = context;
-
     public IEnumerable<Submission> Submissions { get; private set; } = null!;
 
     public int N { get; private set; }
@@ -27,7 +25,7 @@ public class IndexModel(OlympContext context) : PageModel
                 return Forbid();
         }
 
-        var query = _context.Submissions
+        var query = context.Submissions
             .Where(x => user == null || x.User.Name.Contains(user))
             .Where(x => problem == null || x.Problem.Name.Contains(problem))
             .Where(x => compilator == null || x.Compilator.Name.Contains(compilator)

@@ -9,14 +9,12 @@ namespace Olymp.Site.Pages.Contests.Standing;
 
 public class IndexModel(OlympContext context) : PageModel
 {
-    private readonly OlympContext _context = context;
-
     public Contest Contest { get; private set; } = null!;
     public Domain.Standing Standing { get; private set; } = null!;
 
     public async Task<IActionResult> OnGetAsync(int id, bool official = false, DateTimeOffset? startTime = null)
     {
-        var contest = await _context.Contests
+        var contest = await context.Contests
             .Include(x => x.FinalTable)
             .Include(x => x.OfficialTable)
             .Include(x => x.Competitors)

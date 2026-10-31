@@ -12,10 +12,6 @@ namespace Olymp.Site.Pages.AntiCheat;
 
 public class AIDetectionTestModel(OlympContext context, IAIDetectionService aiDetectionService, IStringLocalizer<SharedResource> localizer) : PageModel
 {
-    private readonly OlympContext _context = context;
-    private readonly IAIDetectionService _aiDetectionService = aiDetectionService;
-    private readonly IStringLocalizer<SharedResource> _localizer = localizer;
-
     [BindProperty]
     public InputModel Input { get; set; } = new();
 
@@ -30,21 +26,20 @@ public class AIDetectionTestModel(OlympContext context, IAIDetectionService aiDe
 
     public void OnGet()
     {
-
     }
 
     public async Task<IActionResult> OnPost()
     {
-        var submission = await _context.Submissions
+        var submission = await context.Submissions
             .Include(x => x.Compilator)
             .SingleOrDefaultAsync(x => x.Id == Input.SubmissionId);
 
         if (submission is null)
-            ModelState.AddModelError($"{nameof(Input)}.{nameof(Input.SubmissionId)}", _localizer["Invalid value"]);
+            ModelState.AddModelError($"{nameof(Input)}.{nameof(Input.SubmissionId)}", localizer["Invalid value"]);
 
         if (ModelState.IsValid)
         {
-            Report = _aiDetectionService.DetectAI(submission!.Text, submission!.Compilator.Language);
+            Report = aiDetectionService.DetectAI(submission!.Text, submission!.Compilator.Language);
         }
 
         return Page();

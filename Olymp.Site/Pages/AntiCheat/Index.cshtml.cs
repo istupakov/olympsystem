@@ -22,11 +22,6 @@ public record AIUsingReport(User Competitor, IEnumerable<AIUsingCase> Cases);
 public class IndexModel(OlympContext context, ISubmissionSimilarityService submissionSimilarityService,
     IAIDetectionService aiDetectionService, IStringLocalizer<SharedResource> localizer) : PageModel
 {
-    private readonly OlympContext _context = context;
-    private readonly ISubmissionSimilarityService _submissionSimilarityService = submissionSimilarityService;
-    private readonly IAIDetectionService _aiDetectionService = aiDetectionService;
-    private readonly IStringLocalizer<SharedResource> _localizer = localizer;
-
     [BindProperty]
     public InputModel Input { get; set; } = new();
 
@@ -49,7 +44,7 @@ public class IndexModel(OlympContext context, ISubmissionSimilarityService submi
 
     public async Task LoadAsync()
     {
-        var contests = await _context.Contests.OrderBy(x => x.StartTime)
+        var contests = await context.Contests.OrderBy(x => x.StartTime)
             .Select(x => new { x.Id, x.Name }).ToListAsync();
         ContestList = new SelectList(contests.Where(x => ContestAccess.CanManage(User, x.Id)),
             nameof(Contest.Id), nameof(Contest.Name));
@@ -71,7 +66,7 @@ public class IndexModel(OlympContext context, ISubmissionSimilarityService submi
         if (!ModelState.IsValid)
             return Page();
 
-        var contest = await _context.Contests.AsSplitQuery()
+        var contest = await context.Contests.AsSplitQuery()
                                     .Include(x => x.Competitors)
                                     .ThenInclude(x => x.Submissions)
                                     .ThenInclude(x => x.Problem)
@@ -80,7 +75,7 @@ public class IndexModel(OlympContext context, ISubmissionSimilarityService submi
                                     .ThenInclude(x => x.Compilator)
                                     .SingleOrDefaultAsync(x => x.Id == Input.ContestId, cancellationToken: token);
         if (contest is null)
-            ModelState.AddModelError($"{nameof(Input)}.{nameof(Input.ContestId)}", _localizer["Invalid value"]);
+            ModelState.AddModelError($"{nameof(Input)}.{nameof(Input.ContestId)}", localizer["Invalid value"]);
 
         if (!ModelState.IsValid)
         {
@@ -91,7 +86,7 @@ public class IndexModel(OlympContext context, ISubmissionSimilarityService submi
         {
             AIUsingReports = from user in contest!.Competitors
                              let cases = from sol in user.Submissions
-                                         let result = _aiDetectionService.DetectAI(sol.Text, sol.Compilator.Language)
+                                         let result = aiDetectionService.DetectAI(sol.Text, sol.Compilator.Language)
                                          where result.Score > Input.Threshold
                                          select new AIUsingCase(sol, result)
                              where cases.Any()
@@ -105,7 +100,7 @@ public class IndexModel(OlympContext context, ISubmissionSimilarityService submi
                                 let cases = from sol1 in user1.Submissions
                                             from sol2 in user2.Submissions
                                             where sol1.ProblemId == sol2.ProblemId
-                                            let similarity = _submissionSimilarityService.CompareSimilarity(sol1.Text, sol2.Text)
+                                            let similarity = submissionSimilarityService.CompareSimilarity(sol1.Text, sol2.Text)
                                             where similarity > Input.Threshold
                                             select new PlagiarismCase(sol1, sol2, similarity)
                                 where cases.Any()
