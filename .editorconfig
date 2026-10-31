@@ -404,3 +404,9 @@ dotnet_diagnostic.IDE0161.severity = none
 dotnet_diagnostic.IDE0290.severity = none
 dotnet_diagnostic.IDE0305.severity = none
 dotnet_diagnostic.CA1822.severity = none
+
+[Olymp.Domain/Migrations/*.cs]
+dotnet_diagnostic.IDE0161.severity = none
+dotnet_diagnostic.IDE0300.severity = none
+dotnet_diagnostic.IDE0053.severity = none
+dotnet_diagnostic.CA1825.severity = none

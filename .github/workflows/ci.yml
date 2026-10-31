@@ -25,10 +25,7 @@ jobs:
         run: dotnet restore
 
       - name: Check formatting and code style
-        run: >
-          dotnet format
-          --verify-no-changes --no-restore --severity info
-          --exclude Olymp.Domain/Migrations
+        run: dotnet format --verify-no-changes --no-restore --severity info
 
       - name: Build
         run: dotnet build -c Release --no-restore

@@ -49,7 +49,17 @@ Open https://localhost:5001.
 
 Judging requires a separate Runner, a trusted HTTPS endpoint and matching site `ApiKeys` / Runner `ApiKey` settings. Its Compose file is [Olymp.Runner/docker-compose.yml](Olymp.Runner/docker-compose.yml).
 
+### Lint
+
+Check formatting and code style:
+
+```bash
+dotnet format --verify-no-changes --severity info
+```
+
 ### Tests
+
+Run all tests:
 
 ```bash
 dotnet test
