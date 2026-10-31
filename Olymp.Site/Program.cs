@@ -17,6 +17,7 @@ using Olymp.Domain;
 using Olymp.Domain.Models;
 using Olymp.Site;
 using Olymp.Site.IdentityUI;
+using Olymp.Site.Services.AntiCheat;
 using Olymp.Site.Services.Authentication;
 using Olymp.Site.Services.Authorization;
 using Olymp.Site.Services.Checker;
@@ -121,6 +122,7 @@ builder.Services.AddScoped<CompetitorManagementService>();
 
 builder.Services.AddTransient<ISubmissionSimilarityService, SimpleSubmissionSimilarityService>();
 builder.Services.AddTransient<IAIDetectionService, SimpleAIDetectionService>();
+builder.Services.AddScoped<AntiCheatReportService>();
 
 builder.Services.AddGrpc();
 builder.Services.AddRazorPages(options =>

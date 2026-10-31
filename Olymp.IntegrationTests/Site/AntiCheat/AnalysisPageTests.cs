@@ -15,6 +15,73 @@ namespace Olymp.IntegrationTests.Site.AntiCheat;
 [Trait("Category", "Integration")]
 public class AnalysisPageTests(SiteFactory factory) : IClassFixture<SiteFactory>
 {
+    [Theory]
+    [InlineData("en", "The end date must be on or after the start date.")]
+    [InlineData("ru", "Дата окончания должна быть не раньше даты начала.")]
+    public async Task ReversedDateRangeShowsLocalizedFieldErrorAndKeepsInput(string culture, string message)
+    {
+        using var client = await factory.LoginAsync(RoleNames.Admin);
+        client.DefaultRequestHeaders.AcceptLanguage.ParseAdd(culture);
+
+        using var response = await SiteFactory.PostFormAsync(client, "/AntiCheat/ByDate", new()
+        {
+            ["Input.StartDate"] = "2030-01-03T00:00:00",
+            ["Input.StopDate"] = "2030-01-02T00:00:00",
+            ["Input.Threshold"] = "1"
+        });
+        response.EnsureSuccessStatusCode();
+        using var document = await new HtmlParser().ParseDocumentAsync(
+            await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
+
+        Assert.Equal(message, document.QuerySelector("[data-valmsg-for='Input.StopDate']")!.TextContent);
+        Assert.StartsWith("2030-01-03", document.QuerySelector("input[name='Input.StartDate']")!.GetAttribute("value"));
+        Assert.StartsWith("2030-01-02", document.QuerySelector("input[name='Input.StopDate']")!.GetAttribute("value"));
+        Assert.Empty(document.QuerySelectorAll("#plagiarism-report .accordion-item"));
+    }
+
+    [Fact]
+    public async Task EqualDatesAreAllowedForInclusivePeriod()
+    {
+        using var client = await factory.LoginAsync(RoleNames.Admin);
+        using var response = await SiteFactory.PostFormAsync(client, "/AntiCheat/ByDate", new()
+        {
+            ["Input.StartDate"] = "2030-01-02T00:00:00",
+            ["Input.StopDate"] = "2030-01-02T00:00:00",
+            ["Input.Threshold"] = "1"
+        });
+        response.EnsureSuccessStatusCode();
+        using var document = await new HtmlParser().ParseDocumentAsync(
+            await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
+
+        Assert.Empty(document.QuerySelectorAll(".field-validation-error, .validation-summary-errors"));
+    }
+
+    [Theory]
+    [InlineData("en", "User not found.")]
+    [InlineData("ru", "Пользователь не найден.")]
+    public async Task MissingUserShowsLocalizedErrorButExistingUserWithoutSubmissionsDoesNot(string culture, string message)
+    {
+        using var client = await factory.LoginAsync(RoleNames.Admin);
+        client.DefaultRequestHeaders.AcceptLanguage.ParseAdd(culture);
+        var missing = Guid.NewGuid().ToString("N");
+
+        foreach (var name in new[] { missing, factory.Data.Member.UserName! })
+        {
+            using var response = await SiteFactory.PostFormAsync(client, "/AntiCheat/ByUser", new()
+            {
+                ["Input.UserName"] = name,
+                ["Input.Threshold"] = "1"
+            });
+            response.EnsureSuccessStatusCode();
+            using var document = await new HtmlParser().ParseDocumentAsync(
+                await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
+
+            Assert.Equal(name == missing ? message : "", document.QuerySelector("[data-valmsg-for='Input.UserName']")!.TextContent);
+            Assert.Equal(name, document.QuerySelector("input[name='Input.UserName']")!.GetAttribute("value"));
+            Assert.Empty(document.QuerySelectorAll("#plagiarism-report .accordion-item"));
+        }
+    }
+
     [Fact]
     public async Task AIDetectionUsesDecodedSourceAndSubmissionLanguage()
     {
