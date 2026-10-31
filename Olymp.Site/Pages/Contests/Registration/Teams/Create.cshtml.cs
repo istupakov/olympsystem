@@ -1,20 +1,21 @@
 using System.ComponentModel.DataAnnotations;
-using System.Data;
-using System.Data.Common;
 
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Localization;
 
 using Olymp.Domain;
 using Olymp.Domain.Models;
+using Olymp.Site.Services;
+using Olymp.Site.Services.Contests;
 
 namespace Olymp.Site.Pages.Contests.Registration.Teams;
 
 public class CreateModel(OlympContext context, UserManager<User> userManager,
-    IStringLocalizer<SharedResource> localizer, ILogger<CreateModel> logger) : PageModel
+    CompetitorManagementService competitors, IStringLocalizer<SharedResource> localizer) : PageModel
 {
     private readonly OlympContext _context = context;
     private readonly UserManager<User> _userManager = userManager;
@@ -31,7 +32,6 @@ public class CreateModel(OlympContext context, UserManager<User> userManager,
     [Display(Name = "Team members")]
     public string? TeamMembers { get; private set; }
 
-    public string? TeamInfo { get; private set; }
     public OlympUser? Member1 { get; private set; }
     public OlympUser? Member2 { get; private set; }
     public OlympUser? Member3 { get; private set; }
@@ -81,6 +81,31 @@ public class CreateModel(OlympContext context, UserManager<User> userManager,
 
         [Display(Name = "I confirm that the data is filled in correctly")]
         public bool Confirmation { get; set; }
+    }
+
+    public override async Task OnPageHandlerExecutionAsync(PageHandlerExecutingContext context, PageHandlerExecutionDelegate next)
+    {
+        var executed = await next();
+
+        if (executed.Exception is OperationValidationException error)
+        {
+            ModelState.AddModelError(string.Empty, error.Message);
+            executed.Result = Page();
+            executed.ExceptionHandled = true;
+            return;
+        }
+
+        IActionResult? result = executed.Exception switch
+        {
+            EntityNotFoundException => NotFound(),
+            IdentityOperationException identityError => BadRequest(identityError.Errors),
+            _ => null
+        };
+        if (result is not null)
+        {
+            executed.Result = result;
+            executed.ExceptionHandled = true;
+        }
     }
 
     private async Task LoadAsync(int id, int orgId)
@@ -137,11 +162,6 @@ public class CreateModel(OlympContext context, UserManager<User> userManager,
             if (Input.TeamSuffix is not null)
                 TeamName += $": {Input.TeamSuffix}";
 
-            static string GetInfo(OlympUser? user, string name) => user is null ? $"{name};" : $"{user.LastName} {user.FirstName};{user.Id}";
-            TeamInfo = GetInfo(Member1, Input.Participant1);
-            TeamInfo += ";" + GetInfo(Member2, Input.Participant2);
-            TeamInfo += ";" + GetInfo(Member3, Input.Participant3);
-
             static string GetName(OlympUser? user, string name) => user is null ? $"{name}" : $"{user.LastName} {user.FirstName}";
             TeamMembers = GetName(Member1, Input.Participant1);
             TeamMembers += ", " + GetName(Member2, Input.Participant2);
@@ -170,52 +190,10 @@ public class CreateModel(OlympContext context, UserManager<User> userManager,
         if (!ModelState.IsValid)
             return Page();
 
-        try
-        {
-            await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
-            var memberIds = new[] { Member1, Member2, Member3 }.OfType<OlympUser>().Select(x => x.Id).ToArray();
-            if (await _context.Competitors.AnyAsync(x => x.ContestId == id && x.Members.Any(m => memberIds.Contains(m.Id))))
-            {
-                ModelState.AddModelError(string.Empty, _localizer["One or more participants are already registered for this contest."]);
-                return Page();
-            }
+        var coachId = int.Parse(_userManager.GetUserId(User)!);
+        await competitors.RegisterTeamAsync(id, orgId, coachId, TeamName!,
+            [Input.Participant1, Input.Participant2, Input.Participant3], HttpContext.RequestAborted);
 
-            var coachId = int.Parse(_userManager.GetUserId(User)!);
-
-            var competitor = new Competitor
-            {
-                Name = TeamName!,
-                Contest = null!,
-                ContestId = Contest.Id,
-                OrganizationId = orgId,
-                CoachId = coachId,
-                MemberInfos = TeamInfo,
-                RegistrationDate = DateTimeOffset.Now,
-                SecurityStamp = Guid.NewGuid().ToString(),
-                Members = [],
-                Messages = [],
-                Submissions = []
-            };
-
-            _context.Attach(Organization);
-            if (Member1 is not null)
-                competitor.Members.Add(Member1);
-            if (Member2 is not null)
-                competitor.Members.Add(Member2);
-            if (Member3 is not null)
-                competitor.Members.Add(Member3);
-
-            var result = await _userManager.CreateAsync(competitor);
-            if (!result.Succeeded)
-                return BadRequest(result.Errors);
-            await transaction.CommitAsync();
-
-            return RedirectToPage("./Index", new { id });
-        }
-        catch (Exception ex) when (ex is DbUpdateException || ex.GetBaseException() is DbException)
-        {
-            logger.LogError(ex, "Failed to register participants for contest {ContestId}", id);
-            return BadRequest(_localizer["Could not save the registration. Please try again."].Value);
-        }
+        return RedirectToPage("./Index", new { id });
     }
 }

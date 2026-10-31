@@ -1,9 +1,4 @@
-using System.Data;
-using System.Security.Claims;
-using System.Text;
-
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -12,17 +7,18 @@ using Microsoft.Extensions.Localization;
 
 using Olymp.Domain;
 using Olymp.Domain.Models;
+using Olymp.Site.Services;
 using Olymp.Site.Services.Authorization;
+using Olymp.Site.Services.Contests;
 
 namespace Olymp.Site.Pages.Contests.Competitors.Manage;
 
 [Authorize(Policy = PolicyNames.JuryOrAdmin)]
-public class IndexModel(OlympContext context, UserManager<User> userManager,
-    ILogger<IndexModel> logger,
+public class IndexModel(OlympContext context,
+    CompetitorManagementService participants,
     IStringLocalizer<SharedResource> localizer) : PageModel
 {
     private readonly OlympContext _context = context;
-    private readonly UserManager<User> _userManager = userManager;
 
     public Contest Contest { get; private set; } = null!;
     public IEnumerable<Competitor>? Competitors { get; private set; } = null!;
@@ -44,7 +40,19 @@ public class IndexModel(OlympContext context, UserManager<User> userManager,
             context.Result = Forbid();
             return;
         }
-        await next();
+        var executed = await next();
+        IActionResult? result = executed.Exception switch
+        {
+            EntityNotFoundException => NotFound(),
+            IdentityOperationException identityError => BadRequest(identityError.Errors),
+            OperationValidationException error => BadRequest(error.Message),
+            _ => null
+        };
+        if (result is not null)
+        {
+            executed.Result = result;
+            executed.ExceptionHandled = true;
+        }
     }
 
     public async Task<IActionResult> OnGetAsync(int id)
@@ -71,183 +79,42 @@ public class IndexModel(OlympContext context, UserManager<User> userManager,
 
     public async Task<IActionResult> OnPostAsync(int id, int userId, string action)
     {
-        var competitor = await _context.Competitors
-            .AsTracking()
-            .SingleOrDefaultAsync(x => x.Id == userId && x.ContestId == id);
-
-        if (competitor is null)
-            return NotFound();
-
-        IdentityResult result;
-        switch (action)
+        if (action == "Manage")
         {
-            case "Manage":
-                if (!User.IsInRole(RoleNames.Admin))
-                    return Forbid();
-                return RedirectToPage("/Users/Manage", new { id = userId });
-            case "Approve":
-                competitor.IsApproved = true;
-                result = await _userManager.UpdateAsync(competitor);
-                break;
-            case "Disapprove":
-                competitor.IsApproved = false;
-                result = await _userManager.UpdateAsync(competitor);
-                break;
-            case "InCompetition":
-                competitor.IsOutOfCompetition = false;
-                result = await _userManager.UpdateAsync(competitor);
-                break;
-            case "OutOfCompetition":
-                competitor.IsOutOfCompetition = true;
-                result = await _userManager.UpdateAsync(competitor);
-                break;
-            case "Disqualify":
-                competitor.IsDisqualified = true;
-                result = await _userManager.UpdateAsync(competitor);
-                break;
-            case "CancelDisqualification":
-                competitor.IsDisqualified = false;
-                result = await _userManager.UpdateAsync(competitor);
-                break;
-            case "Delete":
-                if (await _context.Submissions.AnyAsync(x => x.UserId == competitor.Id)
-                    || await _context.Messages.AnyAsync(x => x.UserId == competitor.Id))
-                    return BadRequest(localizer["The participant cannot be deleted because submissions or other related records exist."].Value);
-                await _context.Entry(competitor).Collection(x => x.Members).LoadAsync();
-                competitor.Members.Clear();
-                try
-                {
-                    result = await _userManager.DeleteAsync(competitor);
-                }
-                catch (DbUpdateException ex)
-                {
-                    logger.LogError(ex, "Failed to delete participant {CompetitorId}", competitor.Id);
-                    return BadRequest(localizer["Could not delete the participant. Please contact the administrator."].Value);
-                }
-                break;
-            default:
-                return BadRequest();
+            if (!User.IsInRole(RoleNames.Admin))
+                return Forbid();
+            if (!await _context.Competitors.AnyAsync(x => x.Id == userId && x.ContestId == id, HttpContext.RequestAborted))
+                return NotFound();
+            return RedirectToPage("/Users/Manage", new { id = userId });
         }
-
-        if (!result.Succeeded)
-            return BadRequest(result.Errors);
+        var token = HttpContext.RequestAborted;
+        var operation = action switch
+        {
+            "Approve" => participants.SetApprovalAsync(id, userId, true, token),
+            "Disapprove" => participants.SetApprovalAsync(id, userId, false, token),
+            "InCompetition" => participants.SetOutOfCompetitionAsync(id, userId, false, token),
+            "OutOfCompetition" => participants.SetOutOfCompetitionAsync(id, userId, true, token),
+            "Disqualify" => participants.SetDisqualificationAsync(id, userId, true, token),
+            "CancelDisqualification" => participants.SetDisqualificationAsync(id, userId, false, token),
+            "Delete" => participants.DeleteAsync(id, userId, token),
+            _ => null
+        };
+        if (operation is null)
+            return BadRequest();
+        await operation;
         return RedirectToPage();
     }
 
     public async Task<IActionResult> OnPostApproveAllAsync(int id)
     {
-        var contest = await _context.Contests
-            .Include(x => x.Competitors)
-            .AsTracking()
-            .SingleOrDefaultAsync(x => x.Id == id);
-
-        if (contest is null)
-            return NotFound();
-
-        foreach (var competitor in contest.Competitors)
-        {
-            competitor.IsApproved = true;
-            var result = await _userManager.UpdateAsync(competitor);
-            if (!result.Succeeded)
-                return BadRequest(result.Errors);
-        }
-
+        await participants.ApproveAllAsync(id, HttpContext.RequestAborted);
         return RedirectToPage();
     }
 
-    private async Task<IActionResult> CreateLoginsAsync(int id, Dictionary<string, string> logins)
+    public async Task<IActionResult> OnPostDeleteWithoutSubmissionsAsync(int id)
     {
-        var contest = await _context.Contests
-            .Include(x => x.Competitors.OrderBy(x => x.RegistrationDate))
-            .ThenInclude(x => x.Members)
-            .Include(x => x.Competitors)
-            .ThenInclude(x => x.Coach)
-            .AsTracking()
-            .SingleOrDefaultAsync(x => x.Id == id);
-
-        if (contest is null)
-            return NotFound();
-
-        foreach (var competitor in contest.Competitors)
-        {
-            var username = await _userManager.GetUserNameAsync(competitor);
-            if (username is null)
-            {
-                var (login, password) = logins.FirstOrDefault();
-                if (login is null)
-                    return BadRequest("Too few logins in file");
-
-                logins.Remove(login);
-
-                var res = await _userManager.SetUserNameAsync(competitor, login);
-                if (!res.Succeeded)
-                    return BadRequest(res.Errors);
-
-                competitor.PasswordHash = password;
-                res = await _userManager.UpdateAsync(competitor);
-                if (!res.Succeeded)
-                    return BadRequest(res.Errors);
-
-                res = await _userManager.AddClaimAsync(competitor, new Claim(ClaimNames.CompetitorContest, id.ToString()));
-                if (!res.Succeeded)
-                    return BadRequest(res.Errors);
-            }
-            else
-            {
-                logins.Remove(username);
-            }
-        }
-
-        return RedirectToPage();
-    }
-
-    private async Task<IActionResult> CreateParticipantsAsync(int id, List<string> names)
-    {
-        if (names.Count == 0)
-            return BadRequest(localizer["The file contains no participant names."].Value);
-        if (names.Distinct(StringComparer.OrdinalIgnoreCase).Count() != names.Count)
-            return BadRequest(localizer["The file contains duplicate participant names."].Value);
-
-        await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
-        var contest = await _context.Contests
-            .Include(x => x.Competitors)
-            .SingleOrDefaultAsync(x => x.Id == id);
-
-        if (contest is null)
-            return NotFound();
-        if (contest.IsAcm)
-            return BadRequest(localizer["Participant names can only be imported into individual contests."].Value);
-
-        var existing = contest.Competitors.ToLookup(x => x.Name.Trim(), StringComparer.OrdinalIgnoreCase);
-        var added = 0;
-        foreach (var name in names)
-        {
-            var count = existing[name].Count();
-            if (count > 1)
-                return BadRequest(localizer["The contest contains multiple participants named '{0}'.", name].Value);
-            if (count == 1)
-                continue;
-
-            var competitor = new Competitor
-            {
-                ContestId = id,
-                Contest = null!,
-                Name = name,
-                IsApproved = true,
-                RegistrationDate = DateTimeOffset.Now,
-                SecurityStamp = Guid.NewGuid().ToString(),
-                Members = [],
-                Messages = [],
-                Submissions = []
-            };
-            var res = await _userManager.CreateAsync(competitor);
-            if (!res.Succeeded)
-                return BadRequest(res.Errors);
-            added++;
-        }
-
-        await transaction.CommitAsync();
-        StatusMessage = localizer["Added participants: {0}; already existed: {1}.", added, names.Count - added];
+        var count = await participants.DeleteWithoutSubmissionsAsync(id, HttpContext.RequestAborted);
+        StatusMessage = localizer["Deleted participants: {0}.", count];
         return RedirectToPage();
     }
 
@@ -267,7 +134,9 @@ public class IndexModel(OlympContext context, UserManager<User> userManager,
             }
         }
 
-        return await CreateParticipantsAsync(id, names);
+        var summary = await participants.ImportAsync(id, names, HttpContext.RequestAborted);
+        StatusMessage = localizer["Added participants: {0}; already existed: {1}.", summary.Added, summary.Existing];
+        return RedirectToPage();
     }
 
     public async Task<IActionResult> OnPostUploadLoginsAsync(int id)
@@ -279,60 +148,23 @@ public class IndexModel(OlympContext context, UserManager<User> userManager,
         using (var reader = new StreamReader(LoginsFile.OpenReadStream()))
         {
             while ((await reader.ReadLineAsync())?.Split(';', '\t', ',') is [var login, var password])
-                logins.Add(login.Trim(), password.Trim());
+                if (!logins.TryAdd(login.Trim(), password.Trim()))
+                    return BadRequest(localizer["The file contains duplicate logins."].Value);
         }
 
-        return await CreateLoginsAsync(id, logins);
+        await participants.AssignLoginsAsync(id, logins, HttpContext.RequestAborted);
+        return RedirectToPage();
     }
 
     public async Task<IActionResult> OnPostCreateRandomLoginsAsync(int id)
     {
-        int count = await _context.Competitors.CountAsync(x => x.ContestId == id);
-
-        const int passwordLength = 10;
-        var passwordSymbols = new List<char>();
-        passwordSymbols.AddRange(Enumerable.Range(0, 10).Select(x => (char)('0' + x)));
-        passwordSymbols.AddRange(Enumerable.Range(0, 26).Select(x => (char)('a' + x)));
-        passwordSymbols.AddRange(Enumerable.Range(0, 26).Select(x => (char)('A' + x)));
-
-        var random = new Random();
-        var logins = new Dictionary<string, string>();
-        for (int i = 1; i <= count; ++i)
-        {
-            var password = new StringBuilder();
-            for (int j = 0; j < passwordLength; ++j)
-                password.Append(passwordSymbols[random.Next(passwordSymbols.Count)]);
-            logins.Add($"olymp{i:000}", password.ToString());
-        }
-
-        return await CreateLoginsAsync(id, logins);
+        await participants.GenerateLoginsAsync(id, HttpContext.RequestAborted);
+        return RedirectToPage();
     }
 
     public async Task<IActionResult> OnPostRemoveLoginsAsync(int id)
     {
-        var contest = await _context.Contests
-            .Include(x => x.Competitors)
-            .AsTracking()
-            .SingleOrDefaultAsync(x => x.Id == id);
-
-        if (contest is null)
-            return NotFound();
-
-        foreach (var competitor in contest.Competitors)
-        {
-            var res = await _userManager.SetUserNameAsync(competitor, null);
-            if (!res.Succeeded)
-                return BadRequest(res.Errors);
-
-            res = await _userManager.RemovePasswordAsync(competitor);
-            if (!res.Succeeded)
-                return BadRequest(res.Errors);
-
-            res = await _userManager.RemoveClaimAsync(competitor, new Claim(ClaimNames.CompetitorContest, id.ToString()));
-            if (!res.Succeeded)
-                return BadRequest(res.Errors);
-        }
-
+        await participants.RemoveLoginsAsync(id, HttpContext.RequestAborted);
         return RedirectToPage();
     }
 }

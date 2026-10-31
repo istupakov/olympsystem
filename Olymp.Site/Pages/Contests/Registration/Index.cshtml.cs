@@ -1,20 +1,22 @@
 using System.ComponentModel.DataAnnotations;
-using System.Data;
-using System.Data.Common;
 
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Localization;
 
 using Olymp.Domain;
 using Olymp.Domain.Models;
+using Olymp.Site.Services;
+using Olymp.Site.Services.Contests;
 
 namespace Olymp.Site.Pages.Contests.Registration;
 
 public class IndexModel(OlympContext context, UserManager<User> userManager,
-    IStringLocalizer<SharedResource> localizer, ILogger<IndexModel> logger) : PageModel
+    CompetitorManagementService competitors,
+    IStringLocalizer<SharedResource> localizer) : PageModel
 {
     private readonly OlympContext _context = context;
     private readonly UserManager<User> _userManager = userManager;
@@ -28,30 +30,41 @@ public class IndexModel(OlympContext context, UserManager<User> userManager,
     public bool HasGroup { get; private set; }
     public bool AlreadyRegistered { get; private set; }
 
-    private async Task<OlympUser> LoadUser()
+    public override async Task OnPageHandlerExecutionAsync(PageHandlerExecutingContext context, PageHandlerExecutionDelegate next)
     {
-        var user = (OlympUser)(await _userManager.GetUserAsync(User))!;
-        _context.Attach(user);
-        await _context.Entry(user).Reference(x => x.Organization).LoadAsync();
+        var executed = await next();
+        IActionResult? result = executed.Exception switch
+        {
+            EntityNotFoundException => NotFound(),
+            IdentityOperationException identityError => BadRequest(identityError.Errors),
+            OperationValidationException error => BadRequest(error.Message),
+            _ => null
+        };
+        if (result is not null)
+        {
+            executed.Result = result;
+            executed.ExceptionHandled = true;
+        }
+    }
 
-        var competitor = await _context.Entry(user)
-            .Collection(x => x.Memberships)
-            .Query()
-            .SingleOrDefaultAsync(x => x.ContestId == Contest.Id);
+    private async Task<Competitor?> LoadUserAsync()
+    {
+        var userId = int.Parse(_userManager.GetUserId(User)!);
+        var user = await _context.OlympUsers
+            .Include(x => x.Organization)
+            .Include(x => x.Memberships.Where(x => x.ContestId == Contest.Id))
+            .SingleOrDefaultAsync(x => x.Id == userId, HttpContext.RequestAborted) ?? throw new EntityNotFoundException();
+        var competitor = user.Memberships.SingleOrDefault();
 
         if (competitor is not null)
         {
             AlreadyRegistered = true;
             CompetitorName = competitor.Name!;
-            return user;
+            return competitor;
         }
 
-        CompetitorName = $"{user.FirstName} {user.LastName}, {user.Organization?.Name}";
-        if (user.Details is not null)
-        {
-            HasGroup = true;
-            CompetitorName += $", {user.Details}";
-        }
+        CompetitorName = CompetitorManagementService.GetParticipantName(user);
+        HasGroup = user.Details is not null;
 
         var template = _localizer["The {0} field in the profile must be filled in."];
         if (user.FirstName is null)
@@ -64,7 +77,7 @@ public class IndexModel(OlympContext context, UserManager<User> userManager,
         if (!ModelState.IsValid)
             ModelState.AddModelError(nameof(CompetitorName), _localizer["Registration information is incorrect."]);
 
-        return user;
+        return null;
     }
 
     public async Task<IActionResult> OnGetAsync(int id)
@@ -83,7 +96,7 @@ public class IndexModel(OlympContext context, UserManager<User> userManager,
         if (Contest.IsAcm && User.HasClaim(x => x.Type == ClaimNames.CoachOrg))
             return RedirectToPage("./Teams/Index", new { id });
 
-        await LoadUser();
+        await LoadUserAsync();
 
         return Page();
     }
@@ -101,44 +114,18 @@ public class IndexModel(OlympContext context, UserManager<User> userManager,
 
         Contest = contest;
 
-        try
-        {
-            await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
-            var user = await LoadUser();
+        await LoadUserAsync();
 
-            if (DateTimeOffset.Now > contest.EndTime || AlreadyRegistered || (!HasGroup && !ooc))
-                return Forbid();
+        if (DateTimeOffset.Now > contest.EndTime || AlreadyRegistered || (!HasGroup && !ooc))
+            return Forbid();
 
-            if (!ModelState.IsValid)
-                return Page();
+        if (!ModelState.IsValid)
+            return Page();
 
-            var competitor = new Competitor
-            {
-                Name = CompetitorName,
-                Contest = null!,
-                ContestId = Contest.Id,
-                IsHidden = user.IsHidden,
-                IsOutOfCompetition = ooc,
-                OrganizationId = user.OrganizationId,
-                RegistrationDate = DateTimeOffset.Now,
-                SecurityStamp = Guid.NewGuid().ToString(),
-                Members = [],
-                Messages = [],
-                Submissions = []
-            };
-            competitor.Members.Add(user);
-            var result = await _userManager.CreateAsync(competitor);
-            if (!result.Succeeded)
-                return BadRequest(result.Errors);
-            await transaction.CommitAsync();
+        var userId = int.Parse(_userManager.GetUserId(User)!);
+        await competitors.RegisterIndividualAsync(id, userId, ooc, HttpContext.RequestAborted);
 
-            return RedirectToPage("/Contests/Competitors/Index", new { id });
-        }
-        catch (Exception ex) when (ex is DbUpdateException || ex.GetBaseException() is DbException)
-        {
-            logger.LogError(ex, "Failed to register participants for contest {ContestId}", id);
-            return BadRequest(_localizer["Could not save the registration. Please try again."].Value);
-        }
+        return RedirectToPage("/Contests/Competitors/Index", new { id });
     }
 
     public async Task<IActionResult> OnPostDeleteAsync(int id)
@@ -154,37 +141,12 @@ public class IndexModel(OlympContext context, UserManager<User> userManager,
 
         Contest = contest;
 
-        var user = await LoadUser();
+        var competitor = await LoadUserAsync();
 
-        if (DateTimeOffset.Now >= contest.StartTime || !AlreadyRegistered)
+        if (DateTimeOffset.Now >= contest.StartTime || competitor is null)
             return Forbid();
 
-        var competitor = await _context.Entry(user)
-            .Collection(x => x.Memberships)
-            .Query()
-            .Include(x => x.Members)
-            .AsTracking()
-            .SingleOrDefaultAsync(x => x.ContestId == Contest.Id);
-
-        if (competitor is null)
-            return Forbid();
-
-        if (await _context.Submissions.AnyAsync(x => x.UserId == competitor.Id)
-            || await _context.Messages.AnyAsync(x => x.UserId == competitor.Id))
-            return BadRequest(_localizer["The participant cannot be deleted because submissions or other related records exist."].Value);
-
-        competitor.Members.Clear();
-        try
-        {
-            var result = await _userManager.DeleteAsync(competitor);
-            if (!result.Succeeded)
-                return BadRequest(result.Errors);
-        }
-        catch (DbUpdateException ex)
-        {
-            logger.LogError(ex, "Failed to delete participant {CompetitorId}", competitor.Id);
-            return BadRequest(_localizer["Could not delete the participant. Please contact the administrator."].Value);
-        }
+        await competitors.DeleteAsync(id, competitor.Id, HttpContext.RequestAborted);
 
         return RedirectToPage("/Contests/Competitors/Index", new { id });
     }

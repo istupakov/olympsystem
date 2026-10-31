@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 
 using AngleSharp.Html.Parser;
@@ -17,6 +18,42 @@ namespace Olymp.IntegrationTests.Site;
 [Trait("Category", "Integration")]
 public class LocalizationTests(SiteFactory factory) : IClassFixture<SiteFactory>
 {
+    [Theory]
+    [InlineData("ru")]
+    [InlineData("en")]
+    public void RoleAndLockoutErrorsUseTheCurrentUICulture(string culture)
+    {
+        var previous = CultureInfo.CurrentUICulture;
+        try
+        {
+            CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo(culture);
+            using var scope = factory.Services.CreateScope();
+            var describer = scope.ServiceProvider.GetRequiredService<IdentityErrorDescriber>();
+            var errors = new[]
+            {
+                describer.InvalidRoleName("Jury"),
+                describer.DuplicateRoleName("Jury"),
+                describer.UserLockoutNotEnabled(),
+                describer.UserAlreadyInRole("Jury"),
+                describer.UserNotInRole("Jury")
+            };
+            string[] expected = culture == "ru"
+                ? ["Недопустимое имя роли «Jury».", "Роль с именем «Jury» уже существует.",
+                    "Блокировка для этого пользователя не включена.", "Пользователю уже назначена роль «Jury».",
+                    "Пользователю не назначена роль «Jury»."]
+                : ["Role name 'Jury' is invalid.", "Role name 'Jury' is already taken.",
+                    "Lockout is not enabled for this user.", "User already in role 'Jury'.", "User is not in role 'Jury'."];
+
+            Assert.Equal(expected, errors.Select(error => error.Description));
+            Assert.Equal(["InvalidRoleName", "DuplicateRoleName", "UserLockoutNotEnabled", "UserAlreadyInRole", "UserNotInRole"],
+                errors.Select(error => error.Code));
+        }
+        finally
+        {
+            CultureInfo.CurrentUICulture = previous;
+        }
+    }
+
     [Fact]
     public async Task RegistrationLoadsTheUnobtrusiveValidationScript()
     {

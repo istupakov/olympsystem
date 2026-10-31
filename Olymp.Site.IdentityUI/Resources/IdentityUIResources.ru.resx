@@ -412,6 +412,21 @@
   <data name="User already has a password set." xml:space="preserve">
     <value>У пользователя уже установлен пароль.</value>
   </data>
+  <data name="Role name '{0}' is invalid." xml:space="preserve">
+    <value>Недопустимое имя роли «{0}».</value>
+  </data>
+  <data name="Role name '{0}' is already taken." xml:space="preserve">
+    <value>Роль с именем «{0}» уже существует.</value>
+  </data>
+  <data name="Lockout is not enabled for this user." xml:space="preserve">
+    <value>Блокировка для этого пользователя не включена.</value>
+  </data>
+  <data name="User already in role '{0}'." xml:space="preserve">
+    <value>Пользователю уже назначена роль «{0}».</value>
+  </data>
+  <data name="User is not in role '{0}'." xml:space="preserve">
+    <value>Пользователю не назначена роль «{0}».</value>
+  </data>
   <data name="Unable to load user with ID '{0}'." xml:space="preserve">
     <value>Не удалось найти пользователя с ID «{0}».</value>
   </data>

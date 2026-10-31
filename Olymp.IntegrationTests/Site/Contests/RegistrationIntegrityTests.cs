@@ -122,24 +122,26 @@ public class RegistrationIntegrityTests(SiteFixture site) : IClassFixture<SiteFi
         Assert.Equal(1, await saved.CheckResults.CountAsync(x => x.Submission.UserId == id, cancellationToken: TestContext.Current.CancellationToken));
     }
 
-    [Fact]
-    public async Task RegistrationHandlesDatabaseExceptionWithoutSqlServerErrorCodes()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task RegistrationDatabaseFailuresRemainServerErrors(bool team)
     {
-        var setup = await SetupAsync(team: true);
+        var setup = await SetupAsync(team);
         using var factory = site.WithWebHostBuilder(builder => builder.ConfigureServices(services =>
             services.AddDbContext<OlympContext>(options => options.AddInterceptors(new OtherProviderFailure(deleting: false)))));
         using var client = factory.CreateClient(ClientOptions());
-        await LoginAsync(client, setup.Coach);
-        var path = TeamPath(setup);
-        var response = await SiteFixture.PostAsync(client, path, TeamValues(setup.Member.Id), path);
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        Assert.Contains("Не удалось сохранить регистрацию", await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
+        await LoginAsync(client, team ? setup.Coach : setup.Member);
+        var path = team ? TeamPath(setup) : $"/Contests/Registration/{setup.Contest.Id}";
+        var response = await SiteFixture.PostAsync(client, team ? path : path + "?handler=Create",
+            team ? TeamValues(setup.Member.Id) : new() { ["ooc"] = "true" }, path);
+        Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
         using var scope = site.Services.CreateScope();
         Assert.False(await scope.ServiceProvider.GetRequiredService<OlympContext>().Competitors.AnyAsync(x => x.ContestId == setup.Contest.Id, cancellationToken: TestContext.Current.CancellationToken));
     }
 
     [Fact]
-    public async Task DeleteHandlesDatabaseUpdateExceptionWithoutGuessingItsCause()
+    public async Task DeletionDatabaseFailuresRemainServerErrorsAndPreserveRegistration()
     {
         var setup = await SetupAsync(team: true);
         using var factory = site.WithWebHostBuilder(builder => builder.ConfigureServices(services =>
@@ -153,16 +155,19 @@ public class RegistrationIntegrityTests(SiteFixture site) : IClassFixture<SiteFi
         var id = await db.Competitors.Where(x => x.ContestId == setup.Contest.Id).Select(x => x.Id).SingleAsync(cancellationToken: TestContext.Current.CancellationToken);
         var response = await SiteFixture.PostAsync(client, $"/Contests/Registration/Teams/{setup.Contest.Id}?handler=Delete",
             new() { ["teamId"] = id.ToString() });
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        Assert.Contains("Не удалось удалить участника", await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
-        Assert.True(await db.Competitors.AnyAsync(x => x.Id == id, cancellationToken: TestContext.Current.CancellationToken));
+        Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
+        Assert.True(await db.Competitors.AnyAsync(x => x.Id == id && x.Members.Any(m => m.Id == setup.Member.Id),
+            cancellationToken: TestContext.Current.CancellationToken));
     }
 
-    [Fact]
-    public async Task TeamCannotReuseMemberOrRepeatIdWithLeadingZeros()
+    [Theory]
+    [InlineData("ru", "уже зарегистрированы")]
+    [InlineData("en", "already registered")]
+    public async Task TeamCannotReuseMemberOrRepeatIdWithLeadingZeros(string culture, string error)
     {
         var setup = await SetupAsync(team: true);
         using var client = await site.LoginAsync(setup.Coach);
+        client.DefaultRequestHeaders.AcceptLanguage.ParseAdd(culture);
         var path = TeamPath(setup);
         var repeated = TeamValues(setup.Member.Id);
         repeated["Input.Participant2"] = "000" + setup.Member.Id;
@@ -172,7 +177,9 @@ public class RegistrationIntegrityTests(SiteFixture site) : IClassFixture<SiteFi
         Assert.Equal(HttpStatusCode.Redirect, (await SiteFixture.PostAsync(client, path, TeamValues(setup.Member.Id), path)).StatusCode);
         var response = await SiteFixture.PostAsync(client, path, TeamValues(setup.Member.Id), path);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Contains("уже зарегистрированы", WebUtility.HtmlDecode(await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken)));
+        var html = WebUtility.HtmlDecode(await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
+        Assert.Contains(error, html);
+        Assert.Contains("name=\"Input.Participant1\"", html);
         using var final = site.Services.CreateScope();
         Assert.Equal(1, await final.ServiceProvider.GetRequiredService<OlympContext>().Competitors.CountAsync(x => x.ContestId == setup.Contest.Id, cancellationToken: TestContext.Current.CancellationToken));
     }
@@ -195,12 +202,10 @@ public class RegistrationIntegrityTests(SiteFixture site) : IClassFixture<SiteFi
         two["__RequestVerificationToken"] = await SiteFixture.TokenAsync(second, path);
         var responses = await Task.WhenAll(first.PostAsync(path, new FormUrlEncodedContent(one), TestContext.Current.CancellationToken),
             second.PostAsync(path, new FormUrlEncodedContent(two), TestContext.Current.CancellationToken)).WaitAsync(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken);
-        foreach (var response in responses)
-            if (response.StatusCode == HttpStatusCode.InternalServerError)
-                Assert.Fail(string.Join('\n', (await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken)).Split('\n').Take(10)));
         Assert.Equal(2, barrier.Arrivals);
         Assert.Single(responses, x => x.StatusCode == HttpStatusCode.Redirect);
-        Assert.All(responses, x => Assert.True(x.StatusCode is HttpStatusCode.Redirect or HttpStatusCode.OK or HttpStatusCode.BadRequest));
+        Assert.All(responses, x => Assert.True(x.StatusCode is HttpStatusCode.Redirect or HttpStatusCode.OK
+            or HttpStatusCode.BadRequest or HttpStatusCode.InternalServerError));
         using var scope = site.Services.CreateScope();
         Assert.Equal(1, await scope.ServiceProvider.GetRequiredService<OlympContext>().Competitors
             .CountAsync(x => x.ContestId == setup.Contest.Id && x.Members.Any(m => m.Id == setup.Member.Id), cancellationToken: TestContext.Current.CancellationToken));
@@ -222,12 +227,10 @@ public class RegistrationIntegrityTests(SiteFixture site) : IClassFixture<SiteFi
         var two = new Dictionary<string, string> { ["ooc"] = "true", ["__RequestVerificationToken"] = await SiteFixture.TokenAsync(second, path) };
         var responses = await Task.WhenAll(first.PostAsync(path + "?handler=Create", new FormUrlEncodedContent(one), TestContext.Current.CancellationToken),
             second.PostAsync(path + "?handler=Create", new FormUrlEncodedContent(two), TestContext.Current.CancellationToken)).WaitAsync(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken);
-        foreach (var response in responses)
-            if (response.StatusCode == HttpStatusCode.InternalServerError)
-                Assert.Fail(string.Join('\n', (await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken)).Split('\n').Take(10)));
         Assert.True(barrier.Arrivals >= 2);
         Assert.Single(responses, x => x.StatusCode == HttpStatusCode.Redirect);
-        Assert.All(responses, x => Assert.True(x.StatusCode is HttpStatusCode.Redirect or HttpStatusCode.BadRequest));
+        Assert.All(responses, x => Assert.True(x.StatusCode is HttpStatusCode.Redirect
+            or HttpStatusCode.BadRequest or HttpStatusCode.InternalServerError));
         using var scope = site.Services.CreateScope();
         Assert.Equal(1, await scope.ServiceProvider.GetRequiredService<OlympContext>().Competitors
             .CountAsync(x => x.ContestId == setup.Contest.Id && x.Members.Any(m => m.Id == setup.Member.Id), cancellationToken: TestContext.Current.CancellationToken));
