@@ -123,30 +123,16 @@ public class EditModel(OlympContext context, ContestProblemService problems,
             throw new InvalidDataException(localizer["Select a statements PDF."]);
         if (PdfFile.Length <= 0 || PdfFile.Length > options.Value.MaxPdfBytes)
             throw new InvalidDataException(localizer["Invalid file size. Maximum: {0} MiB.", options.Value.MaxPdfBytes / 1024 / 1024]);
+
         using var target = new MemoryStream();
         await PdfFile.CopyToAsync(target, HttpContext.RequestAborted);
-        var data = target.ToArray();
-        if (!data.AsSpan().StartsWith("%PDF-"u8))
-            throw new InvalidDataException(localizer["The file is not a PDF."]);
-        var contest = await context.Contests.Include(x => x.ProblemPdf).AsTracking().SingleAsync(x => x.Id == id, HttpContext.RequestAborted);
-        if (contest.ProblemPdf is null)
-            contest.ProblemPdf = new Blob { Data = data };
-        else
-            contest.ProblemPdf.Data = data;
-        await context.SaveChangesAsync(HttpContext.RequestAborted);
+        await problems.UploadPdfAsync(id, target.ToArray(), HttpContext.RequestAborted);
         return localizer["Statements PDF uploaded."];
     });
 
     public Task<IActionResult> OnPostRemovePdfAsync(int id) => RunAsync(id, async () =>
     {
-        await using var transaction = await context.Database.BeginTransactionAsync(HttpContext.RequestAborted);
-        var blobId = await context.Contests.Where(x => x.Id == id).Select(x => x.ProblemPdfId).SingleAsync(HttpContext.RequestAborted);
-        await context.Contests.Where(x => x.Id == id).ExecuteUpdateAsync(s => s.SetProperty(x => x.ProblemPdfId, (int?)null), HttpContext.RequestAborted);
-        if (blobId is not null)
-            await context.Blobs.Where(b => b.Id == blobId && !context.Contests.Any(c =>
-                c.ProblemPdfId == b.Id || c.TestZipId == b.Id || c.FinalTableId == b.Id || c.OfficialTableId == b.Id))
-                .ExecuteDeleteAsync(HttpContext.RequestAborted);
-        await transaction.CommitAsync(HttpContext.RequestAborted);
+        await problems.RemovePdfAsync(id, HttpContext.RequestAborted);
         return localizer["Statements PDF removed."];
     });
 

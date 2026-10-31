@@ -16,6 +16,35 @@ public sealed class ContestProblemService(OlympContext context, ICheckerManager 
 {
     public const string BusyMessage = "A related submission is still being checked. Please try again after checking finishes.";
 
+    public async Task UploadPdfAsync(int contestId, byte[] data, CancellationToken token = default)
+    {
+        if (data.LongLength == 0 || data.LongLength > options.Value.MaxPdfBytes)
+            throw new InvalidDataException(localizer["Invalid file size. Maximum: {0} MiB.", options.Value.MaxPdfBytes / 1024 / 1024]);
+        if (!data.AsSpan().StartsWith("%PDF-"u8))
+            throw new InvalidDataException(localizer["The file is not a PDF."]);
+
+        var contest = await context.Contests.Include(x => x.ProblemPdf).AsTracking()
+            .SingleAsync(x => x.Id == contestId, token);
+        if (contest.ProblemPdf is null)
+            contest.ProblemPdf = new Blob { Data = data };
+        else
+            contest.ProblemPdf.Data = data;
+
+        await context.SaveChangesAsync(token);
+    }
+
+    public async Task RemovePdfAsync(int contestId, CancellationToken token = default)
+    {
+        var contest = await context.Contests.Include(x => x.ProblemPdf).AsTracking()
+            .SingleAsync(x => x.Id == contestId, token);
+        if (contest.ProblemPdf is not { } pdf)
+            return;
+
+        contest.ProblemPdf = null;
+        context.Blobs.Remove(pdf);
+        await context.SaveChangesAsync(token);
+    }
+
     public async Task<int> ImportAsync(int contestId, Stream source, CancellationToken token = default)
     {
         var imported = await ProblemArchive.ReadAsync(source, options.Value, localizer, token);
