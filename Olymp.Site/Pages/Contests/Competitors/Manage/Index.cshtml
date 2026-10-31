@@ -16,6 +16,14 @@
 	<button class="btn btn-danger" asp-route-handler="RemoveLogins" asp-route-id="@Model.Contest.Id">@Localizer["Remove logins"]</button>
 </form>
 
+@if (DateTimeOffset.Now > Model.Contest.EndTime) {
+	<form method="post" asp-page-handler="DeleteWithoutSubmissions" class="mb-3"
+		  data-confirm="@Localizer["Delete all participants without submissions or messages? This cannot be undone."]" onsubmit="return confirm(this.dataset.confirm)">
+		<button class="btn btn-outline-danger" type="submit">@Localizer["Delete participants without submissions"]</button>
+		<div class="form-text">@Localizer["Participants with submissions or messages will be kept."]</div>
+	</form>
+}
+
 <form class="col-md-6" enctype="multipart/form-data" method="post">
 	<div class="input-group">
 		<input type="file" asp-for="LoginsFile" class="form-control" accept=".csv" required>

@@ -9,6 +9,9 @@ namespace Olymp.Site.Services.Identity;
 
 public class OlympPasswordHasher : PasswordHasher<User>
 {
+    public override string HashPassword(User user, string password) =>
+        user is Competitor ? password : base.HashPassword(user, password);
+
     public override PasswordVerificationResult VerifyHashedPassword(User user, string hashedPassword, string providedPassword)
     {
         if (user is Competitor)

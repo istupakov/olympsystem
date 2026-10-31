@@ -408,6 +408,9 @@
   <data name="Registration information is incorrect." xml:space="preserve">
     <value>Регистрационная информация неверна.</value>
   </data>
+  <data name="Registration is not available for this contest." xml:space="preserve">
+    <value>Регистрация на это соревнование недоступна.</value>
+  </data>
   <data name="Remove logins" xml:space="preserve">
     <value>Удалить логины</value>
   </data>
@@ -753,14 +756,8 @@
   <data name="One or more participants are already registered for this contest." xml:space="preserve">
     <value>Один или несколько участников уже зарегистрированы в этом контесте.</value>
   </data>
-  <data name="Could not save the registration. Please try again." xml:space="preserve">
-    <value>Не удалось сохранить регистрацию. Повторите попытку.</value>
-  </data>
   <data name="The participant cannot be deleted because submissions or other related records exist." xml:space="preserve">
     <value>Нельзя удалить участника: есть посылки или другие связанные записи.</value>
-  </data>
-  <data name="Could not delete the participant. Please contact the administrator." xml:space="preserve">
-    <value>Не удалось удалить участника. Обратитесь к администратору.</value>
   </data>
   <data name="More than one account was found with this email. Specify the username or user ID." xml:space="preserve">
     <value>Найдено несколько аккаунтов с этим email. Укажите логин или ID пользователя.</value>
@@ -770,6 +767,27 @@
   </data>
   <data name="The file contains duplicate participant names." xml:space="preserve">
     <value>В файле повторяются имена участников.</value>
+  </data>
+  <data name="The file contains too few logins." xml:space="preserve">
+    <value>В файле недостаточно логинов.</value>
+  </data>
+  <data name="The file contains duplicate logins." xml:space="preserve">
+    <value>В файле повторяются логины.</value>
+  </data>
+  <data name="Delete participants without submissions" xml:space="preserve">
+    <value>Удалить участников без отправок</value>
+  </data>
+  <data name="Delete all participants without submissions or messages? This cannot be undone." xml:space="preserve">
+    <value>Удалить всех участников без отправок и сообщений? Это действие нельзя отменить.</value>
+  </data>
+  <data name="Participants with submissions or messages will be kept." xml:space="preserve">
+    <value>Участники с отправками или сообщениями будут сохранены.</value>
+  </data>
+  <data name="Participants without submissions can only be deleted after the contest has ended." xml:space="preserve">
+    <value>Удалять участников без отправок можно только после окончания соревнования.</value>
+  </data>
+  <data name="Deleted participants: {0}." xml:space="preserve">
+    <value>Удалено участников: {0}.</value>
   </data>
   <data name="Participant names can only be imported into individual contests." xml:space="preserve">
     <value>Импорт списка имён доступен только для личных контестов.</value>

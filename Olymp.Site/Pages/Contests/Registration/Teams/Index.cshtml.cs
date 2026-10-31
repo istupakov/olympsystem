@@ -1,16 +1,18 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Localization;
 
 using Olymp.Domain;
 using Olymp.Domain.Models;
+using Olymp.Site.Services;
+using Olymp.Site.Services.Contests;
 
 namespace Olymp.Site.Pages.Contests.Registration.Teams;
 
-public class IndexModel(OlympContext context, UserManager<User> userManager, ILogger<IndexModel> logger,
-    IStringLocalizer<SharedResource> localizer) : PageModel
+public class IndexModel(OlympContext context, UserManager<User> userManager,
+    CompetitorManagementService competitors) : PageModel
 {
     private readonly OlympContext _context = context;
     private readonly UserManager<User> _userManager = userManager;
@@ -19,6 +21,23 @@ public class IndexModel(OlympContext context, UserManager<User> userManager, ILo
     public IEnumerable<Organization> Organizations { get; private set; } = null!;
     public IEnumerable<Competitor> Teams { get; private set; } = null!;
     public int UserId { get; private set; }
+
+    public override async Task OnPageHandlerExecutionAsync(PageHandlerExecutingContext context, PageHandlerExecutionDelegate next)
+    {
+        var executed = await next();
+        IActionResult? result = executed.Exception switch
+        {
+            EntityNotFoundException => NotFound(),
+            IdentityOperationException identityError => BadRequest(identityError.Errors),
+            OperationValidationException error => BadRequest(error.Message),
+            _ => null
+        };
+        if (result is not null)
+        {
+            executed.Result = result;
+            executed.ExceptionHandled = true;
+        }
+    }
 
     public async Task<IActionResult> OnGetAsync(int id)
     {
@@ -57,8 +76,6 @@ public class IndexModel(OlympContext context, UserManager<User> userManager, ILo
             .SingleOrDefaultAsync(x => x.Id == id && !x.IsHidden);
 
         var team = await _context.Competitors
-            .Include(x => x.Members)
-            .AsTracking()
             .SingleOrDefaultAsync(x => x.ContestId == id && x.Id == teamId);
 
         if (contest is null || !contest.IsAcm || team is null)
@@ -70,22 +87,7 @@ public class IndexModel(OlympContext context, UserManager<User> userManager, ILo
             !orgIds.Contains(team.OrganizationId!.Value))
             return Forbid();
 
-        if (await _context.Submissions.AnyAsync(x => x.UserId == team.Id)
-            || await _context.Messages.AnyAsync(x => x.UserId == team.Id))
-            return BadRequest(localizer["The participant cannot be deleted because submissions or other related records exist."].Value);
-
-        team.Members.Clear();
-        try
-        {
-            var result = await _userManager.DeleteAsync(team);
-            if (!result.Succeeded)
-                return BadRequest(result.Errors);
-        }
-        catch (DbUpdateException ex)
-        {
-            logger.LogError(ex, "Failed to delete participant {CompetitorId}", team.Id);
-            return BadRequest(localizer["Could not delete the participant. Please contact the administrator."].Value);
-        }
+        await competitors.DeleteAsync(id, team.Id, HttpContext.RequestAborted);
 
         return RedirectToPage();
     }

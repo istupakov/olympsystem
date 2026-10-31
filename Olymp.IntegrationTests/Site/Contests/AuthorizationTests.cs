@@ -19,6 +19,68 @@ namespace Olymp.IntegrationTests.Site.Contests;
 public class AuthorizationTests(SiteFixture site) : IClassFixture<SiteFixture>
 {
     [Theory]
+    [InlineData(RoleNames.Jury, false)]
+    [InlineData(null, false)]
+    [InlineData(null, true)]
+    public async Task ParticipantPageRejectsAllManagementHandlersWithoutRoleAndContestPermission(string? role, bool grantContest)
+    {
+        var user = await site.AddUserAsync(role);
+        var contest = await site.AddContestAsync(grantContest ? user : null);
+        var participant = new Competitor
+        {
+            ContestId = contest.Id,
+            Contest = null!,
+            Name = "Protected participant",
+            Members = [],
+            Messages = [],
+            Submissions = []
+        };
+        using (var scope = site.Services.CreateScope())
+            Assert.True((await scope.ServiceProvider.GetRequiredService<UserManager<User>>().CreateAsync(participant)).Succeeded);
+
+        using var client = await site.LoginAsync(user);
+        var path = $"/Contests/Competitors/Manage/{contest.Id}";
+        using var page = await client.GetAsync(path, TestContext.Current.CancellationToken);
+        Assert.Contains("AccessDenied", page.Headers.Location!.ToString());
+        const string tokenPage = "/Identity/Account/Manage";
+        foreach (var action in new[] { "Approve", "Disapprove", "InCompetition", "OutOfCompetition",
+                     "Disqualify", "CancelDisqualification", "Delete", "Manage" })
+        {
+            using var response = await SiteFixture.PostAsync(client, path, new()
+            {
+                ["action"] = action,
+                ["userId"] = participant.Id.ToString()
+            }, tokenPage);
+            Assert.Contains("AccessDenied", response.Headers.Location!.ToString());
+        }
+        foreach (var handler in new[] { "ApproveAll", "CreateRandomLogins", "RemoveLogins", "DeleteWithoutSubmissions" })
+        {
+            using var response = await SiteFixture.PostAsync(client, path + "?handler=" + handler, [], tokenPage);
+            Assert.Contains("AccessDenied", response.Headers.Location!.ToString());
+        }
+        foreach (var (handler, field, content) in new[]
+        {
+            ("UploadParticipants", "ParticipantsFile", "Forbidden participant"),
+            ("UploadLogins", "LoginsFile", "forbidden-login,Password123")
+        })
+        {
+            using var response = await SiteFixture.UploadAsync(client, path + "?handler=" + handler,
+                field, System.Text.Encoding.UTF8.GetBytes(content), "participants.csv", tokenPage);
+            Assert.Contains("AccessDenied", response.Headers.Location!.ToString());
+        }
+
+        using var final = site.Services.CreateScope();
+        var saved = Assert.Single(await final.ServiceProvider.GetRequiredService<OlympContext>().Competitors
+            .Where(x => x.ContestId == contest.Id).ToListAsync(TestContext.Current.CancellationToken));
+        Assert.Equal(participant.Id, saved.Id);
+        Assert.False(saved.IsApproved);
+        Assert.False(saved.IsOutOfCompetition);
+        Assert.False(saved.IsDisqualified);
+        Assert.Null(saved.UserName);
+        Assert.Null(saved.PasswordHash);
+    }
+
+    [Theory]
     [InlineData(RoleNames.Jury, "school", "en", "Hidden participant")]
     [InlineData(RoleNames.Jury, "acm", "ru", "Скрытый участник")]
     [InlineData(RoleNames.Admin, "acm", "en", "Hidden participant")]
