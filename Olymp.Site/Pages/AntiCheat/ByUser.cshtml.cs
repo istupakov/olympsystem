@@ -2,14 +2,14 @@ using System.ComponentModel.DataAnnotations;
 
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Localization;
 
-using Olymp.Checker;
-using Olymp.Domain;
+using Olymp.Site.Services;
+using Olymp.Site.Services.AntiCheat;
 
 namespace Olymp.Site.Pages.AntiCheat;
 
-public class ByUserModel(OlympContext context, ISubmissionSimilarityService submissionSimilarityService) : PageModel
+public class ByUserModel(AntiCheatReportService reports, IStringLocalizer<SharedResource> localizer) : PageModel
 {
     [BindProperty]
     public InputModel Input { get; set; } = new();
@@ -32,31 +32,21 @@ public class ByUserModel(OlympContext context, ISubmissionSimilarityService subm
     {
     }
 
-    public async Task<IActionResult> OnPost()
+    public async Task<IActionResult> OnPost(CancellationToken token)
     {
         if (!ModelState.IsValid)
         {
             return Page();
         }
 
-        var users = await context.Users.AsSplitQuery()
-                                    .Include(x => x.Submissions)
-                                    .ThenInclude(x => x.Problem)
-                                    .Include(x => x.Submissions)
-                                    .ThenInclude(x => x.Compilator)
-                                    .ToListAsync();
-        var user1 = users.FirstOrDefault(u => u.UserName == Input.UserName || u.Name == Input.UserName);
-        if (user1 == null) return Page();
-
-        Reports = from user2 in users
-                  let cases = from sol1 in user1.Submissions
-                              from sol2 in user2.Submissions
-                              where sol1.ProblemId == sol2.ProblemId
-                              let similarity = submissionSimilarityService.CompareSimilarity(sol1.Text, sol2.Text)
-                              where similarity > Input.Threshold!.Value
-                              select new PlagiarismCase(sol1, sol2, similarity)
-                  where cases.Any()
-                  select new PlagiarismReport(user1, user2, cases);
+        try
+        {
+            Reports = await reports.FindPlagiarismByUserAsync(Input.UserName!, Input.Threshold!.Value, token);
+        }
+        catch (EntityNotFoundException)
+        {
+            ModelState.AddModelError($"{nameof(Input)}.{nameof(Input.UserName)}", localizer["User not found."]);
+        }
 
         return Page();
     }

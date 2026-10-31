@@ -1002,4 +1002,10 @@
   <data name="Hidden participant" xml:space="preserve">
     <value>Скрытый участник</value>
   </data>
+  <data name="The end date must be on or after the start date." xml:space="preserve">
+    <value>Дата окончания должна быть не раньше даты начала.</value>
+  </data>
+  <data name="User not found." xml:space="preserve">
+    <value>Пользователь не найден.</value>
+  </data>
 </root>
