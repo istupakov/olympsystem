@@ -981,4 +981,7 @@
   <data name="The {0} field must contain Latin letters, with words separated by a single space or hyphen." xml:space="preserve">
     <value>В поле «{0}» допускаются латинские буквы. Слова разделяйте одним пробелом или дефисом.</value>
   </data>
+  <data name="Hidden participant" xml:space="preserve">
+    <value>Скрытый участник</value>
+  </data>
 </root>

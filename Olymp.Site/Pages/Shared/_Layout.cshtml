@@ -27,7 +27,7 @@
 					<span>OlympSystem</span>
 				</a>
 				<div id="site-navigation" class="navbar-collapse collapse justify-content-between order-3 order-xl-1">
-					<ul class="navbar-nav flex-grow-1">
+					<ul class="navbar-nav navbar-menu flex-grow-1">
 						<li class="nav-item">
 							<a class="nav-link @(currentPage is "/Index"? "active": null)" asp-area="" asp-page="/Index">@Localizer["News"]</a>
 						</li>
@@ -63,11 +63,11 @@
 							<li class="nav-item">
 								<a class="nav-link @(currentPage is "/Checkers/Index"? "active": null)" asp-area="" asp-page="/Checkers/Index">@Localizer["Checkers"]</a>
 							</li>
-						}
-						@if (User.IsInRole(RoleNames.Admin)) {
-							<li class="nav-item">
-								<a class="nav-link @(currentPage is "/Users/Index"? "active": null)" asp-area="" asp-page="/Users/Index">@Localizer["Users"]</a>
-							</li>
+							@if (User.IsInRole(RoleNames.Admin)) {
+								<li class="nav-item">
+									<a class="nav-link @(currentPage is "/Users/Index"? "active": null)" asp-area="" asp-page="/Users/Index">@Localizer["Users"]</a>
+								</li>
+							}
 							<li class="nav-item">
 								<a class="nav-link @(currentPage is "/AntiCheat/Index"? "active": null)" asp-area="" asp-page="/AntiCheat/Index">@Localizer["AntiCheat"]</a>
 							</li>

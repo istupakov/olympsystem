@@ -18,6 +18,66 @@ namespace Olymp.IntegrationTests.Site.Contests;
 [Collection("Contest management")]
 public class AuthorizationTests(SiteFixture site) : IClassFixture<SiteFixture>
 {
+    [Theory]
+    [InlineData(RoleNames.Jury, "school", "en", "Hidden participant")]
+    [InlineData(RoleNames.Jury, "acm", "ru", "Скрытый участник")]
+    [InlineData(RoleNames.Admin, "acm", "en", "Hidden participant")]
+    [InlineData(RoleNames.Admin, "school", "ru", "Скрытый участник")]
+    public async Task HiddenParticipantsCanBeManagedButStayOutOfPublicList(string role, string prefix, string culture, string badge)
+    {
+        var manager = await site.AddUserAsync(role);
+        var contest = await site.AddContestAsync(manager, prefix);
+        var competitor = new Competitor
+        {
+            ContestId = contest.Id,
+            Contest = null!,
+            Name = "Hidden participant " + Guid.NewGuid().ToString("N"),
+            IsHidden = true,
+            SecurityStamp = Guid.NewGuid().ToString(),
+            Members = [],
+            Messages = [],
+            Submissions = []
+        };
+        using (var scope = site.Services.CreateScope())
+        {
+            await scope.ServiceProvider.GetRequiredService<OlympContext>().Contests.Where(x => x.Id == contest.Id)
+                .ExecuteUpdateAsync(s => s.SetProperty(x => x.IsHidden, false), TestContext.Current.CancellationToken);
+            Assert.True((await scope.ServiceProvider.GetRequiredService<UserManager<User>>().CreateAsync(competitor)).Succeeded);
+        }
+        using var client = await site.LoginAsync(manager);
+        client.DefaultRequestHeaders.AcceptLanguage.ParseAdd(culture);
+        var path = $"/Contests/Competitors/Manage/{contest.Id}";
+        var html = WebUtility.HtmlDecode(await client.GetStringAsync(path, TestContext.Current.CancellationToken));
+        Assert.Contains(competitor.Name, html);
+        Assert.Contains($"<span class=\"badge text-bg-secondary\">{badge}</span>", html);
+        Assert.Equal(HttpStatusCode.Redirect, (await SiteFixture.PostAsync(client, path, new()
+        {
+            ["userId"] = competitor.Id.ToString(),
+            ["action"] = "Approve"
+        })).StatusCode);
+        using (var scope = site.Services.CreateScope())
+        {
+            var saved = await scope.ServiceProvider.GetRequiredService<OlympContext>().Competitors
+                .SingleAsync(x => x.Id == competitor.Id, TestContext.Current.CancellationToken);
+            Assert.True(saved.IsApproved);
+            Assert.True(saved.IsHidden);
+        }
+        var publicPath = $"/Contests/Competitors/{contest.Id}";
+        Assert.DoesNotContain(competitor.Name, await client.GetStringAsync(publicPath, TestContext.Current.CancellationToken));
+        using var guest = site.CreateClient(new() { AllowAutoRedirect = false, BaseAddress = new("https://localhost") });
+        Assert.DoesNotContain(competitor.Name, await guest.GetStringAsync(publicPath, TestContext.Current.CancellationToken));
+
+        var otherJury = await site.AddUserAsync(RoleNames.Jury);
+        using var otherClient = await site.LoginAsync(otherJury);
+        Assert.Contains("AccessDenied", (await otherClient.GetAsync(path, TestContext.Current.CancellationToken)).Headers.Location!.ToString());
+        using var deniedPost = await SiteFixture.PostAsync(otherClient, path, new()
+        {
+            ["userId"] = competitor.Id.ToString(),
+            ["action"] = "Disqualify"
+        }, "/Contests/Edit");
+        Assert.Contains("AccessDenied", deniedPost.Headers.Location!.ToString());
+    }
+
     [Fact]
     public async Task AmbiguousEmailLookupRequiresUsernameOrId()
     {

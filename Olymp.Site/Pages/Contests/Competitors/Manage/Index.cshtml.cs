@@ -63,7 +63,7 @@ public class IndexModel(OlympContext context, UserManager<User> userManager,
             return NotFound();
 
         Contest = contest;
-        Competitors = Contest.Competitors.Where(x => !x.IsHidden);
+        Competitors = Contest.Competitors;
         ViewData["IsManage"] = true;
 
         return Page();

@@ -49,7 +49,12 @@
 	<tbody>
 		@foreach (var team in Model.Competitors!) {
 			<tr>
-				<td>@team.Name</td>
+				<td>
+					@team.Name
+					@if (team.IsHidden) {
+						<span class="badge text-bg-secondary">@Localizer["Hidden participant"]</span>
+					}
+				</td>
 				<td>
 					@if (team.Members.Count == 1 && team.Members.Single() is OlympUser single) {
 						<a href="mailto:@single.Email">@single.Name</a>

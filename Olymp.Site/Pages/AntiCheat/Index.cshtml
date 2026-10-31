@@ -1,16 +1,18 @@
 @page
-@attribute [Authorize(Policy = PolicyNames.Admin)]
+@attribute [Authorize(Policy = PolicyNames.JuryOrAdmin)]
 @model IndexModel
 @{
     ViewData["Title"] = Localizer["AntiCheat"];
 }
 <h1>@ViewData["Title"]</h1>
 
-<div class="btn-group">
-    <a class="btn btn-info" asp-page="./PlagiarismTest">@Localizer["Plagiarism Test"]</a>
-    <a class="btn btn-info" asp-page="./AIDetectionTest">@Localizer["AI Detection Test"]</a>
-    <a class="btn btn-primary" asp-page="./ByDate">@Localizer["ByDate"]</a>
-</div>
+@if (User.IsInRole(RoleNames.Admin)) {
+    <div class="btn-group">
+        <a class="btn btn-info" asp-page="./PlagiarismTest">@Localizer["Plagiarism Test"]</a>
+        <a class="btn btn-info" asp-page="./AIDetectionTest">@Localizer["AI Detection Test"]</a>
+        <a class="btn btn-primary" asp-page="./ByDate">@Localizer["ByDate"]</a>
+    </div>
+}
 
 <form method="post">
     <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>

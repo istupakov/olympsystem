@@ -9,6 +9,7 @@ using Microsoft.Extensions.Localization;
 using Olymp.Checker;
 using Olymp.Domain;
 using Olymp.Domain.Models;
+using Olymp.Site.Services.Authorization;
 
 namespace Olymp.Site.Pages.AntiCheat;
 
@@ -48,8 +49,10 @@ public class IndexModel(OlympContext context, ISubmissionSimilarityService submi
 
     public async Task LoadAsync()
     {
-        var contests = await _context.Contests.OrderBy(x => x.StartTime).ToListAsync();
-        ContestList = new SelectList(contests, nameof(Contest.Id), nameof(Contest.Name));
+        var contests = await _context.Contests.OrderBy(x => x.StartTime)
+            .Select(x => new { x.Id, x.Name }).ToListAsync();
+        ContestList = new SelectList(contests.Where(x => ContestAccess.CanManage(User, x.Id)),
+            nameof(Contest.Id), nameof(Contest.Name));
     }
 
     public async Task<IActionResult> OnGet()
@@ -61,6 +64,12 @@ public class IndexModel(OlympContext context, ISubmissionSimilarityService submi
     public async Task<IActionResult> OnPost(string action, CancellationToken token)
     {
         await LoadAsync();
+
+        if (Input.ContestId is int contestId && !ContestAccess.CanManage(User, contestId))
+            return Forbid();
+
+        if (!ModelState.IsValid)
+            return Page();
 
         var contest = await _context.Contests.AsSplitQuery()
                                     .Include(x => x.Competitors)
