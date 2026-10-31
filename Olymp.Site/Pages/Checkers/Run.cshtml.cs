@@ -15,9 +15,6 @@ public class RunModel(ICheckerManager checkerManager,
     public const int TimeLimitSeconds = 1;
     public const int MemoryLimitMb = 128;
 
-    private readonly ICheckerManager _checkerManager = checkerManager;
-    private readonly IStringLocalizer<SharedResource> _localizer = localizer;
-
     public IReadOnlyList<SelectListItem> CheckerList { get; private set; } = [];
     public IReadOnlyList<SelectListItem> CompilatorList { get; private set; } = [];
 
@@ -46,7 +43,7 @@ public class RunModel(ICheckerManager checkerManager,
 
     private void Load()
     {
-        var checkers = _checkerManager.Checkers.Values.ToArray();
+        var checkers = checkerManager.Checkers.Values.ToArray();
         CheckerList = [.. checkers.Select(x =>
             new SelectListItem { Text = $"{x.Name} ({x.Id})", Value = x.Id.ToString() })];
 
@@ -63,7 +60,7 @@ public class RunModel(ICheckerManager checkerManager,
 
     public void OnGet()
     {
-        var checkers = _checkerManager.Checkers.Values.ToArray();
+        var checkers = checkerManager.Checkers.Values.ToArray();
         if (checkers.Length == 1)
             Input.CheckerId = checkers[0].Id;
 
@@ -78,10 +75,10 @@ public class RunModel(ICheckerManager checkerManager,
             return Page();
 
         if (Input.CheckerId is not { } checkerId
-            || !_checkerManager.Checkers.TryGetValue(checkerId, out var checker))
+            || !checkerManager.Checkers.TryGetValue(checkerId, out var checker))
         {
             ModelState.AddModelError($"{nameof(Input)}.{nameof(Input.CheckerId)}",
-                _localizer["The selected runner is no longer connected."]);
+                localizer["The selected runner is no longer connected."]);
             return Page();
         }
 
@@ -89,7 +86,7 @@ public class RunModel(ICheckerManager checkerManager,
         if (configuration is null)
         {
             ModelState.AddModelError($"{nameof(Input)}.{nameof(Input.CompilatorName)}",
-                _localizer["The selected compilator is unavailable on this runner."]);
+                localizer["The selected compilator is unavailable on this runner."]);
             return Page();
         }
 
@@ -99,16 +96,16 @@ public class RunModel(ICheckerManager checkerManager,
                 TimeSpan.FromSeconds(TimeLimitSeconds), MemoryLimitMb, token);
         }
         catch (Exception) when (!token.IsCancellationRequested
-            && (!_checkerManager.Checkers.TryGetValue(checkerId, out var current) || !ReferenceEquals(current, checker)))
+            && (!checkerManager.Checkers.TryGetValue(checkerId, out var current) || !ReferenceEquals(current, checker)))
         {
             ModelState.AddModelError($"{nameof(Input)}.{nameof(Input.CheckerId)}",
-                _localizer["The selected runner disconnected during execution. Select a connected runner and try again."]);
+                localizer["The selected runner disconnected during execution. Select a connected runner and try again."]);
             Load();
         }
         catch (NotSupportedException) when (!token.IsCancellationRequested)
         {
             ModelState.AddModelError($"{nameof(Input)}.{nameof(Input.CompilatorName)}",
-                _localizer["The selected compilator is unavailable on this runner."]);
+                localizer["The selected compilator is unavailable on this runner."]);
         }
 
         return Page();

@@ -12,10 +12,6 @@ namespace Olymp.Site.Pages.AntiCheat;
 
 public class PlagiarismTestModel(OlympContext context, ISubmissionSimilarityService submissionSimilarityService, IStringLocalizer<SharedResource> localizer) : PageModel
 {
-    private readonly OlympContext _context = context;
-    private readonly ISubmissionSimilarityService _submissionSimilarityService = submissionSimilarityService;
-    private readonly IStringLocalizer<SharedResource> _localizer = localizer;
-
     [BindProperty]
     public InputModel Input { get; set; } = new();
 
@@ -34,22 +30,21 @@ public class PlagiarismTestModel(OlympContext context, ISubmissionSimilarityServ
 
     public void OnGet()
     {
-
     }
 
     public async Task<IActionResult> OnPost()
     {
-        var submission1 = await _context.Submissions.SingleOrDefaultAsync(x => x.Id == Input.SubmissionId1);
+        var submission1 = await context.Submissions.SingleOrDefaultAsync(x => x.Id == Input.SubmissionId1);
         if (submission1 is null)
-            ModelState.AddModelError($"{nameof(Input)}.{nameof(Input.SubmissionId1)}", _localizer["Invalid value"]);
+            ModelState.AddModelError($"{nameof(Input)}.{nameof(Input.SubmissionId1)}", localizer["Invalid value"]);
 
-        var submission2 = await _context.Submissions.SingleOrDefaultAsync(x => x.Id == Input.SubmissionId2);
+        var submission2 = await context.Submissions.SingleOrDefaultAsync(x => x.Id == Input.SubmissionId2);
         if (submission2 is null)
-            ModelState.AddModelError($"{nameof(Input)}.{nameof(Input.SubmissionId2)}", _localizer["Invalid value"]);
+            ModelState.AddModelError($"{nameof(Input)}.{nameof(Input.SubmissionId2)}", localizer["Invalid value"]);
 
         if (ModelState.IsValid)
         {
-            Similarity = _submissionSimilarityService.CompareSimilarity(submission1!.Text, submission2!.Text);
+            Similarity = submissionSimilarityService.CompareSimilarity(submission1!.Text, submission2!.Text);
         }
 
         return Page();

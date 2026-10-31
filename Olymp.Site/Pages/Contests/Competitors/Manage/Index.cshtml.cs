@@ -18,8 +18,6 @@ public class IndexModel(OlympContext context,
     CompetitorManagementService participants,
     IStringLocalizer<SharedResource> localizer) : PageModel
 {
-    private readonly OlympContext _context = context;
-
     public Contest Contest { get; private set; } = null!;
     public IEnumerable<Competitor>? Competitors { get; private set; } = null!;
 
@@ -32,12 +30,12 @@ public class IndexModel(OlympContext context,
     [TempData]
     public string? StatusMessage { get; set; }
 
-    public override async Task OnPageHandlerExecutionAsync(PageHandlerExecutingContext context, PageHandlerExecutionDelegate next)
+    public override async Task OnPageHandlerExecutionAsync(PageHandlerExecutingContext handlerContext, PageHandlerExecutionDelegate next)
     {
-        if (!context.HandlerArguments.TryGetValue("id", out var value) || value is not int id
+        if (!handlerContext.HandlerArguments.TryGetValue("id", out var value) || value is not int id
             || !ContestAccess.CanManage(User, id))
         {
-            context.Result = Forbid();
+            handlerContext.Result = Forbid();
             return;
         }
         var executed = await next();
@@ -57,7 +55,7 @@ public class IndexModel(OlympContext context,
 
     public async Task<IActionResult> OnGetAsync(int id)
     {
-        var contest = await _context.Contests
+        var contest = await context.Contests
             .Include(x => x.Competitors.OrderBy(x => x.RegistrationDate))
             .ThenInclude(x => x.Organization)
             .Include(x => x.Competitors)
@@ -83,7 +81,7 @@ public class IndexModel(OlympContext context,
         {
             if (!User.IsInRole(RoleNames.Admin))
                 return Forbid();
-            if (!await _context.Competitors.AnyAsync(x => x.Id == userId && x.ContestId == id, HttpContext.RequestAborted))
+            if (!await context.Competitors.AnyAsync(x => x.Id == userId && x.ContestId == id, HttpContext.RequestAborted))
                 return NotFound();
             return RedirectToPage("/Users/Manage", new { id = userId });
         }

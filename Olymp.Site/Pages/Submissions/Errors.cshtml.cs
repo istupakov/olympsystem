@@ -10,21 +10,18 @@ namespace Olymp.Site.Pages.Submissions;
 
 public class ErrorsModel(OlympContext context, IAuthorizationService authorizationService) : PageModel
 {
-    private readonly OlympContext _context = context;
-    private readonly IAuthorizationService _authorizationService = authorizationService;
-
     public string Error { get; private set; } = null!;
 
     public async Task<IActionResult> OnGetAsync(int id)
     {
-        var submission = await _context.Submissions
+        var submission = await context.Submissions
             .Include(x => x.CheckResults.OrderBy(x => x.CheckTime))
             .SingleOrDefaultAsync(x => x.Id == id);
 
         if (submission is null || submission.StatusCode != -1)
             return NotFound();
 
-        var res = await _authorizationService.AuthorizeAsync(User, submission,
+        var res = await authorizationService.AuthorizeAsync(User, submission,
             new OperationAuthorizationRequirement { Name = OperationNames.ViewSolution });
 
         if (!res.Succeeded)

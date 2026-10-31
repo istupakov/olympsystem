@@ -12,12 +12,9 @@ namespace Olymp.Site.Pages.Submissions;
 
 public class DownloadModel(OlympContext context, IAuthorizationService authorizationService) : PageModel
 {
-    private readonly OlympContext _context = context;
-    private readonly IAuthorizationService _authorizationService = authorizationService;
-
     public async Task<IActionResult> OnGetAsync(int id)
     {
-        var data = await _context.Submissions
+        var data = await context.Submissions
             .Where(x => x.Id == id)
             .Select(submission => new { submission, submission.Compilator.SourceExtension })
             .SingleOrDefaultAsync();
@@ -25,7 +22,7 @@ public class DownloadModel(OlympContext context, IAuthorizationService authoriza
         if (data is null)
             return NotFound();
 
-        var res = await _authorizationService.AuthorizeAsync(User, data.submission,
+        var res = await authorizationService.AuthorizeAsync(User, data.submission,
             new OperationAuthorizationRequirement { Name = OperationNames.ViewSolution });
 
         if (!res.Succeeded)

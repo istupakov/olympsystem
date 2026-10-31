@@ -10,12 +10,10 @@ namespace Olymp.Site.Pages.Checkers;
 public class IndexModel(ICheckerManager checkerManager,
     IStringLocalizer<SharedResource> localizer) : PageModel
 {
-    private readonly ICheckerManager _checkerManager = checkerManager;
-
     [TempData]
     public string? StatusMessage { get; set; }
 
-    public IEnumerable<ICheckerService> Checkers => _checkerManager.Checkers.Values;
+    public IEnumerable<ICheckerService> Checkers => checkerManager.Checkers.Values;
 
     public async Task<IActionResult> OnPostAddCompilatorsAsync(Guid checkerId, CancellationToken token)
     {
@@ -24,7 +22,7 @@ public class IndexModel(ICheckerManager checkerManager,
 
         try
         {
-            var count = await _checkerManager.AddCompilators(checkerId, token);
+            var count = await checkerManager.AddCompilators(checkerId, token);
             StatusMessage = localizer["Added or enabled compilators: {0}", count];
             return RedirectToPage();
         }
@@ -42,7 +40,7 @@ public class IndexModel(ICheckerManager checkerManager,
 
         try
         {
-            var count = await _checkerManager.DisableCompilatorsWithoutRunner(token);
+            var count = await checkerManager.DisableCompilatorsWithoutRunner(token);
             StatusMessage = localizer["Disabled compilators: {0}", count];
             return RedirectToPage();
         }

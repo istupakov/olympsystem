@@ -9,13 +9,11 @@ namespace Olymp.Site.Pages.Submissions;
 
 public class LogModel(OlympContext context) : PageModel
 {
-    private readonly OlympContext _context = context;
-
     public IEnumerable<CheckResult> CheckResults { get; private set; } = null!;
 
     public async Task<IActionResult> OnGetAsync(int id)
     {
-        CheckResults = await _context.CheckResults
+        CheckResults = await context.CheckResults
             .Where(x => x.SubmissionId == id)
             .OrderBy(x => x.CheckTime)
             .Include(x => x.Submission)

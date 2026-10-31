@@ -17,11 +17,6 @@ namespace Olymp.Site.Pages.Contests.Submits;
 public class IndexModel(OlympContext context, UserManager<User> userManager,
     IAuthorizationService authorizationService, IStringLocalizer<SharedResource> localizer) : PageModel
 {
-    private readonly OlympContext _context = context;
-    private readonly UserManager<User> _userManager = userManager;
-    private readonly IAuthorizationService _authorizationService = authorizationService;
-    private readonly IStringLocalizer<SharedResource> _localizer = localizer;
-
     public Contest Contest { get; private set; } = null!;
     public SelectList CompilatorList { get; private set; } = null!;
     public SelectList ProblemList { get; private set; } = null!;
@@ -51,13 +46,13 @@ public class IndexModel(OlympContext context, UserManager<User> userManager,
 
     private async Task<bool> LoadAsync(int id)
     {
-        var userId = int.Parse(_userManager.GetUserId(User)!);
-        var competitorId = await _context.Competitors
+        var userId = int.Parse(userManager.GetUserId(User)!);
+        var competitorId = await context.Competitors
             .Where(x => x.ContestId == id && x.Members.Any(x => x.Id == userId))
             .Select(x => x.Id)
             .SingleOrDefaultAsync();
 
-        var contest = await _context.Contests
+        var contest = await context.Contests
             .Include(x => x.Problems.Where(x => x.IsActive).OrderBy(x => x.Number))
             .ThenInclude(x => x.Submissions.Where(x => x.UserId == userId || x.UserId == competitorId)
                 .OrderByDescending(x => x.CommitTime))
@@ -72,7 +67,7 @@ public class IndexModel(OlympContext context, UserManager<User> userManager,
         if (contest is null)
             return false;
 
-        Compilators = await _context.Compilators
+        Compilators = await context.Compilators
             .Where(x => x.IsActive)
             .OrderBy(x => x.Description)
             .ThenBy(x => x.Name)
@@ -97,7 +92,7 @@ public class IndexModel(OlympContext context, UserManager<User> userManager,
         if (!load)
             return NotFound();
 
-        var res = await _authorizationService.AuthorizeAsync(User, Contest,
+        var res = await authorizationService.AuthorizeAsync(User, Contest,
             new OperationAuthorizationRequirement { Name = OperationNames.SubmitSolution });
 
         return res.Succeeded ? Page() : Forbid();
@@ -109,23 +104,23 @@ public class IndexModel(OlympContext context, UserManager<User> userManager,
         if (!load)
             return NotFound();
 
-        var res = await _authorizationService.AuthorizeAsync(User, Contest,
+        var res = await authorizationService.AuthorizeAsync(User, Contest,
             new OperationAuthorizationRequirement { Name = OperationNames.SubmitSolution });
 
         if (!res.Succeeded)
             return Forbid();
 
         if (!Compilators.Any(x => x.Id == Input.CompilatorId))
-            ModelState.AddModelError($"{nameof(Input)}.{nameof(Input.CompilatorId)}", _localizer["Invalid value"]);
+            ModelState.AddModelError($"{nameof(Input)}.{nameof(Input.CompilatorId)}", localizer["Invalid value"]);
 
         if (!Contest.Problems.Any(x => x.Id == Input.ProblemId))
-            ModelState.AddModelError($"{nameof(Input)}.{nameof(Input.ProblemId)}", _localizer["Invalid value"]);
+            ModelState.AddModelError($"{nameof(Input)}.{nameof(Input.ProblemId)}", localizer["Invalid value"]);
 
         if (!ModelState.IsValid)
             return Page();
 
-        var userId = int.Parse(_userManager.GetUserId(User)!);
-        var competitorId = await _context.Competitors
+        var userId = int.Parse(userManager.GetUserId(User)!);
+        var competitorId = await context.Competitors
             .Where(x => x.ContestId == id && x.Members.Any(x => x.Id == userId))
             .Select(x => (int?)x.Id)
             .SingleOrDefaultAsync();
@@ -145,8 +140,8 @@ public class IndexModel(OlympContext context, UserManager<User> userManager,
             CheckResults = []
         };
 
-        _context.Submissions.Add(submission);
-        await _context.SaveChangesAsync();
+        context.Submissions.Add(submission);
+        await context.SaveChangesAsync();
 
         return RedirectToPage(null, null, "submissions-tab-pane");
     }

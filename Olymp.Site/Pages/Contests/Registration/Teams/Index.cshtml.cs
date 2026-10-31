@@ -14,15 +14,12 @@ namespace Olymp.Site.Pages.Contests.Registration.Teams;
 public class IndexModel(OlympContext context, UserManager<User> userManager,
     CompetitorManagementService competitors) : PageModel
 {
-    private readonly OlympContext _context = context;
-    private readonly UserManager<User> _userManager = userManager;
-
     public Contest Contest { get; private set; } = null!;
     public IEnumerable<Organization> Organizations { get; private set; } = null!;
     public IEnumerable<Competitor> Teams { get; private set; } = null!;
     public int UserId { get; private set; }
 
-    public override async Task OnPageHandlerExecutionAsync(PageHandlerExecutingContext context, PageHandlerExecutionDelegate next)
+    public override async Task OnPageHandlerExecutionAsync(PageHandlerExecutingContext handlerContext, PageHandlerExecutionDelegate next)
     {
         var executed = await next();
         IActionResult? result = executed.Exception switch
@@ -41,7 +38,7 @@ public class IndexModel(OlympContext context, UserManager<User> userManager,
 
     public async Task<IActionResult> OnGetAsync(int id)
     {
-        var contest = await _context.Contests
+        var contest = await context.Contests
             .SingleOrDefaultAsync(x => x.Id == id && !x.IsHidden);
 
         if (contest is null || !contest.IsAcm)
@@ -52,12 +49,12 @@ public class IndexModel(OlympContext context, UserManager<User> userManager,
 
         Contest = contest;
 
-        UserId = int.Parse(_userManager.GetUserId(User)!);
+        UserId = int.Parse(userManager.GetUserId(User)!);
         var orgIds = User.Claims.Where(x => x.Type == ClaimNames.CoachOrg).Select(x => int.Parse(x.Value)).ToList();
-        Organizations = await _context.Organizations
+        Organizations = await context.Organizations
             .Where(x => orgIds.Contains(x.Id))
             .ToListAsync();
-        Teams = await _context.Competitors
+        Teams = await context.Competitors
             .Where(x => x.ContestId == id)
             .Where(x => orgIds.Contains(x.OrganizationId!.Value))
             .Include(x => x.Coach)
@@ -72,16 +69,16 @@ public class IndexModel(OlympContext context, UserManager<User> userManager,
 
     public async Task<IActionResult> OnPostDeleteAsync(int id, int teamId)
     {
-        var contest = await _context.Contests
+        var contest = await context.Contests
             .SingleOrDefaultAsync(x => x.Id == id && !x.IsHidden);
 
-        var team = await _context.Competitors
+        var team = await context.Competitors
             .SingleOrDefaultAsync(x => x.ContestId == id && x.Id == teamId);
 
         if (contest is null || !contest.IsAcm || team is null)
             return NotFound();
 
-        var coachId = int.Parse(_userManager.GetUserId(User)!);
+        var coachId = int.Parse(userManager.GetUserId(User)!);
         var orgIds = User.Claims.Where(x => x.Type == ClaimNames.CoachOrg).Select(x => int.Parse(x.Value)).ToList();
         if (DateTimeOffset.Now >= contest.StartTime || team.IsApproved || team.CoachId != coachId ||
             !orgIds.Contains(team.OrganizationId!.Value))

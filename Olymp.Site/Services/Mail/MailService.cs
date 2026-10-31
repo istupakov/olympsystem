@@ -31,7 +31,6 @@ public class MailServiceConfiguration
 
 public class MailService(ILogger<MailService> logger, IOptions<MailServiceConfiguration> mailServiceConfiguration) : IEmailSender
 {
-    private readonly ILogger _logger = logger;
     private readonly MailServiceConfiguration _configuration = mailServiceConfiguration.Value;
 
     public Task SendEmailAsync(string email, string subject, string htmlMessage)
@@ -42,7 +41,7 @@ public class MailService(ILogger<MailService> logger, IOptions<MailServiceConfig
             [MailboxAddress.Parse(email)],
             subject, builder.ToMessageBody());
 
-        _logger.LogInformation("Sending an email to {email} with the subject '{subject}'", email, subject);
+        logger.LogInformation("Sending an email to {email} with the subject '{subject}'", email, subject);
         _ = Task.Run(() => SendAsync(message, CancellationToken.None));
         return Task.CompletedTask;
     }
@@ -55,11 +54,11 @@ public class MailService(ILogger<MailService> logger, IOptions<MailServiceConfig
             await client.ConnectAsync(_configuration.SmtpServer, _configuration.Port, SecureSocketOptions.StartTls, cancellationToken);
             await client.AuthenticateAsync(_configuration.UserName, _configuration.Password, cancellationToken);
             await client.SendAsync(mailMessage, cancellationToken);
-            _logger.LogInformation("Email to {to} sent successfully", mailMessage.To.ToString());
+            logger.LogInformation("Email to {to} sent successfully", mailMessage.To.ToString());
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error sending email");
+            logger.LogError(ex, "Error sending email");
         }
         finally
         {

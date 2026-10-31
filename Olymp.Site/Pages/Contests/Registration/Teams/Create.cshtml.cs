@@ -17,10 +17,6 @@ namespace Olymp.Site.Pages.Contests.Registration.Teams;
 public class CreateModel(OlympContext context, UserManager<User> userManager,
     CompetitorManagementService competitors, IStringLocalizer<SharedResource> localizer) : PageModel
 {
-    private readonly OlympContext _context = context;
-    private readonly UserManager<User> _userManager = userManager;
-    private readonly IStringLocalizer<SharedResource> _localizer = localizer;
-
     public Contest? Contest { get; private set; }
     public Organization? Organization { get; private set; }
 
@@ -83,7 +79,7 @@ public class CreateModel(OlympContext context, UserManager<User> userManager,
         public bool Confirmation { get; set; }
     }
 
-    public override async Task OnPageHandlerExecutionAsync(PageHandlerExecutingContext context, PageHandlerExecutionDelegate next)
+    public override async Task OnPageHandlerExecutionAsync(PageHandlerExecutingContext handlerContext, PageHandlerExecutionDelegate next)
     {
         var executed = await next();
 
@@ -110,10 +106,10 @@ public class CreateModel(OlympContext context, UserManager<User> userManager,
 
     private async Task LoadAsync(int id, int orgId)
     {
-        var contest = await _context.Contests
+        var contest = await context.Contests
             .SingleOrDefaultAsync(x => x.Id == id && !x.IsHidden);
 
-        var organization = await _context.Organizations
+        var organization = await context.Organizations
             .Include(x => x.Users.OrderBy(x => x.Name).Where(x => x is OlympUser && !x.IsHidden))
             .SingleOrDefaultAsync(x => x.Id == orgId);
 
@@ -139,20 +135,20 @@ public class CreateModel(OlympContext context, UserManager<User> userManager,
     private void Validate()
     {
         if (int.TryParse(Input.Participant1, out var id1) && (Member1 = Participants!.SingleOrDefault(x => x.Id == id1)) is null)
-            ModelState.AddModelError($"{nameof(Input)}.{nameof(Input.Participant1)}", _localizer["Invalid value"]);
+            ModelState.AddModelError($"{nameof(Input)}.{nameof(Input.Participant1)}", localizer["Invalid value"]);
 
         if (int.TryParse(Input.Participant2, out var id2) && (Member2 = Participants!.SingleOrDefault(x => x.Id == id2)) is null)
-            ModelState.AddModelError($"{nameof(Input)}.{nameof(Input.Participant2)}", _localizer["Invalid value"]);
+            ModelState.AddModelError($"{nameof(Input)}.{nameof(Input.Participant2)}", localizer["Invalid value"]);
 
         if (int.TryParse(Input.Participant3, out var id3) && (Member3 = Participants!.SingleOrDefault(x => x.Id == id3)) is null)
-            ModelState.AddModelError($"{nameof(Input)}.{nameof(Input.Participant3)}", _localizer["Invalid value"]);
+            ModelState.AddModelError($"{nameof(Input)}.{nameof(Input.Participant3)}", localizer["Invalid value"]);
 
         var memberIds = new[] { Member1, Member2, Member3 }.OfType<OlympUser>().Select(x => x.Id).ToArray();
         if (memberIds.Distinct().Count() != memberIds.Length)
-            ModelState.AddModelError(string.Empty, _localizer["Participants must be different."]);
+            ModelState.AddModelError(string.Empty, localizer["Participants must be different."]);
 
         if (Input.Participant1 == Input.Participant2 || Input.Participant1 == Input.Participant3 || Input.Participant2 == Input.Participant3)
-            ModelState.AddModelError(string.Empty, _localizer["Participants must be different."]);
+            ModelState.AddModelError(string.Empty, localizer["Participants must be different."]);
 
         if (ModelState.IsValid)
         {
@@ -170,7 +166,7 @@ public class CreateModel(OlympContext context, UserManager<User> userManager,
             if (!Input.Confirmation)
             {
                 NeedConfirmation = true;
-                ModelState.AddModelError(string.Empty, _localizer["Please confirm the correctness of the data."]);
+                ModelState.AddModelError(string.Empty, localizer["Please confirm the correctness of the data."]);
             }
         }
     }
@@ -190,7 +186,7 @@ public class CreateModel(OlympContext context, UserManager<User> userManager,
         if (!ModelState.IsValid)
             return Page();
 
-        var coachId = int.Parse(_userManager.GetUserId(User)!);
+        var coachId = int.Parse(userManager.GetUserId(User)!);
         await competitors.RegisterTeamAsync(id, orgId, coachId, TeamName!,
             [Input.Participant1, Input.Participant2, Input.Participant3], HttpContext.RequestAborted);
 

@@ -10,11 +10,9 @@ namespace Olymp.Site.Pages.Contests;
 
 public class DownloadProblemsModel(OlympContext context) : PageModel
 {
-    private readonly OlympContext _context = context;
-
     public async Task<IActionResult> OnGetAsync(int id)
     {
-        var contest = await _context.Contests
+        var contest = await context.Contests
             .Include(x => x.ProblemPdf)
             .SingleOrDefaultAsync(x => x.Id == id);
 
