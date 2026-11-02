@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:11.0.100-resolute AS build
 WORKDIR /src
 
 COPY --link ./.config/dotnet-tools.json ./.config/
@@ -20,7 +20,7 @@ ENV ConnectionStrings__DefaultConnection="Server=localhost;Database=olympdb"
 RUN dotnet ef migrations bundle --project ./Olymp.Domain --startup-project ./Olymp.Site \
         --configuration Release --no-build --output ./app/efbundle
 
-FROM mcr.microsoft.com/dotnet/aspnet:10.0
+FROM mcr.microsoft.com/dotnet/aspnet:11.0.0-resolute
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
