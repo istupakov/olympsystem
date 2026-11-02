@@ -1,6 +1,9 @@
 services:
   site:
-    image: mcr.microsoft.com/devcontainers/dotnet:10.0-noble
+    image: mcr.microsoft.com/devcontainers/dotnet:11.0-resolute
+    security_opt:
+      - seccomp=unconfined
+      - apparmor=unconfined
     build: !reset null
     ports: !reset []
     entrypoint: ["sleep", "infinity"]

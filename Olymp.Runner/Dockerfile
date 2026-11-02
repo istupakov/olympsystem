@@ -9,7 +9,7 @@ RUN Invoke-WebRequest https://aka.ms/vs/18/stable/vs_buildtools.exe -UseBasicPar
         --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 \
         --add Microsoft.VisualStudio.Component.Windows11SDK.26100 \
         --add Microsoft.NetCore.Component.SDK \
-        --add Microsoft.NetCore.Component.Runtime.10.0'; \
+        --add Microsoft.NetCore.Component.Runtime.11.0'; \
     if ($install.ExitCode -notin @(0, 3010)) { exit $install.ExitCode }; \
     Remove-Item C:\vs_buildtools.exe
 
