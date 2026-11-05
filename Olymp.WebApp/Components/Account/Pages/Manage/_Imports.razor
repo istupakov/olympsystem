@@ -1,2 +1,2 @@
 ﻿@layout ManageLayout
-@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Policy = Olymp.Site.PolicyNames.OlympUser)]

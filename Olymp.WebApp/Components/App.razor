@@ -1,4 +1,7 @@
-﻿<!DOCTYPE html>
+﻿@using Olymp.WebApp.Components.Account
+@inject IdentityFeatures Features
+
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -18,7 +21,10 @@
     <Routes />
     <ReconnectModal />
     <script src="@Assets["_framework/blazor.web.js"]"></script>
-    <script src="@Assets["Components/Account/Shared/PasskeySubmit.razor.js"]" type="module"></script>
+    @if (Features.PasskeysEnabled)
+    {
+        <script src="@Assets["Components/Account/Shared/PasskeySubmit.razor.js"]" type="module"></script>
+    }
 </body>
 
 </html>

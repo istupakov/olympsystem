@@ -1,11 +1,28 @@
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+
+using Olymp.Domain;
+using Olymp.Domain.Models;
+using Olymp.Site;
+using Olymp.Site.IdentityUI;
+using Olymp.Site.Services.Identity;
+using Olymp.Site.Services.Mail;
 using Olymp.WebApp.Components;
 using Olymp.WebApp.Components.Account;
-using Olymp.WebApp.Data;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Keep authorization and UI consistent for the lifetime of the application.
+var identityFeatures = builder.Configuration.GetSection(IdentityFeatures.SectionName)
+    .Get<IdentityFeatures>() ?? new();
+builder.Services.AddSingleton(identityFeatures);
+builder.Services.AddAuthorizationBuilder()
+    .AddPolicy(PolicyNames.OlympUser, policy => policy
+        .RequireAuthenticatedUser()
+        .RequireAssertion(context => !context.User.HasClaim(claim => claim.Type == ClaimNames.CompetitorContest)))
+    .AddPolicy(IdentityFeatures.PasskeysPolicy, policy => policy
+        .RequireAssertion(_ => identityFeatures.PasskeysEnabled));
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
@@ -15,28 +32,48 @@ builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddScoped<IdentityRedirectManager>();
 builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuthenticationStateProvider>();
 
-builder.Services.AddAuthentication(options =>
-    {
-        options.DefaultScheme = IdentityConstants.ApplicationScheme;
-        options.DefaultSignInScheme = IdentityConstants.ExternalScheme;
-    })
+builder.Services.AddAuthentication(options => options.DefaultScheme = IdentityConstants.ApplicationScheme)
     .AddIdentityCookies();
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlite(connectionString));
+builder.Services.AddDbContextFactory<OlympContext>(options => options.UseSqlServer(connectionString));
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
-builder.Services.AddIdentityCore<ApplicationUser>(options =>
-    {
-        options.SignIn.RequireConfirmedAccount = true;
-        options.Stores.SchemaVersion = IdentitySchemaVersions.Version3;
-    })
-    .AddEntityFrameworkStores<ApplicationDbContext>()
-    .AddSignInManager()
-    .AddDefaultTokenProviders();
+if (builder.Environment.IsDevelopment() && !builder.Configuration.GetSection(nameof(MailService)).Exists())
+    builder.Services.AddTransient<IEmailSender, DebugEmailSender>();
+else
+{
+    builder.Services.AddOptions<MailServiceConfiguration>()
+        .Bind(builder.Configuration.GetSection(nameof(MailService)))
+        .ValidateDataAnnotations()
+        .ValidateOnStart();
+    builder.Services.AddTransient<IEmailSender, MailService>();
+}
 
-builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
+builder.Services.AddTransient<IPasswordHasher<User>, OlympPasswordHasher>();
+builder.Services.AddTransient<IPasswordValidator<User>, OlympPasswordValidator>();
+builder.Services.AddTransient<IUserValidator<User>, OlympUserValidator>();
+
+builder.Services.AddIdentityCore<User>(options =>
+    {
+        options.User.RequireUniqueEmail = true;
+        options.User.AllowedUserNameCharacters = string.Empty;
+        options.SignIn.RequireConfirmedAccount = true;
+        options.Password.RequireNonAlphanumeric = false;
+        options.Password.RequiredLength = 8;
+        // Preserve the existing database schema until passkeys are introduced.
+        options.Stores.SchemaVersion = IdentitySchemaVersions.Version1;
+    })
+    .AddRoles<IdentityRole<int>>()
+    .AddEntityFrameworkStores<OlympContext>()
+    .AddSignInManager()
+    .AddDefaultTokenProviders()
+    .AddUserConfirmation<OlympUserConfirmation>();
+
+builder.Services.Configure<SecurityStampValidatorOptions>(options =>
+    options.ValidationInterval = TimeSpan.FromMinutes(2));
+
+builder.Services.AddTransient<IEmailSender<User>, IdentityEmailSender>();
 
 var app = builder.Build();
 
@@ -51,6 +88,7 @@ else
     // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
+
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 app.UseHttpsRedirection();
 
