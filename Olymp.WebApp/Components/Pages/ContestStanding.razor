@@ -1,0 +1,85 @@
+@page "/contests/standing/{Id:int}"
+
+@using Microsoft.EntityFrameworkCore
+@using Olymp.Domain
+@using Olymp.WebApp.Components.Contests
+@inject IDbContextFactory<OlympContext> ContextFactory
+
+<PageTitle>@Title</PageTitle>
+<h1>@Title</h1>
+
+@if (contest is not null)
+{
+    @if (HasOfficialStanding)
+    {
+        <nav aria-label="@SiteResources.StandingView">
+            <ul class="nav nav-underline mb-3">
+                <li class="nav-item">
+                    <a class="nav-link @(!Official ? "active" : null)" href="contests/standing/@Id" aria-current="@(!Official ? "page" : null)">@SiteResources.FullStanding</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link @(Official ? "active" : null)" href="contests/standing/@Id?official=true" aria-current="@(Official ? "page" : null)">@SiteResources.OfficialStanding</a>
+                </li>
+            </ul>
+        </nav>
+    }
+    @if (Official)
+    {
+        <p class="small text-body-secondary">@SiteResources.OfficialStandingDescription</p>
+    }
+    @if (savedTable is not null)
+    {
+        <div class="table-responsive" data-saved-standing>@((MarkupString)savedTable)</div>
+    }
+    else if (standing is not null)
+    {
+        <StandingTable Standing="standing" />
+    }
+}
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    [SupplyParameterFromQuery]
+    public bool Official { get; set; }
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    private Contest? contest;
+    private Standing? standing;
+    private string? savedTable;
+    private string Title => contest is null ? "" : string.Format(SiteResources.ResultsForContest, contest.Name);
+
+    private bool HasOfficialStanding => contest is not null && (contest.FinalTableId is null || contest.OfficialTableId is not null);
+
+    protected override async Task OnParametersSetAsync()
+    {
+        standing = null;
+        savedTable = null;
+        await using var context = await ContextFactory.CreateDbContextAsync();
+        contest = await context.Contests.AsNoTracking().SingleOrDefaultAsync(item => item.Id == Id && !item.IsHidden);
+        if (contest is null || !contest.AllowShowStanding || (Official && !HasOfficialStanding))
+        {
+            contest = null;
+            HttpContext.Response.StatusCode = StatusCodes.Status404NotFound;
+            return;
+        }
+
+        var tableId = Official ? contest.OfficialTableId : contest.FinalTableId;
+        if (tableId is not null)
+        {
+            var data = await context.Blobs.Where(blob => blob.Id == tableId).Select(blob => blob.Data).SingleAsync();
+            savedTable = System.Text.CodePagesEncodingProvider.Instance.GetEncoding(1251)!.GetString(data);
+            return;
+        }
+
+        contest = await context.Contests.AsNoTrackingWithIdentityResolution()
+            .Include(item => item.Competitors).ThenInclude(item => item.Members)
+            .Include(item => item.Problems).ThenInclude(item => item.Submissions).ThenInclude(item => item.User)
+            .AsSplitQuery()
+            .SingleAsync(item => item.Id == Id);
+        standing = Standing.Create(contest, includeAll: !Official, official: Official, notFreeze: false, startTime: null);
+    }
+}

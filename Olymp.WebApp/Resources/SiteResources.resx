@@ -18,11 +18,48 @@
   <data name="LightTheme" xml:space="preserve"><value>Light</value></data>
   <data name="DarkTheme" xml:space="preserve"><value>Dark</value></data>
   <data name="SystemTheme" xml:space="preserve"><value>System</value></data>
+  <data name="CurrentAndUpcomingContests" xml:space="preserve"><value>Current and upcoming</value></data>
+  <data name="ContestArchive" xml:space="preserve"><value>Past contests</value></data>
+  <data name="NoContests" xml:space="preserve"><value>No contests have been published yet.</value></data>
+  <data name="ContestUpcoming" xml:space="preserve"><value>Upcoming</value></data>
+  <data name="ContestInProgress" xml:space="preserve"><value>In progress</value></data>
+  <data name="ActionUnavailable" xml:space="preserve"><value>This action is not available yet.</value></data>
+  <data name="ContestParticipants" xml:space="preserve"><value>Participants</value></data>
+  <data name="ContestRegistration" xml:space="preserve"><value>Registration</value></data>
+  <data name="ContestStandings" xml:space="preserve"><value>Standings</value></data>
+  <data name="ContestStatements" xml:space="preserve"><value>Statements</value></data>
+  <data name="ContestTests" xml:space="preserve"><value>Tests</value></data>
+  <data name="ContestSubmitSolution" xml:space="preserve"><value>Submit solution</value></data>
   <data name="ThemeSwitchHint" xml:space="preserve"><value>Theme: {0}. Next: {1}.</value></data>
+  <data name="ParticipantsInContest" xml:space="preserve"><value>Participants in {0}</value></data>
+  <data name="ResultsForContest" xml:space="preserve"><value>Results for {0}</value></data>
+  <data name="NoParticipants" xml:space="preserve"><value>No participants yet.</value></data>
+  <data name="PendingApproval" xml:space="preserve"><value>Pending approval</value></data>
+  <data name="RegistrationApproved" xml:space="preserve"><value>Registration approved</value></data>
+  <data name="OutOfCompetition" xml:space="preserve"><value>Out of competition</value></data>
+  <data name="Disqualified" xml:space="preserve"><value>Disqualified</value></data>
+  <data name="Team" xml:space="preserve"><value>Team</value></data>
+  <data name="Members" xml:space="preserve"><value>Members</value></data>
+  <data name="Coach" xml:space="preserve"><value>Coach</value></data>
+  <data name="Status" xml:space="preserve"><value>Status</value></data>
+  <data name="FinalResults" xml:space="preserve"><value>Final results</value></data>
+  <data name="PreliminaryResults" xml:space="preserve"><value>Preliminary results</value></data>
+  <data name="FrozenAt" xml:space="preserve"><value>Frozen at</value></data>
+  <data name="Rank" xml:space="preserve"><value>Rank</value></data>
+  <data name="Competitor" xml:space="preserve"><value>Competitor</value></data>
+  <data name="Points" xml:space="preserve"><value>Points</value></data>
+  <data name="Time" xml:space="preserve"><value>Time</value></data>
   <data name="PageNotFound" xml:space="preserve"><value>Not Found</value></data>
   <data name="PageNotFoundMessage" xml:space="preserve"><value>Sorry, the content you are looking for does not exist.</value></data>
   <data name="ErrorTitle" xml:space="preserve"><value>Error</value></data>
   <data name="ErrorMessage" xml:space="preserve"><value>We couldn't process your request. Please try again later.</value></data>
   <data name="RequestId" xml:space="preserve"><value>Request ID</value></data>
   <data name="GoToHomePage" xml:space="preserve"><value>Go to the home page</value></data>
+  <data name="StandingView" xml:space="preserve"><value>Standings view</value></data>
+  <data name="FullStanding" xml:space="preserve"><value>Full standings</value></data>
+  <data name="OfficialStanding" xml:space="preserve"><value>Official standings</value></data>
+  <data name="OfficialStandingDescription" xml:space="preserve"><value>Excludes out-of-competition and disqualified participants, and users without contest registration.</value></data>
+  <data name="TimeLeft" xml:space="preserve"><value>{0} left</value></data>
+  <data name="ContestOver" xml:space="preserve"><value>contest is over</value></data>
+  <data name="StandingTimeFormat" xml:space="preserve"><value>hh:mm tt z</value></data>
 </root>

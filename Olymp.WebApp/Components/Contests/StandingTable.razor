@@ -1,0 +1,85 @@
+@using Olymp.Domain
+
+<div class="table-responsive">
+    <table class="table caption-top table-sm table-hover table-striped table-bordered">
+        <caption>
+            @{
+                var remaining = Standing.Contest.EndTime - DateTimeOffset.Now;
+            }
+            @(Standing.Contest.IsOpen ? SiteResources.FinalResults : SiteResources.PreliminaryResults)
+            @if (remaining > TimeSpan.Zero)
+            {
+                <span class="badge text-bg-primary">@string.Format(SiteResources.TimeLeft, $"{(int)remaining.TotalHours:D2}:{remaining.Minutes:D2}:{remaining.Seconds:D2}")</span>
+            }
+            else
+            {
+                <span class="badge text-bg-primary">@SiteResources.ContestOver</span>
+            }
+            @if (Standing.IsFrozen)
+            {
+                <span class="badge text-bg-warning">@SiteResources.FrozenAt @Standing.Contest.FreezeTime?.ToString(SiteResources.StandingTimeFormat)</span>
+            }
+        </caption>
+        <thead>
+            <tr>
+                <th scope="col">@SiteResources.Rank</th>
+                <th scope="col">@SiteResources.Competitor</th>
+                @foreach (var problem in Standing.Contest.Problems.OrderBy(item => item.Number))
+                {
+                    <th scope="col" class="text-center"><abbr title="@problem.NameWithNumber">@problem.Number</abbr></th>
+                }
+                <th scope="col" class="text-center">@(Standing.Contest.IsSchool ? SiteResources.Points : "=")</th>
+                <th scope="col">@SiteResources.Time</th>
+            </tr>
+        </thead>
+        <tbody>
+            @{
+                var results = Standing.Results.ToList();
+                var number = 1;
+            }
+            @foreach (var result in results)
+            {
+                <tr>
+                    <td class="text-center">@(result.Score > 0 || number == results.Count ? (number++).ToString() : $"{number}-{results.Count}")</td>
+                    <td>
+                        <span class="fw-semibold">@result.User.Name</span> <CompetitorBadges User="result.User" ShowApproved="false" />
+                        @if (Standing.Contest.IsAcm && result.User is Competitor team)
+                        {
+                            <div class="small text-body-secondary">@string.Join(", ", team.MemberNames ?? [])</div>
+                        }
+                    </td>
+                    @foreach (var item in result.ProblemResults)
+                    {
+                        var time = (item.LastCommitTime - result.StartTime).ToString("hh\\:mm");
+                        var successful = Standing.Contest.IsSchool ? item.Score > 0 : item.IsSuccess;
+                        var highlighted = Standing.Contest.IsSchool ? item.Score == item.MaxScore : item.IsFirstSuccess;
+                        var cellClass = successful
+                            ? highlighted ? "table-success text-center" : "text-success-emphasis text-center"
+                            : "text-danger-emphasis text-center";
+                        <td class="@(item.CommitNumber > 0 ? cellClass : null)">
+                            @if (item.CommitNumber > 0)
+                            {
+                                @if (Standing.Contest.IsSchool)
+                                {
+                                    @($"{item.Score}/{item.MaxScore}")
+                                }
+                                else
+                                {
+                                    @(item.IsSuccess ? item.CommitNumber == 1 ? "+" : $"+{item.CommitNumber - 1}" : $"-{item.CommitNumber}")
+                                }
+                                <br />@time
+                            }
+                        </td>
+                    }
+                    <th class="text-center">@result.Score</th>
+                    <td>@($"{(int)result.SummaryTime.TotalHours:D2}:{result.SummaryTime.Minutes:D2}:{result.SummaryTime.Seconds:D2}")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public Standing Standing { get; set; } = default!;
+}
