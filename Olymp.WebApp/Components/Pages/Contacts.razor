@@ -1,0 +1,40 @@
+@page "/Contacts"
+
+
+@{
+    var isRussian = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ru";
+    var title = isRussian ? "Контактная информация" : "Contact Info";
+}
+
+<PageTitle>@title</PageTitle>
+
+<h1 class="mb-4">@title</h1>
+
+<div class="row g-4">
+    <div class="col-lg-6">
+        <article class="card h-100">
+            <div class="card-header">@(isRussian ? "Директор соревнований" : "Contest Director")</div>
+            <div class="card-body">
+                <h2 class="h4 card-title">@(isRussian ? "Рояк Михаил Эммануилович" : "Royak Mikhail Emmanuilovich")</h2>
+                <p class="card-subtitle mb-3 text-body-secondary">@(isRussian ? "д.т.н., проф. каф. ПМт НГТУ" : "DScTech, Professor, Department of Applied Mathematics, NSTU")</p>
+                <address class="mb-0">
+                    @(isRussian ? "Телефон" : "Phone"): <a href="tel:+73833462776">+7 (383) 346-27-76</a><br />
+                    Email: <a href="mailto:royak@fpm.ami.nstu.ru">royak@fpm.ami.nstu.ru</a><br />
+                    <a href="mailto:mikeroyak@gmail.com">mikeroyak@gmail.com</a>
+                </address>
+            </div>
+        </article>
+    </div>
+    <div class="col-lg-6">
+        <article class="card h-100">
+            <div class="card-header">@(isRussian ? "Разработчик системы для соревнований" : "Contest System Developer")</div>
+            <div class="card-body">
+                <h2 class="h4 card-title">@(isRussian ? "Ступаков Илья Михайлович" : "Stupakov Ilya Mikhailovich")</h2>
+                <p class="card-subtitle mb-3 text-body-secondary">@(isRussian ? "к.т.н., доцент каф. ПМт НГТУ" : "PhD, Associate Professor, Department of Applied Mathematics, NSTU")</p>
+                <address class="mb-0">
+                    Email: <a href="mailto:istupakov@gmail.com">istupakov@gmail.com</a>
+                </address>
+            </div>
+        </article>
+    </div>
+</div>

@@ -1,12 +1,16 @@
-@using System.Globalization
 @inject NavigationManager NavigationManager
 
-<form action="Language" method="post" data-enhance="false" class="d-flex gap-2">
+@{
+    var isRussian = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ru";
+}
+
+<form action="language" method="post" data-enhance="false" class="d-flex align-items-center gap-1" aria-label="@SiteResources.Language">
     <input type="hidden" name="returnUrl" value="@ReturnUrl" />
-    <button type="submit" name="culture" value="ru" class="btn btn-sm btn-outline-secondary" lang="ru"
-            disabled="@(CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ru")">Русский</button>
-    <button type="submit" name="culture" value="en" class="btn btn-sm btn-outline-secondary" lang="en"
-            disabled="@(CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "en")">English</button>
+    <button type="submit" name="culture" value="ru" class="nav-link border-0 bg-transparent p-1 @(isRussian ? "fw-semibold text-body" : "text-body-secondary")"
+            lang="ru" title="Русский" disabled="@isRussian">RU</button>
+    <span class="text-body-secondary" aria-hidden="true">/</span>
+    <button type="submit" name="culture" value="en" class="nav-link border-0 bg-transparent p-1 @(!isRussian ? "fw-semibold text-body" : "text-body-secondary")"
+            lang="en" title="English" disabled="@(!isRussian)">EN</button>
 </form>
 
 @code {

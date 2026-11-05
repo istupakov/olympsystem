@@ -202,7 +202,7 @@ public class LocalizationTests(WebAppFactory factory) : IClassFixture<WebAppFact
         page.EnsureSuccessStatusCode();
         using var document = await new HtmlParser().ParseDocumentAsync(
             await page.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
-        var form = Assert.Single(document.QuerySelectorAll("form[action='Language']"));
+        var form = Assert.Single(document.QuerySelectorAll("form[action='language']"));
         Assert.Equal("false", form.GetAttribute("data-enhance"));
         Assert.Equal(["ru", "en"], form.QuerySelectorAll("button[name='culture']").Select(button => button.GetAttribute("value")));
         Assert.Equal(path, form.QuerySelector("input[name='returnUrl']")!.GetAttribute("value"));
@@ -276,6 +276,6 @@ public class LocalizationTests(WebAppFactory factory) : IClassFixture<WebAppFact
         using var document = await new HtmlParser().ParseDocumentAsync(
             await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
         Assert.Equal(expected, document.DocumentElement.GetAttribute("lang"));
-        Assert.NotNull(document.QuerySelector($"form[action='Language'] button[value='{expected}'][disabled]"));
+        Assert.NotNull(document.QuerySelector($"form[action='language'] button[value='{expected}'][disabled]"));
     }
 }

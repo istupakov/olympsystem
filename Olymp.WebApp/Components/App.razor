@@ -1,5 +1,4 @@
-﻿@using System.Globalization
-@using Olymp.WebApp.Components.Account
+﻿@using Olymp.WebApp.Components.Account
 @inject IdentityFeatures Features
 
 <!DOCTYPE html>
@@ -10,11 +9,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <BasePath />
     <ResourcePreloader />
+    <script src="@Assets["theme.js"]"></script>
     <link rel="stylesheet" href="@Assets["lib/bootstrap/dist/css/bootstrap.min.css"]" />
     <link rel="stylesheet" href="@Assets["app.css"]" />
     <link rel="stylesheet" href="@Assets["Olymp.WebApp.styles.css"]" />
     <ImportMap />
-    <link rel="icon" type="image/png" href="favicon.png" />
+    <link rel="icon" type="image/svg+xml" href="@Assets["favicon.svg"]" />
     <HeadOutlet />
 </head>
 

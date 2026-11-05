@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
+  <data name="News" xml:space="preserve"><value>News</value></data>
+  <data name="Contests" xml:space="preserve"><value>Contests</value></data>
+  <data name="Contacts" xml:space="preserve"><value>Contacts</value></data>
+  <data name="MainNavigation" xml:space="preserve"><value>Main navigation</value></data>
+  <data name="Logout" xml:space="preserve"><value>Logout</value></data>
+  <data name="NoNews" xml:space="preserve"><value>No news has been published yet.</value></data>
+  <data name="UnhandledError" xml:space="preserve"><value>An unhandled error has occurred.</value></data>
+  <data name="Reload" xml:space="preserve"><value>Reload</value></data>
+  <data name="Dismiss" xml:space="preserve"><value>Dismiss</value></data>
+  <data name="Language" xml:space="preserve"><value>Language</value></data>
+  <data name="Theme" xml:space="preserve"><value>Theme</value></data>
+  <data name="LightTheme" xml:space="preserve"><value>Light</value></data>
+  <data name="DarkTheme" xml:space="preserve"><value>Dark</value></data>
+  <data name="SystemTheme" xml:space="preserve"><value>System</value></data>
+  <data name="ThemeSwitchHint" xml:space="preserve"><value>Theme: {0}. Next: {1}.</value></data>
+  <data name="PageNotFound" xml:space="preserve"><value>Not Found</value></data>
+  <data name="PageNotFoundMessage" xml:space="preserve"><value>Sorry, the content you are looking for does not exist.</value></data>
+  <data name="ErrorTitle" xml:space="preserve"><value>Error</value></data>
+  <data name="ErrorMessage" xml:space="preserve"><value>We couldn't process your request. Please try again later.</value></data>
+  <data name="RequestId" xml:space="preserve"><value>Request ID</value></data>
+  <data name="GoToHomePage" xml:space="preserve"><value>Go to the home page</value></data>
+</root>

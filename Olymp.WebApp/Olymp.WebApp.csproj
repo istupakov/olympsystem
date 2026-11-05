@@ -19,13 +19,16 @@
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Update="Resources/AccountResources.resx">
+    <EmbeddedResource Update="Resources/AccountResources.resx;Resources/SiteResources.resx">
       <StronglyTypedLanguage>C#</StronglyTypedLanguage>
-      <StronglyTypedClassName>AccountResources</StronglyTypedClassName>
+      <StronglyTypedClassName>%(Filename)</StronglyTypedClassName>
       <StronglyTypedNamespace>$(RootNamespace).Resources</StronglyTypedNamespace>
       <PublicClass>true</PublicClass>
     </EmbeddedResource>
   </ItemGroup>
+
+  <Target Name="GenerateDesignTimeResources" BeforeTargets="CoreCompile"
+          DependsOnTargets="PrepareResources" Condition="'$(DesignTimeBuild)' == 'true'" />
 
   <Target Name="ExcludeLegacySiteStaticWebAssets" AfterTargets="ResolveReferencedProjectsStaticWebAssetsConfiguration">
     <ItemGroup>
