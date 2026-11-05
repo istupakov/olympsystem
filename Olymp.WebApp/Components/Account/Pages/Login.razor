@@ -1,8 +1,5 @@
 ﻿@page "/Account/Login"
 
-@using System.ComponentModel.DataAnnotations
-@using Microsoft.AspNetCore.Identity
-@using Olymp.Domain.Models
 
 @inject SignInManager<User> SignInManager
 @inject ILogger<Login> Logger
@@ -10,29 +7,29 @@
 @inject IdentityRedirectManager RedirectManager
 @inject IdentityFeatures Features
 
-<PageTitle>Log in</PageTitle>
+<PageTitle>@AccountResources.LogIn</PageTitle>
 
-<h1>Log in</h1>
+<h1>@AccountResources.LogIn</h1>
 <div class="row">
     <div class="col-lg-6">
         <section>
-            <StatusMessage Message="@errorMessage" />
+            <StatusMessage Message="@errorMessage" IsError="true" />
             <EditForm EditContext="editContext" method="post" OnSubmit="LoginUser" FormName="login">
                 <DataAnnotationsValidator />
-                <h2>Use a local account to log in.</h2>
+                <h2>@AccountResources.LoginPrompt</h2>
                 <hr />
                 <div role="alert" aria-atomic="true">
                     <ValidationSummary class="text-danger" />
                 </div>
                 <div class="form-floating mb-3">
-                    <InputText @bind-Value="Input.Login" id="Input.Login" class="form-control" autocomplete="@(Features.PasskeysEnabled ? "username webauthn" : "username")" aria-required="true" placeholder="Email or username" />
+                    <InputText @bind-Value="Input.Login" id="Input.Login" class="form-control" autocomplete="@(Features.PasskeysEnabled ? "username webauthn" : "username")" aria-required="true" placeholder="@AccountResources.EmailOrUserName" />
                     <label for="Input.Login" class="form-label">
                         <DisplayName For="() => Input.Login" />
                     </label>
                     <ValidationMessage For="() => Input.Login" class="text-danger" />
                 </div>
                 <div class="form-floating mb-3">
-                <InputText type="password" @bind-Value="Input.Password" id="Input.Password" class="form-control" autocomplete="current-password" aria-required="true" placeholder="password" />
+                <InputText type="password" @bind-Value="Input.Password" id="Input.Password" class="form-control" autocomplete="current-password" aria-required="true" placeholder="@AccountResources.PasswordPlaceholder" />
                 <label for="Input.Password" class="form-label">
                     <DisplayName For="() => Input.Password" />
                 </label>
@@ -41,30 +38,30 @@
                 <div class="checkbox mb-3">
                     <label class="form-label">
                         <InputCheckbox @bind-Value="Input.RememberMe" class="darker-border-checkbox form-check-input" />
-                        Remember me
+                        <DisplayName For="() => Input.RememberMe" />
                     </label>
                 </div>
                 <div>
-                    <button type="submit" class="w-100 btn btn-lg btn-primary">Log in</button>
+                    <button type="submit" class="w-100 btn btn-lg btn-primary">@AccountResources.LogIn</button>
                 </div>
                 @if (Features.PasskeysEnabled)
                 {
                     <hr />
                     <div class="d-flex flex-column">
-                        <span class="text-secondary mx-auto mt-2">OR</span>
-                        <PasskeySubmit Operation="PasskeyOperation.Request" Name="Input.Passkey" EmailName="Input.Login" class="btn btn-link mx-auto">Log in with a passkey</PasskeySubmit>
+                        <span class="text-secondary mx-auto mt-2">@AccountResources.Or</span>
+                        <PasskeySubmit Operation="PasskeyOperation.Request" Name="Input.Passkey" EmailName="Input.Login" class="btn btn-link mx-auto">@AccountResources.LogInWithPasskey</PasskeySubmit>
                     </div>
                 }
                 <hr />
                 <div>
                     <p>
-                        <a href="Account/ForgotPassword">Forgot your password?</a>
+                        <a href="account/forgotpassword">@AccountResources.ForgotPassword</a>
                     </p>
                     <p>
-                        <a href="@(NavigationManager.GetUriWithQueryParameters("Account/Register", new Dictionary<string, object?> { ["ReturnUrl"] = ReturnUrl }))">Register as a new user</a>
+                        <a href="@(NavigationManager.GetUriWithQueryParameters("Account/Register", new Dictionary<string, object?> { ["ReturnUrl"] = ReturnUrl }))">@AccountResources.RegisterNewUser</a>
                     </p>
                     <p>
-                        <a href="Account/ResendEmailConfirmation">Resend email confirmation</a>
+                        <a href="account/resendemailconfirmation">@AccountResources.ResendEmailConfirmation</a>
                     </p>
                 </div>
             </EditForm>
@@ -98,13 +95,13 @@
     {
         if (!Features.PasskeysEnabled && Input.Passkey is not null)
         {
-            errorMessage = "Error: Passkey sign-in is not enabled.";
+            errorMessage = AccountResources.PasskeySignInDisabled;
             return;
         }
 
         if (!string.IsNullOrEmpty(Input.Passkey?.Error))
         {
-            errorMessage = $"Error: {Input.Passkey.Error}";
+            errorMessage = Input.Passkey.Error;
             return;
         }
 
@@ -144,22 +141,22 @@
         }
         else
         {
-            errorMessage = "Error: Invalid login attempt.";
+            errorMessage = AccountResources.InvalidLoginAttempt;
         }
     }
 
     private sealed class InputModel
     {
-        [Required]
-        [Display(Name = "Email or username")]
+        [Required(ErrorMessageResourceName = nameof(AccountResources.FieldRequired), ErrorMessageResourceType = typeof(AccountResources))]
+        [Display(Name = nameof(AccountResources.EmailOrUserName), ResourceType = typeof(AccountResources))]
         public string Login { get; set; } = "";
 
-        [Required]
+        [Required(ErrorMessageResourceName = nameof(AccountResources.FieldRequired), ErrorMessageResourceType = typeof(AccountResources))]
         [DataType(DataType.Password)]
-        [Display(Name = "Password")]
+        [Display(Name = nameof(AccountResources.Password), ResourceType = typeof(AccountResources))]
         public string Password { get; set; } = "";
 
-        [Display(Name = "Remember me?")]
+        [Display(Name = nameof(AccountResources.RememberMe), ResourceType = typeof(AccountResources))]
         public bool RememberMe { get; set; }
 
         public PasskeyInputModel? Passkey { get; set; }

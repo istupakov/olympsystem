@@ -18,6 +18,15 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="11.0.0" PrivateAssets="all" />
   </ItemGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Update="Resources/AccountResources.resx">
+      <StronglyTypedLanguage>C#</StronglyTypedLanguage>
+      <StronglyTypedClassName>AccountResources</StronglyTypedClassName>
+      <StronglyTypedNamespace>$(RootNamespace).Resources</StronglyTypedNamespace>
+      <PublicClass>true</PublicClass>
+    </EmbeddedResource>
+  </ItemGroup>
+
   <Target Name="ExcludeLegacySiteStaticWebAssets" AfterTargets="ResolveReferencedProjectsStaticWebAssetsConfiguration">
     <ItemGroup>
       <StaticWebAssetProjectConfiguration Remove="@(StaticWebAssetProjectConfiguration)"

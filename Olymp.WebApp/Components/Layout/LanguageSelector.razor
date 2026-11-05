@@ -1,0 +1,14 @@
+@using System.Globalization
+@inject NavigationManager NavigationManager
+
+<form action="Language" method="post" data-enhance="false" class="d-flex gap-2">
+    <input type="hidden" name="returnUrl" value="@ReturnUrl" />
+    <button type="submit" name="culture" value="ru" class="btn btn-sm btn-outline-secondary" lang="ru"
+            disabled="@(CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ru")">Русский</button>
+    <button type="submit" name="culture" value="en" class="btn btn-sm btn-outline-secondary" lang="en"
+            disabled="@(CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "en")">English</button>
+</form>
+
+@code {
+    private string ReturnUrl => new Uri(NavigationManager.Uri).PathAndQuery;
+}

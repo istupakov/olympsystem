@@ -1,6 +1,6 @@
 ﻿@if (!string.IsNullOrEmpty(Message))
 {
-    var statusMessageClass = Message.StartsWith("Error") ? "danger" : "success";
+    var statusMessageClass = (IsError ?? Message.StartsWith("Error")) ? "danger" : "success";
     <div class="alert alert-@statusMessageClass" role="alert">
         @Message
     </div>
@@ -9,4 +9,7 @@
 @code {
     [Parameter]
     public string? Message { get; set; }
+
+    [Parameter]
+    public bool? IsError { get; set; }
 }

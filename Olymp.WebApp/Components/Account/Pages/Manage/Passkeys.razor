@@ -1,20 +1,17 @@
 ﻿@page "/Account/Manage/Passkeys"
 @attribute [Microsoft.AspNetCore.Authorization.Authorize(Policy = IdentityFeatures.PasskeysPolicy)]
 
-@using Olymp.Domain.Models
-@using Microsoft.AspNetCore.Identity
-@using System.ComponentModel.DataAnnotations
 @using System.Buffers.Text
 
 @inject UserManager<User> UserManager
 @inject SignInManager<User> SignInManager
 @inject IdentityRedirectManager RedirectManager
 
-<PageTitle>Manage your passkeys</PageTitle>
+<PageTitle>@AccountResources.ManagePasskeys</PageTitle>
 
-<h3>Manage your passkeys</h3>
+<h3>@AccountResources.ManagePasskeys</h3>
 
-<StatusMessage Message="@message" />
+<StatusMessage Message="@message" IsError="@isError" />
 
 @if (currentPasskeys is { Count: > 0 })
 {
@@ -25,7 +22,7 @@
                 <tr>
                     <td>
                         <div>@PasskeyAuthenticators.GetDisplayName(passkey)</div>
-                        <small class="text-muted">Created @passkey.CreatedAt.UtcDateTime.ToString("MMM d, yyyy") (UTC)</small>
+                        <small class="text-muted">@string.Format(CultureInfo.CurrentCulture, AccountResources.PasskeyCreated, passkey.CreatedAt.UtcDateTime)</small>
                     </td>
                     <td>
                         @{
@@ -34,8 +31,8 @@
                         <form @formname="@($"update-passkey-{credentialId}")" @onsubmit="UpdatePasskey" method="post">
                             <div>
                                 <input type="hidden" name="CredentialId" value="@credentialId" />
-                                <button type="submit" name="Action" value="rename" class="btn btn-primary" title="Rename this passkey">Rename</button>
-                                <button type="submit" name="Action" value="delete" class="btn btn-danger" title="Remove this passkey from your account">Delete</button>
+                                <button type="submit" name="Action" value="rename" class="btn btn-primary" title="@AccountResources.RenamePasskeyHint">@AccountResources.Rename</button>
+                                <button type="submit" name="Action" value="delete" class="btn btn-danger" title="@AccountResources.RemovePasskeyHint">@AccountResources.Delete</button>
                             </div>
                         </form>
                     </td>
@@ -46,17 +43,17 @@
 }
 else
 {
-    <p>No passkeys are registered.</p>
+    <p>@AccountResources.NoPasskeys</p>
 }
 
 <form @formname="add-passkey" @onsubmit="AddPasskey" method="post">
     @if (currentPasskeys is { Count: >= MaxPasskeyCount })
     {
-        <p class="text-danger">You have reached the maximum number of allowed passkeys. Please delete one before adding a new one.</p>
+        <p class="text-danger">@AccountResources.PasskeyLimitHint</p>
     }
     else
     {
-        <PasskeySubmit Operation="PasskeyOperation.Create" Name="Input" class="btn btn-primary">Add a new passkey</PasskeySubmit>
+        <PasskeySubmit Operation="PasskeyOperation.Create" Name="Input" class="btn btn-primary">@AccountResources.AddPasskey</PasskeySubmit>
     }
 
 </form>
@@ -65,6 +62,7 @@ else
     private const int MaxPasskeyCount = 100;
 
     private string? message;
+    private bool isError;
     private User? user;
     private IList<UserPasskeyInfo>? currentPasskeys;
 
@@ -73,6 +71,9 @@ else
 
     [SupplyParameterFromTempData(Name = IdentityRedirectManager.StatusMessageKey)]
     private string? IdentityStatusMessage { get; set; }
+
+    [SupplyParameterFromTempData(Name = IdentityRedirectManager.StatusMessageIsErrorKey)]
+    private bool? IdentityStatusIsError { get; set; }
 
     [SupplyParameterFromForm]
     private string? Action { get; set; }
@@ -86,7 +87,9 @@ else
     protected override async Task OnInitializedAsync()
     {
         message = IdentityStatusMessage;
+        isError = IdentityStatusIsError ?? false;
         IdentityStatusMessage = null;
+        IdentityStatusIsError = null;
         Input ??= new();
 
         user = await UserManager.GetUserAsync(HttpContext.User);
@@ -108,30 +111,26 @@ else
 
         if (!string.IsNullOrEmpty(Input.Error))
         {
-            IdentityStatusMessage = $"Error: {Input.Error}";
-            RedirectManager.RedirectToCurrentPage();
+            RedirectWithMessage(Input.Error);
             return;
         }
 
         if (string.IsNullOrEmpty(Input.CredentialJson))
         {
-            IdentityStatusMessage = "Error: The browser did not provide a passkey.";
-            RedirectManager.RedirectToCurrentPage();
+            RedirectWithMessage(AccountResources.BrowserDidNotProvidePasskey);
             return;
         }
 
         if (currentPasskeys!.Count >= MaxPasskeyCount)
         {
-            IdentityStatusMessage = "Error: You have reached the maximum number of allowed passkeys.";
-            RedirectManager.RedirectToCurrentPage();
+            RedirectWithMessage(AccountResources.PasskeyLimitReached);
             return;
         }
 
         var attestationResult = await SignInManager.PerformPasskeyAttestationAsync(Input.CredentialJson);
         if (!attestationResult.Succeeded)
         {
-            IdentityStatusMessage = $"Error: Could not add the passkey: {attestationResult.Failure.Message}";
-            RedirectManager.RedirectToCurrentPage();
+            RedirectWithMessage(string.Format(CultureInfo.CurrentCulture, AccountResources.PasskeyAttestationFailed, attestationResult.Failure.Message));
             return;
         }
 
@@ -144,16 +143,14 @@ else
         var addPasskeyResult = await UserManager.AddOrUpdatePasskeyAsync(user, attestationResult.Passkey);
         if (!addPasskeyResult.Succeeded)
         {
-            IdentityStatusMessage = "Error: The passkey could not be added to your account.";
-            RedirectManager.RedirectToCurrentPage();
+            RedirectWithMessage(AccountResources.PasskeyAddFailed);
             return;
         }
 
         // If a name was inferred, go back to the passkeys list
         if (!string.IsNullOrEmpty(attestationResult.Passkey.Name))
         {
-            IdentityStatusMessage = "Your passkey was added successfully.";
-            RedirectManager.RedirectToCurrentPage();
+            RedirectWithMessage(AccountResources.PasskeyAdded, isError: false);
             return;
         }
 
@@ -173,10 +170,16 @@ else
                 await DeletePasskey();
                 break;
             default:
-                IdentityStatusMessage = $"Error: Unknown action '{Action}'.";
-                RedirectManager.RedirectToCurrentPage();
+                RedirectWithMessage(string.Format(CultureInfo.CurrentCulture, AccountResources.UnknownPasskeyAction, Action));
                 break;
         }
+    }
+
+    private void RedirectWithMessage(string statusMessage, bool isError = true)
+    {
+        IdentityStatusMessage = statusMessage;
+        IdentityStatusIsError = isError;
+        RedirectManager.RedirectToCurrentPage();
     }
 
     private async Task DeletePasskey()
@@ -194,20 +197,17 @@ else
         }
         catch (FormatException)
         {
-            IdentityStatusMessage = "Error: The specified passkey ID had an invalid format.";
-            RedirectManager.RedirectToCurrentPage();
+            RedirectWithMessage(AccountResources.InvalidPasskeyId);
             return;
         }
 
         var result = await UserManager.RemovePasskeyAsync(user, credentialId);
         if (!result.Succeeded)
         {
-            IdentityStatusMessage = "Error: The passkey could not be deleted.";
-            RedirectManager.RedirectToCurrentPage();
+            RedirectWithMessage(AccountResources.PasskeyDeleteFailed);
             return;
         }
 
-        IdentityStatusMessage = "Passkey deleted successfully.";
-        RedirectManager.RedirectToCurrentPage();
+        RedirectWithMessage(AccountResources.PasskeyDeleted, isError: false);
     }
 }

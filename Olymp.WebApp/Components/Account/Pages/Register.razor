@@ -1,11 +1,8 @@
 ﻿@page "/Account/Register"
 
-@using System.ComponentModel.DataAnnotations
 @using System.Text
 @using System.Text.Encodings.Web
-@using Microsoft.AspNetCore.Identity
 @using Microsoft.AspNetCore.WebUtilities
-@using Olymp.Domain.Models
 
 @inject UserManager<User> UserManager
 @inject IUserStore<User> UserStore
@@ -15,22 +12,22 @@
 @inject NavigationManager NavigationManager
 @inject IdentityRedirectManager RedirectManager
 
-<PageTitle>Register</PageTitle>
+<PageTitle>@AccountResources.Register</PageTitle>
 
-<h1>Register</h1>
+<h1>@AccountResources.Register</h1>
 
 <div class="row">
     <div class="col-lg-6">
-        <StatusMessage Message="@Message" />
+        <StatusMessage Message="@Message" IsError="true" />
         <EditForm Model="Input" method="post" OnValidSubmit="RegisterUser" FormName="register">
             <DataAnnotationsValidator />
-            <h2>Create a new account.</h2>
+            <h2>@AccountResources.RegistrationPrompt</h2>
             <hr />
             <div role="alert" aria-atomic="true">
                 <ValidationSummary class="text-danger" />
             </div>
             <div class="form-floating mb-3">
-                <InputText @bind-Value="Input.PublicName" id="Input.PublicName" class="form-control" autocomplete="nickname" aria-required="true" placeholder="Public name" />
+                <InputText @bind-Value="Input.PublicName" id="Input.PublicName" class="form-control" autocomplete="nickname" aria-required="true" placeholder="@AccountResources.PublicName" />
                 <label for="Input.PublicName">
                     <DisplayName For="() => Input.PublicName" />
                 </label>
@@ -44,20 +41,20 @@
                 <ValidationMessage For="() => Input.Email" class="text-danger" />
             </div>
             <div class="form-floating mb-3">
-                <InputText type="password" @bind-Value="Input.Password" id="Input.Password" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password" />
+                <InputText type="password" @bind-Value="Input.Password" id="Input.Password" class="form-control" autocomplete="new-password" aria-required="true" placeholder="@AccountResources.PasswordPlaceholder" />
                 <label for="Input.Password">
                     <DisplayName For="() => Input.Password" />
                 </label>
                 <ValidationMessage For="() => Input.Password" class="text-danger" />
             </div>
             <div class="form-floating mb-3">
-                <InputText type="password" @bind-Value="Input.ConfirmPassword" id="Input.ConfirmPassword" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password" />
+                <InputText type="password" @bind-Value="Input.ConfirmPassword" id="Input.ConfirmPassword" class="form-control" autocomplete="new-password" aria-required="true" placeholder="@AccountResources.PasswordPlaceholder" />
                 <label for="Input.ConfirmPassword" class="form-label">
                     <DisplayName For="() => Input.ConfirmPassword" />
                 </label>
                 <ValidationMessage For="() => Input.ConfirmPassword" class="text-danger" />
             </div>
-            <button type="submit" class="w-100 btn btn-lg btn-primary">Register</button>
+            <button type="submit" class="w-100 btn btn-lg btn-primary">@AccountResources.Register</button>
         </EditForm>
     </div>
 </div>
@@ -71,7 +68,7 @@
     [SupplyParameterFromQuery]
     private string? ReturnUrl { get; set; }
 
-    private string? Message => identityErrors is null ? null : $"Error: {string.Join(", ", identityErrors.Select(error => error.Description))}";
+    private string? Message => identityErrors is null ? null : string.Join(", ", identityErrors.Select(error => error.Description));
 
     protected override void OnInitialized()
     {
@@ -138,26 +135,26 @@
 
     private sealed class InputModel
     {
-        [StringLength(32, ErrorMessage = "The field {0} must be a string with a maximum length of {1}.")]
-        [Required(ErrorMessage = "The {0} field is required.")]
-        [RegularExpression(OlympUser.PublicNameRegex, ErrorMessage = "The {0} field may contain only Russian or Latin letters, digits, spaces or hyphens.")]
-        [Display(Name = "Public name")]
+        [StringLength(32, ErrorMessageResourceName = nameof(AccountResources.FieldMaximumLength), ErrorMessageResourceType = typeof(AccountResources))]
+        [Required(ErrorMessageResourceName = nameof(AccountResources.FieldRequired), ErrorMessageResourceType = typeof(AccountResources))]
+        [RegularExpression(OlympUser.PublicNameRegex, ErrorMessageResourceName = nameof(AccountResources.PublicNameInvalidCharacters), ErrorMessageResourceType = typeof(AccountResources))]
+        [Display(Name = nameof(AccountResources.PublicName), ResourceType = typeof(AccountResources))]
         public string PublicName { get; set; } = "";
 
-        [Required]
-        [EmailAddress]
-        [Display(Name = "Email")]
+        [Required(ErrorMessageResourceName = nameof(AccountResources.FieldRequired), ErrorMessageResourceType = typeof(AccountResources))]
+        [EmailAddress(ErrorMessageResourceName = nameof(AccountResources.InvalidEmailAddress), ErrorMessageResourceType = typeof(AccountResources))]
+        [Display(Name = nameof(AccountResources.Email), ResourceType = typeof(AccountResources))]
         public string Email { get; set; } = "";
 
-        [Required]
-        [StringLength(100, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 8)]
+        [Required(ErrorMessageResourceName = nameof(AccountResources.FieldRequired), ErrorMessageResourceType = typeof(AccountResources))]
+        [StringLength(100, MinimumLength = 8, ErrorMessageResourceName = nameof(AccountResources.FieldLengthRange), ErrorMessageResourceType = typeof(AccountResources))]
         [DataType(DataType.Password)]
-        [Display(Name = "Password")]
+        [Display(Name = nameof(AccountResources.Password), ResourceType = typeof(AccountResources))]
         public string Password { get; set; } = "";
 
         [DataType(DataType.Password)]
-        [Display(Name = "Confirm password")]
-        [Compare("Password", ErrorMessage = "The password and confirmation password do not match.")]
+        [Display(Name = nameof(AccountResources.ConfirmPassword), ResourceType = typeof(AccountResources))]
+        [Compare("Password", ErrorMessageResourceName = nameof(AccountResources.PasswordMismatch), ErrorMessageResourceType = typeof(AccountResources))]
         public string ConfirmPassword { get; set; } = "";
     }
 }

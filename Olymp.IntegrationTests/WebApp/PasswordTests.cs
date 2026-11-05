@@ -1,5 +1,7 @@
 using System.Net;
 
+using AngleSharp.Html.Parser;
+
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.AspNetCore.WebUtilities;
@@ -31,7 +33,7 @@ public class PasswordTests(WebAppFactory factory) : IClassFixture<WebAppFactory>
         }
 
         using var client = await factory.LoginAsync(user.UserName!);
-        using var response = await client.GetAsync("/auth", TestContext.Current.CancellationToken);
+        using var response = await client.GetAsync("/test/auth", TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
         using var verification = factory.Services.CreateScope();
@@ -56,11 +58,14 @@ public class PasswordTests(WebAppFactory factory) : IClassFixture<WebAppFactory>
         Assert.Equal(lettersBefore, factory.EmailSender.PasswordResets.Count);
     }
 
-    [Fact]
-    public async Task ResetChangesPasswordAndCannotBeReused()
+    [Theory]
+    [InlineData("ru")]
+    [InlineData("en")]
+    public async Task ResetChangesPasswordAndCannotBeReused(string culture)
     {
         var user = await factory.AddUserAsync();
         using var client = factory.CreateSiteClient();
+        client.DefaultRequestHeaders.AcceptLanguage.ParseAdd(culture);
         using var request = await RequestResetAsync(client, user.Email!);
         Assert.Equal("/Account/ForgotPasswordConfirmation", RedirectTarget(request).AbsolutePath);
         var (_, link) = Assert.Single(factory.EmailSender.PasswordResets, letter => letter.Email == user.Email);
@@ -71,7 +76,10 @@ public class PasswordTests(WebAppFactory factory) : IClassFixture<WebAppFactory>
 
         using var replay = await ResetAsync(client, link, user.Email!, "AnotherPassword789");
         Assert.Equal(HttpStatusCode.OK, replay.StatusCode);
-        Assert.Contains("alert-danger", await replay.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
+        using var document = await new HtmlParser().ParseDocumentAsync(
+            await replay.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
+        Assert.Equal(culture == "ru" ? "Недействительный токен." : "Invalid token.",
+            document.QuerySelector(".alert-danger")!.TextContent.Trim());
         await AssertPasswordAsync(user, NewPassword, "AnotherPassword789");
     }
 
@@ -117,11 +125,14 @@ public class PasswordTests(WebAppFactory factory) : IClassFixture<WebAppFactory>
         Assert.Equal("/Account/InvalidPasswordReset", RedirectTarget(response).AbsolutePath);
     }
 
-    [Fact]
-    public async Task ChangingPasswordRequiresCurrentPassword()
+    [Theory]
+    [InlineData("ru", "Неверный пароль.")]
+    [InlineData("en", "Incorrect password.")]
+    public async Task ChangingPasswordRequiresCurrentPassword(string culture, string message)
     {
         var user = await factory.AddUserAsync();
         using var client = await factory.LoginAsync(user.UserName!);
+        client.DefaultRequestHeaders.AcceptLanguage.ParseAdd(culture);
         using var response = await WebAppFactory.PostFormAsync(client, "/Account/Manage/ChangePassword", "change-password", new()
         {
             ["Input.OldPassword"] = "WrongPassword123",
@@ -130,7 +141,9 @@ public class PasswordTests(WebAppFactory factory) : IClassFixture<WebAppFactory>
         });
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Contains("alert-danger", await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
+        using var document = await new HtmlParser().ParseDocumentAsync(
+            await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
+        Assert.Equal(message, document.QuerySelector(".alert-danger")!.TextContent.Trim());
         await AssertPasswordAsync(user, WebAppFactory.Password, NewPassword);
     }
 
@@ -159,9 +172,9 @@ public class PasswordTests(WebAppFactory factory) : IClassFixture<WebAppFactory>
         });
 
         Assert.Equal("/Account/Manage/ChangePassword", RedirectTarget(response).AbsolutePath);
-        using var authorized = await current.GetAsync("/auth", TestContext.Current.CancellationToken);
+        using var authorized = await current.GetAsync("/test/auth", TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.OK, authorized.StatusCode);
-        using var revoked = await other.GetAsync("/auth", TestContext.Current.CancellationToken);
+        using var revoked = await other.GetAsync("/test/auth", TestContext.Current.CancellationToken);
         Assert.Equal("/Account/Login", RedirectTarget(revoked).AbsolutePath);
         await AssertPasswordAsync(user, NewPassword, WebAppFactory.Password);
     }

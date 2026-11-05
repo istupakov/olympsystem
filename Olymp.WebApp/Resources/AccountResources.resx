@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
+  <data name="LogIn" xml:space="preserve"><value>Log in</value></data>
+  <data name="LoginPrompt" xml:space="preserve"><value>Use a local account to log in.</value></data>
+  <data name="EmailOrUserName" xml:space="preserve"><value>Email or username</value></data>
+  <data name="Password" xml:space="preserve"><value>Password</value></data>
+  <data name="RememberMe" xml:space="preserve"><value>Remember me?</value></data>
+  <data name="Or" xml:space="preserve"><value>OR</value></data>
+  <data name="LogInWithPasskey" xml:space="preserve"><value>Log in with a passkey</value></data>
+  <data name="ForgotPassword" xml:space="preserve"><value>Forgot your password?</value></data>
+  <data name="RegisterNewUser" xml:space="preserve"><value>Register as a new user</value></data>
+  <data name="ResendEmailConfirmation" xml:space="preserve"><value>Resend email confirmation</value></data>
+  <data name="PasskeySignInDisabled" xml:space="preserve"><value>Passkey sign-in is not enabled.</value></data>
+  <data name="InvalidLoginAttempt" xml:space="preserve"><value>Invalid login attempt.</value></data>
+  <data name="FieldRequired" xml:space="preserve"><value>The {0} field is required.</value></data>
+  <data name="Register" xml:space="preserve"><value>Register</value></data>
+  <data name="RegistrationPrompt" xml:space="preserve"><value>Create a new account.</value></data>
+  <data name="PublicName" xml:space="preserve"><value>Public name</value></data>
+  <data name="Email" xml:space="preserve"><value>Email</value></data>
+  <data name="ConfirmPassword" xml:space="preserve"><value>Confirm password</value></data>
+  <data name="FieldMaximumLength" xml:space="preserve"><value>The field {0} must be a string with a maximum length of {1}.</value></data>
+  <data name="PublicNameInvalidCharacters" xml:space="preserve"><value>The {0} field may contain only Russian or Latin letters, digits, spaces or hyphens.</value></data>
+  <data name="InvalidEmailAddress" xml:space="preserve"><value>The {0} field is not a valid e-mail address.</value></data>
+  <data name="FieldLengthRange" xml:space="preserve"><value>The {0} must be at least {2} and at max {1} characters long.</value></data>
+  <data name="PasswordMismatch" xml:space="preserve"><value>The password and confirmation password do not match.</value></data>
+  <data name="Profile" xml:space="preserve"><value>Profile</value></data>
+  <data name="ManageAccount" xml:space="preserve"><value>Manage your account</value></data>
+  <data name="AccountSettings" xml:space="preserve"><value>Change your account settings</value></data>
+  <data name="UserName" xml:space="preserve"><value>Username</value></data>
+  <data name="FirstName" xml:space="preserve"><value>First name</value></data>
+  <data name="LastName" xml:space="preserve"><value>Last name</value></data>
+  <data name="Patronymic" xml:space="preserve"><value>Patronymic</value></data>
+  <data name="University" xml:space="preserve"><value>University</value></data>
+  <data name="Group" xml:space="preserve"><value>Group</value></data>
+  <data name="Save" xml:space="preserve"><value>Save</value></data>
+  <data name="Passkeys" xml:space="preserve"><value>Passkeys</value></data>
+  <data name="InvalidValue" xml:space="preserve"><value>Invalid value.</value></data>
+  <data name="ProfileUpdateFailed" xml:space="preserve"><value>Failed to update profile.</value></data>
+  <data name="ProfileUpdated" xml:space="preserve"><value>Your profile has been updated</value></data>
+  <data name="NameInvalidCharacters" xml:space="preserve"><value>Use at least two characters in {0}: Russian letters, spaces or hyphens. The last character must be a lowercase letter.</value></data>
+  <data name="GroupInvalidCharacters" xml:space="preserve"><value>The {0} field may contain only uppercase Russian or Latin letters, digits or hyphens.</value></data>
+  <data name="ManageEmail" xml:space="preserve"><value>Manage email</value></data>
+  <data name="EmailLoginRequired" xml:space="preserve"><value>To access pages that require sign-in, use your email address as your username.</value></data>
+  <data name="CurrentUserName" xml:space="preserve"><value>Your current username is</value></data>
+  <data name="EmailLoginPasswordHint" xml:space="preserve"><value>After switching, use your email address and the same password.</value></data>
+  <data name="UseEmailForSignIn" xml:space="preserve"><value>Use {0} for sign-in</value></data>
+  <data name="OutdatedEmailHint" xml:space="preserve"><value>If this email address is outdated, change it below. Confirmation will be sent to the new address.</value></data>
+  <data name="EnterEmail" xml:space="preserve"><value>Enter your email</value></data>
+  <data name="EnterNewEmail" xml:space="preserve"><value>Enter a new email</value></data>
+  <data name="NewEmail" xml:space="preserve"><value>New email</value></data>
+  <data name="ChangeEmail" xml:space="preserve"><value>Change email</value></data>
+  <data name="SendVerificationEmail" xml:space="preserve"><value>Send verification email</value></data>
+  <data name="EmailIsNowUserName" xml:space="preserve"><value>Your email address is now your username.</value></data>
+  <data name="EmailUnchanged" xml:space="preserve"><value>Your email is unchanged.</value></data>
+  <data name="EmailChangeConfirmationSent" xml:space="preserve"><value>Confirmation link to change email sent. Please check your email.</value></data>
+  <data name="VerificationEmailSent" xml:space="preserve"><value>Verification email sent. Please check your email.</value></data>
+  <data name="ConfirmEmail" xml:space="preserve"><value>Confirm email</value></data>
+  <data name="EmailConfirmed" xml:space="preserve"><value>Thank you for confirming your email.</value></data>
+  <data name="EmailConfirmationFailed" xml:space="preserve"><value>Error confirming your email.</value></data>
+  <data name="UserNotFound" xml:space="preserve"><value>User not found.</value></data>
+  <data name="ConfirmEmailChange" xml:space="preserve"><value>Confirm email change</value></data>
+  <data name="InvalidEmailChangeLink" xml:space="preserve"><value>Invalid email change confirmation link.</value></data>
+  <data name="EmailChangeFailed" xml:space="preserve"><value>Error changing email.</value></data>
+  <data name="UserNameChangeFailed" xml:space="preserve"><value>Error changing user name.</value></data>
+  <data name="EmailChangeConfirmed" xml:space="preserve"><value>Thank you for confirming your email change.</value></data>
+  <data name="RegisterConfirmation" xml:space="preserve"><value>Register confirmation</value></data>
+  <data name="CheckEmailToConfirmAccount" xml:space="preserve"><value>Please check your email to confirm your account.</value></data>
+  <data name="Resend" xml:space="preserve"><value>Resend</value></data>
+  <data name="EnterEmailPrompt" xml:space="preserve"><value>Enter your email.</value></data>
+  <data name="PasswordPlaceholder" xml:space="preserve"><value>password</value></data>
+  <data name="UserNotFoundByEmail" xml:space="preserve"><value>Unable to find a user with the specified email address.</value></data>
+  <data name="ResetPassword" xml:space="preserve"><value>Reset password</value></data>
+  <data name="ResetPasswordPrompt" xml:space="preserve"><value>Reset your password.</value></data>
+  <data name="Reset" xml:space="preserve"><value>Reset</value></data>
+  <data name="ChangePassword" xml:space="preserve"><value>Change password</value></data>
+  <data name="EnterOldPassword" xml:space="preserve"><value>Enter the old password</value></data>
+  <data name="EnterNewPassword" xml:space="preserve"><value>Enter the new password</value></data>
+  <data name="UpdatePassword" xml:space="preserve"><value>Update password</value></data>
+  <data name="PasswordChanged" xml:space="preserve"><value>Your password has been changed</value></data>
+  <data name="CurrentPassword" xml:space="preserve"><value>Current password</value></data>
+  <data name="NewPassword" xml:space="preserve"><value>New password</value></data>
+  <data name="ConfirmNewPassword" xml:space="preserve"><value>Confirm new password</value></data>
+  <data name="NewPasswordMismatch" xml:space="preserve"><value>The new password and confirmation password do not match.</value></data>
+  <data name="ForgotPasswordConfirmation" xml:space="preserve"><value>Forgot password confirmation</value></data>
+  <data name="CheckEmailToResetPassword" xml:space="preserve"><value>Please check your email to reset your password.</value></data>
+  <data name="ResetPasswordConfirmation" xml:space="preserve"><value>Reset password confirmation</value></data>
+  <data name="PasswordResetNotice" xml:space="preserve"><value>Your password has been reset. Please</value></data>
+  <data name="ClickHereToLogIn" xml:space="preserve"><value>click here to log in</value></data>
+  <data name="InvalidPasswordReset" xml:space="preserve"><value>Invalid password reset</value></data>
+  <data name="InvalidPasswordResetLink" xml:space="preserve"><value>The password reset link is invalid.</value></data>
+  <data name="UnknownIdentityError" xml:space="preserve"><value>An unknown failure has occurred.</value></data>
+  <data name="ConcurrencyFailure" xml:space="preserve"><value>Optimistic concurrency failure, object has been modified.</value></data>
+  <data name="IncorrectPassword" xml:space="preserve"><value>Incorrect password.</value></data>
+  <data name="InvalidToken" xml:space="preserve"><value>Invalid token.</value></data>
+  <data name="InvalidUserName" xml:space="preserve"><value>Username '{0}' is invalid, can only contain letters or digits.</value></data>
+  <data name="InvalidEmail" xml:space="preserve"><value>Email '{0}' is invalid.</value></data>
+  <data name="DuplicateUserName" xml:space="preserve"><value>Username '{0}' is already taken.</value></data>
+  <data name="DuplicateEmail" xml:space="preserve"><value>Email '{0}' is already taken.</value></data>
+  <data name="PasswordTooShort" xml:space="preserve"><value>Passwords must be at least {0} characters.</value></data>
+  <data name="PasswordRequiresUniqueChars" xml:space="preserve"><value>Passwords must use at least {0} different characters.</value></data>
+  <data name="PasswordRequiresNonAlphanumeric" xml:space="preserve"><value>Passwords must have at least one non alphanumeric character.</value></data>
+  <data name="PasswordRequiresDigit" xml:space="preserve"><value>Passwords must have at least one digit ('0'-'9').</value></data>
+  <data name="PasswordRequiresLower" xml:space="preserve"><value>Passwords must have at least one lowercase ('a'-'z').</value></data>
+  <data name="PasswordRequiresUpper" xml:space="preserve"><value>Passwords must have at least one uppercase ('A'-'Z').</value></data>
+  <data name="ConfirmationEmailSubject" xml:space="preserve"><value>Confirm your email</value></data>
+  <data name="ConfirmationEmailBody" xml:space="preserve"><value>Please confirm your account by &lt;a href='{0}'&gt;clicking here&lt;/a&gt;. If you didn't request this email confirmation, you can ignore this email.</value></data>
+  <data name="PasswordResetEmailSubject" xml:space="preserve"><value>Reset your password</value></data>
+  <data name="PasswordResetEmailBody" xml:space="preserve"><value>Please reset your password by &lt;a href='{0}'&gt;clicking here&lt;/a&gt;. If you didn't request a password reset, you can ignore this email.</value></data>
+  <data name="PasswordResetCodeEmailBody" xml:space="preserve"><value>Please reset your password using the following code: {0}. If you didn't request a password reset, you can ignore this email.</value></data>
+  <data name="AccessDenied" xml:space="preserve"><value>Access denied</value></data>
+  <data name="AccessDeniedMessage" xml:space="preserve"><value>You do not have access to this resource.</value></data>
+  <data name="LockedOut" xml:space="preserve"><value>Locked out</value></data>
+  <data name="LockedOutMessage" xml:space="preserve"><value>This account has been locked out, please try again later.</value></data>
+  <data name="InvalidUser" xml:space="preserve"><value>Invalid user</value></data>
+  <data name="ManagePasskeys" xml:space="preserve"><value>Manage your passkeys</value></data>
+  <data name="PasskeyCreated" xml:space="preserve"><value>Created {0:MMM d, yyyy} (UTC)</value></data>
+  <data name="RenamePasskeyHint" xml:space="preserve"><value>Rename this passkey</value></data>
+  <data name="RemovePasskeyHint" xml:space="preserve"><value>Remove this passkey from your account</value></data>
+  <data name="Rename" xml:space="preserve"><value>Rename</value></data>
+  <data name="Delete" xml:space="preserve"><value>Delete</value></data>
+  <data name="NoPasskeys" xml:space="preserve"><value>No passkeys are registered.</value></data>
+  <data name="PasskeyLimitHint" xml:space="preserve"><value>You have reached the maximum number of allowed passkeys. Please delete one before adding a new one.</value></data>
+  <data name="AddPasskey" xml:space="preserve"><value>Add a new passkey</value></data>
+  <data name="BrowserDidNotProvidePasskey" xml:space="preserve"><value>The browser did not provide a passkey.</value></data>
+  <data name="PasskeyLimitReached" xml:space="preserve"><value>You have reached the maximum number of allowed passkeys.</value></data>
+  <data name="PasskeyAttestationFailed" xml:space="preserve"><value>Could not add the passkey: {0}</value></data>
+  <data name="PasskeyAddFailed" xml:space="preserve"><value>The passkey could not be added to your account.</value></data>
+  <data name="PasskeyAdded" xml:space="preserve"><value>Your passkey was added successfully.</value></data>
+  <data name="UnknownPasskeyAction" xml:space="preserve"><value>Unknown action '{0}'.</value></data>
+  <data name="InvalidPasskeyId" xml:space="preserve"><value>The specified passkey ID had an invalid format.</value></data>
+  <data name="PasskeyDeleteFailed" xml:space="preserve"><value>The passkey could not be deleted.</value></data>
+  <data name="PasskeyDeleted" xml:space="preserve"><value>Passkey deleted successfully.</value></data>
+  <data name="RenamePasskeyPrompt" xml:space="preserve"><value>Enter a new name for your "{0}" passkey</value></data>
+  <data name="NamePasskeyPrompt" xml:space="preserve"><value>Enter a name for your passkey</value></data>
+  <data name="MyPasskey" xml:space="preserve"><value>My passkey</value></data>
+  <data name="PasskeyName" xml:space="preserve"><value>Passkey name</value></data>
+  <data name="Continue" xml:space="preserve"><value>Continue</value></data>
+  <data name="PasskeyNotFound" xml:space="preserve"><value>The specified passkey could not be found.</value></data>
+  <data name="PasskeyUpdateFailed" xml:space="preserve"><value>The passkey could not be updated.</value></data>
+  <data name="PasskeyUpdated" xml:space="preserve"><value>Passkey updated successfully.</value></data>
+  <data name="PasskeyNameRequired" xml:space="preserve"><value>The Name field is required.</value></data>
+  <data name="PasskeyNameTooLong" xml:space="preserve"><value>Passkey names must be no longer than {1} characters.</value></data>
+  <data name="UnnamedPasskey" xml:space="preserve"><value>Unnamed passkey</value></data>
+  <data name="PasskeyServerError" xml:space="preserve"><value>The server responded with status {0}.</value></data>
+  <data name="PasskeyBrowserUnsupported" xml:space="preserve"><value>Some passkey features are missing. Please update your browser.</value></data>
+  <data name="UnknownPasskeyOperation" xml:space="preserve"><value>Unknown passkey operation '{0}'.</value></data>
+  <data name="NoPasskeyProvided" xml:space="preserve"><value>No passkey was provided by the authenticator.</value></data>
+  <data name="AntiforgeryValidationFailed" xml:space="preserve"><value>Antiforgery validation failed.</value></data>
+  <data name="User" xml:space="preserve"><value>User</value></data>
+</root>
