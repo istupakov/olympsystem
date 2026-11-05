@@ -54,7 +54,7 @@ public class LocalizationTests(WebAppFactory factory) : IClassFixture<WebAppFact
         using var document = await new HtmlParser().ParseDocumentAsync(
             await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
         var messages = document.QuerySelectorAll(".validation-message").Select(element => element.TextContent).ToArray();
-        Assert.Equal(3, messages.Length);
+        Assert.Equal(4, messages.Length);
         Assert.Contains(publicNameError, messages);
         Assert.Contains(emailError, messages);
         Assert.Contains(passwordError, messages);
@@ -97,6 +97,7 @@ public class LocalizationTests(WebAppFactory factory) : IClassFixture<WebAppFact
                 ["Input.PublicName"] = "New user",
                 ["Input.Email"] = $"{Guid.NewGuid():N}@example.test",
                 ["Input.Password"] = WebAppFactory.Password,
+                ["Input.AcceptRules"] = "true",
                 ["Input.ConfirmPassword"] = WebAppFactory.Password
             };
             fields[$"Input.{field}"] = value;

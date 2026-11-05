@@ -151,4 +151,7 @@
   <data name="NoPasskeyProvided" xml:space="preserve"><value>Аутентификатор не предоставил ключ доступа.</value></data>
   <data name="AntiforgeryValidationFailed" xml:space="preserve"><value>Проверка защиты от подделки запросов не пройдена.</value></data>
   <data name="User" xml:space="preserve"><value>Пользователь</value></data>
+  <data name="AcceptRulesPrefix" xml:space="preserve"><value>Я принимаю</value></data>
+  <data name="SystemUsageRules" xml:space="preserve"><value>правила использования системы</value></data>
+  <data name="AcceptRulesRequired" xml:space="preserve"><value>Необходимо принять правила использования системы.</value></data>
 </root>

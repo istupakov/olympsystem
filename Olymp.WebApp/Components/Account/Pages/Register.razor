@@ -54,6 +54,13 @@
                 </label>
                 <ValidationMessage For="() => Input.ConfirmPassword" class="text-danger" />
             </div>
+            <div class="form-check mb-3">
+                <InputCheckbox @bind-Value="Input.AcceptRules" id="Input.AcceptRules" class="form-check-input" aria-required="true" />
+                <label for="Input.AcceptRules" class="form-check-label">
+                    @AccountResources.AcceptRulesPrefix <a href="rules" target="_blank" rel="noopener">@AccountResources.SystemUsageRules</a>
+                </label>
+                <ValidationMessage For="() => Input.AcceptRules" class="text-danger" />
+            </div>
             <button type="submit" class="w-100 btn btn-lg btn-primary">@AccountResources.Register</button>
         </EditForm>
     </div>
@@ -156,5 +163,8 @@
         [Display(Name = nameof(AccountResources.ConfirmPassword), ResourceType = typeof(AccountResources))]
         [Compare("Password", ErrorMessageResourceName = nameof(AccountResources.PasswordMismatch), ErrorMessageResourceType = typeof(AccountResources))]
         public string ConfirmPassword { get; set; } = "";
+
+        [Range(typeof(bool), "true", "true", ErrorMessageResourceName = nameof(AccountResources.AcceptRulesRequired), ErrorMessageResourceType = typeof(AccountResources))]
+        public bool AcceptRules { get; set; }
     }
 }

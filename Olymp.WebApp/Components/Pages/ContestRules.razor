@@ -1,0 +1,266 @@
+@page "/contests/rules/{Id:int}"
+
+@using Microsoft.EntityFrameworkCore
+@using Olymp.Domain
+
+@inject IDbContextFactory<OlympContext> ContextFactory
+
+@if (contest is not null)
+{
+    var isRussian = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ru";
+    var title = isRussian ? $"Правила соревнования «{contest.Name}»" : $"Rules for {contest.Name}";
+
+    <PageTitle>@title</PageTitle>
+
+    <h1 class="mb-4">@title</h1>
+
+    <p>
+        @if (isRussian)
+        {
+            <span>Во время соревнования действуют <a href="rules">правила использования системы</a> и следующие дополнительные правила.</span>
+        }
+        else
+        {
+            <span>The <a href="rules">system usage rules</a> and the following additional rules apply during contests.</span>
+        }
+    </p>
+
+    @if (isRussian)
+    {
+        <h2 class="h4">Самостоятельность и справочные материалы</h2>
+
+        <p>
+            Во время тура участники решают задачи самостоятельно.
+            @if (contest.IsAcm)
+            {
+                <span>Обсуждение задач и обмен решениями допускаются только внутри зарегистрированного состава команды.</span>
+            }
+            Помощь других лиц,
+            включая тренеров, запрещена.
+        </p>
+
+        <p>Во время тура запрещаются:</p>
+        <ul>
+            <li>публикация задач соревнования;</li>
+            <li>использование ИИ для решения задач соревнования, включая получение идей и подсказок;</li>
+            <li>поиск готовых решений и алгоритмов.</li>
+        </ul>
+
+        <p>
+            Разрешается пользоваться документацией по используемому языку программирования
+            и его стандартной библиотеке.
+        </p>
+
+        @if (contest.IsAcm)
+        {
+            <p>
+                Если регламент соревнования допускает использование справочного документа команды (TRD),
+                разрешается пользоваться документом, предварительно согласованным с жюри.
+                Требования к его содержанию, объёму и форме определяются регламентом соревнования.
+            </p>
+        }
+    }
+    else
+    {
+        <h2 class="h4">Independent Work and Reference Materials</h2>
+
+        <p>
+            During the contest, contestants must solve problems independently.
+            @if (contest.IsAcm)
+            {
+                <span>Discussing problems and sharing solutions are permitted only within the registered team.</span>
+            }
+            Assistance from anyone else, including coaches, is prohibited.
+        </p>
+
+        <p>The following are prohibited during the contest:</p>
+        <ul>
+            <li>publishing contest problems;</li>
+            <li>using AI to solve contest problems, including obtaining ideas and hints;</li>
+            <li>searching for existing solutions and algorithms.</li>
+        </ul>
+
+        <p>
+            Documentation for the programming language being used and its standard library is permitted.
+        </p>
+
+        @if (contest.IsAcm)
+        {
+            <p>
+                If the contest regulations permit a Team Reference Document (TRD), contestants may use
+                a document approved by the jury in advance. Requirements for its content, size and format
+                are specified in the contest regulations.
+            </p>
+        }
+    }
+
+    <h2 class="h4 mt-4">@(isRussian ? "Решение задач и отправка решений" : "Solving Problems and Submitting Solutions")</h2>
+
+    @if (isRussian)
+    {
+        <p>
+            Задачи можно решать в любом порядке. Они не обязательно расположены по возрастанию сложности.
+            Выбор порядка решения и распределение времени влияют на результат.
+        </p>
+        <p>
+            Учитывается время получения решения сервером. Решения, полученные до окончания тура,
+            проверяются и учитываются, даже если проверка завершилась позже.
+        </p>
+        <p>До окончания тура решение можно исправлять и отправлять повторно.</p>
+        <p><a href="rules#submissions">Как подготовить и отправить решение</a></p>
+    }
+    else
+    {
+        <p>
+            Problems may be solved in any order. They are not necessarily arranged in increasing order
+            of difficulty. Your choice of problem order and how you allocate your time affect your result.
+        </p>
+        <p>
+            The time when the server receives a submission is used. Submissions received before
+            the contest ends are judged and counted even if judging finishes later.
+        </p>
+        <p>You may correct and resubmit your solution before the contest ends.</p>
+        <p><a href="rules#submissions">How to prepare and submit a solution</a></p>
+    }
+
+    @if (!contest.IsSchool)
+    {
+        <h2 class="h4 mt-4">@(isRussian ? "Подсчёт результатов" : "Scoring")</h2>
+
+        @if (isRussian)
+        {
+            <ul>
+                <li>Выше располагается участник, решивший больше задач.</li>
+                <li>При равном числе решённых задач выше располагается участник с меньшим суммарным штрафным временем.</li>
+                <li>
+                    Для каждой решённой задачи учитывается время от начала тура до первой принятой посылки
+                    плюс <strong>20 минут за каждую предшествующую неудачную попытку</strong> по этой задаче.
+                </li>
+                <li>Ошибки компиляции не увеличивают штрафное время.</li>
+                <li>
+                    За нерешённые задачи штрафное время не начисляется.
+                    Посылки после принятого решения не влияют на результат.
+                </li>
+            </ul>
+            <h3 class="h5">Пример начисления штрафа</h3>
+            <p>
+                Задача принята на 60-й минуте после двух неверных попыток.
+                Её вклад в штрафное время составляет <strong>60 + 2 × 20 = 100 минут</strong>.
+            </p>
+            <h3 class="h5">Как порядок решения влияет на результат</h3>
+            <p>
+                На простую задачу участнику требуется 10 минут, а на сложную 60 минут.
+                Если начать с простой, задачи будут приняты на 10-й и 70-й минутах.
+                Суммарное штрафное время составит 80 минут. Если начать со сложной, задачи будут приняты
+                на 60-й и 70-й минутах, а штрафное время составит 130 минут. В обоих случаях на решение
+                потрачено 70 минут, но выбор порядка дал разницу в 50 штрафных минут.
+                В примере все решения приняты с первой попытки.
+            </p>
+        }
+        else
+        {
+            <ul>
+                <li>Contestants who solve more problems rank higher.</li>
+                <li>When the number of problems solved is equal, contestants with a lower total penalty time rank higher.</li>
+                <li>
+                    Each solved problem contributes the time from the start of the contest to the first accepted
+                    submission, plus <strong>20 minutes for each preceding unsuccessful attempt</strong> on that problem.
+                </li>
+                <li>Compilation errors do not increase the penalty time.</li>
+                <li>
+                    Unsolved problems do not contribute to the penalty time.
+                    Submissions after an accepted solution do not affect the result.
+                </li>
+            </ul>
+            <h3 class="h5">Penalty Calculation Example</h3>
+            <p>
+                A problem accepted at minute 60 after two unsuccessful attempts contributes
+                <strong>60 + 2 × 20 = 100 minutes</strong> to the penalty time.
+            </p>
+            <h3 class="h5">How Problem Order Affects the Result</h3>
+            <p>
+                A contestant needs 10 minutes to solve an easy problem and 60 minutes to solve
+                a difficult one. Starting with the easy problem leads to accepted submissions at minutes 10
+                and 70, giving a total penalty time of 80 minutes. Starting with the difficult problem leads
+                to accepted submissions at minutes 60 and 70, giving a total penalty time of 130 minutes.
+                Both orders take 70 minutes to solve both problems, but the choice of order makes a difference
+                of 50 penalty minutes. In this example, every solution is accepted on the first attempt.
+            </p>
+        }
+
+    }
+
+    <h2 class="h4 mt-4">@(isRussian ? "Таблица результатов" : "Standings")</h2>
+
+    @if (isRussian)
+    {
+        <p>
+            Во время соревнования доступна таблица результатов. В ней можно следить за своим положением
+            и результатами других участников. Количество участников, решивших каждую задачу, помогает оценить её сложность
+            и выбрать, какую задачу решать следующей.
+        </p>
+        <p>
+            В соревновании может применяться заморозка таблицы: начиная с установленного момента новые
+            результаты временно скрываются. Это сохраняет интригу и борьбу до конца тура.
+            Приём и проверка решений продолжаются, а участники видят результаты своих посылок.
+            После разморозки таблица отображает результаты с учётом скрытых посылок.
+        </p>
+    }
+    else
+    {
+        <p>
+            Standings are available during the contest. You can follow your own position and other
+            contestants' results. The number of contestants who have solved each problem helps you
+            assess its difficulty and choose which problem to attempt next.
+        </p>
+        <p>
+            The standings may be frozen: new results are temporarily hidden from a specified point
+            onward. This keeps the suspense and competition alive until the end of the contest.
+            Submissions are still accepted and judged, and contestants can see the results of their
+            own submissions. Once the standings are unfrozen, they include the results of the hidden
+            submissions.
+        </p>
+    }
+
+    <h2 class="h4 mt-4">@(isRussian ? "Вопросы жюри" : "Questions to the Jury")</h2>
+
+    @if (isRussian)
+    {
+        <p>
+            Если в условии задачи обнаружена возможная ошибка или неоднозначность, сообщите об этом жюри
+            через систему сообщений соревнования. Жюри не подсказывает
+            алгоритмы и не исправляет решения участников. Уточнения, существенные для всех участников,
+            публикуются как общие объявления.
+        </p>
+    }
+    else
+    {
+        <p>
+            If you notice a possible error or ambiguity in a problem statement, report it to the jury
+            through the contest messaging system. The jury does not suggest algorithms
+            or correct contestants' solutions. Clarifications relevant to all contestants are published
+            as general announcements.
+        </p>
+    }
+
+}
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    private Contest? contest;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await using var context = await ContextFactory.CreateDbContextAsync();
+        contest = await context.Contests.AsNoTracking()
+            .SingleOrDefaultAsync(item => item.Id == Id && !item.IsHidden);
+
+        if (contest is null)
+            HttpContext.Response.StatusCode = StatusCodes.Status404NotFound;
+    }
+}

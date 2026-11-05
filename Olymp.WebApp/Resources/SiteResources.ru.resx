@@ -62,4 +62,6 @@
   <data name="TimeLeft" xml:space="preserve"><value>осталось {0}</value></data>
   <data name="ContestOver" xml:space="preserve"><value>соревнование закончено</value></data>
   <data name="StandingTimeFormat" xml:space="preserve"><value>HH:mm z</value></data>
+  <data name="ContestRules" xml:space="preserve"><value>Правила</value></data>
+  <data name="Rules" xml:space="preserve"><value>Правила</value></data>
 </root>

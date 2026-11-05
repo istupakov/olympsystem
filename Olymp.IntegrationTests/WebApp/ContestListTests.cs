@@ -76,11 +76,12 @@ public class ContestListTests(WebAppFactory factory) : IClassFixture<WebAppFacto
         using var document = await new HtmlParser().ParseDocumentAsync(
             await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
         var articles = document.QuerySelectorAll("main article");
-        Assert.Equal([participants, registration], articles[0].QuerySelectorAll("li").Select(action => action.TextContent));
+        string rules = culture == "ru" ? "Правила" : "Rules";
+        Assert.Equal([rules, participants, registration], articles[0].QuerySelectorAll("li").Select(action => action.TextContent));
         Assert.NotNull(articles[0].QuerySelector($"a[href='contests/competitors/{future.Id}']"));
         var pastActions = articles[1].QuerySelectorAll("li");
         Assert.Single(pastActions, action => action.TextContent.StartsWith(standings, StringComparison.Ordinal));
-        Assert.Equal(5, pastActions.Length);
+        Assert.Equal(6, pastActions.Length);
         Assert.Contains(statements, pastActions.Select(action => action.TextContent));
         Assert.Contains(tests, pastActions.Select(action => action.TextContent));
         Assert.DoesNotContain(registration, pastActions.Select(action => action.TextContent));
@@ -90,7 +91,9 @@ public class ContestListTests(WebAppFactory factory) : IClassFixture<WebAppFacto
             Assert.False(string.IsNullOrWhiteSpace(action.GetAttribute("title")));
         });
         Assert.Equal([
+            $"contests/rules/{future.Id}",
             $"contests/competitors/{future.Id}",
+            $"contests/rules/{past.Id}",
             $"contests/competitors/{past.Id}",
             $"contests/standing/{past.Id}",
             $"contests/downloadproblems/{past.Id}",
