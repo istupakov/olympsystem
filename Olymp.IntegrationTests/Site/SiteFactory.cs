@@ -1,3 +1,5 @@
+extern alias site;
+
 using System.Net;
 
 using AngleSharp.Html.Parser;
@@ -19,9 +21,11 @@ using Olymp.Site.Services.Mail;
 
 using Xunit;
 
+using SiteProgram = site::Program;
+
 namespace Olymp.IntegrationTests.Site;
 
-public sealed class SiteFactory : WebApplicationFactory<Program>, IAsyncLifetime
+public sealed class SiteFactory : WebApplicationFactory<SiteProgram>, IAsyncLifetime
 {
     private readonly string _connectionString;
     private bool _databaseCreated;

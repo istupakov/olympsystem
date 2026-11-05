@@ -1,3 +1,5 @@
+extern alias site;
+
 using System.Net;
 using System.Text;
 
@@ -15,6 +17,8 @@ using Olymp.Site.Services.Checker;
 using Olymp.Tests.Shared;
 
 using Xunit;
+
+using SiteProgram = site::Program;
 
 namespace Olymp.IntegrationTests.Site.Checkers;
 
@@ -78,14 +82,14 @@ internal static class CheckerTestData
         return checker;
     }
 
-    public static WebApplicationFactory<Program> WithManager(SiteFactory factory, PageManager manager) =>
+    public static WebApplicationFactory<SiteProgram> WithManager(SiteFactory factory, PageManager manager) =>
         factory.WithWebHostBuilder(builder => builder.ConfigureTestServices(services =>
         {
             services.RemoveAll<ICheckerManager>();
             services.AddSingleton<ICheckerManager>(manager);
         }));
 
-    public static WebApplicationFactory<Program> WithRunnerConfiguration(SiteFactory factory, TestConfiguration? configuration = null) =>
+    public static WebApplicationFactory<SiteProgram> WithRunnerConfiguration(SiteFactory factory, TestConfiguration? configuration = null) =>
         factory.WithWebHostBuilder(builder => builder.ConfigureTestServices(services =>
         {
             services.RemoveAll<ICompilatorConfiguration>();
@@ -94,10 +98,10 @@ internal static class CheckerTestData
             services.AddSingleton<ICheckerTest>(new SelfTest());
         }));
 
-    public static HttpClient CreateClient(WebApplicationFactory<Program> site) =>
+    public static HttpClient CreateClient(WebApplicationFactory<SiteProgram> site) =>
         site.CreateClient(new() { AllowAutoRedirect = false, BaseAddress = new Uri("https://localhost") });
 
-    public static async Task<HttpClient> LoginAsync(WebApplicationFactory<Program> site, string username)
+    public static async Task<HttpClient> LoginAsync(WebApplicationFactory<SiteProgram> site, string username)
     {
         var client = CreateClient(site);
         using var login = await SiteFactory.PostFormAsync(client, "/Identity/Account/Login", new()

@@ -33,6 +33,9 @@
     [SupplyParameterFromQuery]
     private string? Code { get; set; }
 
+    [SupplyParameterFromQuery]
+    private string? ReturnUrl { get; set; }
+
     protected override async Task OnInitializedAsync()
     {
         message = IdentityStatusMessage;
@@ -52,7 +55,16 @@
             return;
         }
 
-        var code = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(Code));
+        string code;
+        try
+        {
+            code = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(Code));
+        }
+        catch (FormatException)
+        {
+            message = "Error changing email.";
+            return;
+        }
         var result = await UserManager.ChangeEmailAsync(user, Email, code);
         if (!result.Succeeded)
         {
@@ -71,5 +83,7 @@
 
         await SignInManager.RefreshSignInAsync(user);
         message = "Thank you for confirming your email change.";
+        if (ReturnUrl is not null)
+            RedirectManager.RedirectTo(ReturnUrl);
     }
 }
