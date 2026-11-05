@@ -13,6 +13,7 @@ using Olymp.Site.Services.Identity;
 using Olymp.Site.Services.Mail;
 using Olymp.WebApp.Components;
 using Olymp.WebApp.Components.Account;
+using Olymp.WebApp.Components.Contests;
 using Olymp.WebApp.Components.Layout;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -127,5 +128,6 @@ app.MapRazorComponents<App>()
 app.MapAdditionalIdentityEndpoints();
 
 app.MapLanguageEndpoint();
+app.MapContestDownloads();
 
 app.Run();

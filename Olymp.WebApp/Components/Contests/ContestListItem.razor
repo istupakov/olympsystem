@@ -1,0 +1,48 @@
+<article class="list-group-item py-3">
+    <div class="d-flex flex-wrap justify-content-between align-items-baseline gap-2 mb-2">
+        <h3 class="h5 mb-0">@Contest.Name</h3>
+        <time class="text-body-secondary" datetime="@Contest.StartTime.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)">@Contest.StartTime.ToString("d", CultureInfo.CurrentCulture)</time>
+    </div>
+    @if (Contest.EndTime >= Now)
+    {
+        <p class="small text-body-secondary mb-2">@(Contest.StartTime > Now ? SiteResources.ContestUpcoming : SiteResources.ContestInProgress)</p>
+    }
+    <ul class="list-inline small mb-0">
+        @if (Contest.StartTime > new DateTimeOffset(2010, 1, 1, 0, 0, 0, TimeSpan.Zero))
+        {
+            <li class="list-inline-item"><a href="contests/competitors/@Contest.Id">@SiteResources.ContestParticipants</a></li>
+        }
+        @if (Now < Contest.EndTime)
+        {
+            <li class="list-inline-item"><span class="text-body-secondary" aria-disabled="true" title="@SiteResources.ActionUnavailable">@SiteResources.ContestRegistration</span></li>
+        }
+        @if (Contest.AllowShowStanding)
+        {
+            <li class="list-inline-item"><a href="contests/standing/@Contest.Id">@SiteResources.ContestStandings</a></li>
+        }
+        @if (Contest.ProblemPdfId is not null && Contest.AllowDownloadProblems)
+        {
+            <li class="list-inline-item"><a href="contests/downloadproblems/@Contest.Id">@SiteResources.ContestStatements</a></li>
+        }
+        @if (Contest.TestZipId is not null && Contest.AllowDownloadTests)
+        {
+            <li class="list-inline-item"><a href="contests/downloadtests/@Contest.Id">@SiteResources.ContestTests</a></li>
+        }
+        @if (Contest.AllowSubmitSolution)
+        {
+            <li class="list-inline-item"><span class="text-body-secondary" aria-disabled="true" title="@SiteResources.ActionUnavailable">@SiteResources.ContestSubmitSolution</span></li>
+        }
+    </ul>
+    @if (!string.IsNullOrWhiteSpace(Contest.Description))
+    {
+        <div class="mt-3 overflow-auto">@((MarkupString)Contest.Description)</div>
+    }
+</article>
+
+@code {
+    [Parameter, EditorRequired]
+    public Contest Contest { get; set; } = default!;
+
+    [Parameter]
+    public DateTimeOffset Now { get; set; }
+}

@@ -1,0 +1,69 @@
+@page "/contests"
+
+@using Microsoft.EntityFrameworkCore
+@using Olymp.Domain
+@using Olymp.WebApp.Components.Contests
+
+@inject IDbContextFactory<OlympContext> ContextFactory
+
+<PageTitle>@SiteResources.Contests</PageTitle>
+
+<h1 class="mb-4">@SiteResources.Contests</h1>
+
+@if (upcoming.Count > 0)
+{
+    <section class="mb-4" aria-labelledby="upcoming-contests">
+        <h2 id="upcoming-contests" class="h4 mb-3">@SiteResources.CurrentAndUpcomingContests</h2>
+        <div class="list-group">
+            @foreach (var contest in upcoming)
+            {
+                <ContestListItem Contest="contest" Now="now" />
+            }
+        </div>
+    </section>
+}
+
+@if (archive.Count > 0)
+{
+    <section aria-labelledby="contest-archive">
+        <h2 id="contest-archive" class="h4 mb-3">@SiteResources.ContestArchive</h2>
+        @foreach (var year in archive)
+        {
+            <details id="contests-@year.Key" name="contest-years" open="@(year.Key == archive[0].Key)" class="border rounded mb-3">
+                <summary class="p-3 bg-body-tertiary rounded fw-semibold">
+                    @year.Key <span class="text-body-secondary fw-normal ms-1">(@year.Count())</span>
+                </summary>
+                <div class="list-group list-group-flush p-3">
+                    @foreach (var contest in year)
+                    {
+                        <ContestListItem Contest="contest" Now="now" />
+                    }
+                </div>
+            </details>
+        }
+    </section>
+}
+
+@if (upcoming.Count == 0 && archive.Count == 0)
+{
+    <p>@SiteResources.NoContests</p>
+}
+
+@code {
+    private readonly DateTimeOffset now = DateTimeOffset.Now;
+    private List<Contest> upcoming = [];
+    private List<IGrouping<int, Contest>> archive = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        await using var context = await ContextFactory.CreateDbContextAsync();
+        var contests = await context.Contests.AsNoTracking()
+            .Where(contest => !contest.IsHidden)
+            .OrderByDescending(contest => contest.StartTime)
+            .ThenByDescending(contest => contest.Id)
+            .ToListAsync();
+
+        upcoming = contests.Where(contest => contest.EndTime >= now).OrderBy(contest => contest.StartTime).ToList();
+        archive = contests.Where(contest => contest.EndTime < now).GroupBy(contest => contest.StartTime.Year).ToList();
+    }
+}

@@ -1,0 +1,97 @@
+@page "/contests/competitors/{Id:int}"
+
+@using Microsoft.EntityFrameworkCore
+@using Olymp.Domain
+@using Olymp.WebApp.Components.Contests
+@inject IDbContextFactory<OlympContext> ContextFactory
+
+<PageTitle>@Title</PageTitle>
+<h1>@Title</h1>
+
+@if (contest is not null)
+{
+    @if (participants.Count == 0)
+    {
+        <p>@SiteResources.NoParticipants</p>
+    }
+    else if (contest.IsAcm)
+    {
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th scope="col">@SiteResources.Team</th>
+                        <th scope="col">@SiteResources.Members</th>
+                        <th scope="col">@SiteResources.Coach</th>
+                        <th scope="col">@SiteResources.Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var team in participants)
+                    {
+                        <tr>
+                            <td>
+                                <div class="fw-semibold">@team.Name</div>
+                                @if (team.Organization is not null)
+                                {
+                                    <div class="small text-body-secondary"><abbr title="@team.Organization.FullName">@team.Organization.Name</abbr></div>
+                                }
+                            </td>
+                            <td>
+                                <ul class="list-unstyled mb-0">
+                                    @foreach (var member in team.MemberNames ?? [])
+                                    {
+                                        <li>@member</li>
+                                    }
+                                </ul>
+                            </td>
+                            <td>@team.Coach?.LastName @team.Coach?.FirstName @team.Coach?.Patronymic</td>
+                            <td><CompetitorBadges User="team" /></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    else
+    {
+        <ol>
+            @foreach (var participant in participants)
+            {
+                <li>@participant.Name <CompetitorBadges User="participant" /></li>
+            }
+        </ol>
+    }
+}
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    private Contest? contest;
+    private List<Competitor> participants = [];
+    private string Title => contest is null ? "" : string.Format(SiteResources.ParticipantsInContest, contest.Name);
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await using var context = await ContextFactory.CreateDbContextAsync();
+        contest = await context.Contests.AsNoTracking()
+            .Where(item => item.Id == Id && !item.IsHidden)
+            .Include(item => item.Competitors).ThenInclude(item => item.Organization)
+            .Include(item => item.Competitors).ThenInclude(item => item.Coach)
+            .Include(item => item.Competitors).ThenInclude(item => item.Members)
+            .AsSplitQuery()
+            .SingleOrDefaultAsync();
+
+        if (contest is null)
+        {
+            HttpContext.Response.StatusCode = StatusCodes.Status404NotFound;
+            return;
+        }
+
+        participants = contest.Competitors.Where(item => !item.IsHidden).OrderBy(item => item.Name).ToList();
+    }
+}
