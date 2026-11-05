@@ -8,6 +8,7 @@
 @using Olymp.Domain.Models
 
 @inject UserManager<User> UserManager
+@inject SignInManager<User> SignInManager
 @inject IEmailSender<User> EmailSender
 @inject NavigationManager NavigationManager
 @inject IdentityRedirectManager RedirectManager
@@ -17,6 +18,20 @@
 <h3>Manage email</h3>
 
 <StatusMessage Message="@message"/>
+@if (needsMigration)
+{
+    <div class="alert alert-warning" role="alert">
+        <p>To access pages that require sign-in, use your email address as your username.</p>
+        <p>Your current username is <strong>@user?.UserName</strong>. After switching, use your email address and the same password.</p>
+        @if (isEmailConfirmed && !string.IsNullOrWhiteSpace(email))
+        {
+            <form @onsubmit="OnUseEmailAsLoginAsync" @formname="use-email-login" method="post">
+                <button type="submit" class="btn btn-primary">Use @email for sign-in</button>
+            </form>
+        }
+        <p class="mb-0">If this email address is outdated, change it below. Confirmation will be sent to the new address.</p>
+    </div>
+}
 <div class="row">
     <div class="col-xl-6">
         <form @onsubmit="OnSendEmailVerificationAsync" @formname="send-verification" id="send-verification-form" method="post">
@@ -61,6 +76,7 @@
     private User? user;
     private string? email;
     private bool isEmailConfirmed;
+    private bool needsMigration;
 
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
@@ -70,6 +86,9 @@
 
     [SupplyParameterFromForm(FormName = "change-email")]
     private InputModel Input { get; set; } = default!;
+
+    [SupplyParameterFromQuery]
+    private string? ReturnUrl { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
@@ -86,8 +105,26 @@
 
         email = await UserManager.GetEmailAsync(user);
         isEmailConfirmed = await UserManager.IsEmailConfirmedAsync(user);
+        needsMigration = EmailAsLoginRequirement.NeedsMigration(user);
 
         Input.NewEmail ??= email;
+    }
+
+    private async Task OnUseEmailAsLoginAsync()
+    {
+        if (user is null || !needsMigration || !isEmailConfirmed || string.IsNullOrWhiteSpace(email))
+            return;
+
+        var result = await UserManager.SetUserNameAsync(user, email);
+        if (!result.Succeeded)
+        {
+            message = $"Error: {string.Join(", ", result.Errors.Select(error => error.Description))}";
+            return;
+        }
+
+        await SignInManager.RefreshSignInAsync(user);
+        IdentityStatusMessage = "Your email address is now your username.";
+        RedirectManager.RedirectTo(ReturnUrl ?? "Account/Manage/Email");
     }
 
     private async Task OnValidSubmitAsync()
@@ -109,7 +146,7 @@
         code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
         var callbackUrl = NavigationManager.GetUriWithQueryParameters(
             NavigationManager.ToAbsoluteUri("Account/ConfirmEmailChange").AbsoluteUri,
-            new Dictionary<string, object?> { ["userId"] = userId, ["email"] = Input.NewEmail, ["code"] = code });
+            new Dictionary<string, object?> { ["userId"] = userId, ["email"] = Input.NewEmail, ["code"] = code, ["returnUrl"] = ReturnUrl });
 
         await EmailSender.SendConfirmationLinkAsync(user, Input.NewEmail, HtmlEncoder.Default.Encode(callbackUrl));
 

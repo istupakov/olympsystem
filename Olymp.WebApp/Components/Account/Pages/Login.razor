@@ -122,13 +122,20 @@
                 return;
             }
 
-            result = await SignInManager.PasswordSignInAsync(Input.Login, Input.Password, Input.RememberMe, lockoutOnFailure: true);
+            var user = await SignInManager.UserManager.FindByNameAsync(Input.Login)
+                ?? await SignInManager.UserManager.FindByEmailAsync(Input.Login);
+            result = user is null ? SignInResult.Failed
+                : await SignInManager.PasswordSignInAsync(user, Input.Password, Input.RememberMe, lockoutOnFailure: true);
         }
 
         if (result.Succeeded)
         {
             Logger.LogInformation("User logged in.");
-            RedirectManager.RedirectTo(ReturnUrl);
+            var user = await SignInManager.UserManager.GetUserAsync(SignInManager.Context.User);
+            if (user is not null && EmailAsLoginRequirement.NeedsMigration(user))
+                RedirectManager.RedirectTo("Account/Manage/Email", new() { ["returnUrl"] = ReturnUrl });
+            else
+                RedirectManager.RedirectTo(ReturnUrl);
         }
         else if (result.IsLockedOut)
         {

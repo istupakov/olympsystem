@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization.Policy;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -17,7 +19,16 @@ var builder = WebApplication.CreateBuilder(args);
 var identityFeatures = builder.Configuration.GetSection(IdentityFeatures.SectionName)
     .Get<IdentityFeatures>() ?? new();
 builder.Services.AddSingleton(identityFeatures);
+builder.Services.AddScoped<IAuthorizationHandler, EmailAsLoginHandler>();
+builder.Services.AddSingleton<IAuthorizationMiddlewareResultHandler, EmailAsLoginRedirectHandler>();
 builder.Services.AddAuthorizationBuilder()
+    // Account management keeps its own policy so users can complete the transition.
+    // Future application policies must also include EmailAsLoginRequirement.
+    .SetDefaultPolicy(new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .AddRequirements(new EmailAsLoginRequirement())
+        .Build())
+    .AddPolicy("SignedIn", policy => policy.RequireAuthenticatedUser())
     .AddPolicy(PolicyNames.OlympUser, policy => policy
         .RequireAuthenticatedUser()
         .RequireAssertion(context => !context.User.HasClaim(claim => claim.Type == ClaimNames.CompetitorContest)))
