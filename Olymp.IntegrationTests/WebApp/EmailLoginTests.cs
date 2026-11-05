@@ -75,7 +75,7 @@ public class EmailLoginTests(WebAppFactory factory) : IClassFixture<WebAppFactor
         using var response = await client.GetAsync(path, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Contains("Account/Logout", await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
+        Assert.Contains("account/logout", await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
     }
 
     [Fact]

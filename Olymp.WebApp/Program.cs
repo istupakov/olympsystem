@@ -41,6 +41,8 @@ builder.Services.AddAuthorizationBuilder()
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
+builder.Services.AddRouting(options => options.LowercaseUrls = true);
+
 builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
 builder.Services.AddRequestLocalization(options =>
 {

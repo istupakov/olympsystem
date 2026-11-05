@@ -1,7 +1,49 @@
-﻿@page "/"
+@page "/"
 
-<PageTitle>Home</PageTitle>
+@using Microsoft.EntityFrameworkCore
+@using Olymp.Domain
 
-<h1>Hello, world!</h1>
+@inject IDbContextFactory<OlympContext> ContextFactory
 
-Welcome to your new app.
+<PageTitle>@SiteResources.News</PageTitle>
+
+<div class="row justify-content-center">
+    <div class="col-lg-10 col-xl-9">
+        <h1 class="mb-4">@SiteResources.News</h1>
+
+        @foreach (var item in news)
+        {
+            <article class="card mb-4">
+                <div class="card-header">
+                    <h2 class="h5 mb-0">@item.Title</h2>
+                </div>
+                <div class="card-body overflow-auto">
+                    @((MarkupString)item.Text)
+                </div>
+                <div class="card-footer text-body-secondary text-end">
+                    <time datetime="@item.PublicationDate.ToString("O", CultureInfo.InvariantCulture)">
+                        @item.PublicationDate.ToString("D", CultureInfo.CurrentCulture)
+                    </time>
+                </div>
+            </article>
+        }
+        @if (news.Count == 0)
+        {
+            <p>@SiteResources.NoNews</p>
+        }
+    </div>
+</div>
+
+@code {
+    private List<News> news = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        await using var context = await ContextFactory.CreateDbContextAsync();
+        news = await context.News.AsNoTracking()
+            .OrderByDescending(item => item.PublicationDate)
+            .ThenByDescending(item => item.Id)
+            .Take(5)
+            .ToListAsync();
+    }
+}
