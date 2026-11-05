@@ -1,11 +1,12 @@
 ﻿@page "/Account/Manage/RenamePasskey/{Id}"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Policy = IdentityFeatures.PasskeysPolicy)]
 
-@using Olymp.WebApp.Data
+@using Olymp.Domain.Models
 @using System.ComponentModel.DataAnnotations
 @using Microsoft.AspNetCore.Identity
 @using System.Buffers.Text
 
-@inject UserManager<ApplicationUser> UserManager
+@inject UserManager<User> UserManager
 @inject IdentityRedirectManager RedirectManager
 
 <EditForm Model="Input" OnValidSubmit="Rename" FormName="rename-passkey" method="post">
@@ -33,7 +34,7 @@
 </EditForm>
 
 @code {
-    private ApplicationUser? user;
+    private User? user;
     private UserPasskeyInfo? passkey;
 
     [CascadingParameter]

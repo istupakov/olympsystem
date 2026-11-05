@@ -4,20 +4,31 @@
     <TargetFramework>net11.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <UserSecretsId>aspnet-Olymp_WebApp-1d1699e6-aca0-43f6-b42d-7fb8751a907b</UserSecretsId>
     <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
   </PropertyGroup>
 
   <ItemGroup>
-    <None Update="Data\app.db" CopyToOutputDirectory="PreserveNewest" ExcludeFromSingleFile="true" />
+    <ProjectReference Include="..\Olymp.Domain\Olymp.Domain.csproj" />
+    <ProjectReference Include="..\Olymp.Site\Olymp.Site.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="11.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="11.0.0" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="11.0.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="11.0.0" PrivateAssets="all" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="11.0.0" />
   </ItemGroup>
+
+  <Target Name="ExcludeLegacySiteStaticWebAssets" AfterTargets="ResolveReferencedProjectsStaticWebAssetsConfiguration">
+    <ItemGroup>
+      <StaticWebAssetProjectConfiguration Remove="@(StaticWebAssetProjectConfiguration)"
+                                         Condition="'%(Source)' == 'Olymp.Site' Or '%(Source)' == 'Olymp.Site.IdentityUI'" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="ExcludeLegacySitePublishSettings" AfterTargets="ComputeResolvedFilesToPublishList">
+    <ItemGroup>
+      <ResolvedFileToPublish Remove="$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/../Olymp.Site'))/appsettings*.json" />
+    </ItemGroup>
+  </Target>
 
 </Project>

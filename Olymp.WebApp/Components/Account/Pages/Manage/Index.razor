@@ -2,11 +2,14 @@
 
 @using System.ComponentModel.DataAnnotations
 @using Microsoft.AspNetCore.Identity
-@using Olymp.WebApp.Data
+@using Microsoft.EntityFrameworkCore
+@using Olymp.Domain
+@using Olymp.Domain.Models
 
-@inject UserManager<ApplicationUser> UserManager
-@inject SignInManager<ApplicationUser> SignInManager
+@inject UserManager<User> UserManager
+@inject SignInManager<User> SignInManager
 @inject IdentityRedirectManager RedirectManager
+@inject OlympContext DbContext
 
 <PageTitle>Profile</PageTitle>
 
@@ -25,9 +28,52 @@
                 <label for="username" class="form-label">Username</label>
             </div>
             <div class="form-floating mb-3">
-                <InputText @bind-Value="Input.PhoneNumber" id="Input.PhoneNumber" class="form-control" placeholder="Enter your phone number" />
-                <label for="Input.PhoneNumber" class="form-label">Phone number</label>
-                <ValidationMessage For="() => Input.PhoneNumber" class="text-danger" />
+                <InputText @bind-Value="Input.PublicName" id="Input.PublicName" class="form-control" autocomplete="nickname" aria-required="true" placeholder="Public name" />
+                <label for="Input.PublicName" class="form-label">
+                    <DisplayName For="() => Input.PublicName" />
+                </label>
+                <ValidationMessage For="() => Input.PublicName" class="text-danger" />
+            </div>
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="Input.LastName" id="Input.LastName" class="form-control" autocomplete="family-name" placeholder="Last name" />
+                <label for="Input.LastName" class="form-label">
+                    <DisplayName For="() => Input.LastName" />
+                </label>
+                <ValidationMessage For="() => Input.LastName" class="text-danger" />
+            </div>
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="Input.FirstName" id="Input.FirstName" class="form-control" autocomplete="given-name" placeholder="First name" />
+                <label for="Input.FirstName" class="form-label">
+                    <DisplayName For="() => Input.FirstName" />
+                </label>
+                <ValidationMessage For="() => Input.FirstName" class="text-danger" />
+            </div>
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="Input.Patronymic" id="Input.Patronymic" class="form-control" autocomplete="additional-name" placeholder="Patronymic" />
+                <label for="Input.Patronymic" class="form-label">
+                    <DisplayName For="() => Input.Patronymic" />
+                </label>
+                <ValidationMessage For="() => Input.Patronymic" class="text-danger" />
+            </div>
+            <div class="form-floating mb-3">
+                <InputSelect @bind-Value="Input.OrganizationId" id="Input.OrganizationId" class="form-select">
+                    <option value=""></option>
+                    @foreach (var organization in organizations)
+                    {
+                        <option value="@organization.Id">@organization.Name</option>
+                    }
+                </InputSelect>
+                <label for="Input.OrganizationId" class="form-label">
+                    <DisplayName For="() => Input.OrganizationId" />
+                </label>
+                <ValidationMessage For="() => Input.OrganizationId" class="text-danger" />
+            </div>
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="Input.Group" id="Input.Group" class="form-control" placeholder="Group" />
+                <label for="Input.Group" class="form-label">
+                    <DisplayName For="() => Input.Group" />
+                </label>
+                <ValidationMessage For="() => Input.Group" class="text-danger" />
             </div>
             <button type="submit" class="w-100 btn btn-lg btn-primary">Save</button>
         </EditForm>
@@ -36,9 +82,9 @@
 
 @code {
     private string? message;
-    private ApplicationUser? user;
+    private OlympUser? user;
     private string? username;
-    private string? phoneNumber;
+    private List<Organization> organizations = [];
 
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
@@ -55,7 +101,7 @@
         IdentityStatusMessage = null;
         Input ??= new();
 
-        user = await UserManager.GetUserAsync(HttpContext.User);
+        user = await UserManager.GetUserAsync(HttpContext.User) as OlympUser;
         if (user is null)
         {
             RedirectManager.RedirectTo("Account/InvalidUser");
@@ -63,12 +109,23 @@
         }
 
         username = await UserManager.GetUserNameAsync(user);
-        phoneNumber = await UserManager.GetPhoneNumberAsync(user);
+        organizations = await DbContext.Organizations.AsNoTracking().OrderBy(x => x.Name).ToListAsync();
 
-        Input.PhoneNumber ??= phoneNumber;
+        if (HttpMethods.IsGet(HttpContext.Request.Method))
+        {
+            Input = new()
+            {
+                PublicName = user.Name,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                Patronymic = user.Patronymic,
+                OrganizationId = user.OrganizationId,
+                Group = user.Details
+            };
+        }
     }
 
-    private async Task OnValidSubmitAsync()
+    private async Task OnValidSubmitAsync(EditContext editContext)
     {
         if (user is null)
         {
@@ -76,15 +133,26 @@
             return;
         }
 
-        if (Input.PhoneNumber != phoneNumber)
+        if (Input.OrganizationId is int organizationId && !await DbContext.Organizations.AnyAsync(x => x.Id == organizationId))
         {
-            var setPhoneResult = await UserManager.SetPhoneNumberAsync(user, Input.PhoneNumber);
-            if (!setPhoneResult.Succeeded)
-            {
-                IdentityStatusMessage = "Error: Failed to set phone number.";
-                RedirectManager.RedirectToCurrentPage();
-                return;
-            }
+            var validationMessages = new ValidationMessageStore(editContext);
+            validationMessages.Add(() => Input.OrganizationId, "Invalid value.");
+            editContext.NotifyValidationStateChanged();
+            return;
+        }
+
+        user.Name = Input.PublicName;
+        user.FirstName = string.IsNullOrEmpty(Input.FirstName) ? null : Input.FirstName;
+        user.LastName = string.IsNullOrEmpty(Input.LastName) ? null : Input.LastName;
+        user.Patronymic = string.IsNullOrEmpty(Input.Patronymic) ? null : Input.Patronymic;
+        user.OrganizationId = Input.OrganizationId;
+        user.Details = string.IsNullOrEmpty(Input.Group) ? null : Input.Group;
+
+        var updateResult = await UserManager.UpdateAsync(user);
+        if (!updateResult.Succeeded)
+        {
+            message = "Error: Failed to update profile.";
+            return;
         }
 
         await SignInManager.RefreshSignInAsync(user);
@@ -94,8 +162,33 @@
 
     private sealed class InputModel
     {
-        [Phone]
-        [Display(Name = "Phone number")]
-        public string? PhoneNumber { get; set; }
+        [StringLength(32, ErrorMessage = "The field {0} must be a string with a maximum length of {1}.")]
+        [Required(ErrorMessage = "The {0} field is required.")]
+        [RegularExpression(OlympUser.PublicNameRegex, ErrorMessage = "The {0} field may contain only Russian or Latin letters, digits, spaces or hyphens.")]
+        [Display(Name = "Public name")]
+        public string PublicName { get; set; } = "";
+
+        [StringLength(64, ErrorMessage = "The field {0} must be a string with a maximum length of {1}.")]
+        [RegularExpression(OlympUser.NameRegex, ErrorMessage = "Use at least two characters in {0}: Russian letters, spaces or hyphens. The last character must be a lowercase letter.")]
+        [Display(Name = "First name")]
+        public string? FirstName { get; set; }
+
+        [StringLength(64, ErrorMessage = "The field {0} must be a string with a maximum length of {1}.")]
+        [RegularExpression(OlympUser.NameRegex, ErrorMessage = "Use at least two characters in {0}: Russian letters, spaces or hyphens. The last character must be a lowercase letter.")]
+        [Display(Name = "Last name")]
+        public string? LastName { get; set; }
+
+        [StringLength(64, ErrorMessage = "The field {0} must be a string with a maximum length of {1}.")]
+        [RegularExpression(OlympUser.NameRegex, ErrorMessage = "Use at least two characters in {0}: Russian letters, spaces or hyphens. The last character must be a lowercase letter.")]
+        [Display(Name = "Patronymic")]
+        public string? Patronymic { get; set; }
+
+        [Display(Name = "University")]
+        public int? OrganizationId { get; set; }
+
+        [StringLength(16, ErrorMessage = "The field {0} must be a string with a maximum length of {1}.")]
+        [RegularExpression(OlympUser.GroupRegex, ErrorMessage = "The {0} field may contain only uppercase Russian or Latin letters, digits or hyphens.")]
+        [Display(Name = "Group")]
+        public string? Group { get; set; }
     }
 }
