@@ -4,7 +4,7 @@
     typeof window.PublicKeyCredential.parseCreationOptionsFromJSON === 'function' &&
     typeof window.PublicKeyCredential.parseRequestOptionsFromJSON === 'function';
 
-async function fetchWithErrorHandling(url, options = {}) {
+async function fetchWithErrorHandling(url, options, errorMessage) {
     const response = await fetch(url, {
         credentials: 'include',
         ...options
@@ -12,26 +12,26 @@ async function fetchWithErrorHandling(url, options = {}) {
     if (!response.ok) {
         const text = await response.text();
         console.error(text);
-        throw new Error(`The server responded with status ${response.status}.`);
+        throw new Error(errorMessage.replace('{0}', response.status));
     }
     return response;
 }
 
-async function createCredential(signal) {
+async function createCredential(signal, serverErrorMessage) {
     const optionsResponse = await fetchWithErrorHandling('/Account/PasskeyCreationOptions', {
         method: 'POST',
         signal,
-    });
+    }, serverErrorMessage);
     const optionsJson = await optionsResponse.json();
     const options = PublicKeyCredential.parseCreationOptionsFromJSON(optionsJson);
     return await navigator.credentials.create({ publicKey: options, signal });
 }
 
-async function requestCredential(email, mediation, signal) {
+async function requestCredential(email, mediation, signal, serverErrorMessage) {
     const optionsResponse = await fetchWithErrorHandling(`/Account/PasskeyRequestOptions?username=${email}`, {
         method: 'POST',
         signal,
-    });
+    }, serverErrorMessage);
     const optionsJson = await optionsResponse.json();
     const options = PublicKeyCredential.parseRequestOptionsFromJSON(optionsJson);
     return await navigator.credentials.get({ publicKey: options, mediation, signal });
@@ -46,6 +46,10 @@ customElements.define('passkey-submit', class extends HTMLElement {
             operation: this.getAttribute('operation'),
             name: this.getAttribute('name'),
             emailName: this.getAttribute('email-name'),
+            serverErrorMessage: this.getAttribute('server-error-message'),
+            unsupportedBrowserMessage: this.getAttribute('unsupported-browser-message'),
+            unknownOperationMessage: this.getAttribute('unknown-operation-message'),
+            noPasskeyMessage: this.getAttribute('no-passkey-message'),
         };
 
         this.internals.form.addEventListener('submit', (event) => {
@@ -64,17 +68,17 @@ customElements.define('passkey-submit', class extends HTMLElement {
 
     async obtainCredential(useConditionalMediation, signal) {
         if (!browserSupportsPasskeys) {
-            throw new Error('Some passkey features are missing. Please update your browser.');
+            throw new Error(this.attrs.unsupportedBrowserMessage);
         }
 
         if (this.attrs.operation === 'Create') {
-            return await createCredential(signal);
+            return await createCredential(signal, this.attrs.serverErrorMessage);
         } else if (this.attrs.operation === 'Request') {
             const email = new FormData(this.internals.form).get(this.attrs.emailName);
             const mediation = useConditionalMediation ? 'conditional' : undefined;
-            return await requestCredential(email, mediation, signal);
+            return await requestCredential(email, mediation, signal, this.attrs.serverErrorMessage);
         } else {
-            throw new Error(`Unknown passkey operation '${this.attrs.operation}'.`);
+            throw new Error(this.attrs.unknownOperationMessage.replace('{0}', this.attrs.operation));
         }
     }
 
@@ -99,7 +103,7 @@ customElements.define('passkey-submit', class extends HTMLElement {
                 return;
             }
             const errorMessage = error.name === 'NotAllowedError'
-                ? 'No passkey was provided by the authenticator.'
+                ? this.attrs.noPasskeyMessage
                 : error.message;
             formData.append(`${this.attrs.name}.Error`, errorMessage);
         }

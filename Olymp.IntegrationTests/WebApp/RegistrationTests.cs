@@ -1,6 +1,8 @@
 using System.Net;
 using System.Text;
 
+using AngleSharp.Html.Parser;
+
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.AspNetCore.WebUtilities;
@@ -17,11 +19,14 @@ namespace Olymp.IntegrationTests.WebApp;
 [Trait("Category", "Integration")]
 public class RegistrationTests(WebAppFactory factory) : IClassFixture<WebAppFactory>
 {
-    [Fact]
-    public async Task RegistrationNeedsOnlyPublicNameEmailAndPasswordAndRequiresConfirmation()
+    [Theory]
+    [InlineData("ru")]
+    [InlineData("en")]
+    public async Task RegistrationNeedsOnlyPublicNameEmailAndPasswordAndRequiresConfirmation(string culture)
     {
         string email = $"{Guid.NewGuid():N}@example.test";
         using var client = factory.CreateSiteClient();
+        client.DefaultRequestHeaders.AcceptLanguage.ParseAdd(culture);
         using var response = await RegisterAsync(client, email);
         Assert.Equal("/Account/RegisterConfirmation", RedirectTarget(response).AbsolutePath);
 
@@ -36,27 +41,39 @@ public class RegistrationTests(WebAppFactory factory) : IClassFixture<WebAppFact
             Assert.Null(user.LastName);
             Assert.Null(user.OrganizationId);
         }
-        using (var restricted = await client.GetAsync("/auth", TestContext.Current.CancellationToken))
+        using (var restricted = await client.GetAsync("/test/auth", TestContext.Current.CancellationToken))
             Assert.Equal("/Account/Login", RedirectTarget(restricted).AbsolutePath);
 
         var (_, link) = Assert.Single(factory.EmailSender.Confirmations, letter => letter.Email == email);
         using var confirmed = await client.GetAsync(WebUtility.HtmlDecode(link), TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.OK, confirmed.StatusCode);
+        using var document = await new HtmlParser().ParseDocumentAsync(
+            await confirmed.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
+        Assert.Equal(culture == "ru" ? "Подтверждение email" : "Confirm email", document.Title);
+        Assert.Equal(culture == "ru" ? "Спасибо за подтверждение email." : "Thank you for confirming your email.",
+            document.QuerySelector(".alert-success")!.TextContent.Trim());
         using var signedIn = await factory.LoginAsync(email);
-        using var authorized = await signedIn.GetAsync("/auth", TestContext.Current.CancellationToken);
+        using var authorized = await signedIn.GetAsync("/test/auth", TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.OK, authorized.StatusCode);
     }
 
-    [Fact]
-    public async Task RegistrationRejectsEmailOwnedByLegacyUsernameIgnoringCase()
+    [Theory]
+    [InlineData("ru")]
+    [InlineData("en")]
+    public async Task RegistrationRejectsEmailOwnedByLegacyUsernameIgnoringCase(string culture)
     {
         var existing = await factory.AddUserAsync(legacyLogin: true);
         int lettersBefore = factory.EmailSender.Confirmations.Count;
         using var client = factory.CreateSiteClient();
+        client.DefaultRequestHeaders.AcceptLanguage.ParseAdd(culture);
         using var response = await RegisterAsync(client, existing.Email!.ToUpperInvariant());
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Contains("alert-danger", await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
+        using var document = await new HtmlParser().ParseDocumentAsync(
+            await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
+        string email = existing.Email!.ToUpperInvariant();
+        Assert.Equal(culture == "ru" ? $"Email «{email}» уже занят." : $"Email '{email}' is already taken.",
+            document.QuerySelector(".alert-danger")!.TextContent.Trim());
         Assert.Equal(lettersBefore, factory.EmailSender.Confirmations.Count);
         using var scope = factory.Services.CreateScope();
         Assert.Equal(1, await scope.ServiceProvider.GetRequiredService<OlympContext>().OlympUsers
@@ -80,18 +97,24 @@ public class RegistrationTests(WebAppFactory factory) : IClassFixture<WebAppFact
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task InvalidConfirmationLinkDoesNotConfirmAccount(bool malformed)
+    [InlineData("ru", false)]
+    [InlineData("ru", true)]
+    [InlineData("en", false)]
+    [InlineData("en", true)]
+    public async Task InvalidConfirmationLinkDoesNotConfirmAccount(string culture, bool malformed)
     {
         var user = await factory.AddUserAsync(emailConfirmed: false);
         string code = malformed ? "!" : WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes("invalid-token"));
         using var client = factory.CreateSiteClient();
+        client.DefaultRequestHeaders.AcceptLanguage.ParseAdd(culture);
         using var response = await client.GetAsync(QueryHelpers.AddQueryString("/Account/ConfirmEmail",
             new Dictionary<string, string?> { ["userId"] = user.Id.ToString(), ["code"] = code }), TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Contains("alert-danger", await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
+        using var document = await new HtmlParser().ParseDocumentAsync(
+            await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
+        Assert.Equal(culture == "ru" ? "Не удалось подтвердить email." : "Error confirming your email.",
+            document.QuerySelector(".alert-danger")!.TextContent.Trim());
         using var scope = factory.Services.CreateScope();
         Assert.False((await scope.ServiceProvider.GetRequiredService<UserManager<User>>().FindByIdAsync(user.Id.ToString()))!.EmailConfirmed);
     }

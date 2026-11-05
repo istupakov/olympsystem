@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authorization.Policy;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
 
 using Olymp.Domain;
@@ -12,6 +13,7 @@ using Olymp.Site.Services.Identity;
 using Olymp.Site.Services.Mail;
 using Olymp.WebApp.Components;
 using Olymp.WebApp.Components.Account;
+using Olymp.WebApp.Components.Layout;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -38,6 +40,16 @@ builder.Services.AddAuthorizationBuilder()
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+
+builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
+builder.Services.AddRequestLocalization(options =>
+{
+    options.SetDefaultCulture("en");
+    options.AddSupportedCultures("ru", "en");
+    options.AddSupportedUICultures("ru", "en");
+    options.ApplyCurrentCultureToResponseHeaders = true;
+    options.RequestCultureProviders = [new CookieRequestCultureProvider(), new AcceptLanguageHeaderRequestCultureProvider()];
+});
 
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddScoped<IdentityRedirectManager>();
@@ -78,6 +90,7 @@ builder.Services.AddIdentityCore<User>(options =>
     .AddRoles<IdentityRole<int>>()
     .AddEntityFrameworkStores<OlympContext>()
     .AddSignInManager()
+    .AddErrorDescriber<AccountErrorDescriber>()
     .AddDefaultTokenProviders()
     .AddUserConfirmation<OlympUserConfirmation>();
 
@@ -100,6 +113,7 @@ else
     app.UseHsts();
 }
 
+app.UseRequestLocalization();
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 app.UseHttpsRedirection();
 
@@ -109,5 +123,7 @@ app.MapRazorComponents<App>()
 
 // Add additional endpoints required by the Identity /Account Razor components.
 app.MapAdditionalIdentityEndpoints();
+
+app.MapLanguageEndpoint();
 
 app.Run();

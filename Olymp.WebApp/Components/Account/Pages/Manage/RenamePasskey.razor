@@ -1,9 +1,6 @@
 ﻿@page "/Account/Manage/RenamePasskey/{Id}"
 @attribute [Microsoft.AspNetCore.Authorization.Authorize(Policy = IdentityFeatures.PasskeysPolicy)]
 
-@using Olymp.Domain.Models
-@using System.ComponentModel.DataAnnotations
-@using Microsoft.AspNetCore.Identity
 @using System.Buffers.Text
 
 @inject UserManager<User> UserManager
@@ -13,23 +10,23 @@
     <DataAnnotationsValidator />
     @if (passkey?.Name is { } name)
     {
-        <h4>Enter a new name for your "@name" passkey</h4>
+        <h4>@string.Format(CultureInfo.CurrentCulture, AccountResources.RenamePasskeyPrompt, name)</h4>
     }
     else
     {
-        <h4>Enter a name for your passkey</h4>
+        <h4>@AccountResources.NamePasskeyPrompt</h4>
     }
     <hr />
     <div role="alert" aria-atomic="true">
         <ValidationSummary class="text-danger" />
     </div>
     <div class="form-floating mb-3">
-        <InputText @bind-Value="Input.Name" id="Input.Name" class="form-control" aria-required="true" placeholder="My passkey" />
-        <label for="Input.Name" class="form-label">Passkey name</label>
+        <InputText @bind-Value="Input.Name" id="Input.Name" class="form-control" aria-required="true" placeholder="@AccountResources.MyPasskey" />
+        <label for="Input.Name" class="form-label">@AccountResources.PasskeyName</label>
         <ValidationMessage For="() => Input.Name" class="text-danger" />
     </div>
     <div>
-        <button type="submit" class="w-100 btn btn-lg btn-primary">Continue</button>
+        <button type="submit" class="w-100 btn btn-lg btn-primary">@AccountResources.Continue</button>
     </div>
 </EditForm>
 
@@ -43,6 +40,9 @@
     [SupplyParameterFromTempData(Name = IdentityRedirectManager.StatusMessageKey)]
     private string? IdentityStatusMessage { get; set; }
 
+    [SupplyParameterFromTempData(Name = IdentityRedirectManager.StatusMessageIsErrorKey)]
+    private bool? IdentityStatusIsError { get; set; }
+
     [Parameter]
     public string? Id { get; set; }
 
@@ -52,6 +52,7 @@
     protected override async Task OnInitializedAsync()
     {
         IdentityStatusMessage = null;
+        IdentityStatusIsError = null;
         Input ??= new();
 
         user = (await UserManager.GetUserAsync(HttpContext.User))!;
@@ -68,16 +69,14 @@
         }
         catch (FormatException)
         {
-            IdentityStatusMessage = "Error: The specified passkey ID had an invalid format.";
-            RedirectManager.RedirectTo("Account/Manage/Passkeys");
+            RedirectWithMessage(AccountResources.InvalidPasskeyId);
             return;
         }
 
         passkey = await UserManager.GetPasskeyAsync(user, credentialId);
         if (passkey is null)
         {
-            IdentityStatusMessage = "Error: The specified passkey could not be found.";
-            RedirectManager.RedirectTo("Account/Manage/Passkeys");
+            RedirectWithMessage(AccountResources.PasskeyNotFound);
             return;
         }
     }
@@ -88,19 +87,24 @@
         var result = await UserManager.AddOrUpdatePasskeyAsync(user!, passkey);
         if (!result.Succeeded)
         {
-            IdentityStatusMessage = "Error: The passkey could not be updated.";
-            RedirectManager.RedirectTo("Account/Manage/Passkeys");
+            RedirectWithMessage(AccountResources.PasskeyUpdateFailed);
             return;
         }
 
-        IdentityStatusMessage = "Passkey updated successfully.";
+        RedirectWithMessage(AccountResources.PasskeyUpdated, isError: false);
+    }
+
+    private void RedirectWithMessage(string message, bool isError = true)
+    {
+        IdentityStatusMessage = message;
+        IdentityStatusIsError = isError;
         RedirectManager.RedirectTo("Account/Manage/Passkeys");
     }
 
     private sealed class InputModel
     {
-        [Required]
-        [StringLength(200, ErrorMessage = "Passkey names must be no longer than {1} characters.")]
+        [Required(ErrorMessageResourceName = nameof(AccountResources.PasskeyNameRequired), ErrorMessageResourceType = typeof(AccountResources))]
+        [StringLength(200, ErrorMessageResourceName = nameof(AccountResources.PasskeyNameTooLong), ErrorMessageResourceType = typeof(AccountResources))]
         public string Name { get; set; } = "";
     }
 }

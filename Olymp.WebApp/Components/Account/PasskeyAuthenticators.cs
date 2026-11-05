@@ -2,6 +2,8 @@ using System.Diagnostics.CodeAnalysis;
 
 using Microsoft.AspNetCore.Identity;
 
+using Olymp.WebApp.Resources;
+
 namespace Olymp.WebApp.Components.Account;
 
 // Maps passkey AAGUIDs to authenticator names.
@@ -58,6 +60,6 @@ public static class PasskeyAuthenticators
             return name;
         }
 
-        return "Unnamed passkey";
+        return AccountResources.UnnamedPasskey;
     }
 }

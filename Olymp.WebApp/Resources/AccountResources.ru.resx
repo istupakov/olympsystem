@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
+  <data name="LogIn" xml:space="preserve"><value>Вход</value></data>
+  <data name="LoginPrompt" xml:space="preserve"><value>Войдите с помощью своей учётной записи.</value></data>
+  <data name="EmailOrUserName" xml:space="preserve"><value>Email или логин</value></data>
+  <data name="Password" xml:space="preserve"><value>Пароль</value></data>
+  <data name="RememberMe" xml:space="preserve"><value>Запомнить меня?</value></data>
+  <data name="Or" xml:space="preserve"><value>ИЛИ</value></data>
+  <data name="LogInWithPasskey" xml:space="preserve"><value>Войти с помощью ключа доступа</value></data>
+  <data name="ForgotPassword" xml:space="preserve"><value>Забыли пароль?</value></data>
+  <data name="RegisterNewUser" xml:space="preserve"><value>Зарегистрироваться</value></data>
+  <data name="ResendEmailConfirmation" xml:space="preserve"><value>Повторно отправить письмо подтверждения</value></data>
+  <data name="PasskeySignInDisabled" xml:space="preserve"><value>Вход с помощью ключа доступа отключён.</value></data>
+  <data name="InvalidLoginAttempt" xml:space="preserve"><value>Не удалось войти.</value></data>
+  <data name="FieldRequired" xml:space="preserve"><value>Поле «{0}» обязательно для заполнения.</value></data>
+  <data name="Register" xml:space="preserve"><value>Регистрация</value></data>
+  <data name="RegistrationPrompt" xml:space="preserve"><value>Создайте новую учётную запись.</value></data>
+  <data name="PublicName" xml:space="preserve"><value>Публичное имя</value></data>
+  <data name="Email" xml:space="preserve"><value>Email</value></data>
+  <data name="ConfirmPassword" xml:space="preserve"><value>Подтверждение пароля</value></data>
+  <data name="FieldMaximumLength" xml:space="preserve"><value>Поле «{0}» должно содержать не более {1} символов.</value></data>
+  <data name="PublicNameInvalidCharacters" xml:space="preserve"><value>Поле «{0}» может содержать только русские или латинские буквы, цифры, пробелы или дефисы.</value></data>
+  <data name="InvalidEmailAddress" xml:space="preserve"><value>Поле «{0}» должно содержать корректный адрес электронной почты.</value></data>
+  <data name="FieldLengthRange" xml:space="preserve"><value>Длина поля «{0}» должна быть от {2} до {1} символов.</value></data>
+  <data name="PasswordMismatch" xml:space="preserve"><value>Пароль и подтверждение пароля не совпадают.</value></data>
+  <data name="Profile" xml:space="preserve"><value>Профиль</value></data>
+  <data name="ManageAccount" xml:space="preserve"><value>Управление учётной записью</value></data>
+  <data name="AccountSettings" xml:space="preserve"><value>Изменение настроек учётной записи</value></data>
+  <data name="UserName" xml:space="preserve"><value>Логин</value></data>
+  <data name="FirstName" xml:space="preserve"><value>Имя</value></data>
+  <data name="LastName" xml:space="preserve"><value>Фамилия</value></data>
+  <data name="Patronymic" xml:space="preserve"><value>Отчество</value></data>
+  <data name="University" xml:space="preserve"><value>Вуз</value></data>
+  <data name="Group" xml:space="preserve"><value>Группа</value></data>
+  <data name="Save" xml:space="preserve"><value>Сохранить</value></data>
+  <data name="Passkeys" xml:space="preserve"><value>Ключи доступа</value></data>
+  <data name="InvalidValue" xml:space="preserve"><value>Недопустимое значение.</value></data>
+  <data name="ProfileUpdateFailed" xml:space="preserve"><value>Не удалось обновить профиль.</value></data>
+  <data name="ProfileUpdated" xml:space="preserve"><value>Профиль обновлён.</value></data>
+  <data name="NameInvalidCharacters" xml:space="preserve"><value>В поле «{0}» используйте не менее двух символов: русские буквы, пробелы или дефисы. Последний символ должен быть строчной буквой.</value></data>
+  <data name="GroupInvalidCharacters" xml:space="preserve"><value>Поле «{0}» может содержать только заглавные русские или латинские буквы, цифры или дефисы.</value></data>
+  <data name="ManageEmail" xml:space="preserve"><value>Настройки email</value></data>
+  <data name="EmailLoginRequired" xml:space="preserve"><value>Для доступа к страницам, требующим авторизации, используйте email в качестве логина.</value></data>
+  <data name="CurrentUserName" xml:space="preserve"><value>Ваш текущий логин:</value></data>
+  <data name="EmailLoginPasswordHint" xml:space="preserve"><value>После перехода используйте для входа email и прежний пароль.</value></data>
+  <data name="UseEmailForSignIn" xml:space="preserve"><value>Использовать {0} для входа</value></data>
+  <data name="OutdatedEmailHint" xml:space="preserve"><value>Если этот email устарел, измените его ниже. Подтверждение будет отправлено на новый адрес.</value></data>
+  <data name="EnterEmail" xml:space="preserve"><value>Введите email</value></data>
+  <data name="EnterNewEmail" xml:space="preserve"><value>Введите новый email</value></data>
+  <data name="NewEmail" xml:space="preserve"><value>Новый email</value></data>
+  <data name="ChangeEmail" xml:space="preserve"><value>Изменить email</value></data>
+  <data name="SendVerificationEmail" xml:space="preserve"><value>Отправить письмо подтверждения</value></data>
+  <data name="EmailIsNowUserName" xml:space="preserve"><value>Теперь ваш email используется в качестве логина.</value></data>
+  <data name="EmailUnchanged" xml:space="preserve"><value>Ваш email не изменился.</value></data>
+  <data name="EmailChangeConfirmationSent" xml:space="preserve"><value>Ссылка для подтверждения смены email отправлена. Проверьте почту.</value></data>
+  <data name="VerificationEmailSent" xml:space="preserve"><value>Письмо подтверждения отправлено. Проверьте почту.</value></data>
+  <data name="ConfirmEmail" xml:space="preserve"><value>Подтверждение email</value></data>
+  <data name="EmailConfirmed" xml:space="preserve"><value>Спасибо за подтверждение email.</value></data>
+  <data name="EmailConfirmationFailed" xml:space="preserve"><value>Не удалось подтвердить email.</value></data>
+  <data name="UserNotFound" xml:space="preserve"><value>Пользователь не найден.</value></data>
+  <data name="ConfirmEmailChange" xml:space="preserve"><value>Подтверждение смены email</value></data>
+  <data name="InvalidEmailChangeLink" xml:space="preserve"><value>Недействительная ссылка подтверждения смены email.</value></data>
+  <data name="EmailChangeFailed" xml:space="preserve"><value>Не удалось изменить email.</value></data>
+  <data name="UserNameChangeFailed" xml:space="preserve"><value>Не удалось изменить логин.</value></data>
+  <data name="EmailChangeConfirmed" xml:space="preserve"><value>Спасибо за подтверждение смены email.</value></data>
+  <data name="RegisterConfirmation" xml:space="preserve"><value>Подтверждение регистрации</value></data>
+  <data name="CheckEmailToConfirmAccount" xml:space="preserve"><value>Проверьте почту, чтобы подтвердить учётную запись.</value></data>
+  <data name="Resend" xml:space="preserve"><value>Отправить повторно</value></data>
+  <data name="EnterEmailPrompt" xml:space="preserve"><value>Введите email.</value></data>
+  <data name="PasswordPlaceholder" xml:space="preserve"><value>пароль</value></data>
+  <data name="UserNotFoundByEmail" xml:space="preserve"><value>Не удалось найти пользователя с указанным email.</value></data>
+  <data name="ResetPassword" xml:space="preserve"><value>Сброс пароля</value></data>
+  <data name="ResetPasswordPrompt" xml:space="preserve"><value>Сбросьте пароль.</value></data>
+  <data name="Reset" xml:space="preserve"><value>Сбросить</value></data>
+  <data name="ChangePassword" xml:space="preserve"><value>Смена пароля</value></data>
+  <data name="EnterOldPassword" xml:space="preserve"><value>Введите старый пароль</value></data>
+  <data name="EnterNewPassword" xml:space="preserve"><value>Введите новый пароль</value></data>
+  <data name="UpdatePassword" xml:space="preserve"><value>Обновить пароль</value></data>
+  <data name="PasswordChanged" xml:space="preserve"><value>Ваш пароль изменён</value></data>
+  <data name="CurrentPassword" xml:space="preserve"><value>Текущий пароль</value></data>
+  <data name="NewPassword" xml:space="preserve"><value>Новый пароль</value></data>
+  <data name="ConfirmNewPassword" xml:space="preserve"><value>Подтверждение нового пароля</value></data>
+  <data name="NewPasswordMismatch" xml:space="preserve"><value>Новый пароль и подтверждение пароля не совпадают.</value></data>
+  <data name="ForgotPasswordConfirmation" xml:space="preserve"><value>Подтверждение запроса сброса пароля</value></data>
+  <data name="CheckEmailToResetPassword" xml:space="preserve"><value>Проверьте почту, чтобы сбросить пароль.</value></data>
+  <data name="ResetPasswordConfirmation" xml:space="preserve"><value>Подтверждение сброса пароля</value></data>
+  <data name="PasswordResetNotice" xml:space="preserve"><value>Ваш пароль сброшен. Пожалуйста,</value></data>
+  <data name="ClickHereToLogIn" xml:space="preserve"><value>нажмите здесь, чтобы войти</value></data>
+  <data name="InvalidPasswordReset" xml:space="preserve"><value>Недействительный запрос сброса пароля</value></data>
+  <data name="InvalidPasswordResetLink" xml:space="preserve"><value>Ссылка для сброса пароля недействительна.</value></data>
+  <data name="UnknownIdentityError" xml:space="preserve"><value>Произошла неизвестная ошибка.</value></data>
+  <data name="ConcurrencyFailure" xml:space="preserve"><value>Не удалось сохранить изменения: объект уже изменён.</value></data>
+  <data name="IncorrectPassword" xml:space="preserve"><value>Неверный пароль.</value></data>
+  <data name="InvalidToken" xml:space="preserve"><value>Недействительный токен.</value></data>
+  <data name="InvalidUserName" xml:space="preserve"><value>Логин «{0}» недопустим: разрешены только буквы и цифры.</value></data>
+  <data name="InvalidEmail" xml:space="preserve"><value>Email «{0}» недопустим.</value></data>
+  <data name="DuplicateUserName" xml:space="preserve"><value>Логин «{0}» уже занят.</value></data>
+  <data name="DuplicateEmail" xml:space="preserve"><value>Email «{0}» уже занят.</value></data>
+  <data name="PasswordTooShort" xml:space="preserve"><value>Пароль должен содержать не менее {0} символов.</value></data>
+  <data name="PasswordRequiresUniqueChars" xml:space="preserve"><value>Пароль должен содержать не менее {0} различных символов.</value></data>
+  <data name="PasswordRequiresNonAlphanumeric" xml:space="preserve"><value>Пароль должен содержать хотя бы один символ, не являющийся буквой или цифрой.</value></data>
+  <data name="PasswordRequiresDigit" xml:space="preserve"><value>Пароль должен содержать хотя бы одну цифру (от 0 до 9).</value></data>
+  <data name="PasswordRequiresLower" xml:space="preserve"><value>Пароль должен содержать хотя бы одну строчную латинскую букву (от a до z).</value></data>
+  <data name="PasswordRequiresUpper" xml:space="preserve"><value>Пароль должен содержать хотя бы одну заглавную латинскую букву (от A до Z).</value></data>
+  <data name="ConfirmationEmailSubject" xml:space="preserve"><value>Подтвердите email</value></data>
+  <data name="ConfirmationEmailBody" xml:space="preserve"><value>Чтобы подтвердить учётную запись, &lt;a href='{0}'&gt;нажмите здесь&lt;/a&gt;. Если вы не запрашивали подтверждение email, проигнорируйте это письмо.</value></data>
+  <data name="PasswordResetEmailSubject" xml:space="preserve"><value>Сбросьте пароль</value></data>
+  <data name="PasswordResetEmailBody" xml:space="preserve"><value>Чтобы сбросить пароль, &lt;a href='{0}'&gt;нажмите здесь&lt;/a&gt;. Если вы не запрашивали сброс пароля, проигнорируйте это письмо.</value></data>
+  <data name="PasswordResetCodeEmailBody" xml:space="preserve"><value>Для сброса пароля используйте код: {0}. Если вы не запрашивали сброс пароля, проигнорируйте это письмо.</value></data>
+  <data name="AccessDenied" xml:space="preserve"><value>Доступ запрещён</value></data>
+  <data name="AccessDeniedMessage" xml:space="preserve"><value>У вас нет доступа к этому ресурсу.</value></data>
+  <data name="LockedOut" xml:space="preserve"><value>Учётная запись заблокирована</value></data>
+  <data name="LockedOutMessage" xml:space="preserve"><value>Эта учётная запись заблокирована. Попробуйте позже.</value></data>
+  <data name="InvalidUser" xml:space="preserve"><value>Недействительный пользователь</value></data>
+  <data name="ManagePasskeys" xml:space="preserve"><value>Управление ключами доступа</value></data>
+  <data name="PasskeyCreated" xml:space="preserve"><value>Создан {0:d MMM yyyy} (UTC)</value></data>
+  <data name="RenamePasskeyHint" xml:space="preserve"><value>Переименовать этот ключ доступа</value></data>
+  <data name="RemovePasskeyHint" xml:space="preserve"><value>Удалить этот ключ доступа из учётной записи</value></data>
+  <data name="Rename" xml:space="preserve"><value>Переименовать</value></data>
+  <data name="Delete" xml:space="preserve"><value>Удалить</value></data>
+  <data name="NoPasskeys" xml:space="preserve"><value>Ключи доступа не зарегистрированы.</value></data>
+  <data name="PasskeyLimitHint" xml:space="preserve"><value>Достигнуто максимальное количество ключей доступа. Удалите один из ключей, прежде чем добавлять новый.</value></data>
+  <data name="AddPasskey" xml:space="preserve"><value>Добавить новый ключ доступа</value></data>
+  <data name="BrowserDidNotProvidePasskey" xml:space="preserve"><value>Браузер не предоставил ключ доступа.</value></data>
+  <data name="PasskeyLimitReached" xml:space="preserve"><value>Достигнуто максимальное количество ключей доступа.</value></data>
+  <data name="PasskeyAttestationFailed" xml:space="preserve"><value>Не удалось добавить ключ доступа: {0}</value></data>
+  <data name="PasskeyAddFailed" xml:space="preserve"><value>Не удалось добавить ключ доступа в учётную запись.</value></data>
+  <data name="PasskeyAdded" xml:space="preserve"><value>Ключ доступа успешно добавлен.</value></data>
+  <data name="UnknownPasskeyAction" xml:space="preserve"><value>Неизвестное действие «{0}».</value></data>
+  <data name="InvalidPasskeyId" xml:space="preserve"><value>Идентификатор указанного ключа доступа имеет неверный формат.</value></data>
+  <data name="PasskeyDeleteFailed" xml:space="preserve"><value>Не удалось удалить ключ доступа.</value></data>
+  <data name="PasskeyDeleted" xml:space="preserve"><value>Ключ доступа успешно удалён.</value></data>
+  <data name="RenamePasskeyPrompt" xml:space="preserve"><value>Введите новое имя для ключа доступа «{0}»</value></data>
+  <data name="NamePasskeyPrompt" xml:space="preserve"><value>Введите имя ключа доступа</value></data>
+  <data name="MyPasskey" xml:space="preserve"><value>Мой ключ доступа</value></data>
+  <data name="PasskeyName" xml:space="preserve"><value>Имя ключа доступа</value></data>
+  <data name="Continue" xml:space="preserve"><value>Продолжить</value></data>
+  <data name="PasskeyNotFound" xml:space="preserve"><value>Указанный ключ доступа не найден.</value></data>
+  <data name="PasskeyUpdateFailed" xml:space="preserve"><value>Не удалось обновить ключ доступа.</value></data>
+  <data name="PasskeyUpdated" xml:space="preserve"><value>Ключ доступа успешно обновлён.</value></data>
+  <data name="PasskeyNameRequired" xml:space="preserve"><value>Поле «Имя ключа доступа» обязательно для заполнения.</value></data>
+  <data name="PasskeyNameTooLong" xml:space="preserve"><value>Имя ключа доступа должно содержать не более {1} символов.</value></data>
+  <data name="UnnamedPasskey" xml:space="preserve"><value>Безымянный ключ доступа</value></data>
+  <data name="PasskeyServerError" xml:space="preserve"><value>Сервер вернул код состояния {0}.</value></data>
+  <data name="PasskeyBrowserUnsupported" xml:space="preserve"><value>Некоторые функции ключей доступа недоступны. Обновите браузер.</value></data>
+  <data name="UnknownPasskeyOperation" xml:space="preserve"><value>Неизвестная операция с ключом доступа «{0}».</value></data>
+  <data name="NoPasskeyProvided" xml:space="preserve"><value>Аутентификатор не предоставил ключ доступа.</value></data>
+  <data name="AntiforgeryValidationFailed" xml:space="preserve"><value>Проверка защиты от подделки запросов не пройдена.</value></data>
+  <data name="User" xml:space="preserve"><value>Пользователь</value></data>
+</root>

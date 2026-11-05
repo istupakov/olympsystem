@@ -5,6 +5,7 @@ namespace Olymp.WebApp.Components.Account;
 internal sealed class IdentityRedirectManager(NavigationManager navigationManager)
 {
     public const string StatusMessageKey = "Identity.StatusMessage";
+    public const string StatusMessageIsErrorKey = "Identity.StatusMessageIsError";
 
     public void RedirectTo(string? uri)
     {

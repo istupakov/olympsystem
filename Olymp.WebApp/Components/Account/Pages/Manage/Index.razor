@@ -1,20 +1,17 @@
 ﻿@page "/Account/Manage"
 
-@using System.ComponentModel.DataAnnotations
-@using Microsoft.AspNetCore.Identity
 @using Microsoft.EntityFrameworkCore
 @using Olymp.Domain
-@using Olymp.Domain.Models
 
 @inject UserManager<User> UserManager
 @inject SignInManager<User> SignInManager
 @inject IdentityRedirectManager RedirectManager
 @inject OlympContext DbContext
 
-<PageTitle>Profile</PageTitle>
+<PageTitle>@AccountResources.Profile</PageTitle>
 
-<h3>Profile</h3>
-<StatusMessage Message="@message" />
+<h3>@AccountResources.Profile</h3>
+<StatusMessage Message="@message" IsError="@isError" />
 
 <div class="row">
     <div class="col-xl-6">
@@ -24,32 +21,32 @@
                 <ValidationSummary class="text-danger" />
             </div>
             <div class="form-floating mb-3">
-                <input type="text" value="@username" id="username" class="form-control" placeholder="Choose your username." disabled />
-                <label for="username" class="form-label">Username</label>
+                <input type="text" value="@username" id="username" class="form-control" placeholder="@AccountResources.UserName" disabled />
+                <label for="username" class="form-label">@AccountResources.UserName</label>
             </div>
             <div class="form-floating mb-3">
-                <InputText @bind-Value="Input.PublicName" id="Input.PublicName" class="form-control" autocomplete="nickname" aria-required="true" placeholder="Public name" />
+                <InputText @bind-Value="Input.PublicName" id="Input.PublicName" class="form-control" autocomplete="nickname" aria-required="true" placeholder="@AccountResources.PublicName" />
                 <label for="Input.PublicName" class="form-label">
                     <DisplayName For="() => Input.PublicName" />
                 </label>
                 <ValidationMessage For="() => Input.PublicName" class="text-danger" />
             </div>
             <div class="form-floating mb-3">
-                <InputText @bind-Value="Input.LastName" id="Input.LastName" class="form-control" autocomplete="family-name" placeholder="Last name" />
+                <InputText @bind-Value="Input.LastName" id="Input.LastName" class="form-control" autocomplete="family-name" placeholder="@AccountResources.LastName" />
                 <label for="Input.LastName" class="form-label">
                     <DisplayName For="() => Input.LastName" />
                 </label>
                 <ValidationMessage For="() => Input.LastName" class="text-danger" />
             </div>
             <div class="form-floating mb-3">
-                <InputText @bind-Value="Input.FirstName" id="Input.FirstName" class="form-control" autocomplete="given-name" placeholder="First name" />
+                <InputText @bind-Value="Input.FirstName" id="Input.FirstName" class="form-control" autocomplete="given-name" placeholder="@AccountResources.FirstName" />
                 <label for="Input.FirstName" class="form-label">
                     <DisplayName For="() => Input.FirstName" />
                 </label>
                 <ValidationMessage For="() => Input.FirstName" class="text-danger" />
             </div>
             <div class="form-floating mb-3">
-                <InputText @bind-Value="Input.Patronymic" id="Input.Patronymic" class="form-control" autocomplete="additional-name" placeholder="Patronymic" />
+                <InputText @bind-Value="Input.Patronymic" id="Input.Patronymic" class="form-control" autocomplete="additional-name" placeholder="@AccountResources.Patronymic" />
                 <label for="Input.Patronymic" class="form-label">
                     <DisplayName For="() => Input.Patronymic" />
                 </label>
@@ -69,19 +66,20 @@
                 <ValidationMessage For="() => Input.OrganizationId" class="text-danger" />
             </div>
             <div class="form-floating mb-3">
-                <InputText @bind-Value="Input.Group" id="Input.Group" class="form-control" placeholder="Group" />
+                <InputText @bind-Value="Input.Group" id="Input.Group" class="form-control" placeholder="@AccountResources.Group" />
                 <label for="Input.Group" class="form-label">
                     <DisplayName For="() => Input.Group" />
                 </label>
                 <ValidationMessage For="() => Input.Group" class="text-danger" />
             </div>
-            <button type="submit" class="w-100 btn btn-lg btn-primary">Save</button>
+            <button type="submit" class="w-100 btn btn-lg btn-primary">@AccountResources.Save</button>
         </EditForm>
     </div>
 </div>
 
 @code {
     private string? message;
+    private bool isError;
     private OlympUser? user;
     private string? username;
     private List<Organization> organizations = [];
@@ -136,7 +134,7 @@
         if (Input.OrganizationId is int organizationId && !await DbContext.Organizations.AnyAsync(x => x.Id == organizationId))
         {
             var validationMessages = new ValidationMessageStore(editContext);
-            validationMessages.Add(() => Input.OrganizationId, "Invalid value.");
+            validationMessages.Add(() => Input.OrganizationId, AccountResources.InvalidValue);
             editContext.NotifyValidationStateChanged();
             return;
         }
@@ -151,44 +149,45 @@
         var updateResult = await UserManager.UpdateAsync(user);
         if (!updateResult.Succeeded)
         {
-            message = "Error: Failed to update profile.";
+            message = AccountResources.ProfileUpdateFailed;
+            isError = true;
             return;
         }
 
         await SignInManager.RefreshSignInAsync(user);
-        IdentityStatusMessage = "Your profile has been updated";
+        IdentityStatusMessage = AccountResources.ProfileUpdated;
         RedirectManager.RedirectToCurrentPage();
     }
 
     private sealed class InputModel
     {
-        [StringLength(32, ErrorMessage = "The field {0} must be a string with a maximum length of {1}.")]
-        [Required(ErrorMessage = "The {0} field is required.")]
-        [RegularExpression(OlympUser.PublicNameRegex, ErrorMessage = "The {0} field may contain only Russian or Latin letters, digits, spaces or hyphens.")]
-        [Display(Name = "Public name")]
+        [StringLength(32, ErrorMessageResourceName = nameof(AccountResources.FieldMaximumLength), ErrorMessageResourceType = typeof(AccountResources))]
+        [Required(ErrorMessageResourceName = nameof(AccountResources.FieldRequired), ErrorMessageResourceType = typeof(AccountResources))]
+        [RegularExpression(OlympUser.PublicNameRegex, ErrorMessageResourceName = nameof(AccountResources.PublicNameInvalidCharacters), ErrorMessageResourceType = typeof(AccountResources))]
+        [Display(Name = nameof(AccountResources.PublicName), ResourceType = typeof(AccountResources))]
         public string PublicName { get; set; } = "";
 
-        [StringLength(64, ErrorMessage = "The field {0} must be a string with a maximum length of {1}.")]
-        [RegularExpression(OlympUser.NameRegex, ErrorMessage = "Use at least two characters in {0}: Russian letters, spaces or hyphens. The last character must be a lowercase letter.")]
-        [Display(Name = "First name")]
+        [StringLength(64, ErrorMessageResourceName = nameof(AccountResources.FieldMaximumLength), ErrorMessageResourceType = typeof(AccountResources))]
+        [RegularExpression(OlympUser.NameRegex, ErrorMessageResourceName = nameof(AccountResources.NameInvalidCharacters), ErrorMessageResourceType = typeof(AccountResources))]
+        [Display(Name = nameof(AccountResources.FirstName), ResourceType = typeof(AccountResources))]
         public string? FirstName { get; set; }
 
-        [StringLength(64, ErrorMessage = "The field {0} must be a string with a maximum length of {1}.")]
-        [RegularExpression(OlympUser.NameRegex, ErrorMessage = "Use at least two characters in {0}: Russian letters, spaces or hyphens. The last character must be a lowercase letter.")]
-        [Display(Name = "Last name")]
+        [StringLength(64, ErrorMessageResourceName = nameof(AccountResources.FieldMaximumLength), ErrorMessageResourceType = typeof(AccountResources))]
+        [RegularExpression(OlympUser.NameRegex, ErrorMessageResourceName = nameof(AccountResources.NameInvalidCharacters), ErrorMessageResourceType = typeof(AccountResources))]
+        [Display(Name = nameof(AccountResources.LastName), ResourceType = typeof(AccountResources))]
         public string? LastName { get; set; }
 
-        [StringLength(64, ErrorMessage = "The field {0} must be a string with a maximum length of {1}.")]
-        [RegularExpression(OlympUser.NameRegex, ErrorMessage = "Use at least two characters in {0}: Russian letters, spaces or hyphens. The last character must be a lowercase letter.")]
-        [Display(Name = "Patronymic")]
+        [StringLength(64, ErrorMessageResourceName = nameof(AccountResources.FieldMaximumLength), ErrorMessageResourceType = typeof(AccountResources))]
+        [RegularExpression(OlympUser.NameRegex, ErrorMessageResourceName = nameof(AccountResources.NameInvalidCharacters), ErrorMessageResourceType = typeof(AccountResources))]
+        [Display(Name = nameof(AccountResources.Patronymic), ResourceType = typeof(AccountResources))]
         public string? Patronymic { get; set; }
 
-        [Display(Name = "University")]
+        [Display(Name = nameof(AccountResources.University), ResourceType = typeof(AccountResources))]
         public int? OrganizationId { get; set; }
 
-        [StringLength(16, ErrorMessage = "The field {0} must be a string with a maximum length of {1}.")]
-        [RegularExpression(OlympUser.GroupRegex, ErrorMessage = "The {0} field may contain only uppercase Russian or Latin letters, digits or hyphens.")]
-        [Display(Name = "Group")]
+        [StringLength(16, ErrorMessageResourceName = nameof(AccountResources.FieldMaximumLength), ErrorMessageResourceType = typeof(AccountResources))]
+        [RegularExpression(OlympUser.GroupRegex, ErrorMessageResourceName = nameof(AccountResources.GroupInvalidCharacters), ErrorMessageResourceType = typeof(AccountResources))]
+        [Display(Name = nameof(AccountResources.Group), ResourceType = typeof(AccountResources))]
         public string? Group { get; set; }
     }
 }

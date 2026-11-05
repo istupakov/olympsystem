@@ -1,22 +1,21 @@
 ﻿@page "/Account/ConfirmEmailChange"
 
 @using System.Text
-@using Microsoft.AspNetCore.Identity
 @using Microsoft.AspNetCore.WebUtilities
-@using Olymp.Domain.Models
 
 @inject UserManager<User> UserManager
 @inject SignInManager<User> SignInManager
 @inject IdentityRedirectManager RedirectManager
 
-<PageTitle>Confirm email change</PageTitle>
+<PageTitle>@AccountResources.ConfirmEmailChange</PageTitle>
 
-<h1>Confirm email change</h1>
+<h1>@AccountResources.ConfirmEmailChange</h1>
 
-<StatusMessage Message="@message" />
+<StatusMessage Message="@message" IsError="@isError" />
 
 @code {
     private string? message;
+    private bool isError = true;
 
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
@@ -43,7 +42,7 @@
 
         if (UserId is null || Email is null || Code is null)
         {
-            IdentityStatusMessage = "Error: Invalid email change confirmation link.";
+            IdentityStatusMessage = AccountResources.InvalidEmailChangeLink;
             RedirectManager.RedirectTo("Account/Login");
             return;
         }
@@ -51,7 +50,7 @@
         var user = await UserManager.FindByIdAsync(UserId);
         if (user is null)
         {
-            message = $"Error: Unable to find user with Id '{UserId}'";
+            message = AccountResources.UserNotFound;
             return;
         }
 
@@ -62,13 +61,13 @@
         }
         catch (FormatException)
         {
-            message = "Error changing email.";
+            message = AccountResources.EmailChangeFailed;
             return;
         }
         var result = await UserManager.ChangeEmailAsync(user, Email, code);
         if (!result.Succeeded)
         {
-            message = "Error changing email.";
+            message = AccountResources.EmailChangeFailed;
             return;
         }
 
@@ -77,12 +76,13 @@
         var setUserNameResult = await UserManager.SetUserNameAsync(user, Email);
         if (!setUserNameResult.Succeeded)
         {
-            message = "Error changing user name.";
+            message = AccountResources.UserNameChangeFailed;
             return;
         }
 
         await SignInManager.RefreshSignInAsync(user);
-        message = "Thank you for confirming your email change.";
+        message = AccountResources.EmailChangeConfirmed;
+        isError = false;
         if (ReturnUrl is not null)
             RedirectManager.RedirectTo(ReturnUrl);
     }

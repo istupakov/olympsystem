@@ -27,7 +27,7 @@ public class EmailLoginTests(WebAppFactory factory) : IClassFixture<WebAppFactor
     public async Task AnonymousVisitorIsRedirectedToLogin()
     {
         using var client = factory.CreateSiteClient();
-        using var response = await client.GetAsync("/auth", TestContext.Current.CancellationToken);
+        using var response = await client.GetAsync("/test/auth", TestContext.Current.CancellationToken);
         Assert.Equal("/Account/Login", RedirectTarget(response).AbsolutePath);
     }
 
@@ -40,7 +40,7 @@ public class EmailLoginTests(WebAppFactory factory) : IClassFixture<WebAppFactor
         var user = await factory.AddUserAsync(legacyLogin: true);
         using var client = factory.CreateSiteClient();
         using var response = await WebAppFactory.PostFormAsync(client,
-            "/Account/Login?ReturnUrl=%2Fauth%3Ftest%3D1", "login", new()
+            "/Account/Login?ReturnUrl=%2Ftest%2Fauth%3Ftest%3D1", "login", new()
             {
                 ["Input.Login"] = loginKind switch
                 {
@@ -53,8 +53,8 @@ public class EmailLoginTests(WebAppFactory factory) : IClassFixture<WebAppFactor
 
         var target = RedirectTarget(response);
         Assert.Equal("/Account/Manage/Email", target.AbsolutePath);
-        Assert.Equal("/auth?test=1", QueryHelpers.ParseQuery(target.Query)["returnUrl"]);
-        using var protectedPage = await client.GetAsync("/auth", TestContext.Current.CancellationToken);
+        Assert.Equal("/test/auth?test=1", QueryHelpers.ParseQuery(target.Query)["returnUrl"]);
+        using var protectedPage = await client.GetAsync("/test/auth", TestContext.Current.CancellationToken);
         Assert.Equal("/Account/Manage/Email", RedirectTarget(protectedPage).AbsolutePath);
         using var scope = factory.Services.CreateScope();
         var saved = await scope.ServiceProvider.GetRequiredService<UserManager<User>>().FindByIdAsync(user.Id.ToString());
@@ -83,11 +83,11 @@ public class EmailLoginTests(WebAppFactory factory) : IClassFixture<WebAppFactor
     {
         var user = await factory.AddUserAsync(legacyLogin: true);
         using var client = await factory.LoginAsync(user.UserName!);
-        using var response = await client.GetAsync("/auth?test=1", TestContext.Current.CancellationToken);
+        using var response = await client.GetAsync("/test/auth?test=1", TestContext.Current.CancellationToken);
 
         var target = RedirectTarget(response);
         Assert.Equal("/Account/Manage/Email", target.AbsolutePath);
-        Assert.Equal("/auth?test=1", QueryHelpers.ParseQuery(target.Query)["returnUrl"]);
+        Assert.Equal("/test/auth?test=1", QueryHelpers.ParseQuery(target.Query)["returnUrl"]);
     }
 
     [Fact]
@@ -115,9 +115,9 @@ public class EmailLoginTests(WebAppFactory factory) : IClassFixture<WebAppFactor
         using var client = await factory.LoginAsync(user.UserName!);
         int lettersBefore = factory.EmailSender.Confirmations.Count;
         using var response = await WebAppFactory.PostFormAsync(client,
-            "/Account/Manage/Email?returnUrl=%2Fauth%3Ftest%3D1", "use-email-login", []);
+            "/Account/Manage/Email?returnUrl=%2Ftest%2Fauth%3Ftest%3D1", "use-email-login", []);
 
-        Assert.Equal("/auth?test=1", RedirectTarget(response).PathAndQuery);
+        Assert.Equal("/test/auth?test=1", RedirectTarget(response).PathAndQuery);
         Assert.Equal(lettersBefore, factory.EmailSender.Confirmations.Count);
         using (var scope = factory.Services.CreateScope())
         {
@@ -130,14 +130,14 @@ public class EmailLoginTests(WebAppFactory factory) : IClassFixture<WebAppFactor
             Assert.Null(await users.FindByNameAsync(user.UserName!));
         }
 
-        using var authorized = await client.GetAsync("/auth", TestContext.Current.CancellationToken);
+        using var authorized = await client.GetAsync("/test/auth", TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.OK, authorized.StatusCode);
         string html = await authorized.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         Assert.Contains(user.Email!, html);
         Assert.DoesNotContain(user.UserName!, html);
 
         using var newLogin = await factory.LoginAsync(user.Email!);
-        using var newLoginPage = await newLogin.GetAsync("/auth", TestContext.Current.CancellationToken);
+        using var newLoginPage = await newLogin.GetAsync("/test/auth", TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.OK, newLoginPage.StatusCode);
     }
 
@@ -148,14 +148,14 @@ public class EmailLoginTests(WebAppFactory factory) : IClassFixture<WebAppFactor
         string newEmail = $"{Guid.NewGuid():N}@example.test";
         using var client = await factory.LoginAsync(user.UserName!);
         using var request = await WebAppFactory.PostFormAsync(client,
-            "/Account/Manage/Email?returnUrl=%2Fauth%3Ftest%3D1", "change-email", new()
+            "/Account/Manage/Email?returnUrl=%2Ftest%2Fauth%3Ftest%3D1", "change-email", new()
             {
                 ["Input.NewEmail"] = newEmail
             });
 
         Assert.Equal(HttpStatusCode.OK, request.StatusCode);
         var (_, confirmationLink) = Assert.Single(factory.EmailSender.Confirmations, letter => letter.Email == newEmail);
-        using (var restricted = await client.GetAsync("/auth", TestContext.Current.CancellationToken))
+        using (var restricted = await client.GetAsync("/test/auth", TestContext.Current.CancellationToken))
             Assert.Equal("/Account/Manage/Email", RedirectTarget(restricted).AbsolutePath);
         using (var scope = factory.Services.CreateScope())
         {
@@ -165,8 +165,8 @@ public class EmailLoginTests(WebAppFactory factory) : IClassFixture<WebAppFactor
         }
 
         using var confirmed = await client.GetAsync(WebUtility.HtmlDecode(confirmationLink), TestContext.Current.CancellationToken);
-        Assert.Equal("/auth?test=1", RedirectTarget(confirmed).PathAndQuery);
-        using var authorized = await client.GetAsync("/auth", TestContext.Current.CancellationToken);
+        Assert.Equal("/test/auth?test=1", RedirectTarget(confirmed).PathAndQuery);
+        using var authorized = await client.GetAsync("/test/auth", TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.OK, authorized.StatusCode);
         using var final = factory.Services.CreateScope();
         var saved = await final.ServiceProvider.GetRequiredService<UserManager<User>>().FindByIdAsync(user.Id.ToString());
@@ -192,7 +192,7 @@ public class EmailLoginTests(WebAppFactory factory) : IClassFixture<WebAppFactor
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Contains("alert-danger", await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
-        using var restricted = await client.GetAsync("/auth", TestContext.Current.CancellationToken);
+        using var restricted = await client.GetAsync("/test/auth", TestContext.Current.CancellationToken);
         Assert.Equal("/Account/Manage/Email", RedirectTarget(restricted).AbsolutePath);
         using var final = factory.Services.CreateScope();
         var saved = await final.ServiceProvider.GetRequiredService<UserManager<User>>().FindByIdAsync(user.Id.ToString());
@@ -212,7 +212,7 @@ public class EmailLoginTests(WebAppFactory factory) : IClassFixture<WebAppFactor
             Assert.True((await users.SetUserNameAsync(saved!, user.Email!.ToUpperInvariant())).Succeeded);
         }
         using var client = await factory.LoginAsync(user.Email!);
-        using var response = await client.GetAsync("/auth", TestContext.Current.CancellationToken);
+        using var response = await client.GetAsync("/test/auth", TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
@@ -230,7 +230,7 @@ public class EmailLoginTests(WebAppFactory factory) : IClassFixture<WebAppFactor
             Assert.True((await users.AddClaimAsync(competitor, new Claim(ClaimNames.CompetitorContest, competitor.ContestId.ToString()))).Succeeded);
         }
         using var client = await factory.LoginAsync(competitor.UserName);
-        using var response = await client.GetAsync("/auth", TestContext.Current.CancellationToken);
+        using var response = await client.GetAsync("/test/auth", TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         using var profile = await client.GetAsync("/Account/Manage/Email", TestContext.Current.CancellationToken);
         Assert.Equal("/Account/AccessDenied", RedirectTarget(profile).AbsolutePath);
@@ -250,7 +250,7 @@ public class EmailLoginTests(WebAppFactory factory) : IClassFixture<WebAppFactor
         });
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        using var protectedPage = await client.GetAsync("/auth", TestContext.Current.CancellationToken);
+        using var protectedPage = await client.GetAsync("/test/auth", TestContext.Current.CancellationToken);
         Assert.Equal("/Account/Login", RedirectTarget(protectedPage).AbsolutePath);
     }
 
@@ -355,24 +355,30 @@ public class EmailLoginTests(WebAppFactory factory) : IClassFixture<WebAppFactor
         using var response = await client.PostAsync("/Account/Logout", content, TestContext.Current.CancellationToken);
 
         Assert.Equal("/", RedirectTarget(response).AbsolutePath);
-        using var protectedPage = await client.GetAsync("/auth", TestContext.Current.CancellationToken);
+        using var protectedPage = await client.GetAsync("/test/auth", TestContext.Current.CancellationToken);
         Assert.Equal("/Account/Login", RedirectTarget(protectedPage).AbsolutePath);
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task InvalidEmailChangeLinkLeavesAddressAndLoginUnchanged(bool malformed)
+    [InlineData("ru", false)]
+    [InlineData("ru", true)]
+    [InlineData("en", false)]
+    [InlineData("en", true)]
+    public async Task InvalidEmailChangeLinkLeavesAddressAndLoginUnchanged(string culture, bool malformed)
     {
         var user = await factory.AddUserAsync(legacyLogin: true);
         string code = malformed ? "!" : WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes("invalid-token"));
         using var client = factory.CreateSiteClient();
+        client.DefaultRequestHeaders.AcceptLanguage.ParseAdd(culture);
         using var response = await client.GetAsync(QueryHelpers.AddQueryString("/Account/ConfirmEmailChange",
             new Dictionary<string, string?> { ["userId"] = user.Id.ToString(), ["email"] = "new@example.test", ["code"] = code }),
             TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Contains("alert-danger", await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
+        using var document = await new HtmlParser().ParseDocumentAsync(
+            await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
+        Assert.Equal(culture == "ru" ? "Не удалось изменить email." : "Error changing email.",
+            document.QuerySelector(".alert-danger")!.TextContent.Trim());
         using var scope = factory.Services.CreateScope();
         var saved = await scope.ServiceProvider.GetRequiredService<UserManager<User>>().FindByIdAsync(user.Id.ToString());
         Assert.Equal(user.Email, saved!.Email);

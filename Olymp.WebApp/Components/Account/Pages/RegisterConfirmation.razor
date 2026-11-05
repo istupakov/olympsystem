@@ -1,18 +1,16 @@
 ﻿@page "/Account/RegisterConfirmation"
 
-@using Microsoft.AspNetCore.Identity
-@using Olymp.Domain.Models
 
 @inject UserManager<User> UserManager
 @inject IdentityRedirectManager RedirectManager
 
-<PageTitle>Register confirmation</PageTitle>
+<PageTitle>@AccountResources.RegisterConfirmation</PageTitle>
 
-<h1>Register confirmation</h1>
+<h1>@AccountResources.RegisterConfirmation</h1>
 
-<StatusMessage Message="@statusMessage" />
+<StatusMessage Message="@statusMessage" IsError="true" />
 
-<p role="alert">Please check your email to confirm your account.</p>
+<p role="alert">@AccountResources.CheckEmailToConfirmAccount</p>
 
 @code {
     private string? statusMessage;
@@ -35,7 +33,7 @@
         if (user is null)
         {
             HttpContext.Response.StatusCode = StatusCodes.Status404NotFound;
-            statusMessage = "Error finding user for unspecified email";
+            statusMessage = AccountResources.UserNotFoundByEmail;
         }
     }
 }

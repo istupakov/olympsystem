@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
 using Olymp.Domain.Models;
+using Olymp.WebApp.Resources;
 
 namespace Olymp.WebApp.Components.Account;
 
@@ -31,17 +32,17 @@ internal static class IdentityComponentsEndpointRouteBuilderExtensions
             var antiforgeryValidationFeature = context.Features.Get<IAntiforgeryValidationFeature>();
             if (antiforgeryValidationFeature is not { IsValid: true })
             {
-                return Results.BadRequest(antiforgeryValidationFeature?.Error?.Message ?? "Antiforgery validation failed.");
+                return Results.BadRequest(antiforgeryValidationFeature?.Error?.Message ?? AccountResources.AntiforgeryValidationFailed);
             }
 
             var user = await userManager.GetUserAsync(context.User);
             if (user is null)
             {
-                return Results.NotFound($"Unable to load user with ID '{userManager.GetUserId(context.User)}'.");
+                return Results.NotFound(AccountResources.UserNotFound);
             }
 
             var userId = await userManager.GetUserIdAsync(user);
-            var userName = await userManager.GetUserNameAsync(user) ?? "User";
+            var userName = await userManager.GetUserNameAsync(user) ?? AccountResources.User;
             var optionsJson = await signInManager.MakePasskeyCreationOptionsAsync(new()
             {
                 Id = userId,
@@ -60,7 +61,7 @@ internal static class IdentityComponentsEndpointRouteBuilderExtensions
             var antiforgeryValidationFeature = context.Features.Get<IAntiforgeryValidationFeature>();
             if (antiforgeryValidationFeature is not { IsValid: true })
             {
-                return Results.BadRequest(antiforgeryValidationFeature?.Error?.Message ?? "Antiforgery validation failed.");
+                return Results.BadRequest(antiforgeryValidationFeature?.Error?.Message ?? AccountResources.AntiforgeryValidationFailed);
             }
 
             var user = string.IsNullOrEmpty(username) ? null : await userManager.FindByNameAsync(username);

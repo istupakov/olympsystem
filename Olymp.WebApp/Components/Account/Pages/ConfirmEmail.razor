@@ -1,20 +1,19 @@
 ﻿@page "/Account/ConfirmEmail"
 
 @using System.Text
-@using Microsoft.AspNetCore.Identity
 @using Microsoft.AspNetCore.WebUtilities
-@using Olymp.Domain.Models
 
 @inject UserManager<User> UserManager
 @inject IdentityRedirectManager RedirectManager
 
-<PageTitle>Confirm email</PageTitle>
+<PageTitle>@AccountResources.ConfirmEmail</PageTitle>
 
-<h1>Confirm email</h1>
-<StatusMessage Message="@statusMessage" />
+<h1>@AccountResources.ConfirmEmail</h1>
+<StatusMessage Message="@statusMessage" IsError="@isError" />
 
 @code {
     private string? statusMessage;
+    private bool isError;
 
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
@@ -37,7 +36,8 @@
         if (user is null)
         {
             HttpContext.Response.StatusCode = StatusCodes.Status404NotFound;
-            statusMessage = $"Error loading user with ID {UserId}";
+            statusMessage = AccountResources.UserNotFound;
+            isError = true;
         }
         else
         {
@@ -48,11 +48,13 @@
             }
             catch (FormatException)
             {
-                statusMessage = "Error confirming your email.";
+                statusMessage = AccountResources.EmailConfirmationFailed;
+                isError = true;
                 return;
             }
             var result = await UserManager.ConfirmEmailAsync(user, code);
-            statusMessage = result.Succeeded ? "Thank you for confirming your email." : "Error confirming your email.";
+            isError = !result.Succeeded;
+            statusMessage = result.Succeeded ? AccountResources.EmailConfirmed : AccountResources.EmailConfirmationFailed;
         }
     }
 }

@@ -1,22 +1,19 @@
 ﻿@page "/Account/ResendEmailConfirmation"
 
-@using System.ComponentModel.DataAnnotations
 @using System.Text
 @using System.Text.Encodings.Web
-@using Microsoft.AspNetCore.Identity
 @using Microsoft.AspNetCore.WebUtilities
-@using Olymp.Domain.Models
 
 @inject UserManager<User> UserManager
 @inject IEmailSender<User> EmailSender
 @inject NavigationManager NavigationManager
 
-<PageTitle>Resend email confirmation</PageTitle>
+<PageTitle>@AccountResources.ResendEmailConfirmation</PageTitle>
 
-<h1>Resend email confirmation</h1>
-<h2>Enter your email.</h2>
+<h1>@AccountResources.ResendEmailConfirmation</h1>
+<h2>@AccountResources.EnterEmailPrompt</h2>
 <hr />
-<StatusMessage Message="@message" />
+<StatusMessage Message="@message" IsError="false" />
 <div class="row">
     <div class="col-md-4">
         <EditForm Model="Input" FormName="resend-email-confirmation" OnValidSubmit="OnValidSubmitAsync" method="post">
@@ -26,10 +23,10 @@
             </div>
             <div class="form-floating mb-3">
                 <InputText @bind-Value="Input.Email" id="Input.Email" class="form-control" aria-required="true" placeholder="name@example.com" />
-                <label for="Input.Email" class="form-label">Email</label>
+                <label for="Input.Email" class="form-label"><DisplayName For="() => Input.Email" /></label>
                 <ValidationMessage For="() => Input.Email" class="text-danger" />
             </div>
-            <button type="submit" class="w-100 btn btn-lg btn-primary">Resend</button>
+            <button type="submit" class="w-100 btn btn-lg btn-primary">@AccountResources.Resend</button>
         </EditForm>
     </div>
 </div>
@@ -50,7 +47,7 @@
         var user = await UserManager.FindByEmailAsync(Input.Email!);
         if (user is null)
         {
-            message = "Verification email sent. Please check your email.";
+            message = AccountResources.VerificationEmailSent;
             return;
         }
 
@@ -62,13 +59,14 @@
             new Dictionary<string, object?> { ["userId"] = userId, ["code"] = code });
         await EmailSender.SendConfirmationLinkAsync(user, Input.Email, HtmlEncoder.Default.Encode(callbackUrl));
 
-        message = "Verification email sent. Please check your email.";
+        message = AccountResources.VerificationEmailSent;
     }
 
     private sealed class InputModel
     {
-        [Required]
-        [EmailAddress]
+        [Required(ErrorMessageResourceName = nameof(AccountResources.FieldRequired), ErrorMessageResourceType = typeof(AccountResources))]
+        [EmailAddress(ErrorMessageResourceName = nameof(AccountResources.InvalidEmailAddress), ErrorMessageResourceType = typeof(AccountResources))]
+        [Display(Name = nameof(AccountResources.Email), ResourceType = typeof(AccountResources))]
         public string Email { get; set; } = "";
     }
 }

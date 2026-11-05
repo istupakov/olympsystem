@@ -2,8 +2,10 @@ using System.Net;
 
 using AngleSharp.Html.Parser;
 
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
@@ -16,6 +18,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 
 using Olymp.Domain;
 using Olymp.Domain.Models;
+using Olymp.Site.IdentityUI;
 using Olymp.WebApp.Components;
 
 using Xunit;
@@ -58,10 +61,20 @@ public sealed class WebAppFactory : WebApplicationFactory<App>, IAsyncLifetime
         {
             services.RemoveAll<IDbContextOptionsConfiguration<OlympContext>>();
             services.AddDbContextFactory<OlympContext>(options => options.UseSqlServer(_connectionString));
-            services.RemoveAll<IEmailSender<User>>();
-            services.AddSingleton<IEmailSender<User>>(EmailSender);
+            services.RemoveAll<IEmailSender>();
+            services.AddSingleton<IEmailSender>(EmailSender);
             services.AddDataProtection().UseEphemeralDataProtectionProvider();
+            services.AddSingleton<IStartupFilter, TestEndpointsStartupFilter>();
         });
+    }
+
+    private sealed class TestEndpointsStartupFilter : IStartupFilter
+    {
+        public Action<IApplicationBuilder> Configure(Action<IApplicationBuilder> next) => app =>
+        {
+            next(app);
+            app.UseEndpoints(endpoints => endpoints.MapGet("/test/auth", context => context.Response.WriteAsync(context.User.Identity?.Name ?? "")).RequireAuthorization());
+        };
     }
 
     public async ValueTask InitializeAsync()
@@ -118,7 +131,7 @@ public sealed class WebAppFactory : WebApplicationFactory<App>, IAsyncLifetime
     public async Task<HttpClient> LoginAsync(string username)
     {
         var client = CreateSiteClient();
-        using var response = await PostFormAsync(client, "/Account/Login?ReturnUrl=%2Fauth", "login", new()
+        using var response = await PostFormAsync(client, "/Account/Login?ReturnUrl=%2Ftest%2Fauth", "login", new()
         {
             ["Input.Login"] = username,
             ["Input.Password"] = Password
@@ -144,22 +157,26 @@ public sealed class WebAppFactory : WebApplicationFactory<App>, IAsyncLifetime
     }
 }
 
-internal sealed class RecordingEmailSender : IEmailSender<User>
+internal sealed class RecordingEmailSender : IEmailSender
 {
+    public List<(string Email, string Subject, string Html)> Messages { get; } = [];
     public List<(string Email, string Link)> Confirmations { get; } = [];
     public List<(string Email, string Link)> PasswordResets { get; } = [];
 
-    public Task SendConfirmationLinkAsync(User user, string email, string confirmationLink)
+    public Task SendEmailAsync(string email, string subject, string htmlMessage)
     {
-        Confirmations.Add((email, confirmationLink));
+        Messages.Add((email, subject, htmlMessage));
+        using var document = new HtmlParser().ParseDocument(htmlMessage);
+        foreach (var anchor in document.QuerySelectorAll("a[href]"))
+        {
+            string link = anchor.GetAttribute("href")!;
+            if (!Uri.TryCreate(link, UriKind.Absolute, out var uri))
+                continue;
+            if (uri.AbsolutePath is "/Account/ConfirmEmail" or "/Account/ConfirmEmailChange")
+                Confirmations.Add((email, link));
+            else if (uri.AbsolutePath == "/Account/ResetPassword")
+                PasswordResets.Add((email, link));
+        }
         return Task.CompletedTask;
     }
-
-    public Task SendPasswordResetLinkAsync(User user, string email, string resetLink)
-    {
-        PasswordResets.Add((email, resetLink));
-        return Task.CompletedTask;
-    }
-
-    public Task SendPasswordResetCodeAsync(User user, string email, string resetCode) => throw new NotSupportedException();
 }
