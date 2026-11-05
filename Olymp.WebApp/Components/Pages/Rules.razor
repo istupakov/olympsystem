@@ -1,0 +1,224 @@
+@page "/Rules"
+
+@using Microsoft.EntityFrameworkCore
+@using Olymp.Domain
+
+@inject IDbContextFactory<OlympContext> ContextFactory
+
+@{
+    var isRussian = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ru";
+    var title = isRussian ? "Правила использования системы" : "System Usage Rules";
+}
+
+<PageTitle>@title</PageTitle>
+
+<h1 class="mb-4">@title</h1>
+
+<h2 id="submissions" class="h4 mt-4">@(isRussian ? "Подготовка и отправка решений" : "Preparing and Submitting Solutions")</h2>
+
+@if (isRussian)
+{
+    <p>
+        Для решения задачи нужно написать программу и отправить её исходный код через сайт,
+        выбрав соответствующий язык программирования.
+    </p>
+}
+else
+{
+    <p>
+        To solve a problem, write a program and submit its source code through the website,
+        selecting the corresponding programming language.
+    </p>
+}
+
+<h3 class="h5">@(isRussian ? "Доступные языки и компиляторы" : "Available Languages and Compilers")</h3>
+
+<div class="table-responsive">
+    <table class="table table-sm">
+        <thead>
+            <tr>
+                <th scope="col">@(isRussian ? "Язык" : "Language")</th>
+                <th scope="col">@(isRussian ? "Компилятор / среда" : "Compiler / Runtime")</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var compiler in compilers)
+            {
+                <tr>
+                    <td>@compiler.Language</td>
+                    <td>@(compiler.Description ?? compiler.Name)</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+@if (isRussian)
+{
+    <p>
+        Программа должна читать данные из стандартного потока ввода и выводить ответ в стандартный
+        поток вывода. Например, в C++ обычно используются <code>cin</code> и <code>cout</code>,
+        в Python: <code>input()</code> и <code>print()</code>. При проверке данные подаются автоматически.
+        Не нужно выводить приглашения вроде «Введите число», пояснения или отладочные сообщения.
+    </p>
+    <p>
+        Формат ввода и вывода описан в условии задачи. Гарантируется, что входные данные
+        соответствуют указанным формату и ограничениям.
+    </p>
+    <p>
+        В Java главный класс должен называться <code>Main</code>. Не указывайте <code>package</code>:
+        система сохраняет исходный код в файл <code>Main.java</code> и запускает класс <code>Main</code>.
+    </p>
+}
+else
+{
+    <p>
+        Your program must read from standard input and write its answer to standard output.
+        For example, C++ typically uses <code>cin</code> and <code>cout</code>, while Python uses
+        <code>input()</code> and <code>print()</code>. Input is provided automatically during judging.
+        Do not print prompts such as “Enter a number”, explanations or debugging messages.
+    </p>
+    <p>
+        The input and output formats are described in the problem statement. Input data is
+        guaranteed to comply with the specified format and constraints.
+    </p>
+    <p>
+        In Java, the main class must be named <code>Main</code>. Do not include a <code>package</code>
+        declaration: the system saves your source code as <code>Main.java</code> and runs the
+        <code>Main</code> class.
+    </p>
+}
+
+<h3 class="h5">@(isRussian ? "Ограничения для программ" : "Program Restrictions")</h3>
+
+@if (isRussian)
+{
+    <p>Отправленным на проверку программам запрещается:</p>
+    <ul>
+        <li>обращаться к сети;</li>
+        <li>читать и изменять файлы;</li>
+        <li>запускать другие программы и создавать новые процессы;</li>
+        <li>изменять права доступа к файлам и работать с подкаталогами;</li>
+        <li>создавать окна и другие элементы графического интерфейса, обращаться к внешним устройствам;</li>
+        <li>вмешиваться в работу проверяющей системы, обходить её ограничения или нарушать проведение соревнования.</li>
+    </ul>
+}
+else
+{
+    <p>Programs submitted for judging must not:</p>
+    <ul>
+        <li>access the network;</li>
+        <li>read or modify files;</li>
+        <li>run other programs or create new processes;</li>
+        <li>change file permissions or work with subdirectories;</li>
+        <li>create windows or other graphical interface elements, or access external devices;</li>
+        <li>interfere with the judging system, bypass its restrictions or disrupt the contest.</li>
+    </ul>
+}
+
+<h2 id="judging" class="h4 mt-4">@(isRussian ? "Проверка решений" : "Judging Solutions")</h2>
+
+@if (isRussian)
+{
+    <p>
+        После отправки программа компилируется и запускается на тестах жюри. На каждом тесте
+        проверяются правильность ответа и соблюдение ограничений по времени и памяти.
+    </p>
+    <p>
+        Тесты из условия являются первыми тестами в системе и идут в том же порядке.
+        Например, двум примерам соответствуют тесты № 1 и № 2. Остальные тесты во время проверки не раскрываются. Прохождение примеров не гарантирует зачёта решения.
+    </p>
+    <p>
+        По завершении проверки показывается результат:
+    </p>
+}
+else
+{
+    <p>
+        After submission, your program is compiled and run on the jury's tests. Each test checks
+        that the answer is correct and that the time and memory limits are respected.
+    </p>
+    <p>
+        The examples in the problem statement are the first tests in the system, in the same order.
+        For example, two examples correspond to tests 1 and 2. The remaining tests are not disclosed during judging. Passing the examples does not guarantee acceptance.
+    </p>
+    <p>
+        Once judging is complete, a result is displayed:
+    </p>
+}
+
+<div class="table-responsive">
+    <table class="table">
+        <thead>
+            <tr>
+                <th scope="col">@(isRussian ? "Результат" : "Result")</th>
+                <th scope="col">@(isRussian ? "Значение" : "Meaning")</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <th scope="row" class="text-success">Accepted</th>
+                <td>@(isRussian ? "Решение прошло все тесты." : "The solution passed all tests.")</td>
+            </tr>
+            <tr>
+                <th scope="row" class="text-warning-emphasis">Compilation error</th>
+                <td>@(isRussian ? "Не удалось скомпилировать программу. Причину можно посмотреть в сообщениях компилятора. Проверьте также выбранный язык." : "The program could not be compiled. Check the compiler messages for details and make sure you selected the correct language.")</td>
+            </tr>
+            <tr>
+                <th scope="row" class="text-danger">Wrong answer</th>
+                <td>@(isRussian ? "Программа выдала неверный ответ." : "The program produced an incorrect answer.")</td>
+            </tr>
+            <tr>
+                <th scope="row" class="text-danger">Presentation error</th>
+                <td>@(isRussian ? "Нарушен формат вывода или превышен допустимый объём вывода." : "The output format is incorrect or the output size limit was exceeded.")</td>
+            </tr>
+            <tr>
+                <th scope="row" class="text-danger">Time limit exceeded</th>
+                <td>@(isRussian ? "Превышено ограничение процессорного времени." : "The CPU time limit was exceeded.")</td>
+            </tr>
+            <tr>
+                <th scope="row" class="text-danger">Idleness limit exceeded</th>
+                <td>@(isRussian ? "Превышено общее время выполнения, включая ожидание. Например, программа может ожидать лишние входные данные." : "The total execution time limit, including waiting, was exceeded. For example, the program may be waiting for additional input.")</td>
+            </tr>
+            <tr>
+                <th scope="row" class="text-danger">Memory limit exceeded</th>
+                <td>@(isRussian ? "Превышено ограничение памяти." : "The memory limit was exceeded.")</td>
+            </tr>
+            <tr>
+                <th scope="row" class="text-danger">Runtime error</th>
+                <td>@(isRussian ? "Программа завершилась с ошибкой, например из-за недопустимого обращения к памяти или необработанного исключения. Иногда причиной может быть превышение ограничения памяти." : "The program terminated with an error, such as an invalid memory access or an unhandled exception. Exceeding the memory limit can also cause this result.")</td>
+            </tr>
+            <tr>
+                <th scope="row" class="text-danger">Security violation</th>
+                <td>@(isRussian ? "Программа попыталась выполнить запрещённое действие." : "The program attempted a prohibited action.")</td>
+            </tr>
+            <tr>
+                <th scope="row">Internal error</th>
+                <td>@(isRussian ? "Внутренняя ошибка проверяющей системы. Следует сообщить жюри." : "An internal error occurred in the judging system. Please notify the jury.")</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+@if (isRussian)
+{
+    <p>Для ошибок, возникших при выполнении на тесте, указывается его номер.</p>
+}
+else
+{
+    <p>For errors that occur on a test, the test number is displayed.</p>
+}
+
+@code {
+    private List<Compilator> compilers = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        await using var context = await ContextFactory.CreateDbContextAsync();
+        compilers = await context.Compilators.AsNoTracking()
+            .Where(compiler => compiler.IsActive)
+            .OrderBy(compiler => compiler.Description)
+            .ThenBy(compiler => compiler.Name)
+            .ToListAsync();
+    }
+}

@@ -8,6 +8,7 @@
         <p class="small text-body-secondary mb-2">@(Contest.StartTime > Now ? SiteResources.ContestUpcoming : SiteResources.ContestInProgress)</p>
     }
     <ul class="list-inline small mb-0">
+        <li class="list-inline-item"><a href="contests/rules/@Contest.Id">@SiteResources.ContestRules</a></li>
         @if (Contest.StartTime > new DateTimeOffset(2010, 1, 1, 0, 0, 0, TimeSpan.Zero))
         {
             <li class="list-inline-item"><a href="contests/competitors/@Contest.Id">@SiteResources.ContestParticipants</a></li>

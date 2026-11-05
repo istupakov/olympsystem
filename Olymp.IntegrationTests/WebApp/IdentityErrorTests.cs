@@ -83,6 +83,7 @@ public class IdentityErrorTests(WebAppFactory factory) : IClassFixture<WebAppFac
                 ["Input.PublicName"] = "Test user",
                 ["Input.Email"] = email,
                 ["Input.Password"] = password,
+                ["Input.AcceptRules"] = "true",
                 ["Input.ConfirmPassword"] = password
             });
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);

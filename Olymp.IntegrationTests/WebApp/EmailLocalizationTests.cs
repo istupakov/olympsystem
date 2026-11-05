@@ -30,6 +30,7 @@ public class EmailLocalizationTests(WebAppFactory factory) : IClassFixture<WebAp
             ["Input.PublicName"] = "New user",
             ["Input.Email"] = email,
             ["Input.Password"] = WebAppFactory.Password,
+            ["Input.AcceptRules"] = "true",
             ["Input.ConfirmPassword"] = WebAppFactory.Password
         });
         Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);

@@ -22,7 +22,7 @@ public class RegistrationTests(WebAppFactory factory) : IClassFixture<WebAppFact
     [Theory]
     [InlineData("ru")]
     [InlineData("en")]
-    public async Task RegistrationNeedsOnlyPublicNameEmailAndPasswordAndRequiresConfirmation(string culture)
+    public async Task RegistrationWithRulesAcceptedCreatesAccountAndRequiresConfirmation(string culture)
     {
         string email = $"{Guid.NewGuid():N}@example.test";
         using var client = factory.CreateSiteClient();
@@ -158,12 +158,49 @@ public class RegistrationTests(WebAppFactory factory) : IClassFixture<WebAppFact
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
+    [Theory]
+    [InlineData("ru", null)]
+    [InlineData("ru", "false")]
+    [InlineData("en", null)]
+    [InlineData("en", "false")]
+    public async Task RegistrationRequiresRulesAcceptance(string culture, string? acceptance)
+    {
+        string email = $"{Guid.NewGuid():N}@example.test";
+        using var client = factory.CreateSiteClient();
+        client.DefaultRequestHeaders.AcceptLanguage.ParseAdd(culture);
+        int lettersBefore = factory.EmailSender.Confirmations.Count;
+        var fields = new Dictionary<string, string>
+        {
+            ["Input.PublicName"] = "New user",
+            ["Input.Email"] = email,
+            ["Input.Password"] = WebAppFactory.Password,
+            ["Input.ConfirmPassword"] = WebAppFactory.Password
+        };
+        if (acceptance is not null)
+            fields["Input.AcceptRules"] = acceptance;
+
+        using var response = await WebAppFactory.PostFormAsync(client, "/Account/Register", "register", fields);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        using var document = await new HtmlParser().ParseDocumentAsync(
+            await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
+        Assert.Contains(culture == "ru" ? "Необходимо принять правила использования системы." : "You must accept the system usage rules.",
+            document.QuerySelectorAll(".validation-message").Select(element => element.TextContent));
+        Assert.NotNull(document.QuerySelector("input[type='checkbox'][name='Input.AcceptRules']:not([checked])"));
+        Assert.NotNull(document.QuerySelector("label[for='Input.AcceptRules'] a[href='rules']"));
+        Assert.Equal(lettersBefore, factory.EmailSender.Confirmations.Count);
+        using var scope = factory.Services.CreateScope();
+        Assert.False(await scope.ServiceProvider.GetRequiredService<OlympContext>().Users
+            .AnyAsync(user => user.Email == email, TestContext.Current.CancellationToken));
+    }
+
     private static Task<HttpResponseMessage> RegisterAsync(HttpClient client, string email) =>
         WebAppFactory.PostFormAsync(client, "/Account/Register", "register", new()
         {
             ["Input.PublicName"] = "New user",
             ["Input.Email"] = email,
             ["Input.Password"] = WebAppFactory.Password,
+            ["Input.AcceptRules"] = "true",
             ["Input.ConfirmPassword"] = WebAppFactory.Password
         });
 

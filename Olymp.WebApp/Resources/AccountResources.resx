@@ -151,4 +151,7 @@
   <data name="NoPasskeyProvided" xml:space="preserve"><value>No passkey was provided by the authenticator.</value></data>
   <data name="AntiforgeryValidationFailed" xml:space="preserve"><value>Antiforgery validation failed.</value></data>
   <data name="User" xml:space="preserve"><value>User</value></data>
+  <data name="AcceptRulesPrefix" xml:space="preserve"><value>I accept the</value></data>
+  <data name="SystemUsageRules" xml:space="preserve"><value>system usage rules</value></data>
+  <data name="AcceptRulesRequired" xml:space="preserve"><value>You must accept the system usage rules.</value></data>
 </root>
