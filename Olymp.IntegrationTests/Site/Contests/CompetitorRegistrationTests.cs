@@ -199,7 +199,6 @@ public class CompetitorRegistrationTests(SiteFixture site) : IClassFixture<SiteF
     [InlineData("hiddenMember")]
     [InlineData("foreignMember")]
     [InlineData("duplicateMember")]
-    [InlineData("duplicateName")]
     [InlineData("missingMember")]
     [InlineData("separatorInName")]
     [InlineData("hiddenContest")]
@@ -224,7 +223,6 @@ public class CompetitorRegistrationTests(SiteFixture site) : IClassFixture<SiteF
         string[] slots = invalid switch
         {
             "duplicateMember" => [user.Id.ToString(), "000" + user.Id, "Третий"],
-            "duplicateName" => ["Первый", "Первый", "Третий"],
             "missingMember" => [user.Id.ToString(), "Второй"],
             "separatorInName" => [user.Id.ToString(), "Второй;Третий", "Четвёртый"],
             _ => [user.Id.ToString(), "Второй", "Третий"]

@@ -13,6 +13,8 @@ namespace Olymp.Site.Services.Contests;
 
 public sealed record ParticipantImportSummary(int Added, int Existing);
 
+public sealed record TeamMember(int? UserId, string? Name);
+
 /// <summary>Callers must authorize each participant operation before invoking it.</summary>
 /// <remarks>Use a new scope when retrying a failed operation.</remarks>
 public sealed class CompetitorManagementService(OlympContext context, UserManager<User> users,
@@ -62,16 +64,27 @@ public sealed class CompetitorManagementService(OlympContext context, UserManage
         await transaction.CommitAsync(token);
     }
 
-    public async Task RegisterTeamAsync(int contestId, int organizationId, int coachId,
+    public static string? GetTeamMemberName(OlympUser user) =>
+        string.IsNullOrWhiteSpace(user.LastName) || string.IsNullOrWhiteSpace(user.FirstName)
+            ? null : $"{user.LastName} {user.FirstName}";
+
+    public Task RegisterTeamAsync(int contestId, int organizationId, int coachId,
         string name, IReadOnlyList<string> participants, CancellationToken token = default)
+        => RegisterTeamAsync(contestId, organizationId, coachId, name,
+            [.. participants.Select(value => int.TryParse(value, out var id) ? new TeamMember(id, null) : new TeamMember(null, value))],
+            false, token);
+
+    public async Task RegisterTeamAsync(int contestId, int organizationId, int coachId,
+        string name, IReadOnlyList<TeamMember> participants, bool outOfCompetition, CancellationToken token = default)
     {
-        if (string.IsNullOrWhiteSpace(name) || participants.Count != 3
-            || participants.Any(x => string.IsNullOrWhiteSpace(x) || x.Contains(';')))
+        if (string.IsNullOrWhiteSpace(name) || participants.Count is < 1 or > 3
+            || (!outOfCompetition && participants.Count != 3)
+            || participants.Any(member => member.Name?.Contains(';') == true
+                || (member.UserId is null && string.IsNullOrWhiteSpace(member.Name))))
             throw new OperationValidationException(localizer["Registration information is incorrect."]);
 
-        var participantIds = participants.Select(x => int.TryParse(x, out var id) ? (int?)id : null).ToArray();
-        var memberIds = participantIds.OfType<int>().ToArray();
-        if (memberIds.Distinct().Count() != memberIds.Length || participants.Distinct().Count() != participants.Count)
+        var memberIds = participants.Where(member => member.UserId.HasValue).Select(member => member.UserId!.Value).ToArray();
+        if (memberIds.Distinct().Count() != memberIds.Length)
             throw new OperationValidationException(localizer["Participants must be different."]);
 
         await using var transaction = await context.Database.BeginTransactionAsync(IsolationLevel.Serializable, token);
@@ -94,9 +107,16 @@ public sealed class CompetitorManagementService(OlympContext context, UserManage
         if (await context.Competitors.AnyAsync(x => x.ContestId == contestId && x.Members.Any(m => memberIds.Contains(m.Id)), token))
             throw new OperationValidationException(localizer["One or more participants are already registered for this contest."]);
 
-        var memberInfos = string.Join(";", participants.Select((text, i) => participantIds[i] is int id
-            ? $"{membersById[id].LastName} {membersById[id].FirstName};{id}"
-            : $"{text};"));
+        if (await context.Competitors.AnyAsync(x => x.ContestId == contestId && x.Name == name, token))
+            throw new OperationValidationException(localizer["A team with this name is already registered for this contest."]);
+
+        var memberInfos = string.Join(";", participants.Select(member =>
+        {
+            var memberName = (!string.IsNullOrWhiteSpace(member.Name) ? member.Name
+                : member.UserId is int id ? GetTeamMemberName(membersById[id]) : null)
+                ?? throw new OperationValidationException(localizer["Registration information is incorrect."]);
+            return $"{memberName};{member.UserId}";
+        }));
 
         var participant = new Competitor
         {
@@ -105,6 +125,7 @@ public sealed class CompetitorManagementService(OlympContext context, UserManage
             ContestId = contestId,
             OrganizationId = organizationId,
             CoachId = coachId,
+            IsOutOfCompetition = outOfCompetition,
             MemberInfos = memberInfos,
             RegistrationDate = DateTimeOffset.Now,
             Members = [.. membersById.Values],

@@ -15,7 +15,9 @@
         }
         @if (Now < Contest.EndTime)
         {
-            <li class="list-inline-item"><span class="text-body-secondary" aria-disabled="true" title="@SiteResources.ActionUnavailable">@SiteResources.ContestRegistration</span></li>
+            <li class="list-inline-item">
+                <a href="@(Contest.IsAcm ? $"contests/registration/teams/{Contest.Id}" : $"contests/registration/{Contest.Id}")">@SiteResources.ContestRegistration</a>
+            </li>
         }
         @if (Contest.AllowShowStanding)
         {

@@ -15,13 +15,15 @@ public partial class Compilator
 
 public partial class Competitor
 {
-    public IEnumerable<(string name, OlympUser? user)>? GetMembers() =>
-        MemberInfos?.Split(';') is [var name1, var id1s, var name2, var id2s, var name3, var id3s] ?
-        [
-            (name1, int.TryParse(id1s, out var id1)? Members.Single(x => x.Id == id1): null),
-            (name2, int.TryParse(id2s, out var id2)? Members.Single(x => x.Id == id2): null),
-            (name3, int.TryParse(id3s, out var id3)? Members.Single(x => x.Id == id3): null)
-        ] : null;
+    public IEnumerable<(string name, OlympUser? user)>? GetMembers()
+    {
+        var parts = MemberInfos?.Split(';');
+        if (parts is null || parts.Length is not (2 or 4 or 6))
+            return null;
+
+        return parts.Chunk(2).Select(part =>
+            (part[0], int.TryParse(part[1], out var id) ? Members.Single(member => member.Id == id) : null));
+    }
 
     public IEnumerable<string>? MemberNames => GetMembers()?.Select(x => x.name);
 }

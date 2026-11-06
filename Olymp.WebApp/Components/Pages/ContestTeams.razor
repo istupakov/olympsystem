@@ -1,0 +1,171 @@
+@page "/contests/registration/teams/{Id:int}"
+
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.EntityFrameworkCore
+@using Olymp.Domain
+@using Olymp.Site
+@using Olymp.Site.Services
+@using Olymp.Site.Services.Contests
+@using Olymp.WebApp.Components.Contests
+
+@attribute [Authorize]
+@attribute [Authorize(Policy = PolicyNames.OlympUser)]
+@attribute [Authorize(Policy = PolicyNames.Coach)]
+@attribute [ExcludeFromInteractiveRouting]
+
+@inject OlympContext Context
+@inject CompetitorManagementService Competitors
+@inject NavigationManager Navigation
+
+<PageTitle>@Title</PageTitle>
+
+@if (contest is not null)
+{
+    <h1 class="mb-4">@Title</h1>
+    @if (error is not null)
+    {
+        <div class="alert alert-danger" role="alert">@error</div>
+    }
+    @if (DateTimeOffset.Now <= contest.EndTime)
+    {
+        <div class="d-flex flex-wrap gap-2 mb-3">
+            @foreach (var organization in organizations)
+            {
+                <a class="btn btn-primary" href="contests/registration/teams/create/@Id?orgId=@organization.Id">
+                    @SiteResources.AddTeam@(organizations.Count > 1 ? $" ({organization.Name})" : "")
+                </a>
+            }
+        </div>
+    }
+    else
+    {
+        <p>@SiteResources.RegistrationClosed</p>
+    }
+
+    @if (teams.Count == 0)
+    {
+        <p>@SiteResources.NoTeams</p>
+    }
+    else
+    {
+        <form method="post" @formname="cancel-team" @onsubmit="CancelAsync">
+            <AntiforgeryToken />
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th scope="col">@SiteResources.Team</th>
+                            <th scope="col">@SiteResources.Members</th>
+                            <th scope="col">@SiteResources.Coach</th>
+                            <th scope="col">@AccountResources.UserName</th>
+                            <th scope="col">@AccountResources.Password</th>
+                            <th scope="col">@SiteResources.TeamActions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var team in teams)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="d-flex flex-wrap align-items-center gap-2">
+                                        <span class="fw-semibold">@team.Name</span>
+                                        <CompetitorBadges User="team" />
+                                    </div>
+                                    <div class="small text-body-secondary">@team.Organization?.Name</div>
+                                </td>
+                                <td>
+                                    <ul class="list-unstyled mb-0">
+                                        @foreach (var name in team.MemberNames ?? [])
+                                        {
+                                            <li>@name</li>
+                                        }
+                                    </ul>
+                                </td>
+                                <td>@team.Coach?.LastName @team.Coach?.FirstName @team.Coach?.Patronymic</td>
+                                <td>@team.UserName</td>
+                                <td>@(team.CoachId == userId ? team.PasswordHash : null)</td>
+                                <td>
+                                    @if (CanCancel(team))
+                                    {
+                                        <button type="submit" name="CancelTeamId" value="@team.Id" class="btn btn-sm btn-outline-danger">@SiteResources.CancelRegistration</button>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </form>
+    }
+}
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromForm(FormName = "cancel-team")]
+    private int CancelTeamId { get; set; }
+
+    private Contest? contest;
+    private List<Organization> organizations = [];
+    private List<Competitor> teams = [];
+    private int userId;
+    private string? error;
+
+    private string Title => contest is null ? "" : string.Format(SiteResources.TeamsInContest, contest.Name);
+
+    private bool CanCancel(Competitor team) => contest is not null && DateTimeOffset.Now < contest.StartTime
+        && team.CoachId == userId && (!team.IsApproved || team.IsOutOfCompetition);
+
+    protected override async Task OnParametersSetAsync()
+    {
+        contest = await Context.Contests.AsNoTracking()
+            .SingleOrDefaultAsync(item => item.Id == Id && !item.IsHidden, HttpContext.RequestAborted);
+        if (contest is null || !contest.IsAcm)
+        {
+            contest = null;
+            HttpContext.Response.StatusCode = StatusCodes.Status404NotFound;
+            return;
+        }
+
+        userId = int.Parse(HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var orgIds = HttpContext.User.FindAll(ClaimNames.CoachOrg).Select(claim => int.Parse(claim.Value)).ToArray();
+        organizations = await Context.Organizations.AsNoTracking().Where(item => orgIds.Contains(item.Id))
+            .OrderBy(item => item.Name).ToListAsync(HttpContext.RequestAborted);
+        teams = await Context.Competitors.AsNoTracking()
+            .Where(item => item.ContestId == Id && orgIds.Contains(item.OrganizationId!.Value))
+            .Include(item => item.Coach).Include(item => item.Organization).Include(item => item.Members)
+            .OrderBy(item => item.RegistrationDate).ThenBy(item => item.Id)
+            .AsSplitQuery().ToListAsync(HttpContext.RequestAborted);
+    }
+
+    private async Task CancelAsync()
+    {
+        var team = teams.SingleOrDefault(item => item.Id == CancelTeamId);
+        if (team is null || !CanCancel(team))
+        {
+            error = SiteResources.RegistrationUpdateFailed;
+            return;
+        }
+
+        try
+        {
+            await Competitors.DeleteAsync(Id, team.Id, HttpContext.RequestAborted);
+        }
+        catch (OperationValidationException)
+        {
+            error = SiteResources.RegistrationUpdateFailed;
+            return;
+        }
+        catch (IdentityOperationException exception)
+        {
+            error = string.Join(" ", exception.Errors.Select(item => item.Description));
+            return;
+        }
+        Navigation.Refresh();
+    }
+}
