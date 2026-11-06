@@ -1,0 +1,218 @@
+@page "/contests/registration/{Id:int}"
+
+@using System.ComponentModel.DataAnnotations
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.EntityFrameworkCore
+@using Olymp.Domain
+@using Olymp.Site
+@using Olymp.Site.Services
+@using Olymp.Site.Services.Contests
+@using Olymp.WebApp.Components.Contests
+
+@attribute [Authorize]
+@attribute [Authorize(Policy = PolicyNames.OlympUser)]
+@attribute [ExcludeFromInteractiveRouting]
+
+@inject OlympContext Context
+@inject CompetitorManagementService Competitors
+@inject NavigationManager Navigation
+
+<PageTitle>@Title</PageTitle>
+
+@if (contest is not null && user is not null)
+{
+    <h1>@Title</h1>
+
+    @if (error is not null)
+    {
+        <div class="alert alert-danger" role="alert">@error</div>
+    }
+
+    @if (participant is null && DateTimeOffset.Now > contest.EndTime)
+    {
+        <p>@SiteResources.RegistrationClosed</p>
+    }
+    else
+    {
+        @if (participant is not null)
+        {
+            <p>@SiteResources.AlreadyRegistered</p>
+            <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+                <span class="fw-semibold">@participant.Name</span>
+                <CompetitorBadges User="participant" />
+            </div>
+        }
+        else if (missingFields.Count == 0)
+        {
+            <div class="form-floating mb-3">
+                <input id="participant-name" class="form-control" value="@CompetitorManagementService.GetParticipantName(user)" placeholder="@SiteResources.Competitor" disabled />
+                <label for="participant-name">@SiteResources.Competitor</label>
+            </div>
+        }
+
+        @if (participant is not null)
+        {
+            @if (DateTimeOffset.Now < contest.StartTime)
+            {
+                <form method="post" @formname="cancel-registration" @onsubmit="CancelAsync">
+                    <AntiforgeryToken />
+                    <button type="submit" class="btn btn-outline-danger">@SiteResources.CancelRegistration</button>
+                </form>
+            }
+        }
+        else
+        {
+            @if (missingFields.Count > 0)
+            {
+                <div class="alert alert-warning" role="alert">
+                    <p>@SiteResources.RegistrationProfileRequired</p>
+                    <ul class="mb-0">
+                        @foreach (var field in missingFields)
+                        {
+                            <li>@field</li>
+                        }
+                    </ul>
+                </div>
+            }
+            <p><a href="account/manage">@SiteResources.EditProfile</a></p>
+
+            <EditForm Model="Input" method="post" FormName="contest-registration" OnValidSubmit="RegisterAsync">
+                <DataAnnotationsValidator />
+                <ValidationSummary class="text-danger" role="alert" />
+                <div class="form-check mb-3">
+                    <InputCheckbox @bind-Value="Input.OutOfCompetition" id="Input.OutOfCompetition" class="form-check-input" disabled="@(!HasGroup)" />
+                    <label for="Input.OutOfCompetition" class="form-check-label">
+                        @SiteResources.ParticipateOutOfCompetition
+                        @if (!HasGroup)
+                        {
+                            <span>@($" ({SiteResources.RegistrationGroupRequired})")</span>
+                        }
+                    </label>
+                </div>
+                <div class="form-check mb-3">
+                    <InputCheckbox @bind-Value="Input.AcceptRules" id="Input.AcceptRules" class="form-check-input" aria-required="true" />
+                    <label for="Input.AcceptRules" class="form-check-label">
+                        @AccountResources.AcceptRulesPrefix <a href="contests/rules/@Id" target="_blank" rel="noopener">@SiteResources.ContestRulesAgreement</a>
+                    </label>
+                    <ValidationMessage For="() => Input.AcceptRules" class="text-danger" />
+                </div>
+                <button type="submit" class="btn btn-primary" disabled="@(missingFields.Count > 0)">@AccountResources.Register</button>
+            </EditForm>
+        }
+    }
+}
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromForm(FormName = "contest-registration")]
+    private InputModel Input { get; set; } = default!;
+
+    private Contest? contest;
+    private OlympUser? user;
+    private Competitor? participant;
+    private readonly List<string> missingFields = [];
+    private string? error;
+
+    private string Title => contest is null ? "" : string.Format(SiteResources.RegistrationForContest, contest.Name);
+    private bool HasGroup => !string.IsNullOrWhiteSpace(user?.Details);
+
+    protected override async Task OnParametersSetAsync()
+    {
+        contest = await Context.Contests.AsNoTracking()
+            .SingleOrDefaultAsync(item => item.Id == Id && !item.IsHidden, HttpContext.RequestAborted);
+        if (contest is null || contest.IsAcm)
+        {
+            contest = null;
+            HttpContext.Response.StatusCode = StatusCodes.Status404NotFound;
+            return;
+        }
+
+        int userId = int.Parse(HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        user = await Context.OlympUsers.AsNoTracking().Include(item => item.Organization)
+            .SingleAsync(item => item.Id == userId, HttpContext.RequestAborted);
+        participant = await Context.Competitors.AsNoTracking()
+            .SingleOrDefaultAsync(item => item.ContestId == Id && item.Members.Any(member => member.Id == userId), HttpContext.RequestAborted);
+
+        missingFields.Clear();
+        if (string.IsNullOrWhiteSpace(user.FirstName))
+            missingFields.Add(AccountResources.FirstName);
+        if (string.IsNullOrWhiteSpace(user.LastName))
+            missingFields.Add(AccountResources.LastName);
+        if (string.IsNullOrWhiteSpace(user.Organization?.Name))
+            missingFields.Add(AccountResources.University);
+
+        Input ??= new();
+        if (!HasGroup)
+            Input.OutOfCompetition = true;
+    }
+
+    private async Task RegisterAsync()
+    {
+        if (contest is null || user is null)
+            return;
+        if (missingFields.Count > 0)
+        {
+            error = SiteResources.RegistrationUpdateFailed;
+            return;
+        }
+
+        try
+        {
+            await Competitors.RegisterIndividualAsync(Id, user.Id, Input.OutOfCompetition, HttpContext.RequestAborted);
+        }
+        catch (OperationValidationException)
+        {
+            error = SiteResources.RegistrationUpdateFailed;
+            return;
+        }
+        catch (IdentityOperationException exception)
+        {
+            error = string.Join(" ", exception.Errors.Select(item => item.Description));
+            return;
+        }
+
+        Navigation.Refresh();
+    }
+
+    private async Task CancelAsync()
+    {
+        if (contest is null || participant is null)
+            return;
+        if (DateTimeOffset.Now >= contest.StartTime)
+        {
+            error = SiteResources.RegistrationUpdateFailed;
+            return;
+        }
+
+        try
+        {
+            await Competitors.DeleteAsync(Id, participant.Id, HttpContext.RequestAborted);
+        }
+        catch (OperationValidationException)
+        {
+            error = SiteResources.RegistrationUpdateFailed;
+            return;
+        }
+        catch (IdentityOperationException exception)
+        {
+            error = string.Join(" ", exception.Errors.Select(item => item.Description));
+            return;
+        }
+
+        Navigation.Refresh();
+    }
+
+    private sealed class InputModel
+    {
+        public bool OutOfCompetition { get; set; }
+
+        [Range(typeof(bool), "true", "true", ErrorMessageResourceName = nameof(SiteResources.ContestRulesRequired), ErrorMessageResourceType = typeof(SiteResources))]
+        public bool AcceptRules { get; set; }
+    }
+}

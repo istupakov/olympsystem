@@ -1008,4 +1008,7 @@
   <data name="User not found." xml:space="preserve">
     <value>Пользователь не найден.</value>
   </data>
+  <data name="A team with this name is already registered for this contest." xml:space="preserve">
+    <value>Команда с таким названием уже зарегистрирована на это соревнование.</value>
+  </data>
 </root>

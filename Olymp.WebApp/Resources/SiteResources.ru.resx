@@ -64,4 +64,48 @@
   <data name="StandingTimeFormat" xml:space="preserve"><value>HH:mm z</value></data>
   <data name="ContestRules" xml:space="preserve"><value>Правила</value></data>
   <data name="Rules" xml:space="preserve"><value>Правила</value></data>
+  <data name="RegistrationForContest" xml:space="preserve"><value>Регистрация на «{0}»</value></data>
+  <data name="AlreadyRegistered" xml:space="preserve"><value>Вы уже зарегистрированы на это соревнование.</value></data>
+  <data name="CancelRegistration" xml:space="preserve"><value>Отменить регистрацию</value></data>
+  <data name="RegistrationClosed" xml:space="preserve"><value>Регистрация завершена.</value></data>
+  <data name="RegistrationProfileRequired" xml:space="preserve"><value>Для регистрации заполните в профиле следующие поля:</value></data>
+  <data name="RegistrationGroupRequired" xml:space="preserve"><value>для участия в основном конкурсе укажите группу в профиле</value></data>
+  <data name="EditProfile" xml:space="preserve"><value>Изменить профиль</value></data>
+  <data name="ParticipateOutOfCompetition" xml:space="preserve"><value>Участвовать вне конкурса</value></data>
+  <data name="ContestRulesAgreement" xml:space="preserve"><value>правила соревнования</value></data>
+  <data name="ContestRulesRequired" xml:space="preserve"><value>Необходимо принять правила соревнования.</value></data>
+  <data name="RegistrationUpdateFailed" xml:space="preserve"><value>Не удалось изменить регистрацию. Проверьте профиль и обновите страницу.</value></data>
+  <data name="TeamRegistrationFailed" xml:space="preserve"><value>Не удалось зарегистрировать команду. Повторите попытку.</value></data>
+  <data name="TeamsInContest" xml:space="preserve"><value>Команды соревнования «{0}»</value></data>
+  <data name="AddTeam" xml:space="preserve"><value>Добавить команду</value></data>
+  <data name="NoTeams" xml:space="preserve"><value>Команды пока не зарегистрированы.</value></data>
+  <data name="TeamActions" xml:space="preserve"><value>Действия</value></data>
+  <data name="CreateTeamForContest" xml:space="preserve"><value>Регистрация команды на «{0}»</value></data>
+  <data name="TeamName" xml:space="preserve"><value>Название команды</value></data>
+  <data name="TeamPrefix" xml:space="preserve"><value>Вуз (префикс команды)</value></data>
+  <data name="TeamNumber" xml:space="preserve"><value>Номер команды</value></data>
+  <data name="TeamSuffix" xml:space="preserve"><value>Название (суффикс команды)</value></data>
+  <data name="TeamMemberSelectionHint" xml:space="preserve"><value>Укажите сначала фамилию, затем имя. Если поле пустое, используются данные из выбранного аккаунта.</value></data>
+  <data name="TeamMemberNumber" xml:space="preserve"><value>Участник {0}</value></data>
+  <data name="TeamSizeHint" xml:space="preserve"><value>Для участия в конкурсе команда должна состоять из трёх человек. Вне конкурса допускаются команды от одного до трёх человек.</value></data>
+  <data name="TeamPreview" xml:space="preserve"><value>Проверьте данные команды</value></data>
+  <data name="ConfirmTeamData" xml:space="preserve"><value>Подтверждаю правильность названия и состава команды</value></data>
+  <data name="ConfirmTeamDataRequired" xml:space="preserve"><value>Подтвердите правильность данных команды.</value></data>
+  <data name="PreviewTeam" xml:space="preserve"><value>Проверить данные</value></data>
+  <data name="AtLeastOneTeamMemberRequired" xml:space="preserve"><value>Укажите хотя бы одного участника.</value></data>
+  <data name="TeamMemberRequired" xml:space="preserve"><value>Выберите аккаунт или укажите имя участника.</value></data>
+  <data name="TeamMembersMustDiffer" xml:space="preserve"><value>Участники команды должны быть разными.</value></data>
+  <data name="TeamMemberAlreadyRegistered" xml:space="preserve"><value>Один или несколько участников уже зарегистрированы на это соревнование.</value></data>
+  <data name="TeamNameAlreadyRegistered" xml:space="preserve"><value>Команда с таким названием уже зарегистрирована на это соревнование.</value></data>
+  <data name="TeamNameLatinOnly" xml:space="preserve"><value>Используйте латинские буквы, разделяя слова одним пробелом или дефисом.</value></data>
+  <data name="TeamNumberRange" xml:space="preserve"><value>Номер команды должен быть от 1 до 32.</value></data>
+  <data name="ContestMemberName" xml:space="preserve"><value>Фамилия и имя для соревнования</value></data>
+  <data name="OptionalMemberAccount" xml:space="preserve"><value>Аккаунт участника (рекомендуется)</value></data>
+  <data name="NoLinkedAccount" xml:space="preserve"><value>Без привязки к аккаунту</value></data>
+  <data name="ProfileNameMissing" xml:space="preserve"><value>Имя или фамилия в профиле не заполнены</value></data>
+  <data name="ContestMemberNameRequired" xml:space="preserve"><value>Укажите фамилию и имя для соревнования: в профиле выбранного аккаунта они не заполнены.</value></data>
+  <data name="EditTeamData" xml:space="preserve"><value>Изменить данные</value></data>
+  <data name="AccountLinkBenefit" xml:space="preserve"><value>Привязка позволит участнику видеть командное выступление в своей истории, а тренеру следить за его результатами.</value></data>
+  <data name="AccountNotLinked" xml:space="preserve"><value>аккаунт не привязан</value></data>
+  <data name="ContestMemberNameExample" xml:space="preserve"><value>Иванов Иван</value></data>
 </root>

@@ -9,6 +9,7 @@ using Olymp.Domain;
 using Olymp.Domain.Models;
 using Olymp.Site;
 using Olymp.Site.IdentityUI;
+using Olymp.Site.Services.Contests;
 using Olymp.Site.Services.Identity;
 using Olymp.Site.Services.Mail;
 using Olymp.WebApp.Components;
@@ -35,6 +36,7 @@ builder.Services.AddAuthorizationBuilder()
     .AddPolicy(PolicyNames.OlympUser, policy => policy
         .RequireAuthenticatedUser()
         .RequireAssertion(context => !context.User.HasClaim(claim => claim.Type == ClaimNames.CompetitorContest)))
+    .AddPolicy(PolicyNames.Coach, policy => policy.RequireClaim(ClaimNames.CoachOrg))
     .AddPolicy(IdentityFeatures.PasskeysPolicy, policy => policy
         .RequireAssertion(_ => identityFeatures.PasskeysEnabled));
 
@@ -53,6 +55,8 @@ builder.Services.AddRequestLocalization(options =>
     options.ApplyCurrentCultureToResponseHeaders = true;
     options.RequestCultureProviders = [new CookieRequestCultureProvider(), new AcceptLanguageHeaderRequestCultureProvider()];
 });
+
+builder.Services.AddScoped<CompetitorManagementService>();
 
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddScoped<IdentityRedirectManager>();

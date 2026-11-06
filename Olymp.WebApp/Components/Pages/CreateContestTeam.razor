@@ -1,0 +1,446 @@
+@page "/contests/registration/teams/create/{Id:int}"
+
+@using System.ComponentModel.DataAnnotations
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.EntityFrameworkCore
+@using Olymp.Domain
+@using Olymp.Site
+@using Olymp.Site.Services
+@using Olymp.Site.Services.Contests
+
+@attribute [Authorize]
+@attribute [Authorize(Policy = PolicyNames.OlympUser)]
+@attribute [Authorize(Policy = PolicyNames.Coach)]
+@attribute [ExcludeFromInteractiveRouting]
+
+@inject OlympContext Context
+@inject CompetitorManagementService Competitors
+@inject NavigationManager Navigation
+@inject ILogger<CreateContestTeam> Logger
+
+<PageTitle>@Title</PageTitle>
+
+@if (contest is not null && organization is not null)
+{
+    <h1>@Title</h1>
+    <p class="text-body-secondary">@organization.Name</p>
+    @if (error is not null)
+    {
+        <div class="alert alert-danger" role="alert">@error</div>
+    }
+    @if (DateTimeOffset.Now > contest.EndTime)
+    {
+        <p>@SiteResources.RegistrationClosed</p>
+    }
+    else
+    {
+        <EditForm Model="Input" method="post" FormName="create-team" OnValidSubmit="SubmitAsync">
+            <DataAnnotationsValidator />
+            <ValidationSummary class="text-danger" role="alert" />
+            <h2 class="h4">@SiteResources.TeamName</h2>
+            @if (teamNameError is not null)
+            {
+                <div class="text-danger mb-3" role="alert">@teamNameError</div>
+            }
+            <div class="row g-3 mb-3">
+                <div class="col-md-4">
+                    <div class="form-floating">
+                        <InputText @bind-Value="Input.TeamPrefix" id="Input.TeamPrefix" class="form-control" placeholder=" " readonly="@preview" />
+                        <label for="Input.TeamPrefix">@SiteResources.TeamPrefix</label>
+                    </div>
+                    <ValidationMessage For="() => Input.TeamPrefix" class="text-danger" />
+                </div>
+                <div class="col-md-3">
+                    <div class="form-floating">
+                        <InputNumber @bind-Value="Input.TeamNumber" id="Input.TeamNumber" class="form-control" placeholder=" " readonly="@preview" />
+                        <label for="Input.TeamNumber">@SiteResources.TeamNumber</label>
+                    </div>
+                    <ValidationMessage For="() => Input.TeamNumber" class="text-danger" />
+                </div>
+                <div class="col-md-5">
+                    <div class="form-floating">
+                        <InputText @bind-Value="Input.TeamSuffix" id="Input.TeamSuffix" class="form-control" placeholder=" " readonly="@preview" />
+                        <label for="Input.TeamSuffix">@SiteResources.TeamSuffix</label>
+                    </div>
+                    <ValidationMessage For="() => Input.TeamSuffix" class="text-danger" />
+                </div>
+            </div>
+
+            <h2 class="h4">@SiteResources.Members</h2>
+            <p class="text-body-secondary">@SiteResources.TeamSizeHint</p>
+            @if (membersError is not null)
+            {
+                <div class="text-danger mb-3" role="alert">@membersError</div>
+            }
+            <p class="text-body-secondary">@SiteResources.AccountLinkBenefit</p>
+            <fieldset class="mb-3">
+                <legend class="h6">@string.Format(SiteResources.TeamMemberNumber, 1)</legend>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="form-floating">
+                            <InputText @bind-Value="Input.Member1Name" id="Input.Member1Name" aria-describedby="member1-name-hint" class="form-control" placeholder="@SiteResources.ContestMemberNameExample" readonly="@preview" />
+                            <label for="Input.Member1Name">@SiteResources.ContestMemberName</label>
+                        </div>
+                        <div id="member1-name-hint" class="form-text">@SiteResources.TeamMemberSelectionHint</div>
+                        <ValidationMessage For="() => Input.Member1Name" class="text-danger" />
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-floating">
+                            <InputSelect @bind-Value="Input.Member1Id" id="Input.Member1Id" class="form-select" disabled="@preview">
+                                <option value="">@SiteResources.NoLinkedAccount</option>
+                                @foreach (var member in members)
+                                {
+                                    <option value="@member.Id">@GetAccountLabel(member)</option>
+                                }
+                            </InputSelect>
+                            <label for="Input.Member1Id">@SiteResources.OptionalMemberAccount</label>
+                        </div>
+                        <ValidationMessage For="() => Input.Member1Id" class="text-danger" />
+                    </div>
+                </div>
+            </fieldset>
+            <fieldset class="mb-3">
+                <legend class="h6">@string.Format(SiteResources.TeamMemberNumber, 2)</legend>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="form-floating">
+                            <InputText @bind-Value="Input.Member2Name" id="Input.Member2Name" aria-describedby="member2-name-hint" class="form-control" placeholder="@SiteResources.ContestMemberNameExample" readonly="@preview" />
+                            <label for="Input.Member2Name">@SiteResources.ContestMemberName</label>
+                        </div>
+                        <div id="member2-name-hint" class="form-text">@SiteResources.TeamMemberSelectionHint</div>
+                        <ValidationMessage For="() => Input.Member2Name" class="text-danger" />
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-floating">
+                            <InputSelect @bind-Value="Input.Member2Id" id="Input.Member2Id" class="form-select" disabled="@preview">
+                                <option value="">@SiteResources.NoLinkedAccount</option>
+                                @foreach (var member in members)
+                                {
+                                    <option value="@member.Id">@GetAccountLabel(member)</option>
+                                }
+                            </InputSelect>
+                            <label for="Input.Member2Id">@SiteResources.OptionalMemberAccount</label>
+                        </div>
+                        <ValidationMessage For="() => Input.Member2Id" class="text-danger" />
+                    </div>
+                </div>
+            </fieldset>
+            <fieldset class="mb-3">
+                <legend class="h6">@string.Format(SiteResources.TeamMemberNumber, 3)</legend>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="form-floating">
+                            <InputText @bind-Value="Input.Member3Name" id="Input.Member3Name" aria-describedby="member3-name-hint" class="form-control" placeholder="@SiteResources.ContestMemberNameExample" readonly="@preview" />
+                            <label for="Input.Member3Name">@SiteResources.ContestMemberName</label>
+                        </div>
+                        <div id="member3-name-hint" class="form-text">@SiteResources.TeamMemberSelectionHint</div>
+                        <ValidationMessage For="() => Input.Member3Name" class="text-danger" />
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-floating">
+                            <InputSelect @bind-Value="Input.Member3Id" id="Input.Member3Id" class="form-select" disabled="@preview">
+                                <option value="">@SiteResources.NoLinkedAccount</option>
+                                @foreach (var member in members)
+                                {
+                                    <option value="@member.Id">@GetAccountLabel(member)</option>
+                                }
+                            </InputSelect>
+                            <label for="Input.Member3Id">@SiteResources.OptionalMemberAccount</label>
+                        </div>
+                        <ValidationMessage For="() => Input.Member3Id" class="text-danger" />
+                    </div>
+                </div>
+            </fieldset>
+            <div class="form-check mb-3">
+                <InputCheckbox @bind-Value="Input.OutOfCompetition" id="Input.OutOfCompetition" class="form-check-input" disabled="@preview" />
+                <label for="Input.OutOfCompetition" class="form-check-label">@SiteResources.ParticipateOutOfCompetition</label>
+            </div>
+
+            @if (preview)
+            {
+                <input type="hidden" name="Input.Member1Id" value="@Input.Member1Id" />
+                <input type="hidden" name="Input.Member2Id" value="@Input.Member2Id" />
+                <input type="hidden" name="Input.Member3Id" value="@Input.Member3Id" />
+                <input type="hidden" name="Input.OutOfCompetition" value="@Input.OutOfCompetition.ToString().ToLowerInvariant()" />
+                <section class="card mb-3" aria-labelledby="team-preview">
+                    <div class="card-body">
+                        <h2 id="team-preview" class="h4 card-title">@SiteResources.TeamPreview</h2>
+                        <p class="fw-semibold">
+                            <span>@teamName</span>
+                            @if (Input.OutOfCompetition)
+                            {
+                                <span class="badge text-bg-warning ms-2">@SiteResources.OutOfCompetition</span>
+                            }
+                        </p>
+                        <ul>
+                            @foreach (var member in previewMembers)
+                            {
+                                <li>
+                                    @member.Name
+                                    <span class="small text-body-secondary">@($" ({member.Account ?? SiteResources.AccountNotLinked})")</span>
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                </section>
+                <div class="form-check mb-3">
+                    <InputCheckbox @bind-Value="Input.Confirmation" id="Input.Confirmation" class="form-check-input" />
+                    <label for="Input.Confirmation" class="form-check-label">@SiteResources.ConfirmTeamData</label>
+                    <ValidationMessage For="() => Input.Confirmation" class="text-danger" />
+                </div>
+                <div class="form-check mb-3">
+                    <InputCheckbox @bind-Value="Input.AcceptRules" id="Input.AcceptRules" class="form-check-input" />
+                    <label for="Input.AcceptRules" class="form-check-label">
+                        @AccountResources.AcceptRulesPrefix <a href="contests/rules/@Id" target="_blank" rel="noopener">@SiteResources.ContestRulesAgreement</a>
+                    </label>
+                    <ValidationMessage For="() => Input.AcceptRules" class="text-danger" />
+                </div>
+            }
+            <button type="submit" name="Input.Action" value="@(preview ? "register" : "preview")" class="btn btn-primary">
+                @(preview ? AccountResources.Register : SiteResources.PreviewTeam)
+            </button>
+            @if (preview)
+            {
+                <button type="submit" name="Input.Action" value="edit" class="btn btn-outline-secondary ms-2" formnovalidate>@SiteResources.EditTeamData</button>
+            }
+        </EditForm>
+    }
+}
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    [SupplyParameterFromQuery]
+    public int OrgId { get; set; }
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromForm]
+    private InputModel Input { get; set; } = default!;
+
+    private Contest? contest;
+    private Organization? organization;
+    private List<OlympUser> members = [];
+    private bool preview;
+    private string? error;
+    private string? membersError;
+    private string? teamNameError;
+    private string? teamName;
+    private List<(string Name, string? Account)> previewMembers = [];
+
+    private string Title => contest is null ? "" : string.Format(SiteResources.CreateTeamForContest, contest.Name);
+
+    protected override async Task OnParametersSetAsync()
+    {
+        contest = await Context.Contests.AsNoTracking()
+            .SingleOrDefaultAsync(item => item.Id == Id && !item.IsHidden, HttpContext.RequestAborted);
+        if (contest is null || !contest.IsAcm)
+        {
+            contest = null;
+            HttpContext.Response.StatusCode = StatusCodes.Status404NotFound;
+            return;
+        }
+        if (!HttpContext.User.HasClaim(ClaimNames.CoachOrg, OrgId.ToString(CultureInfo.InvariantCulture)))
+        {
+            contest = null;
+            HttpContext.Response.StatusCode = StatusCodes.Status403Forbidden;
+            return;
+        }
+        organization = await Context.Organizations.AsNoTracking()
+            .SingleOrDefaultAsync(item => item.Id == OrgId, HttpContext.RequestAborted);
+        if (organization is null)
+        {
+            HttpContext.Response.StatusCode = StatusCodes.Status404NotFound;
+            return;
+        }
+        members = await Context.OlympUsers.AsNoTracking().Where(item => item.OrganizationId == OrgId && !item.IsHidden)
+            .OrderBy(item => item.LastName).ThenBy(item => item.FirstName).ThenBy(item => item.Id)
+            .ToListAsync(HttpContext.RequestAborted);
+        Input ??= new() { TeamPrefix = organization.ACMName ?? "" };
+        Input.Member1Name = Input.Member1Name?.Trim();
+        Input.Member2Name = Input.Member2Name?.Trim();
+        Input.Member3Name = Input.Member3Name?.Trim();
+    }
+
+    private static string GetAccountIdentity(OlympUser member) => member.Email ?? member.UserName ?? member.Name;
+
+    private static string GetAccountLabel(OlympUser member) =>
+        $"{CompetitorManagementService.GetTeamMemberName(member) ?? SiteResources.ProfileNameMissing} · {GetAccountIdentity(member)}";
+
+    private async Task SubmitAsync(EditContext editContext)
+    {
+        if (contest is null || organization is null)
+            return;
+        if (Input.Action != "register")
+        {
+            Input.Confirmation = false;
+            Input.AcceptRules = false;
+        }
+        if (Input.Action == "edit")
+            return;
+
+        var messages = new ValidationMessageStore(editContext);
+        void AddError(string field, string message)
+        {
+            messages.Add(new FieldIdentifier(Input, field), message);
+            editContext.NotifyValidationStateChanged();
+        }
+        if (DateTimeOffset.Now > contest.EndTime)
+        {
+            error = SiteResources.RegistrationClosed;
+            return;
+        }
+
+        (int? Id, string? Name, string IdField, string NameField)[] slots =
+        [
+            (Input.Member1Id, Input.Member1Name, nameof(Input.Member1Id), nameof(Input.Member1Name)),
+            (Input.Member2Id, Input.Member2Name, nameof(Input.Member2Id), nameof(Input.Member2Name)),
+            (Input.Member3Id, Input.Member3Name, nameof(Input.Member3Id), nameof(Input.Member3Name))
+        ];
+        var participants = new List<TeamMember>();
+        var memberIds = new List<int>();
+        var resolvedNames = new string?[3];
+        previewMembers = [];
+        for (int i = 0; i < slots.Length; i++)
+        {
+            var (id, name, idField, nameField) = slots[i];
+            if (id is null && string.IsNullOrWhiteSpace(name))
+            {
+                if (!Input.OutOfCompetition)
+                    AddError(nameField, SiteResources.TeamMemberRequired);
+                continue;
+            }
+            var account = id is null ? null : members.SingleOrDefault(member => member.Id == id);
+            if (id is not null && account is null)
+            {
+                AddError(idField, AccountResources.InvalidValue);
+                continue;
+            }
+            string? resolvedName = !string.IsNullOrWhiteSpace(name) ? name
+                : account is not null ? CompetitorManagementService.GetTeamMemberName(account) : null;
+            if (resolvedName is null)
+            {
+                AddError(nameField, SiteResources.ContestMemberNameRequired);
+                continue;
+            }
+            var participant = new TeamMember(id, resolvedName);
+            if (id is int duplicateId && memberIds.Contains(duplicateId))
+                AddError(idField, SiteResources.TeamMembersMustDiffer);
+            participants.Add(participant);
+            resolvedNames[i] = resolvedName;
+            if (id is int memberId)
+                memberIds.Add(memberId);
+            previewMembers.Add((resolvedName, account is null ? null : GetAccountIdentity(account)));
+        }
+        if (Input.OutOfCompetition && slots.All(slot => slot.Id is null && string.IsNullOrWhiteSpace(slot.Name)))
+        {
+            membersError = SiteResources.AtLeastOneTeamMemberRequired;
+            return;
+        }
+        var registeredIds = await Context.Competitors.Where(item => item.ContestId == Id)
+            .SelectMany(item => item.Members).Where(member => memberIds.Contains(member.Id))
+            .Select(member => member.Id).Distinct().ToListAsync(HttpContext.RequestAborted);
+        foreach (var slot in slots)
+        {
+            if (slot.Id is int memberId && registeredIds.Contains(memberId))
+                AddError(slot.IdField, SiteResources.TeamMemberAlreadyRegistered);
+        }
+        if (editContext.GetValidationMessages().Any())
+            return;
+
+        Input.Member1Name = resolvedNames[0];
+        Input.Member2Name = resolvedNames[1];
+        Input.Member3Name = resolvedNames[2];
+
+        teamName = Input.TeamPrefix;
+        if (Input.TeamNumber is int number)
+            teamName += $" {number}";
+        if (!string.IsNullOrWhiteSpace(Input.TeamSuffix))
+            teamName += $": {Input.TeamSuffix}";
+        if (await Context.Competitors.AnyAsync(item => item.ContestId == Id && item.Name == teamName, HttpContext.RequestAborted))
+        {
+            teamNameError = SiteResources.TeamNameAlreadyRegistered;
+            return;
+        }
+        preview = true;
+        if (Input.Action != "register")
+            return;
+        if (!Input.Confirmation)
+            AddError(nameof(Input.Confirmation), SiteResources.ConfirmTeamDataRequired);
+        if (!Input.AcceptRules)
+            AddError(nameof(Input.AcceptRules), SiteResources.ContestRulesRequired);
+        if (editContext.GetValidationMessages().Any())
+            return;
+
+        int coachId = int.Parse(HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        try
+        {
+            await Competitors.RegisterTeamAsync(Id, OrgId, coachId, teamName, participants, Input.OutOfCompetition, HttpContext.RequestAborted);
+        }
+        catch (OperationValidationException)
+        {
+            error = SiteResources.RegistrationUpdateFailed;
+            return;
+        }
+        catch (IdentityOperationException exception)
+        {
+            error = string.Join(" ", exception.Errors.Select(item => item.Description));
+            return;
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            Logger.LogError(exception, "Failed to register a team for contest {ContestId}.", Id);
+            error = SiteResources.TeamRegistrationFailed;
+            return;
+        }
+        Navigation.NavigateTo($"contests/registration/teams/{Id}");
+    }
+
+    private sealed class InputModel
+    {
+        private const string TeamNamePattern = @"[A-Za-z]+([- ][A-Za-z]+)*";
+
+        [Required(ErrorMessageResourceName = nameof(AccountResources.FieldRequired), ErrorMessageResourceType = typeof(AccountResources))]
+        [StringLength(32, ErrorMessageResourceName = nameof(AccountResources.FieldMaximumLength), ErrorMessageResourceType = typeof(AccountResources))]
+        [RegularExpression(TeamNamePattern, ErrorMessageResourceName = nameof(SiteResources.TeamNameLatinOnly), ErrorMessageResourceType = typeof(SiteResources))]
+        [Display(Name = nameof(SiteResources.TeamPrefix), ResourceType = typeof(SiteResources))]
+        public string TeamPrefix { get; set; } = "";
+
+        [Range(1, 32, ErrorMessageResourceName = nameof(SiteResources.TeamNumberRange), ErrorMessageResourceType = typeof(SiteResources))]
+        public int? TeamNumber { get; set; }
+
+        [StringLength(32, ErrorMessageResourceName = nameof(AccountResources.FieldMaximumLength), ErrorMessageResourceType = typeof(AccountResources))]
+        [RegularExpression(TeamNamePattern, ErrorMessageResourceName = nameof(SiteResources.TeamNameLatinOnly), ErrorMessageResourceType = typeof(SiteResources))]
+        [Display(Name = nameof(SiteResources.TeamSuffix), ResourceType = typeof(SiteResources))]
+        public string? TeamSuffix { get; set; }
+
+        public int? Member1Id { get; set; }
+
+        [StringLength(129, ErrorMessageResourceName = nameof(AccountResources.FieldMaximumLength), ErrorMessageResourceType = typeof(AccountResources))]
+        [RegularExpression(OlympUser.PublicNameRegex, ErrorMessageResourceName = nameof(AccountResources.PublicNameInvalidCharacters), ErrorMessageResourceType = typeof(AccountResources))]
+        [Display(Name = nameof(SiteResources.ContestMemberName), ResourceType = typeof(SiteResources))]
+        public string? Member1Name { get; set; }
+
+        public int? Member2Id { get; set; }
+
+        [StringLength(129, ErrorMessageResourceName = nameof(AccountResources.FieldMaximumLength), ErrorMessageResourceType = typeof(AccountResources))]
+        [RegularExpression(OlympUser.PublicNameRegex, ErrorMessageResourceName = nameof(AccountResources.PublicNameInvalidCharacters), ErrorMessageResourceType = typeof(AccountResources))]
+        [Display(Name = nameof(SiteResources.ContestMemberName), ResourceType = typeof(SiteResources))]
+        public string? Member2Name { get; set; }
+
+        public int? Member3Id { get; set; }
+
+        [StringLength(129, ErrorMessageResourceName = nameof(AccountResources.FieldMaximumLength), ErrorMessageResourceType = typeof(AccountResources))]
+        [RegularExpression(OlympUser.PublicNameRegex, ErrorMessageResourceName = nameof(AccountResources.PublicNameInvalidCharacters), ErrorMessageResourceType = typeof(AccountResources))]
+        [Display(Name = nameof(SiteResources.ContestMemberName), ResourceType = typeof(SiteResources))]
+        public string? Member3Name { get; set; }
+
+        public bool OutOfCompetition { get; set; }
+        public bool Confirmation { get; set; }
+        public bool AcceptRules { get; set; }
+        public string Action { get; set; } = "preview";
+    }
+}

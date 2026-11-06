@@ -93,6 +93,7 @@ public class ContestListTests(WebAppFactory factory) : IClassFixture<WebAppFacto
         Assert.Equal([
             $"contests/rules/{future.Id}",
             $"contests/competitors/{future.Id}",
+            $"contests/registration/{future.Id}",
             $"contests/rules/{past.Id}",
             $"contests/competitors/{past.Id}",
             $"contests/standing/{past.Id}",
