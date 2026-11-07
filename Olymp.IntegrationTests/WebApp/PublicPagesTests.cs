@@ -16,6 +16,43 @@ namespace Olymp.IntegrationTests.WebApp;
 public class PublicPagesTests(WebAppFactory factory) : IClassFixture<WebAppFactory>
 {
     [Theory]
+    [InlineData("/olympiad/standing/3066", "/contests/3066/standing")]
+    [InlineData("/olympiad/standing/3066?official=true", "/contests/3066/standing?official=true")]
+    [InlineData("/contests/standing/3066", "/contests/3066/standing")]
+    [InlineData("/contests/standing/3066/?official=true", "/contests/3066/standing?official=true")]
+    public async Task LegacyStandingsRedirectPermanentlyToCurrentRoute(string path, string expectedPath)
+    {
+        using var client = factory.CreateSiteClient();
+        using var response = await client.GetAsync(path, TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.MovedPermanently, response.StatusCode);
+        var location = new Uri(client.BaseAddress!, response.Headers.Location!);
+        Assert.Equal(expectedPath, location.PathAndQuery);
+    }
+
+    [Theory]
+    [InlineData("/contests/standing/3066/extra")]
+    [InlineData("/extra/olympiad/standing/3066")]
+    public async Task LegacyStandingsRedirectOnlyMatchesWholePath(string path)
+    {
+        using var client = factory.CreateSiteClient();
+        using var response = await client.GetAsync(path, TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.Null(response.Headers.Location);
+    }
+
+    [Fact]
+    public async Task WwwRedirectPreservesPathQueryAndPort()
+    {
+        using var client = factory.CreateSiteClient();
+        using var response = await client.GetAsync("https://www.example.test:5001/contests?year=2026", TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.PermanentRedirect, response.StatusCode);
+        Assert.Equal("https://example.test:5001/contests?year=2026", response.Headers.Location!.AbsoluteUri);
+    }
+
+    [Theory]
     [InlineData("ru", "Страница не найдена", "К сожалению, запрашиваемая страница не существует.")]
     [InlineData("en", "Not Found", "Sorry, the content you are looking for does not exist.")]
     public async Task UnknownPageReturnsLocalizedNotFound(string culture, string title, string message)

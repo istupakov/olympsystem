@@ -20,9 +20,9 @@ namespace Olymp.IntegrationTests.WebApp;
 public class ContestPublicPagesTests(WebAppFactory factory) : IClassFixture<WebAppFactory>
 {
     [Theory]
-    [InlineData("ru", "Команда", "Тренер", "Регистрация подтверждена")]
-    [InlineData("en", "Team", "Coach", "Registration approved")]
-    public async Task TeamParticipantsPreserveNamesAndDoNotExposeAccountData(string culture, string teamLabel, string coachLabel, string approved)
+    [InlineData("ru", "Команда", "Тренер")]
+    [InlineData("en", "Team", "Coach")]
+    public async Task TeamParticipantsPreserveNamesAndDoNotExposeAccountData(string culture, string teamLabel, string coachLabel)
     {
         var contest = CreateContest();
         var team = AddCompetitor(contest, "Team <script>name</script>");
@@ -45,7 +45,7 @@ public class ContestPublicPagesTests(WebAppFactory factory) : IClassFixture<WebA
         await SaveAsync(contest);
         using var client = factory.CreateSiteClient();
         client.DefaultRequestHeaders.AcceptLanguage.ParseAdd(culture);
-        using var response = await client.GetAsync($"/contests/competitors/{contest.Id}", TestContext.Current.CancellationToken);
+        using var response = await client.GetAsync($"/contests/{contest.Id}/competitors", TestContext.Current.CancellationToken);
         response.EnsureSuccessStatusCode();
         var html = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         using var document = await new HtmlParser().ParseDocumentAsync(html, TestContext.Current.CancellationToken);
@@ -58,7 +58,7 @@ public class ContestPublicPagesTests(WebAppFactory factory) : IClassFixture<WebA
         Assert.Equal(4, row.QuerySelectorAll("td").Length);
         Assert.Equal(["Historical First", "Historical Second", "Historical Third"], row.QuerySelectorAll("li").Select(item => item.TextContent));
         Assert.Contains("Иванов Иван Иванович", row.TextContent);
-        Assert.Contains(approved, row.TextContent);
+        Assert.Empty(row.QuerySelectorAll(".badge"));
         Assert.Null(document.QuerySelector("main script"));
         Assert.DoesNotContain("private-coach", html);
         Assert.DoesNotContain("Hidden participant", html);
@@ -77,14 +77,45 @@ public class ContestPublicPagesTests(WebAppFactory factory) : IClassFixture<WebA
         pending.IsDisqualified = true;
         await SaveAsync(contest);
         using var client = factory.CreateSiteClient();
-        using var response = await client.GetAsync($"/contests/competitors/{contest.Id}", TestContext.Current.CancellationToken);
+        using var response = await client.GetAsync($"/contests/{contest.Id}/competitors", TestContext.Current.CancellationToken);
         response.EnsureSuccessStatusCode();
         using var document = await new HtmlParser().ParseDocumentAsync(
             await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
         Assert.Equal(2, document.QuerySelectorAll("main ol > li").Length);
+        Assert.Empty(document.QuerySelector("main ol > li")!.QuerySelectorAll(".badge"));
         Assert.Contains("Pending approval", document.QuerySelector("main ol")!.TextContent);
         Assert.Contains("Out of competition", document.QuerySelector("main ol")!.TextContent);
         Assert.Contains("Disqualified", document.QuerySelector("main ol")!.TextContent);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ParticipantsAreOrderedByCompetitionStatusThenUniversityThenName(bool teamContest)
+    {
+        var contest = CreateContest();
+        if (!teamContest)
+            contest.Abbr = "school-test";
+        var firstUniversity = new Organization { Name = "First university", Users = [] };
+        var secondUniversity = new Organization { Name = "Second university", Users = [] };
+        var lastGuest = AddCompetitor(contest, "A guest");
+        lastGuest.Organization = secondUniversity;
+        lastGuest.IsOutOfCompetition = true;
+        AddCompetitor(contest, "C main").Organization = secondUniversity;
+        var firstGuest = AddCompetitor(contest, "B guest");
+        firstGuest.Organization = firstUniversity;
+        firstGuest.IsOutOfCompetition = true;
+        AddCompetitor(contest, "Z main").Organization = firstUniversity;
+        AddCompetitor(contest, "B main").Organization = secondUniversity;
+        await SaveAsync(contest);
+        using var client = factory.CreateSiteClient();
+        using var response = await client.GetAsync($"/contests/{contest.Id}/competitors", TestContext.Current.CancellationToken);
+        response.EnsureSuccessStatusCode();
+        using var document = await new HtmlParser().ParseDocumentAsync(
+            await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
+        var names = document.QuerySelectorAll(teamContest ? "main tbody tr td:first-child .fw-semibold" : "main ol > li")
+            .Select(item => item.ChildNodes.First().TextContent.Trim());
+        Assert.Equal(["Z main", "B main", "C main", "B guest", "A guest"], names);
     }
 
     [Theory]
@@ -111,7 +142,7 @@ public class ContestPublicPagesTests(WebAppFactory factory) : IClassFixture<WebA
         await SaveAsync(contest);
         using var client = factory.CreateSiteClient();
         client.DefaultRequestHeaders.AcceptLanguage.ParseAdd(culture);
-        using var all = await client.GetAsync($"/contests/standing/{contest.Id}", TestContext.Current.CancellationToken);
+        using var all = await client.GetAsync($"/contests/{contest.Id}/standing", TestContext.Current.CancellationToken);
         all.EnsureSuccessStatusCode();
         var allHtml = await all.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         using var document = await new HtmlParser().ParseDocumentAsync(allHtml, TestContext.Current.CancellationToken);
@@ -126,17 +157,17 @@ public class ContestPublicPagesTests(WebAppFactory factory) : IClassFixture<WebA
         Assert.DoesNotContain("Hidden", allHtml);
         Assert.DoesNotContain("PRIVATE_SOURCE", allHtml);
         Assert.Null(document.QuerySelector("main form"));
-        Assert.Equal(culture == "ru" ? "Полная таблица" : "Full standings", document.QuerySelector("main nav a[aria-current='page']")!.TextContent);
-        var officialLink = document.QuerySelector($"main nav a[href='contests/standing/{contest.Id}?official=true']")!;
+        Assert.Equal(culture == "ru" ? "Полная таблица" : "Full standings", document.QuerySelector(".standing-view a[aria-current='page']")!.TextContent);
+        var officialLink = document.QuerySelector($"main nav a[href='contests/{contest.Id}/standing?official=true']")!;
         Assert.Equal(culture == "ru" ? "Официальная таблица" : "Official standings", officialLink.TextContent);
         using var official = await client.GetAsync("/" + officialLink.GetAttribute("href"), TestContext.Current.CancellationToken);
         official.EnsureSuccessStatusCode();
         using var officialDocument = await new HtmlParser().ParseDocumentAsync(
             await official.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
         Assert.StartsWith("Alice", Assert.Single(officialDocument.QuerySelectorAll("main tbody tr")).QuerySelectorAll("td")[1].TextContent.Trim());
-        Assert.Equal(culture == "ru" ? "Официальная таблица" : "Official standings", officialDocument.QuerySelector("main nav a[aria-current='page']")!.TextContent);
+        Assert.Equal(culture == "ru" ? "Официальная таблица" : "Official standings", officialDocument.QuerySelector(".standing-view a[aria-current='page']")!.TextContent);
         Assert.Contains(culture == "ru" ? "Без внеконкурсных" : "Excludes out-of-competition", officialDocument.QuerySelector("main")!.TextContent);
-        var fullLink = officialDocument.QuerySelector($"main nav a[href='contests/standing/{contest.Id}']")!;
+        var fullLink = officialDocument.QuerySelector($"main nav a[href='contests/{contest.Id}/standing']")!;
         using var fullAgain = await client.GetAsync("/" + fullLink.GetAttribute("href"), TestContext.Current.CancellationToken);
         fullAgain.EnsureSuccessStatusCode();
         using var fullDocument = await new HtmlParser().ParseDocumentAsync(
@@ -160,7 +191,7 @@ public class ContestPublicPagesTests(WebAppFactory factory) : IClassFixture<WebA
         using var client = factory.CreateSiteClient();
         client.DefaultRequestHeaders.AcceptLanguage.ParseAdd(culture);
         var before = DateTimeOffset.UtcNow;
-        using var response = await client.GetAsync($"/contests/standing/{contest.Id}", TestContext.Current.CancellationToken);
+        using var response = await client.GetAsync($"/contests/{contest.Id}/standing", TestContext.Current.CancellationToken);
         var after = DateTimeOffset.UtcNow;
         response.EnsureSuccessStatusCode();
         using var document = await new HtmlParser().ParseDocumentAsync(
@@ -198,7 +229,7 @@ public class ContestPublicPagesTests(WebAppFactory factory) : IClassFixture<WebA
         AddSubmission(problem, participant, contest.FreezeTime.Value.AddMinutes(5), 2);
         await SaveAsync(contest);
         using var client = factory.CreateSiteClient();
-        using var response = await client.GetAsync($"/contests/standing/{contest.Id}", TestContext.Current.CancellationToken);
+        using var response = await client.GetAsync($"/contests/{contest.Id}/standing", TestContext.Current.CancellationToken);
         response.EnsureSuccessStatusCode();
         using var document = await new HtmlParser().ParseDocumentAsync(
             await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
@@ -217,7 +248,7 @@ public class ContestPublicPagesTests(WebAppFactory factory) : IClassFixture<WebA
         AddSubmission(problem, participant, contest.StartTime.AddMinutes(10), 4).Score = 60;
         await SaveAsync(contest);
         using var client = factory.CreateSiteClient();
-        using var response = await client.GetAsync($"/contests/standing/{contest.Id}", TestContext.Current.CancellationToken);
+        using var response = await client.GetAsync($"/contests/{contest.Id}/standing", TestContext.Current.CancellationToken);
         response.EnsureSuccessStatusCode();
         using var document = await new HtmlParser().ParseDocumentAsync(
             await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
@@ -238,7 +269,7 @@ public class ContestPublicPagesTests(WebAppFactory factory) : IClassFixture<WebA
         AddCompetitor(contest, "Should not replace archive");
         await SaveAsync(contest);
         using var client = factory.CreateSiteClient();
-        using var response = await client.GetAsync($"/contests/standing/{contest.Id}?official={official.ToString().ToLowerInvariant()}", TestContext.Current.CancellationToken);
+        using var response = await client.GetAsync($"/contests/{contest.Id}/standing?official={official.ToString().ToLowerInvariant()}", TestContext.Current.CancellationToken);
         response.EnsureSuccessStatusCode();
         using var document = await new HtmlParser().ParseDocumentAsync(
             await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
@@ -258,13 +289,157 @@ public class ContestPublicPagesTests(WebAppFactory factory) : IClassFixture<WebA
         contest.FinalTable = new Blob { Data = Encoding.ASCII.GetBytes("<table><tr><td>Saved</td></tr></table>") };
         await SaveAsync(contest);
         using var client = factory.CreateSiteClient();
-        using var response = await client.GetAsync($"/contests/standing/{contest.Id}", TestContext.Current.CancellationToken);
+        using var response = await client.GetAsync($"/contests/{contest.Id}/standing", TestContext.Current.CancellationToken);
         response.EnsureSuccessStatusCode();
         using var document = await new HtmlParser().ParseDocumentAsync(
             await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
-        Assert.Null(document.QuerySelector("main nav"));
-        using var unavailable = await client.GetAsync($"/contests/standing/{contest.Id}?official=true", TestContext.Current.CancellationToken);
+        Assert.Null(document.QuerySelector(".standing-view"));
+        using var unavailable = await client.GetAsync($"/contests/{contest.Id}/standing?official=true", TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.NotFound, unavailable.StatusCode);
+    }
+
+    [Theory]
+    [InlineData("ru")]
+    [InlineData("en")]
+    public async Task ContestSectionsShareHeaderNavigationAndExplicitDownloads(string culture)
+    {
+        var contest = CreateContest();
+        contest.Name = "Contest <em>name</em>";
+        contest.StartTime = new DateTimeOffset(2025, 6, 1, 10, 0, 0, TimeSpan.Zero);
+        contest.EndTime = contest.StartTime.AddHours(5);
+        contest.IsOpen = true;
+        contest.ProblemPdf = new Blob { Data = [1] };
+        contest.TestZip = new Blob { Data = [2] };
+        await SaveAsync(contest);
+        using var client = factory.CreateSiteClient();
+        client.DefaultRequestHeaders.AcceptLanguage.ParseAdd(culture);
+        foreach (string route in new[] { "standing", "competitors", "rules" })
+        {
+            using var response = await client.GetAsync($"/contests/{contest.Id}/{route}", TestContext.Current.CancellationToken);
+            response.EnsureSuccessStatusCode();
+            using var document = await new HtmlParser().ParseDocumentAsync(
+                await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
+            var header = document.QuerySelector("main .contest-header")!;
+            Assert.Equal(contest.Name, header.QuerySelector("h1")!.TextContent);
+            Assert.Null(header.QuerySelector("h1 em"));
+            Assert.Equal($"contests/{contest.Id}/{route}", Assert.Single(header.QuerySelectorAll("a[aria-current='page']")).GetAttribute("href"));
+            foreach (string sibling in new[] { "standing", "competitors", "rules" })
+                Assert.NotNull(header.QuerySelector($"a[href='contests/{contest.Id}/{sibling}']"));
+            Assert.Equal(culture == "ru" ? "Скачать условия (PDF)" : "Download statements (PDF)",
+                header.QuerySelector($"a[href='contests/{contest.Id}/downloadproblems']")!.TextContent);
+            Assert.Equal(culture == "ru" ? "Скачать тесты (ZIP)" : "Download tests (ZIP)",
+                header.QuerySelector($"a[href='contests/{contest.Id}/downloadtests']")!.TextContent);
+            Assert.Single(header.QuerySelectorAll("time[datetime]"));
+        }
+    }
+
+    [Theory]
+    [InlineData("ru", true, false)]
+    [InlineData("en", true, false)]
+    [InlineData("ru", true, true)]
+    [InlineData("en", true, true)]
+    [InlineData("ru", false, false)]
+    [InlineData("en", false, false)]
+    public async Task ContestHeaderShowsOnlyDatesAfterContestEnds(string culture, bool ended, bool spansDays)
+    {
+        var contest = CreateContest();
+        contest.StartTime = new DateTimeOffset(DateTime.UtcNow.Date.AddDays(ended ? -3 : 3).AddHours(10), TimeSpan.Zero);
+        contest.EndTime = contest.StartTime.AddHours(spansDays ? 29 : 5);
+        await SaveAsync(contest);
+        using var client = factory.CreateSiteClient();
+        client.DefaultRequestHeaders.AcceptLanguage.ParseAdd(culture);
+        using var response = await client.GetAsync($"/contests/{contest.Id}/competitors", TestContext.Current.CancellationToken);
+        response.EnsureSuccessStatusCode();
+        using var document = await new HtmlParser().ParseDocumentAsync(
+            await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
+        var times = document.QuerySelectorAll(".contest-header time");
+        var formatting = CultureInfo.GetCultureInfo(culture);
+        if (ended)
+        {
+            Assert.Equal(spansDays ? 2 : 1, times.Length);
+            Assert.Equal(contest.StartTime.ToString("d", formatting), times[0].TextContent);
+            if (spansDays)
+                Assert.Equal(contest.EndTime.ToString("d", formatting), times[1].TextContent);
+        }
+        else
+        {
+            Assert.Equal(2, times.Length);
+            Assert.Equal(contest.StartTime.ToString("g", formatting), times[0].TextContent);
+            Assert.Equal(contest.EndTime.ToString("t", formatting), times[1].TextContent);
+        }
+    }
+
+    [Theory]
+    [InlineData(true, false)]
+    [InlineData(false, false)]
+    [InlineData(true, true)]
+    [InlineData(false, true)]
+    public async Task DescriptionIsPublishedAboveStandingsOnlyWhenOpen(bool open, bool savedTable)
+    {
+        var contest = CreateContest();
+        contest.IsOpen = open;
+        contest.Description = "<p><strong>Prize places</strong></p>";
+        if (savedTable)
+            contest.FinalTable = new Blob { Data = Encoding.ASCII.GetBytes("<table><tr><td>Saved result</td></tr></table>") };
+        await SaveAsync(contest);
+        using var client = factory.CreateSiteClient();
+        using var response = await client.GetAsync($"/contests/{contest.Id}/standing", TestContext.Current.CancellationToken);
+        response.EnsureSuccessStatusCode();
+        string html = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+        using var document = await new HtmlParser().ParseDocumentAsync(html, TestContext.Current.CancellationToken);
+        Assert.Equal(open, document.QuerySelector(".contest-description") is not null);
+        if (open)
+        {
+            Assert.Equal("Prize places", document.QuerySelector(".contest-description strong")!.TextContent);
+            Assert.True(html.IndexOf("Prize places", StringComparison.Ordinal) < html.IndexOf("<table", StringComparison.Ordinal));
+        }
+        else
+            Assert.DoesNotContain("Prize places", html);
+    }
+
+    [Theory]
+    [InlineData(true, true, true)]
+    [InlineData(true, true, false)]
+    [InlineData(false, true, true)]
+    [InlineData(true, false, true)]
+    public async Task TaskLinksLeadToPublishedContestWorkspace(bool open, bool ended, bool signedIn)
+    {
+        var contest = CreateContest();
+        contest.IsOpen = open;
+        if (!ended)
+            contest.EndTime = DateTimeOffset.UtcNow.AddHours(1);
+        AddProblem(contest).IsActive = true;
+        await SaveAsync(contest);
+        using var client = signedIn ? await factory.LoginAsync((await factory.AddUserAsync()).UserName!) : factory.CreateSiteClient();
+        foreach (string path in new[] { "/contests", $"/contests/{contest.Id}/competitors" })
+        {
+            using var response = await client.GetAsync(path, TestContext.Current.CancellationToken);
+            response.EnsureSuccessStatusCode();
+            using var document = await new HtmlParser().ParseDocumentAsync(
+                await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
+            var container = path == "/contests"
+                ? document.QuerySelector($"article:has(a[href='contests/{contest.Id}/rules'])")!
+                : document.QuerySelector(".contest-header")!;
+            var link = container.QuerySelector($"a[href='contests/{contest.Id}/problems']");
+            Assert.NotNull(link);
+            if (link is not null)
+            {
+                var query = QueryHelpers.ParseQuery(new Uri(client.BaseAddress!, link.GetAttribute("href")).Query);
+                Assert.Equal($"contests/{contest.Id}/problems", link.GetAttribute("href"));
+                Assert.Empty(query);
+                string workspacePath = "/" + link.GetAttribute("href");
+                using var workspace = await client.GetAsync(workspacePath, TestContext.Current.CancellationToken);
+                if (signedIn)
+                    workspace.EnsureSuccessStatusCode();
+                else
+                {
+                    Assert.Equal(HttpStatusCode.Redirect, workspace.StatusCode);
+                    var login = new Uri(client.BaseAddress!, workspace.Headers.Location!);
+                    Assert.Equal("/Account/Login", login.AbsolutePath);
+                    Assert.Equal(workspacePath, QueryHelpers.ParseQuery(login.Query)["ReturnUrl"]);
+                }
+            }
+        }
     }
 
     [Theory]
@@ -277,10 +452,27 @@ public class ContestPublicPagesTests(WebAppFactory factory) : IClassFixture<WebA
         contest.ProblemPdf = new Blob { Data = [1, 2, 3] };
         contest.TestZip = new Blob { Data = [4, 5, 6] };
         await SaveAsync(contest);
-        using var client = path == "downloadtests"
-            ? await factory.LoginAsync((await factory.AddUserAsync()).UserName!)
-            : factory.CreateSiteClient();
-        using var response = await client.GetAsync($"/contests/{path}/{contest.Id}", TestContext.Current.CancellationToken);
+        HttpClient client;
+        if (path == "downloadtests")
+        {
+            var user = await factory.AddUserAsync();
+            using var scope = factory.Services.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<OlympContext>();
+            var participant = AddCompetitor(contest, "Registered participant");
+            participant.Contest = null!;
+            participant.ContestId = contest.Id;
+            context.Attach(user);
+            participant.Members.Add(user);
+            context.Add(participant);
+            await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+            client = await factory.LoginAsync(user.UserName!);
+        }
+        else
+        {
+            client = factory.CreateSiteClient();
+        }
+        using var downloadClient = client;
+        using var response = await client.GetAsync($"/contests/{contest.Id}/{path}", TestContext.Current.CancellationToken);
         response.EnsureSuccessStatusCode();
         Assert.Equal(contentType, response.Content.Headers.ContentType!.MediaType);
         Assert.Equal(contest.Abbr + suffix, response.Content.Headers.ContentDisposition!.FileNameStar);
@@ -300,7 +492,7 @@ public class ContestPublicPagesTests(WebAppFactory factory) : IClassFixture<WebA
         using var client = legacy
             ? await factory.LoginAsync((await factory.AddUserAsync(legacyLogin: true)).UserName!)
             : factory.CreateSiteClient();
-        string path = $"/contests/downloadtests/{contest.Id}";
+        string path = $"/contests/{contest.Id}/downloadtests";
         using var response = await client.GetAsync(path, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
         var location = new Uri(client.BaseAddress!, response.Headers.Location!);
@@ -323,7 +515,7 @@ public class ContestPublicPagesTests(WebAppFactory factory) : IClassFixture<WebA
         using var client = role is null ? factory.CreateSiteClient() : await CreateStaffClientAsync(role);
         foreach (var route in new[] { "competitors", "standing", "downloadproblems", "downloadtests" })
         {
-            using var response = await client.GetAsync($"/contests/{route}/{contest.Id}", TestContext.Current.CancellationToken);
+            using var response = await client.GetAsync($"/contests/{contest.Id}/{route}", TestContext.Current.CancellationToken);
             Assert.Equal(role is null && route == "downloadtests" ? HttpStatusCode.Redirect : HttpStatusCode.NotFound, response.StatusCode);
         }
     }
@@ -352,7 +544,7 @@ public class ContestPublicPagesTests(WebAppFactory factory) : IClassFixture<WebA
         using var client = route == "downloadtests"
             ? await factory.LoginAsync((await factory.AddUserAsync()).UserName!)
             : factory.CreateSiteClient();
-        using var response = await client.GetAsync($"/contests/{route}/{contest.Id}", TestContext.Current.CancellationToken);
+        using var response = await client.GetAsync($"/contests/{contest.Id}/{route}", TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 

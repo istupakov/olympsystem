@@ -1,15 +1,15 @@
-@page "/contests/competitors/{Id:int}"
+@page "/contests/{Id:int}/competitors"
 
 @using Microsoft.EntityFrameworkCore
 @using Olymp.Domain
 @using Olymp.WebApp.Components.Contests
+@inject NavigationManager Navigation
 @inject IDbContextFactory<OlympContext> ContextFactory
-
-<PageTitle>@Title</PageTitle>
-<h1>@Title</h1>
 
 @if (contest is not null)
 {
+    <PageTitle>@string.Format(SiteResources.ParticipantsInContest, contest.Name)</PageTitle>
+    <ContestHeader Contest="contest" ActiveSection="participants" />
     @if (participants.Count == 0)
     {
         <p>@SiteResources.NoParticipants</p>
@@ -58,7 +58,7 @@
         <ol>
             @foreach (var participant in participants)
             {
-                <li>@participant.Name <CompetitorBadges User="participant" /></li>
+                <li>@participant.Name<CompetitorBadges User="participant" /></li>
             }
         </ol>
     }
@@ -68,12 +68,8 @@
     [Parameter]
     public int Id { get; set; }
 
-    [CascadingParameter]
-    private HttpContext HttpContext { get; set; } = default!;
-
     private Contest? contest;
     private List<Competitor> participants = [];
-    private string Title => contest is null ? "" : string.Format(SiteResources.ParticipantsInContest, contest.Name);
 
     protected override async Task OnParametersSetAsync()
     {
@@ -88,10 +84,14 @@
 
         if (contest is null)
         {
-            HttpContext.Response.StatusCode = StatusCodes.Status404NotFound;
+            Navigation.NotFound();
             return;
         }
 
-        participants = contest.Competitors.Where(item => !item.IsHidden).OrderBy(item => item.Name).ToList();
+        participants = contest.Competitors.Where(item => !item.IsHidden)
+            .OrderBy(item => item.IsOutOfCompetition)
+            .ThenBy(item => item.Organization?.Name)
+            .ThenBy(item => item.Name)
+            .ToList();
     }
 }

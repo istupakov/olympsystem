@@ -51,7 +51,7 @@ public class TeamRegistrationTests(WebAppFactory factory) : IClassFixture<WebApp
         Assert.Equal(HttpStatusCode.OK, preview.StatusCode);
         using var document = await new HtmlParser().ParseDocumentAsync(
             await preview.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
-        Assert.Equal(culture == "ru" ? $"Регистрация команды на «{contest.Name}»" : $"Register a team for {contest.Name}", document.Title);
+        Assert.Equal(culture == "ru" ? $"Регистрация команды – {contest.Name}" : $"Team registration – {contest.Name}", document.Title);
         Assert.Equal("NSTU 1: Test Team", document.QuerySelector("section p.fw-semibold > span:not(.badge)")!.TextContent);
         Assert.Equal(size, document.QuerySelectorAll("section li").Length);
         Assert.Equal(culture == "ru" ? "Фамилия и имя для соревнования" : "Last name and first name for the contest",
@@ -69,7 +69,7 @@ public class TeamRegistrationTests(WebAppFactory factory) : IClassFixture<WebApp
         fields["Input.Action"] = "register";
         using var created = await WebAppFactory.PostFormAsync(client, CreatePath(contest.Id, organization.Id), "create-team", fields);
         Assert.Equal(HttpStatusCode.Redirect, created.StatusCode);
-        Assert.EndsWith($"/contests/registration/teams/{contest.Id}", created.Headers.Location!.OriginalString);
+        Assert.EndsWith($"/contests/{contest.Id}/registration/teams", created.Headers.Location!.OriginalString);
         using var check = factory.Services.CreateScope();
         var team = await check.ServiceProvider.GetRequiredService<OlympContext>().Competitors.Include(item => item.Members)
             .SingleAsync(item => item.ContestId == contest.Id, TestContext.Current.CancellationToken);
@@ -83,7 +83,7 @@ public class TeamRegistrationTests(WebAppFactory factory) : IClassFixture<WebApp
         Assert.Equal(member.Id, Assert.Single(team.Members).Id);
         string[] expectedNames = ["Иванов Иван", "Second Member", "Third Member"];
         Assert.Equal(expectedNames.Take(size), team.MemberNames);
-        using var publicPage = await client.GetAsync($"/contests/competitors/{contest.Id}", TestContext.Current.CancellationToken);
+        using var publicPage = await client.GetAsync($"/contests/{contest.Id}/competitors", TestContext.Current.CancellationToken);
         string publicText = WebUtility.HtmlDecode(await publicPage.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
         Assert.Contains("Иванов Иван", publicText);
         Assert.DoesNotContain(member.Email!, publicText);
@@ -714,14 +714,41 @@ public class TeamRegistrationTests(WebAppFactory factory) : IClassFixture<WebApp
             await context.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
         using var client = await factory.LoginAsync(coach.UserName!);
-        using var response = await client.GetAsync(CreatePath(contest.Id, organization.Id), TestContext.Current.CancellationToken);
-        Assert.Equal(reason == "ended" ? HttpStatusCode.OK : HttpStatusCode.NotFound, response.StatusCode);
-        if (reason == "ended")
+        foreach (string path in new[] { ListPath(contest.Id), CreatePath(contest.Id, organization.Id) })
         {
-            using var document = await new HtmlParser().ParseDocumentAsync(
-                await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
-            Assert.Null(document.QuerySelector("input[name='Input.TeamPrefix']"));
+            using var response = await client.GetAsync(path, TestContext.Current.CancellationToken);
+            Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
         }
+    }
+
+    [Theory]
+    [InlineData("preview")]
+    [InlineData("register")]
+    public async Task FinishedContestRejectsPreviouslyOpenedTeamForm(string action)
+    {
+        var (contest, organization, coach) = await SetupAsync();
+        using var client = await factory.LoginAsync(coach.UserName!);
+        string path = CreatePath(contest.Id, organization.Id);
+        using var page = await client.GetAsync(path, TestContext.Current.CancellationToken);
+        page.EnsureSuccessStatusCode();
+        using var document = await new HtmlParser().ParseDocumentAsync(
+            await page.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
+        var fields = ReadFormFields(document.QuerySelector("main form")!);
+        foreach (var field in TeamFields())
+            fields[field.Key] = field.Value;
+        fields["Input.Action"] = action;
+        using var scope = factory.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<OlympContext>();
+        var stored = await context.Contests.SingleAsync(item => item.Id == contest.Id, TestContext.Current.CancellationToken);
+        stored.StartTime = DateTimeOffset.UtcNow.AddHours(-6);
+        stored.EndTime = DateTimeOffset.UtcNow.AddHours(-1);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        using var content = new FormUrlEncodedContent(fields);
+        using var posted = await client.PostAsync(path, content, TestContext.Current.CancellationToken);
+        Assert.False(posted.IsSuccessStatusCode);
+        Assert.NotEqual(HttpStatusCode.Redirect, posted.StatusCode);
+        Assert.False(await context.Competitors.AnyAsync(item => item.ContestId == contest.Id, TestContext.Current.CancellationToken));
     }
 
     [Theory]
@@ -786,8 +813,8 @@ public class TeamRegistrationTests(WebAppFactory factory) : IClassFixture<WebApp
         return fields;
     }
 
-    private static string ListPath(int id) => $"/contests/registration/teams/{id}";
-    private static string CreatePath(int id, int orgId) => $"/contests/registration/teams/create/{id}?orgId={orgId}";
+    private static string ListPath(int id) => $"/contests/{id}/registration/teams";
+    private static string CreatePath(int id, int orgId) => $"/contests/{id}/registration/teams/create?orgId={orgId}";
 
     private static Task<HttpResponseMessage> CancelAsync(HttpClient client, int id, int teamId) =>
         WebAppFactory.PostFormAsync(client, ListPath(id), "cancel-team", new() { ["CancelTeamId"] = teamId.ToString() });

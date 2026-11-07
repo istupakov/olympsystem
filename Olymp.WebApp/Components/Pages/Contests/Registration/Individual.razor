@@ -1,4 +1,4 @@
-@page "/contests/registration/{Id:int}"
+@page "/contests/{Id:int}/registration"
 
 @using System.ComponentModel.DataAnnotations
 @using System.Security.Claims
@@ -10,7 +10,6 @@
 @using Olymp.Site.Services.Contests
 @using Olymp.WebApp.Components.Contests
 
-@attribute [Authorize]
 @attribute [Authorize(Policy = PolicyNames.OlympUser)]
 @attribute [ExcludeFromInteractiveRouting]
 
@@ -18,88 +17,80 @@
 @inject CompetitorManagementService Competitors
 @inject NavigationManager Navigation
 
-<PageTitle>@Title</PageTitle>
-
 @if (contest is not null && user is not null)
 {
-    <h1>@Title</h1>
+    <PageTitle>@string.Format(SiteResources.RegistrationForContest, contest.Name)</PageTitle>
+    <ContestHeader Contest="contest" ActiveSection="registration" />
 
     @if (error is not null)
     {
         <div class="alert alert-danger" role="alert">@error</div>
     }
 
-    @if (participant is null && DateTimeOffset.Now > contest.EndTime)
+    @if (participant is not null)
     {
-        <p>@SiteResources.RegistrationClosed</p>
+        <p>@SiteResources.AlreadyRegistered</p>
+        <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+            <span class="fw-semibold">@participant.Name</span>
+            <CompetitorBadges User="participant" />
+        </div>
+    }
+    else if (missingFields.Count == 0)
+    {
+        <div class="form-floating mb-3">
+            <input id="participant-name" class="form-control" value="@CompetitorManagementService.GetParticipantName(user)" placeholder="@SiteResources.Competitor" disabled />
+            <label for="participant-name">@SiteResources.Competitor</label>
+        </div>
+    }
+
+    @if (participant is not null)
+    {
+        @if (DateTimeOffset.Now < contest.StartTime)
+        {
+            <form method="post" @formname="cancel-registration" @onsubmit="CancelAsync">
+                <AntiforgeryToken />
+                <button type="submit" class="btn btn-outline-danger">@SiteResources.CancelRegistration</button>
+            </form>
+        }
     }
     else
     {
-        @if (participant is not null)
+        @if (missingFields.Count > 0)
         {
-            <p>@SiteResources.AlreadyRegistered</p>
-            <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
-                <span class="fw-semibold">@participant.Name</span>
-                <CompetitorBadges User="participant" />
+            <div class="alert alert-warning" role="alert">
+                <p>@SiteResources.RegistrationProfileRequired</p>
+                <ul class="mb-0">
+                    @foreach (var field in missingFields)
+                    {
+                        <li>@field</li>
+                    }
+                </ul>
             </div>
         }
-        else if (missingFields.Count == 0)
-        {
-            <div class="form-floating mb-3">
-                <input id="participant-name" class="form-control" value="@CompetitorManagementService.GetParticipantName(user)" placeholder="@SiteResources.Competitor" disabled />
-                <label for="participant-name">@SiteResources.Competitor</label>
+        <p><a href="account/manage">@SiteResources.EditProfile</a></p>
+
+        <EditForm Model="Input" method="post" FormName="contest-registration" OnValidSubmit="RegisterAsync">
+            <DataAnnotationsValidator />
+            <ValidationSummary class="text-danger" role="alert" />
+            <div class="form-check mb-3">
+                <InputCheckbox @bind-Value="Input.OutOfCompetition" id="Input.OutOfCompetition" class="form-check-input" disabled="@(!HasGroup)" />
+                <label for="Input.OutOfCompetition" class="form-check-label">
+                    @SiteResources.ParticipateOutOfCompetition
+                    @if (!HasGroup)
+                    {
+                        <span>@($" ({SiteResources.RegistrationGroupRequired})")</span>
+                    }
+                </label>
             </div>
-        }
-
-        @if (participant is not null)
-        {
-            @if (DateTimeOffset.Now < contest.StartTime)
-            {
-                <form method="post" @formname="cancel-registration" @onsubmit="CancelAsync">
-                    <AntiforgeryToken />
-                    <button type="submit" class="btn btn-outline-danger">@SiteResources.CancelRegistration</button>
-                </form>
-            }
-        }
-        else
-        {
-            @if (missingFields.Count > 0)
-            {
-                <div class="alert alert-warning" role="alert">
-                    <p>@SiteResources.RegistrationProfileRequired</p>
-                    <ul class="mb-0">
-                        @foreach (var field in missingFields)
-                        {
-                            <li>@field</li>
-                        }
-                    </ul>
-                </div>
-            }
-            <p><a href="account/manage">@SiteResources.EditProfile</a></p>
-
-            <EditForm Model="Input" method="post" FormName="contest-registration" OnValidSubmit="RegisterAsync">
-                <DataAnnotationsValidator />
-                <ValidationSummary class="text-danger" role="alert" />
-                <div class="form-check mb-3">
-                    <InputCheckbox @bind-Value="Input.OutOfCompetition" id="Input.OutOfCompetition" class="form-check-input" disabled="@(!HasGroup)" />
-                    <label for="Input.OutOfCompetition" class="form-check-label">
-                        @SiteResources.ParticipateOutOfCompetition
-                        @if (!HasGroup)
-                        {
-                            <span>@($" ({SiteResources.RegistrationGroupRequired})")</span>
-                        }
-                    </label>
-                </div>
-                <div class="form-check mb-3">
-                    <InputCheckbox @bind-Value="Input.AcceptRules" id="Input.AcceptRules" class="form-check-input" aria-required="true" />
-                    <label for="Input.AcceptRules" class="form-check-label">
-                        @AccountResources.AcceptRulesPrefix <a href="contests/rules/@Id" target="_blank" rel="noopener">@SiteResources.ContestRulesAgreement</a>
-                    </label>
-                    <ValidationMessage For="() => Input.AcceptRules" class="text-danger" />
-                </div>
-                <button type="submit" class="btn btn-primary" disabled="@(missingFields.Count > 0)">@AccountResources.Register</button>
-            </EditForm>
-        }
+            <div class="form-check mb-3">
+                <InputCheckbox @bind-Value="Input.AcceptRules" id="Input.AcceptRules" class="form-check-input" aria-required="true" />
+                <label for="Input.AcceptRules" class="form-check-label">
+                    @AccountResources.AcceptRulesPrefix <a href="contests/@Id/rules" target="_blank" rel="noopener">@SiteResources.ContestRulesAgreement</a>
+                </label>
+                <ValidationMessage For="() => Input.AcceptRules" class="text-danger" />
+            </div>
+            <button type="submit" class="btn btn-primary" disabled="@(missingFields.Count > 0)">@AccountResources.Register</button>
+        </EditForm>
     }
 }
 
@@ -119,17 +110,16 @@
     private readonly List<string> missingFields = [];
     private string? error;
 
-    private string Title => contest is null ? "" : string.Format(SiteResources.RegistrationForContest, contest.Name);
     private bool HasGroup => !string.IsNullOrWhiteSpace(user?.Details);
 
     protected override async Task OnParametersSetAsync()
     {
         contest = await Context.Contests.AsNoTracking()
             .SingleOrDefaultAsync(item => item.Id == Id && !item.IsHidden, HttpContext.RequestAborted);
-        if (contest is null || contest.IsAcm)
+        if (contest is null || contest.IsAcm || DateTimeOffset.Now >= contest.EndTime)
         {
             contest = null;
-            HttpContext.Response.StatusCode = StatusCodes.Status404NotFound;
+            Navigation.NotFound();
             return;
         }
 

@@ -1,0 +1,47 @@
+@using Olymp.Domain.Models
+
+<div class="problem-browser row g-4 align-items-start">
+    <nav class="problem-list col-lg-3 text-break" aria-label="@SiteResources.ProblemList">
+        <form action="@ProblemUrl(Selected?.Id ?? 0)" method="get" data-enhance class="d-lg-none mb-3">
+            <label for="workspace-problem" class="form-label">@SiteResources.Problems</label>
+            <div class="d-flex gap-2">
+                <select id="workspace-problem" name="problemId" class="form-select">
+                    @foreach (var problem in Problems)
+                    {
+                        <option value="@problem.Id" selected="@(Selected?.Id == problem.Id)">@problem.NameWithNumber</option>
+                    }
+                </select>
+                <button type="submit" class="btn btn-outline-primary">@SiteResources.Show</button>
+            </div>
+        </form>
+        <div class="list-group mt-2 d-none d-lg-flex">
+            @foreach (var problem in Problems)
+            {
+                <a class="list-group-item list-group-item-action @(Selected?.Id == problem.Id ? "active" : null)"
+                   href="@ProblemUrl(problem.Id)" aria-current="@(Selected?.Id == problem.Id ? "page" : null)">@problem.NameWithNumber</a>
+            }
+        </div>
+    </nav>
+    <section id="problem-detail" class="problem-detail col-lg-9 text-break" aria-label="@SiteResources.ProblemStatement">
+        @if (Selected is not null)
+        {
+            <h2>@Selected.NameWithNumber</h2>
+        }
+        @ChildContent
+    </section>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public IReadOnlyList<Problem> Problems { get; set; } = [];
+
+    [Parameter]
+    public Problem? Selected { get; set; }
+
+    [Parameter, EditorRequired]
+    public Func<int, string> ProblemUrl { get; set; } = default!;
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+}

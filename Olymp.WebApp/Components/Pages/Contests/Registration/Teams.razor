@@ -1,4 +1,4 @@
-@page "/contests/registration/teams/{Id:int}"
+@page "/contests/{Id:int}/registration/teams"
 
 @using System.Security.Claims
 @using Microsoft.AspNetCore.Authorization
@@ -9,8 +9,6 @@
 @using Olymp.Site.Services.Contests
 @using Olymp.WebApp.Components.Contests
 
-@attribute [Authorize]
-@attribute [Authorize(Policy = PolicyNames.OlympUser)]
 @attribute [Authorize(Policy = PolicyNames.Coach)]
 @attribute [ExcludeFromInteractiveRouting]
 
@@ -18,30 +16,22 @@
 @inject CompetitorManagementService Competitors
 @inject NavigationManager Navigation
 
-<PageTitle>@Title</PageTitle>
-
 @if (contest is not null)
 {
-    <h1 class="mb-4">@Title</h1>
+    <PageTitle>@string.Format(SiteResources.TeamsInContest, contest.Name)</PageTitle>
+    <ContestHeader Contest="contest" ActiveSection="registration" />
     @if (error is not null)
     {
         <div class="alert alert-danger" role="alert">@error</div>
     }
-    @if (DateTimeOffset.Now <= contest.EndTime)
-    {
-        <div class="d-flex flex-wrap gap-2 mb-3">
-            @foreach (var organization in organizations)
-            {
-                <a class="btn btn-primary" href="contests/registration/teams/create/@Id?orgId=@organization.Id">
-                    @SiteResources.AddTeam@(organizations.Count > 1 ? $" ({organization.Name})" : "")
-                </a>
-            }
-        </div>
-    }
-    else
-    {
-        <p>@SiteResources.RegistrationClosed</p>
-    }
+    <div class="d-flex flex-wrap gap-2 mb-3">
+        @foreach (var organization in organizations)
+        {
+            <a class="btn btn-primary" href="contests/@Id/registration/teams/create?orgId=@organization.Id">
+                @SiteResources.AddTeam@(organizations.Count > 1 ? $" ({organization.Name})" : "")
+            </a>
+        }
+    </div>
 
     @if (teams.Count == 0)
     {
@@ -116,8 +106,6 @@
     private int userId;
     private string? error;
 
-    private string Title => contest is null ? "" : string.Format(SiteResources.TeamsInContest, contest.Name);
-
     private bool CanCancel(Competitor team) => contest is not null && DateTimeOffset.Now < contest.StartTime
         && team.CoachId == userId && (!team.IsApproved || team.IsOutOfCompetition);
 
@@ -125,10 +113,10 @@
     {
         contest = await Context.Contests.AsNoTracking()
             .SingleOrDefaultAsync(item => item.Id == Id && !item.IsHidden, HttpContext.RequestAborted);
-        if (contest is null || !contest.IsAcm)
+        if (contest is null || !contest.IsAcm || DateTimeOffset.Now >= contest.EndTime)
         {
             contest = null;
-            HttpContext.Response.StatusCode = StatusCodes.Status404NotFound;
+            Navigation.NotFound();
             return;
         }
 

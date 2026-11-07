@@ -70,6 +70,34 @@ public class ErrorPagesTests(WebAppFactory factory) : IClassFixture<WebAppFactor
         Assert.Equal(0, database.RejectedQueries);
     }
 
+    [Theory]
+    [InlineData("ru", "Страница не найдена")]
+    [InlineData("en", "Not Found")]
+    public async Task MissingResourcesRenderLocalizedNotFoundPage(string culture, string title)
+    {
+        var user = await factory.AddUserAsync();
+        using var client = await factory.LoginAsync(user.UserName!);
+        client.DefaultRequestHeaders.AcceptLanguage.ParseAdd(culture);
+        foreach (string path in new[]
+        {
+            "/contests/2147483647/competitors",
+            "/contests/2147483647/standing",
+            "/contests/2147483647/rules",
+            "/contests/2147483647/problems",
+            "/contests/2147483647/registration",
+            "/Account/ConfirmEmail?userId=2147483647&code=invalid",
+            "/Account/RegisterConfirmation?email=missing-user%40example.test"
+        })
+        {
+            using var response = await client.GetAsync(path, TestContext.Current.CancellationToken);
+            Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+            using var document = await new HtmlParser().ParseDocumentAsync(
+                await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
+            Assert.Equal(title, document.Title);
+            Assert.Equal(title, Assert.Single(document.QuerySelectorAll("main h1")).TextContent);
+        }
+    }
+
     private sealed class FailingEndpointStartupFilter : IStartupFilter
     {
         public Action<IApplicationBuilder> Configure(Action<IApplicationBuilder> next) => app =>

@@ -1,6 +1,7 @@
 @using System.Security.Claims
 @using Microsoft.EntityFrameworkCore
 @using Olymp.Domain
+@using Olymp.Site
 @inject IDbContextFactory<OlympContext> ContextFactory
 @inject NavigationManager NavigationManager
 
@@ -27,7 +28,14 @@
             <div class="navbar-nav flex-row gap-3">
                 <AuthorizeView Policy="SignedIn">
                     <Authorized>
-                        <NavLink class="nav-link" href="account/manage" title="@AccountResources.Profile">@(publicName ?? AccountResources.Profile)</NavLink>
+                        <AuthorizeView Policy="@PolicyNames.PermanentAccount" Context="account">
+                            <Authorized>
+                                <NavLink class="nav-link" href="account/manage" title="@AccountResources.Profile">@(publicName ?? AccountResources.Profile)</NavLink>
+                            </Authorized>
+                            <NotAuthorized>
+                                <span class="navbar-text">@publicName</span>
+                            </NotAuthorized>
+                        </AuthorizeView>
                         <form action="account/logout" method="post">
                             <input type="hidden" name="ReturnUrl" value="@CurrentUrl" />
                             <button type="submit" class="nav-link">@SiteResources.Logout</button>

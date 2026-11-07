@@ -1,0 +1,56 @@
+<nav class="contest-navigation @(Compact ? "small" : null)" aria-label="@SiteResources.ContestNavigation">
+    <ul class="nav nav-underline column-gap-3 row-gap-1">
+        @if (Contest.AllowShowStanding)
+        {
+            <li class="nav-item"><a class="@LinkClass("standing")" href="contests/@Contest.Id/standing" aria-current="@Current("standing")">@SiteResources.ContestStandings</a></li>
+        }
+        @if (Contest.AllowShowProblems)
+        {
+            <li class="nav-item"><a class="@LinkClass("problems")" href="contests/@Contest.Id/problems" aria-current="@Current("problems")">@SiteResources.Problems</a></li>
+        }
+        @if (Contest.StartTime > new DateTimeOffset(2010, 1, 1, 0, 0, 0, TimeSpan.Zero) || ActiveSection == "participants")
+        {
+            <li class="nav-item"><a class="@LinkClass("participants")" href="contests/@Contest.Id/competitors" aria-current="@Current("participants")">@SiteResources.ContestParticipants</a></li>
+        }
+        <li class="nav-item"><a class="@LinkClass("rules")" href="contests/@Contest.Id/rules" aria-current="@Current("rules")">@SiteResources.ContestRules</a></li>
+        @if (Now < Contest.EndTime)
+        {
+            <li class="nav-item">
+                <a class="@LinkClass("registration")" href="@(Contest.IsAcm ? $"contests/{Contest.Id}/registration/teams" : $"contests/{Contest.Id}/registration")" aria-current="@Current("registration")">@SiteResources.ContestRegistration</a>
+            </li>
+        }
+        @if (Contest.ProblemPdfId is not null && Contest.AllowDownloadProblems)
+        {
+            @if (Contest.AllowShowProblems)
+            {
+                <li class="nav-item"><a class="nav-link" href="contests/@Contest.Id/downloadproblems" data-enhance-nav="false">@SiteResources.ContestStatements</a></li>
+            }
+            else
+            {
+                <li class="nav-item"><a class="nav-link" href="contests/@Contest.Id/printproblems" data-enhance-nav="false">@SiteResources.ContestStatementsForPrinting</a></li>
+            }
+        }
+        @if (Contest.TestZipId is not null && Contest.AllowDownloadTests)
+        {
+            <li class="nav-item"><a class="nav-link" href="contests/@Contest.Id/downloadtests" data-enhance-nav="false">@SiteResources.ContestTests</a></li>
+        }
+    </ul>
+</nav>
+
+@code {
+    [Parameter, EditorRequired]
+    public Contest Contest { get; set; } = default!;
+
+    [Parameter]
+    public DateTimeOffset Now { get; set; } = DateTimeOffset.Now;
+
+    [Parameter]
+    public string? ActiveSection { get; set; }
+
+    [Parameter]
+    public bool Compact { get; set; }
+
+    private string LinkClass(string section) => ActiveSection == section ? "nav-link active" : "nav-link";
+
+    private string? Current(string section) => ActiveSection == section ? "page" : null;
+}

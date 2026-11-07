@@ -10,12 +10,12 @@
 
 <h1 class="mb-4">@SiteResources.Contests</h1>
 
-@if (upcoming.Count > 0)
+@if (active.Count > 0)
 {
-    <section class="mb-4" aria-labelledby="upcoming-contests">
-        <h2 id="upcoming-contests" class="h4 mb-3">@SiteResources.CurrentAndUpcomingContests</h2>
+    <section class="mb-4" aria-labelledby="active-contests">
+        <h2 id="active-contests" class="h4 mb-3">@SiteResources.CurrentAndUpcomingContests</h2>
         <div class="list-group">
-            @foreach (var contest in upcoming)
+            @foreach (var contest in active)
             {
                 <ContestListItem Contest="contest" Now="now" />
             }
@@ -44,14 +44,14 @@
     </section>
 }
 
-@if (upcoming.Count == 0 && archive.Count == 0)
+@if (active.Count == 0 && archive.Count == 0)
 {
     <p>@SiteResources.NoContests</p>
 }
 
 @code {
     private readonly DateTimeOffset now = DateTimeOffset.Now;
-    private List<Contest> upcoming = [];
+    private List<Contest> active = [];
     private List<IGrouping<int, Contest>> archive = [];
 
     protected override async Task OnInitializedAsync()
@@ -63,7 +63,7 @@
             .ThenByDescending(contest => contest.Id)
             .ToListAsync();
 
-        upcoming = contests.Where(contest => contest.EndTime >= now).OrderBy(contest => contest.StartTime).ToList();
+        active = contests.Where(contest => contest.EndTime >= now).OrderBy(contest => contest.StartTime).ToList();
         archive = contests.Where(contest => contest.EndTime < now).GroupBy(contest => contest.StartTime.Year).ToList();
     }
 }
