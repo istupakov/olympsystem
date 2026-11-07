@@ -9,15 +9,15 @@
             @(Standing.Contest.IsOpen ? SiteResources.FinalResults : SiteResources.PreliminaryResults)
             @if (remaining > TimeSpan.Zero)
             {
-                <span class="badge text-bg-primary">@string.Format(SiteResources.TimeLeft, $"{(int)remaining.TotalHours:D2}:{remaining.Minutes:D2}:{remaining.Seconds:D2}")</span>
+                <span class="badge text-bg-primary ms-1">@string.Format(SiteResources.TimeLeft, $"{(int)remaining.TotalHours:D2}:{remaining.Minutes:D2}:{remaining.Seconds:D2}")</span>
             }
             else
             {
-                <span class="badge text-bg-primary">@SiteResources.ContestOver</span>
+                <span class="badge text-bg-primary ms-1">@SiteResources.ContestOver</span>
             }
             @if (Standing.IsFrozen)
             {
-                <span class="badge text-bg-warning">@SiteResources.FrozenAt @Standing.Contest.FreezeTime?.ToString(SiteResources.StandingTimeFormat)</span>
+                <span class="badge text-bg-warning ms-1">@SiteResources.FrozenAt @Standing.Contest.FreezeTime?.ToString(SiteResources.StandingTimeFormat)</span>
             }
         </caption>
         <thead>
@@ -42,7 +42,7 @@
                 <tr>
                     <td class="text-center">@(result.Score > 0 || number == results.Count ? (number++).ToString() : $"{number}-{results.Count}")</td>
                     <td>
-                        <span class="fw-semibold">@result.User.Name</span> <CompetitorBadges User="result.User" ShowApproved="false" />
+                        <span class="fw-semibold">@result.User.Name</span><CompetitorBadges User="result.User" />
                         @if (Standing.Contest.IsAcm && result.User is Competitor team)
                         {
                             <div class="small text-body-secondary">@string.Join(", ", team.MemberNames ?? [])</div>

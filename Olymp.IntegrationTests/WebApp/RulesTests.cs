@@ -33,11 +33,11 @@ public class RulesTests(WebAppFactory factory) : IClassFixture<WebAppFactory>
 
         using var client = factory.CreateSiteClient();
         client.DefaultRequestHeaders.AcceptLanguage.ParseAdd(culture);
-        using var response = await client.GetAsync($"/contests/rules/{contest.Id}", TestContext.Current.CancellationToken);
+        using var response = await client.GetAsync($"/contests/{contest.Id}/rules", TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         using var document = await new HtmlParser().ParseDocumentAsync(
             await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
-        Assert.Equal(culture == "ru" ? $"Правила соревнования «{contest.Name}»" : $"Rules for {contest.Name}", document.Title);
+        Assert.Equal(culture == "ru" ? $"Правила – {contest.Name}" : $"Rules – {contest.Name}", document.Title);
         string text = document.QuerySelector("main")!.TextContent;
         Assert.Equal(team, text.Contains("TRD", StringComparison.Ordinal));
         Assert.Equal(team, text.Contains(culture == "ru" ? "внутри зарегистрированного состава команды" : "within the registered team", StringComparison.Ordinal));
@@ -45,7 +45,6 @@ public class RulesTests(WebAppFactory factory) : IClassFixture<WebAppFactory>
         Assert.Equal(scoring, text.Contains("60 + 2 × 20", StringComparison.Ordinal));
         Assert.DoesNotContain("Runtime error", text);
         Assert.NotNull(document.QuerySelector("a[href='rules']"));
-        Assert.NotNull(document.QuerySelector("a[href='rules#submissions']"));
     }
 
     [Theory]
@@ -66,7 +65,7 @@ public class RulesTests(WebAppFactory factory) : IClassFixture<WebAppFactory>
         }
 
         using var client = factory.CreateSiteClient();
-        using var response = await client.GetAsync($"/contests/rules/{id}", TestContext.Current.CancellationToken);
+        using var response = await client.GetAsync($"/contests/{id}/rules", TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 

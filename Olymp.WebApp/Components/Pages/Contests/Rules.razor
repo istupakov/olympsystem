@@ -1,18 +1,18 @@
-@page "/contests/rules/{Id:int}"
+@page "/contests/{Id:int}/rules"
 
 @using Microsoft.EntityFrameworkCore
 @using Olymp.Domain
+@using Olymp.WebApp.Components.Contests
 
+@inject NavigationManager Navigation
 @inject IDbContextFactory<OlympContext> ContextFactory
 
 @if (contest is not null)
 {
     var isRussian = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ru";
-    var title = isRussian ? $"Правила соревнования «{contest.Name}»" : $"Rules for {contest.Name}";
+    <PageTitle>@string.Format(SiteResources.RulesForContest, contest.Name)</PageTitle>
 
-    <PageTitle>@title</PageTitle>
-
-    <h1 class="mb-4">@title</h1>
+    <ContestHeader Contest="contest" ActiveSection="rules" />
 
     <p>
         @if (isRussian)
@@ -107,7 +107,6 @@
             проверяются и учитываются, даже если проверка завершилась позже.
         </p>
         <p>До окончания тура решение можно исправлять и отправлять повторно.</p>
-        <p><a href="rules#submissions">Как подготовить и отправить решение</a></p>
     }
     else
     {
@@ -120,7 +119,6 @@
             the contest ends are judged and counted even if judging finishes later.
         </p>
         <p>You may correct and resubmit your solution before the contest ends.</p>
-        <p><a href="rules#submissions">How to prepare and submit a solution</a></p>
     }
 
     @if (!contest.IsSchool)
@@ -249,9 +247,6 @@
     [Parameter]
     public int Id { get; set; }
 
-    [CascadingParameter]
-    private HttpContext HttpContext { get; set; } = default!;
-
     private Contest? contest;
 
     protected override async Task OnParametersSetAsync()
@@ -261,6 +256,6 @@
             .SingleOrDefaultAsync(item => item.Id == Id && !item.IsHidden);
 
         if (contest is null)
-            HttpContext.Response.StatusCode = StatusCodes.Status404NotFound;
+            Navigation.NotFound();
     }
 }

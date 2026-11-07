@@ -75,7 +75,9 @@ public class EmailLoginTests(WebAppFactory factory) : IClassFixture<WebAppFactor
         using var response = await client.GetAsync(path, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Contains("account/logout", await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
+        string html = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+        Assert.Contains("account/logout", html);
+        Assert.Contains("href=\"account/manage\"", html);
     }
 
     [Fact]

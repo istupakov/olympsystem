@@ -27,15 +27,16 @@
   <data name="ContestParticipants" xml:space="preserve"><value>Участники</value></data>
   <data name="ContestRegistration" xml:space="preserve"><value>Регистрация</value></data>
   <data name="ContestStandings" xml:space="preserve"><value>Результаты</value></data>
-  <data name="ContestStatements" xml:space="preserve"><value>Условия</value></data>
-  <data name="ContestTests" xml:space="preserve"><value>Тесты</value></data>
+  <data name="ContestStatements" xml:space="preserve"><value>Скачать условия (PDF)</value></data>
+  <data name="ContestStatementsForPrinting" xml:space="preserve"><value>Скачать условия для печати (PDF)</value></data>
+  <data name="ContestTests" xml:space="preserve"><value>Скачать тесты (ZIP)</value></data>
+  <data name="ContestNavigation" xml:space="preserve"><value>Разделы и материалы соревнования</value></data>
   <data name="ContestSubmitSolution" xml:space="preserve"><value>Отправить решение</value></data>
   <data name="ThemeSwitchHint" xml:space="preserve"><value>Тема: {0}. Следующая: {1}.</value></data>
-  <data name="ParticipantsInContest" xml:space="preserve"><value>Участники соревнования «{0}»</value></data>
-  <data name="ResultsForContest" xml:space="preserve"><value>Результаты соревнования «{0}»</value></data>
+  <data name="ParticipantsInContest" xml:space="preserve"><value>Участники – {0}</value></data>
+  <data name="ResultsForContest" xml:space="preserve"><value>Результаты – {0}</value></data>
   <data name="NoParticipants" xml:space="preserve"><value>Участников пока нет.</value></data>
   <data name="PendingApproval" xml:space="preserve"><value>Ожидает подтверждения</value></data>
-  <data name="RegistrationApproved" xml:space="preserve"><value>Регистрация подтверждена</value></data>
   <data name="OutOfCompetition" xml:space="preserve"><value>Вне конкурса</value></data>
   <data name="Disqualified" xml:space="preserve"><value>Дисквалифицирован</value></data>
   <data name="Team" xml:space="preserve"><value>Команда</value></data>
@@ -64,7 +65,7 @@
   <data name="StandingTimeFormat" xml:space="preserve"><value>HH:mm z</value></data>
   <data name="ContestRules" xml:space="preserve"><value>Правила</value></data>
   <data name="Rules" xml:space="preserve"><value>Правила</value></data>
-  <data name="RegistrationForContest" xml:space="preserve"><value>Регистрация на «{0}»</value></data>
+  <data name="RegistrationForContest" xml:space="preserve"><value>Регистрация – {0}</value></data>
   <data name="AlreadyRegistered" xml:space="preserve"><value>Вы уже зарегистрированы на это соревнование.</value></data>
   <data name="CancelRegistration" xml:space="preserve"><value>Отменить регистрацию</value></data>
   <data name="RegistrationClosed" xml:space="preserve"><value>Регистрация завершена.</value></data>
@@ -76,11 +77,11 @@
   <data name="ContestRulesRequired" xml:space="preserve"><value>Необходимо принять правила соревнования.</value></data>
   <data name="RegistrationUpdateFailed" xml:space="preserve"><value>Не удалось изменить регистрацию. Проверьте профиль и обновите страницу.</value></data>
   <data name="TeamRegistrationFailed" xml:space="preserve"><value>Не удалось зарегистрировать команду. Повторите попытку.</value></data>
-  <data name="TeamsInContest" xml:space="preserve"><value>Команды соревнования «{0}»</value></data>
+  <data name="TeamsInContest" xml:space="preserve"><value>Команды – {0}</value></data>
   <data name="AddTeam" xml:space="preserve"><value>Добавить команду</value></data>
   <data name="NoTeams" xml:space="preserve"><value>Команды пока не зарегистрированы.</value></data>
   <data name="TeamActions" xml:space="preserve"><value>Действия</value></data>
-  <data name="CreateTeamForContest" xml:space="preserve"><value>Регистрация команды на «{0}»</value></data>
+  <data name="CreateTeamForContest" xml:space="preserve"><value>Регистрация команды – {0}</value></data>
   <data name="TeamName" xml:space="preserve"><value>Название команды</value></data>
   <data name="TeamPrefix" xml:space="preserve"><value>Вуз (префикс команды)</value></data>
   <data name="TeamNumber" xml:space="preserve"><value>Номер команды</value></data>
@@ -108,4 +109,20 @@
   <data name="AccountLinkBenefit" xml:space="preserve"><value>Привязка позволит участнику видеть командное выступление в своей истории, а тренеру следить за его результатами.</value></data>
   <data name="AccountNotLinked" xml:space="preserve"><value>аккаунт не привязан</value></data>
   <data name="ContestMemberNameExample" xml:space="preserve"><value>Иванов Иван</value></data>
+  <data name="Problems" xml:space="preserve"><value>Задачи</value></data>
+  <data name="Show" xml:space="preserve"><value>Показать</value></data>
+  <data name="ProblemList" xml:space="preserve"><value>Список задач</value></data>
+  <data name="NoProblemsFound" xml:space="preserve"><value>Задачи не найдены.</value></data>
+  <data name="ProblemStatement" xml:space="preserve"><value>Условие задачи</value></data>
+  <data name="TimeLimit" xml:space="preserve"><value>Ограничение времени</value></data>
+  <data name="MemoryLimit" xml:space="preserve"><value>Ограничение памяти</value></data>
+  <data name="Seconds" xml:space="preserve"><value>с.</value></data>
+  <data name="Megabytes" xml:space="preserve"><value>МБ</value></data>
+  <data name="DownloadStatements" xml:space="preserve"><value>Скачать условия соревнования (PDF)</value></data>
+  <data name="StatementUnavailable" xml:space="preserve"><value>Условие пока не опубликовано.</value></data>
+  <data name="Examples" xml:space="preserve"><value>Примеры</value></data>
+  <data name="StandardInput" xml:space="preserve"><value>Стандартный ввод</value></data>
+  <data name="StandardOutput" xml:space="preserve"><value>Стандартный вывод</value></data>
+  <data name="ProblemsForContest" xml:space="preserve"><value>Задачи – {0}</value></data>
+  <data name="RulesForContest" xml:space="preserve"><value>Правила – {0}</value></data>
 </root>

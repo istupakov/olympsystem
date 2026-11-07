@@ -1,24 +1,28 @@
-@page "/contests/standing/{Id:int}"
+@page "/contests/{Id:int}/standing"
 
 @using Microsoft.EntityFrameworkCore
 @using Olymp.Domain
 @using Olymp.WebApp.Components.Contests
+@inject NavigationManager Navigation
 @inject IDbContextFactory<OlympContext> ContextFactory
-
-<PageTitle>@Title</PageTitle>
-<h1>@Title</h1>
 
 @if (contest is not null)
 {
+    <PageTitle>@string.Format(SiteResources.ResultsForContest, contest.Name)</PageTitle>
+    <ContestHeader Contest="contest" ActiveSection="standing" />
+    @if (contest.IsOpen && !string.IsNullOrWhiteSpace(contest.Description))
+    {
+        <div class="contest-description mb-4 overflow-auto">@((MarkupString)contest.Description)</div>
+    }
     @if (HasOfficialStanding)
     {
-        <nav aria-label="@SiteResources.StandingView">
+        <nav class="standing-view" aria-label="@SiteResources.StandingView">
             <ul class="nav nav-underline mb-3">
                 <li class="nav-item">
-                    <a class="nav-link @(!Official ? "active" : null)" href="contests/standing/@Id" aria-current="@(!Official ? "page" : null)">@SiteResources.FullStanding</a>
+                    <a class="nav-link @(!Official ? "active" : null)" href="contests/@Id/standing" aria-current="@(!Official ? "page" : null)">@SiteResources.FullStanding</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link @(Official ? "active" : null)" href="contests/standing/@Id?official=true" aria-current="@(Official ? "page" : null)">@SiteResources.OfficialStanding</a>
+                    <a class="nav-link @(Official ? "active" : null)" href="contests/@Id/standing?official=true" aria-current="@(Official ? "page" : null)">@SiteResources.OfficialStanding</a>
                 </li>
             </ul>
         </nav>
@@ -44,26 +48,20 @@
     [SupplyParameterFromQuery]
     public bool Official { get; set; }
 
-    [CascadingParameter]
-    private HttpContext HttpContext { get; set; } = default!;
-
     private Contest? contest;
-    private Standing? standing;
+    private Olymp.Domain.Standing? standing;
     private string? savedTable;
-    private string Title => contest is null ? "" : string.Format(SiteResources.ResultsForContest, contest.Name);
 
     private bool HasOfficialStanding => contest is not null && (contest.FinalTableId is null || contest.OfficialTableId is not null);
 
     protected override async Task OnParametersSetAsync()
     {
-        standing = null;
-        savedTable = null;
         await using var context = await ContextFactory.CreateDbContextAsync();
         contest = await context.Contests.AsNoTracking().SingleOrDefaultAsync(item => item.Id == Id && !item.IsHidden);
         if (contest is null || !contest.AllowShowStanding || (Official && !HasOfficialStanding))
         {
             contest = null;
-            HttpContext.Response.StatusCode = StatusCodes.Status404NotFound;
+            Navigation.NotFound();
             return;
         }
 
@@ -80,6 +78,6 @@
             .Include(item => item.Problems).ThenInclude(item => item.Submissions).ThenInclude(item => item.User)
             .AsSplitQuery()
             .SingleAsync(item => item.Id == Id);
-        standing = Standing.Create(contest, includeAll: !Official, official: Official, notFreeze: false, startTime: null);
+        standing = Olymp.Domain.Standing.Create(contest, includeAll: !Official, official: Official, notFreeze: false, startTime: null);
     }
 }

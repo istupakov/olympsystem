@@ -8,11 +8,11 @@ Programming contest system with automated judging and standings. Used at [olymp.
 
 ## Projects
 
-- `Olymp.Site` — contest website.
-- `Olymp.Site.IdentityUI` — authentication and account management UI.
-- `Olymp.Domain` — data model and SQL Server migrations.
-- `Olymp.Checker` — compiler configurations, output checkers and judging self-tests.
-- `Olymp.Runner` — compilation and execution of submissions.
+- `Olymp.Site` – contest website.
+- `Olymp.Site.IdentityUI` – authentication and account management UI.
+- `Olymp.Domain` – data model and SQL Server migrations.
+- `Olymp.Checker` – compiler configurations, output checkers and judging self-tests.
+- `Olymp.Runner` – compilation and execution of submissions.
 
 `Olymp.Manager` and `Olymp.QReply` are legacy Windows applications, excluded from the solution.
 

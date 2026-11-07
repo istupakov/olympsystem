@@ -1,24 +1,17 @@
 @if (User is Competitor { IsApproved: false })
 {
-    <span class="badge text-bg-info">@SiteResources.PendingApproval</span>
-}
-else if (ShowApproved)
-{
-    <span class="badge text-bg-success">@SiteResources.RegistrationApproved</span>
+    <span class="badge text-bg-info ms-1">@SiteResources.PendingApproval</span>
 }
 @if (User is Competitor { IsOutOfCompetition: true })
 {
-    <span class="badge text-bg-warning">@SiteResources.OutOfCompetition</span>
+    <span class="badge text-bg-warning ms-1">@SiteResources.OutOfCompetition</span>
 }
 @if (User.IsDisqualified)
 {
-    <span class="badge text-bg-danger">@SiteResources.Disqualified</span>
+    <span class="badge text-bg-danger ms-1">@SiteResources.Disqualified</span>
 }
 
 @code {
     [Parameter, EditorRequired]
     public User User { get; set; } = default!;
-
-    [Parameter]
-    public bool ShowApproved { get; set; } = true;
 }

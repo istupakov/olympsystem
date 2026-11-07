@@ -1,4 +1,4 @@
-@page "/contests/registration/teams/create/{Id:int}"
+@page "/contests/{Id:int}/registration/teams/create"
 
 @using System.ComponentModel.DataAnnotations
 @using System.Security.Claims
@@ -8,204 +8,196 @@
 @using Olymp.Site
 @using Olymp.Site.Services
 @using Olymp.Site.Services.Contests
+@using Olymp.WebApp.Components.Contests
 
-@attribute [Authorize]
-@attribute [Authorize(Policy = PolicyNames.OlympUser)]
 @attribute [Authorize(Policy = PolicyNames.Coach)]
 @attribute [ExcludeFromInteractiveRouting]
 
 @inject OlympContext Context
 @inject CompetitorManagementService Competitors
 @inject NavigationManager Navigation
-@inject ILogger<CreateContestTeam> Logger
-
-<PageTitle>@Title</PageTitle>
+@inject ILogger<CreateTeam> Logger
 
 @if (contest is not null && organization is not null)
 {
-    <h1>@Title</h1>
+    <PageTitle>@string.Format(SiteResources.CreateTeamForContest, contest.Name)</PageTitle>
+    <ContestHeader Contest="contest" ActiveSection="registration" />
+    <h2 class="h4">@SiteResources.AddTeam</h2>
     <p class="text-body-secondary">@organization.Name</p>
     @if (error is not null)
     {
         <div class="alert alert-danger" role="alert">@error</div>
     }
-    @if (DateTimeOffset.Now > contest.EndTime)
-    {
-        <p>@SiteResources.RegistrationClosed</p>
-    }
-    else
-    {
-        <EditForm Model="Input" method="post" FormName="create-team" OnValidSubmit="SubmitAsync">
-            <DataAnnotationsValidator />
-            <ValidationSummary class="text-danger" role="alert" />
-            <h2 class="h4">@SiteResources.TeamName</h2>
-            @if (teamNameError is not null)
-            {
-                <div class="text-danger mb-3" role="alert">@teamNameError</div>
-            }
-            <div class="row g-3 mb-3">
-                <div class="col-md-4">
-                    <div class="form-floating">
-                        <InputText @bind-Value="Input.TeamPrefix" id="Input.TeamPrefix" class="form-control" placeholder=" " readonly="@preview" />
-                        <label for="Input.TeamPrefix">@SiteResources.TeamPrefix</label>
-                    </div>
-                    <ValidationMessage For="() => Input.TeamPrefix" class="text-danger" />
+    <EditForm Model="Input" method="post" FormName="create-team" OnValidSubmit="SubmitAsync">
+        <DataAnnotationsValidator />
+        <ValidationSummary class="text-danger" role="alert" />
+        <h2 class="h4">@SiteResources.TeamName</h2>
+        @if (teamNameError is not null)
+        {
+            <div class="text-danger mb-3" role="alert">@teamNameError</div>
+        }
+        <div class="row g-3 mb-3">
+            <div class="col-md-4">
+                <div class="form-floating">
+                    <InputText @bind-Value="Input.TeamPrefix" id="Input.TeamPrefix" class="form-control" placeholder=" " readonly="@preview" />
+                    <label for="Input.TeamPrefix">@SiteResources.TeamPrefix</label>
                 </div>
-                <div class="col-md-3">
-                    <div class="form-floating">
-                        <InputNumber @bind-Value="Input.TeamNumber" id="Input.TeamNumber" class="form-control" placeholder=" " readonly="@preview" />
-                        <label for="Input.TeamNumber">@SiteResources.TeamNumber</label>
-                    </div>
-                    <ValidationMessage For="() => Input.TeamNumber" class="text-danger" />
+                <ValidationMessage For="() => Input.TeamPrefix" class="text-danger" />
+            </div>
+            <div class="col-md-3">
+                <div class="form-floating">
+                    <InputNumber @bind-Value="Input.TeamNumber" id="Input.TeamNumber" class="form-control" placeholder=" " readonly="@preview" />
+                    <label for="Input.TeamNumber">@SiteResources.TeamNumber</label>
                 </div>
-                <div class="col-md-5">
+                <ValidationMessage For="() => Input.TeamNumber" class="text-danger" />
+            </div>
+            <div class="col-md-5">
+                <div class="form-floating">
+                    <InputText @bind-Value="Input.TeamSuffix" id="Input.TeamSuffix" class="form-control" placeholder=" " readonly="@preview" />
+                    <label for="Input.TeamSuffix">@SiteResources.TeamSuffix</label>
+                </div>
+                <ValidationMessage For="() => Input.TeamSuffix" class="text-danger" />
+            </div>
+        </div>
+
+        <h2 class="h4">@SiteResources.Members</h2>
+        <p class="text-body-secondary">@SiteResources.TeamSizeHint</p>
+        @if (membersError is not null)
+        {
+            <div class="text-danger mb-3" role="alert">@membersError</div>
+        }
+        <p class="text-body-secondary">@SiteResources.AccountLinkBenefit</p>
+        <fieldset class="mb-3">
+            <legend class="h6">@string.Format(SiteResources.TeamMemberNumber, 1)</legend>
+            <div class="row g-3">
+                <div class="col-md-6">
                     <div class="form-floating">
-                        <InputText @bind-Value="Input.TeamSuffix" id="Input.TeamSuffix" class="form-control" placeholder=" " readonly="@preview" />
-                        <label for="Input.TeamSuffix">@SiteResources.TeamSuffix</label>
+                        <InputText @bind-Value="Input.Member1Name" id="Input.Member1Name" aria-describedby="member1-name-hint" class="form-control" placeholder="@SiteResources.ContestMemberNameExample" readonly="@preview" />
+                        <label for="Input.Member1Name">@SiteResources.ContestMemberName</label>
                     </div>
-                    <ValidationMessage For="() => Input.TeamSuffix" class="text-danger" />
+                    <div id="member1-name-hint" class="form-text">@SiteResources.TeamMemberSelectionHint</div>
+                    <ValidationMessage For="() => Input.Member1Name" class="text-danger" />
+                </div>
+                <div class="col-md-6">
+                    <div class="form-floating">
+                        <InputSelect @bind-Value="Input.Member1Id" id="Input.Member1Id" class="form-select" disabled="@preview">
+                            <option value="">@SiteResources.NoLinkedAccount</option>
+                            @foreach (var member in members)
+                            {
+                                <option value="@member.Id">@GetAccountLabel(member)</option>
+                            }
+                        </InputSelect>
+                        <label for="Input.Member1Id">@SiteResources.OptionalMemberAccount</label>
+                    </div>
+                    <ValidationMessage For="() => Input.Member1Id" class="text-danger" />
                 </div>
             </div>
+        </fieldset>
+        <fieldset class="mb-3">
+            <legend class="h6">@string.Format(SiteResources.TeamMemberNumber, 2)</legend>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <div class="form-floating">
+                        <InputText @bind-Value="Input.Member2Name" id="Input.Member2Name" aria-describedby="member2-name-hint" class="form-control" placeholder="@SiteResources.ContestMemberNameExample" readonly="@preview" />
+                        <label for="Input.Member2Name">@SiteResources.ContestMemberName</label>
+                    </div>
+                    <div id="member2-name-hint" class="form-text">@SiteResources.TeamMemberSelectionHint</div>
+                    <ValidationMessage For="() => Input.Member2Name" class="text-danger" />
+                </div>
+                <div class="col-md-6">
+                    <div class="form-floating">
+                        <InputSelect @bind-Value="Input.Member2Id" id="Input.Member2Id" class="form-select" disabled="@preview">
+                            <option value="">@SiteResources.NoLinkedAccount</option>
+                            @foreach (var member in members)
+                            {
+                                <option value="@member.Id">@GetAccountLabel(member)</option>
+                            }
+                        </InputSelect>
+                        <label for="Input.Member2Id">@SiteResources.OptionalMemberAccount</label>
+                    </div>
+                    <ValidationMessage For="() => Input.Member2Id" class="text-danger" />
+                </div>
+            </div>
+        </fieldset>
+        <fieldset class="mb-3">
+            <legend class="h6">@string.Format(SiteResources.TeamMemberNumber, 3)</legend>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <div class="form-floating">
+                        <InputText @bind-Value="Input.Member3Name" id="Input.Member3Name" aria-describedby="member3-name-hint" class="form-control" placeholder="@SiteResources.ContestMemberNameExample" readonly="@preview" />
+                        <label for="Input.Member3Name">@SiteResources.ContestMemberName</label>
+                    </div>
+                    <div id="member3-name-hint" class="form-text">@SiteResources.TeamMemberSelectionHint</div>
+                    <ValidationMessage For="() => Input.Member3Name" class="text-danger" />
+                </div>
+                <div class="col-md-6">
+                    <div class="form-floating">
+                        <InputSelect @bind-Value="Input.Member3Id" id="Input.Member3Id" class="form-select" disabled="@preview">
+                            <option value="">@SiteResources.NoLinkedAccount</option>
+                            @foreach (var member in members)
+                            {
+                                <option value="@member.Id">@GetAccountLabel(member)</option>
+                            }
+                        </InputSelect>
+                        <label for="Input.Member3Id">@SiteResources.OptionalMemberAccount</label>
+                    </div>
+                    <ValidationMessage For="() => Input.Member3Id" class="text-danger" />
+                </div>
+            </div>
+        </fieldset>
+        <div class="form-check mb-3">
+            <InputCheckbox @bind-Value="Input.OutOfCompetition" id="Input.OutOfCompetition" class="form-check-input" disabled="@preview" />
+            <label for="Input.OutOfCompetition" class="form-check-label">@SiteResources.ParticipateOutOfCompetition</label>
+        </div>
 
-            <h2 class="h4">@SiteResources.Members</h2>
-            <p class="text-body-secondary">@SiteResources.TeamSizeHint</p>
-            @if (membersError is not null)
-            {
-                <div class="text-danger mb-3" role="alert">@membersError</div>
-            }
-            <p class="text-body-secondary">@SiteResources.AccountLinkBenefit</p>
-            <fieldset class="mb-3">
-                <legend class="h6">@string.Format(SiteResources.TeamMemberNumber, 1)</legend>
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <div class="form-floating">
-                            <InputText @bind-Value="Input.Member1Name" id="Input.Member1Name" aria-describedby="member1-name-hint" class="form-control" placeholder="@SiteResources.ContestMemberNameExample" readonly="@preview" />
-                            <label for="Input.Member1Name">@SiteResources.ContestMemberName</label>
-                        </div>
-                        <div id="member1-name-hint" class="form-text">@SiteResources.TeamMemberSelectionHint</div>
-                        <ValidationMessage For="() => Input.Member1Name" class="text-danger" />
-                    </div>
-                    <div class="col-md-6">
-                        <div class="form-floating">
-                            <InputSelect @bind-Value="Input.Member1Id" id="Input.Member1Id" class="form-select" disabled="@preview">
-                                <option value="">@SiteResources.NoLinkedAccount</option>
-                                @foreach (var member in members)
-                                {
-                                    <option value="@member.Id">@GetAccountLabel(member)</option>
-                                }
-                            </InputSelect>
-                            <label for="Input.Member1Id">@SiteResources.OptionalMemberAccount</label>
-                        </div>
-                        <ValidationMessage For="() => Input.Member1Id" class="text-danger" />
-                    </div>
+        @if (preview)
+        {
+            <input type="hidden" name="Input.Member1Id" value="@Input.Member1Id" />
+            <input type="hidden" name="Input.Member2Id" value="@Input.Member2Id" />
+            <input type="hidden" name="Input.Member3Id" value="@Input.Member3Id" />
+            <input type="hidden" name="Input.OutOfCompetition" value="@Input.OutOfCompetition.ToString().ToLowerInvariant()" />
+            <section class="card mb-3" aria-labelledby="team-preview">
+                <div class="card-body">
+                    <h2 id="team-preview" class="h4 card-title">@SiteResources.TeamPreview</h2>
+                    <p class="fw-semibold">
+                        <span>@teamName</span>
+                        @if (Input.OutOfCompetition)
+                        {
+                            <span class="badge text-bg-warning ms-2">@SiteResources.OutOfCompetition</span>
+                        }
+                    </p>
+                    <ul>
+                        @foreach (var member in previewMembers)
+                        {
+                            <li>
+                                @member.Name
+                                <span class="small text-body-secondary">@($" ({member.Account ?? SiteResources.AccountNotLinked})")</span>
+                            </li>
+                        }
+                    </ul>
                 </div>
-            </fieldset>
-            <fieldset class="mb-3">
-                <legend class="h6">@string.Format(SiteResources.TeamMemberNumber, 2)</legend>
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <div class="form-floating">
-                            <InputText @bind-Value="Input.Member2Name" id="Input.Member2Name" aria-describedby="member2-name-hint" class="form-control" placeholder="@SiteResources.ContestMemberNameExample" readonly="@preview" />
-                            <label for="Input.Member2Name">@SiteResources.ContestMemberName</label>
-                        </div>
-                        <div id="member2-name-hint" class="form-text">@SiteResources.TeamMemberSelectionHint</div>
-                        <ValidationMessage For="() => Input.Member2Name" class="text-danger" />
-                    </div>
-                    <div class="col-md-6">
-                        <div class="form-floating">
-                            <InputSelect @bind-Value="Input.Member2Id" id="Input.Member2Id" class="form-select" disabled="@preview">
-                                <option value="">@SiteResources.NoLinkedAccount</option>
-                                @foreach (var member in members)
-                                {
-                                    <option value="@member.Id">@GetAccountLabel(member)</option>
-                                }
-                            </InputSelect>
-                            <label for="Input.Member2Id">@SiteResources.OptionalMemberAccount</label>
-                        </div>
-                        <ValidationMessage For="() => Input.Member2Id" class="text-danger" />
-                    </div>
-                </div>
-            </fieldset>
-            <fieldset class="mb-3">
-                <legend class="h6">@string.Format(SiteResources.TeamMemberNumber, 3)</legend>
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <div class="form-floating">
-                            <InputText @bind-Value="Input.Member3Name" id="Input.Member3Name" aria-describedby="member3-name-hint" class="form-control" placeholder="@SiteResources.ContestMemberNameExample" readonly="@preview" />
-                            <label for="Input.Member3Name">@SiteResources.ContestMemberName</label>
-                        </div>
-                        <div id="member3-name-hint" class="form-text">@SiteResources.TeamMemberSelectionHint</div>
-                        <ValidationMessage For="() => Input.Member3Name" class="text-danger" />
-                    </div>
-                    <div class="col-md-6">
-                        <div class="form-floating">
-                            <InputSelect @bind-Value="Input.Member3Id" id="Input.Member3Id" class="form-select" disabled="@preview">
-                                <option value="">@SiteResources.NoLinkedAccount</option>
-                                @foreach (var member in members)
-                                {
-                                    <option value="@member.Id">@GetAccountLabel(member)</option>
-                                }
-                            </InputSelect>
-                            <label for="Input.Member3Id">@SiteResources.OptionalMemberAccount</label>
-                        </div>
-                        <ValidationMessage For="() => Input.Member3Id" class="text-danger" />
-                    </div>
-                </div>
-            </fieldset>
+            </section>
             <div class="form-check mb-3">
-                <InputCheckbox @bind-Value="Input.OutOfCompetition" id="Input.OutOfCompetition" class="form-check-input" disabled="@preview" />
-                <label for="Input.OutOfCompetition" class="form-check-label">@SiteResources.ParticipateOutOfCompetition</label>
+                <InputCheckbox @bind-Value="Input.Confirmation" id="Input.Confirmation" class="form-check-input" />
+                <label for="Input.Confirmation" class="form-check-label">@SiteResources.ConfirmTeamData</label>
+                <ValidationMessage For="() => Input.Confirmation" class="text-danger" />
             </div>
-
-            @if (preview)
-            {
-                <input type="hidden" name="Input.Member1Id" value="@Input.Member1Id" />
-                <input type="hidden" name="Input.Member2Id" value="@Input.Member2Id" />
-                <input type="hidden" name="Input.Member3Id" value="@Input.Member3Id" />
-                <input type="hidden" name="Input.OutOfCompetition" value="@Input.OutOfCompetition.ToString().ToLowerInvariant()" />
-                <section class="card mb-3" aria-labelledby="team-preview">
-                    <div class="card-body">
-                        <h2 id="team-preview" class="h4 card-title">@SiteResources.TeamPreview</h2>
-                        <p class="fw-semibold">
-                            <span>@teamName</span>
-                            @if (Input.OutOfCompetition)
-                            {
-                                <span class="badge text-bg-warning ms-2">@SiteResources.OutOfCompetition</span>
-                            }
-                        </p>
-                        <ul>
-                            @foreach (var member in previewMembers)
-                            {
-                                <li>
-                                    @member.Name
-                                    <span class="small text-body-secondary">@($" ({member.Account ?? SiteResources.AccountNotLinked})")</span>
-                                </li>
-                            }
-                        </ul>
-                    </div>
-                </section>
-                <div class="form-check mb-3">
-                    <InputCheckbox @bind-Value="Input.Confirmation" id="Input.Confirmation" class="form-check-input" />
-                    <label for="Input.Confirmation" class="form-check-label">@SiteResources.ConfirmTeamData</label>
-                    <ValidationMessage For="() => Input.Confirmation" class="text-danger" />
-                </div>
-                <div class="form-check mb-3">
-                    <InputCheckbox @bind-Value="Input.AcceptRules" id="Input.AcceptRules" class="form-check-input" />
-                    <label for="Input.AcceptRules" class="form-check-label">
-                        @AccountResources.AcceptRulesPrefix <a href="contests/rules/@Id" target="_blank" rel="noopener">@SiteResources.ContestRulesAgreement</a>
-                    </label>
-                    <ValidationMessage For="() => Input.AcceptRules" class="text-danger" />
-                </div>
-            }
-            <button type="submit" name="Input.Action" value="@(preview ? "register" : "preview")" class="btn btn-primary">
-                @(preview ? AccountResources.Register : SiteResources.PreviewTeam)
-            </button>
-            @if (preview)
-            {
-                <button type="submit" name="Input.Action" value="edit" class="btn btn-outline-secondary ms-2" formnovalidate>@SiteResources.EditTeamData</button>
-            }
-        </EditForm>
-    }
+            <div class="form-check mb-3">
+                <InputCheckbox @bind-Value="Input.AcceptRules" id="Input.AcceptRules" class="form-check-input" />
+                <label for="Input.AcceptRules" class="form-check-label">
+                    @AccountResources.AcceptRulesPrefix <a href="contests/@Id/rules" target="_blank" rel="noopener">@SiteResources.ContestRulesAgreement</a>
+                </label>
+                <ValidationMessage For="() => Input.AcceptRules" class="text-danger" />
+            </div>
+        }
+        <button type="submit" name="Input.Action" value="@(preview ? "register" : "preview")" class="btn btn-primary">
+            @(preview ? AccountResources.Register : SiteResources.PreviewTeam)
+        </button>
+        @if (preview)
+        {
+            <button type="submit" name="Input.Action" value="edit" class="btn btn-outline-secondary ms-2" formnovalidate>@SiteResources.EditTeamData</button>
+        }
+    </EditForm>
 }
 
 @code {
@@ -231,16 +223,14 @@
     private string? teamName;
     private List<(string Name, string? Account)> previewMembers = [];
 
-    private string Title => contest is null ? "" : string.Format(SiteResources.CreateTeamForContest, contest.Name);
-
     protected override async Task OnParametersSetAsync()
     {
         contest = await Context.Contests.AsNoTracking()
             .SingleOrDefaultAsync(item => item.Id == Id && !item.IsHidden, HttpContext.RequestAborted);
-        if (contest is null || !contest.IsAcm)
+        if (contest is null || !contest.IsAcm || DateTimeOffset.Now >= contest.EndTime)
         {
             contest = null;
-            HttpContext.Response.StatusCode = StatusCodes.Status404NotFound;
+            Navigation.NotFound();
             return;
         }
         if (!HttpContext.User.HasClaim(ClaimNames.CoachOrg, OrgId.ToString(CultureInfo.InvariantCulture)))
@@ -253,7 +243,7 @@
             .SingleOrDefaultAsync(item => item.Id == OrgId, HttpContext.RequestAborted);
         if (organization is null)
         {
-            HttpContext.Response.StatusCode = StatusCodes.Status404NotFound;
+            Navigation.NotFound();
             return;
         }
         members = await Context.OlympUsers.AsNoTracking().Where(item => item.OrganizationId == OrgId && !item.IsHidden)
@@ -396,7 +386,7 @@
             error = SiteResources.TeamRegistrationFailed;
             return;
         }
-        Navigation.NavigateTo($"contests/registration/teams/{Id}");
+        Navigation.NavigateTo($"contests/{Id}/registration/teams");
     }
 
     private sealed class InputModel

@@ -1,0 +1,99 @@
+@page "/contests/{ContestId:int}/problems"
+
+@using System.Text
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.EntityFrameworkCore
+@using Olymp.Domain
+@using Olymp.Domain.Models
+@using Olymp.WebApp.Components.Contests
+@using Olymp.WebApp.Components.Problems
+
+@attribute [Authorize]
+@attribute [ExcludeFromInteractiveRouting]
+@inject NavigationManager Navigation
+@inject IDbContextFactory<OlympContext> ContextFactory
+
+@if (contest is not null)
+{
+    <PageTitle>@(ProblemId.HasValue && selected is not null
+        ? $"{selected.NameWithNumber} – {contest.Name}"
+        : string.Format(SiteResources.ProblemsForContest, contest.Name))</PageTitle>
+    <ContestHeader Contest="contest" ActiveSection="problems" />
+    @if (selected is not null && statement is not null)
+    {
+        <ProblemWorkspace Problems="problems" Selected="selected" ProblemUrl="ProblemUrl">
+            <ProblemStatementView Statement="statement" />
+        </ProblemWorkspace>
+    }
+    else
+    {
+        <p>@SiteResources.NoProblemsFound</p>
+    }
+}
+
+@code {
+    [Parameter]
+    public int ContestId { get; set; }
+
+    [SupplyParameterFromQuery]
+    public int? ProblemId { get; set; }
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    private Contest? contest;
+    private IReadOnlyList<Problem> problems = [];
+    private Problem? selected;
+    private ProblemStatement? statement;
+
+    private string ProblemUrl(int problemId) => $"contests/{ContestId}/problems?problemId={problemId}";
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await using var context = await ContextFactory.CreateDbContextAsync(HttpContext.RequestAborted);
+        contest = await context.Contests.AsNoTracking()
+            .Where(item => item.Id == ContestId && !item.IsHidden)
+            .Include(item => item.Problems.Where(problem => problem.IsActive))
+            .SingleOrDefaultAsync(HttpContext.RequestAborted);
+        if (contest is null || !contest.AllowShowProblems)
+        {
+            contest = null;
+            Navigation.NotFound();
+            return;
+        }
+
+        problems = contest.Problems.OrderBy(problem => problem.Number).ThenBy(problem => problem.Id).ToList();
+        selected = ProblemId.HasValue
+            ? problems.SingleOrDefault(problem => problem.Id == ProblemId.Value)
+            : problems.FirstOrDefault();
+
+        if (selected is not null)
+        {
+            var problem = await context.Problems.AsNoTracking()
+                .Where(problem => problem.IsActive && !problem.Contest.IsHidden && problem.Contest.StartTime <= DateTimeOffset.UtcNow)
+                .Where(item => item.Id == selected.Id)
+                .Select(item => new
+                {
+                    item.ContestId,
+                    item.TimeLimit,
+                    item.MemoryLimit,
+                    item.Text,
+                    HasPdf = item.Contest.ProblemPdfId.HasValue,
+                    Examples = item.Tests.Where(test => test.IsOpen && test.IsActive).OrderBy(test => test.Number)
+                        .Select(test => new { test.Input, test.Output }).ToList()
+                })
+                .SingleOrDefaultAsync(HttpContext.RequestAborted);
+
+            if (problem is not null)
+                statement = new(problem.ContestId, problem.TimeLimit, problem.MemoryLimit, problem.Text, problem.HasPdf,
+                    [.. problem.Examples.Select(test => new ProblemExample(
+                        Encoding.Default.GetString(test.Input), Encoding.Default.GetString(test.Output)))]);
+        }
+
+        if ((ProblemId.HasValue && selected is null) || (selected is not null && statement is null))
+        {
+            contest = null;
+            Navigation.NotFound();
+        }
+    }
+}

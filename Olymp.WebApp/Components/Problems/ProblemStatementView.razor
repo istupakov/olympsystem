@@ -1,0 +1,50 @@
+<div class="problem-statement text-break">
+    <ul class="list-unstyled text-body-secondary">
+        <li>@SiteResources.TimeLimit: @Statement.TimeLimit @SiteResources.Seconds</li>
+        <li>@SiteResources.MemoryLimit: @Statement.MemoryLimit @SiteResources.Megabytes</li>
+    </ul>
+
+    @if (!string.IsNullOrWhiteSpace(Statement.Html))
+    {
+        <div class="statement-html overflow-x-auto">@((MarkupString)Statement.Html)</div>
+    }
+    else if (Statement.HasPdf)
+    {
+        <p><a href="contests/@Statement.ContestId/downloadproblems">@SiteResources.DownloadStatements</a></p>
+    }
+    else
+    {
+        <p class="text-body-secondary">@SiteResources.StatementUnavailable</p>
+    }
+
+    @if (Statement.Examples.Count > 0)
+    {
+        <section class="mt-4" aria-label="@SiteResources.Examples">
+            <h3 class="h5">@SiteResources.Examples</h3>
+            <div class="table-responsive">
+                <table class="table table-sm table-bordered problem-examples">
+                    <thead>
+                        <tr>
+                            <th scope="col" class="w-50">@SiteResources.StandardInput</th>
+                            <th scope="col" class="w-50">@SiteResources.StandardOutput</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var example in Statement.Examples)
+                        {
+                            <tr>
+                                <td><pre class="mb-0"><samp>@example.Input</samp></pre></td>
+                                <td><pre class="mb-0"><samp>@example.Output</samp></pre></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public ProblemStatement Statement { get; set; } = default!;
+}

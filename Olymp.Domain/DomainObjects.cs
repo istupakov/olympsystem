@@ -127,8 +127,9 @@ public partial class Contest
 
     public bool IsFreeze => FreezeTime.HasValue && DateTimeOffset.Now > FreezeTime;
 
-    public bool AllowDownloadProblems => !IsHidden && (DateTimeOffset.Now >= StartTime || DateTimeOffset.Now >= ProblemShowTime);
+    public bool AllowShowProblems => !IsHidden && DateTimeOffset.Now >= StartTime;
     public bool AllowShowStanding => !IsHidden && DateTimeOffset.Now >= StartTime;
+    public bool AllowDownloadProblems => !IsHidden && (DateTimeOffset.Now >= StartTime || DateTimeOffset.Now >= ProblemShowTime);
     public bool AllowDownloadTests => !IsHidden && IsOpen && DateTimeOffset.Now > EndTime;
     public bool AllowSubmitSolution => !IsHidden && DateTimeOffset.Now >= StartTime && (DateTimeOffset.Now <= EndTime || IsOpen);
     public bool AllowSendMessage => !IsHidden && DateTimeOffset.Now >= StartTime && DateTimeOffset.Now <= EndTime;

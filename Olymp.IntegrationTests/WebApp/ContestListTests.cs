@@ -18,13 +18,15 @@ public class ContestListTests(WebAppFactory factory) : IClassFixture<WebAppFacto
     [Theory]
     [InlineData("ru", "Соревнования", "Текущие и предстоящие", "Прошедшие соревнования")]
     [InlineData("en", "Contests", "Current and upcoming", "Past contests")]
-    public async Task ListGroupsContestsAndPreservesDescriptions(string culture, string title, string upcoming, string archive)
+    public async Task ListGroupsContestsAndShowsDescriptionsOnStandings(string culture, string title, string upcoming, string archive)
     {
         var now = DateTimeOffset.UtcNow;
         var current = CreateContest("Current", now.AddHours(-1), now.AddHours(1));
         var future = CreateContest("Future", now.AddDays(10), now.AddDays(11));
+        future.Description = "<p>Registration announcement</p>";
         var recent = CreateContest("Recent <em>contest</em>", new(2025, 6, 1, 10, 0, 0, TimeSpan.FromHours(7)));
         recent.Description = "<p><strong>Results</strong> <a href='../legacy/results?official=true'>Original link</a></p>";
+        recent.IsOpen = true;
         var earlier = CreateContest("Earlier", new(2025, 1, 1, 10, 0, 0, TimeSpan.FromHours(7)));
         var oldest = CreateContest("Oldest", new(2024, 6, 1, 10, 0, 0, TimeSpan.FromHours(7)));
         var hidden = CreateContest("Hidden", now.AddDays(1));
@@ -47,16 +49,23 @@ public class ContestListTests(WebAppFactory factory) : IClassFixture<WebAppFacto
         Assert.Equal(["contests-2025", "contests-2024"], document.QuerySelectorAll("main details[name='contest-years']").Select(group => group.Id));
         Assert.True(document.QuerySelector("#contests-2025")!.HasAttribute("open"));
         Assert.False(document.QuerySelector("#contests-2024")!.HasAttribute("open"));
-        Assert.Equal("Results", document.QuerySelector("#contests-2025 article strong")!.TextContent);
-        Assert.NotNull(document.QuerySelector("main a[href='../legacy/results?official=true']"));
+        Assert.Null(document.QuerySelector("main article strong"));
+        Assert.Contains("Registration announcement", document.QuerySelector("main")!.TextContent);
+        Assert.Null(document.QuerySelector("main a[href='../legacy/results?official=true']"));
+        using var standings = await client.GetAsync($"/contests/{recent.Id}/standing", TestContext.Current.CancellationToken);
+        standings.EnsureSuccessStatusCode();
+        using var results = await new HtmlParser().ParseDocumentAsync(
+            await standings.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
+        Assert.Equal("Results", results.QuerySelector(".contest-description strong")!.TextContent);
+        Assert.NotNull(results.QuerySelector(".contest-description a[href='../legacy/results?official=true']"));
         Assert.DoesNotContain("<!--Blazor:", html);
         using var scope = factory.Services.CreateScope();
         Assert.Equal(6, await scope.ServiceProvider.GetRequiredService<OlympContext>().Contests.CountAsync(TestContext.Current.CancellationToken));
     }
 
     [Theory]
-    [InlineData("ru", "Участники", "Регистрация", "Результаты", "Условия", "Тесты")]
-    [InlineData("en", "Participants", "Registration", "Standings", "Statements", "Tests")]
+    [InlineData("ru", "Участники", "Регистрация", "Результаты", "Скачать условия (PDF)", "Скачать тесты (ZIP)")]
+    [InlineData("en", "Participants", "Registration", "Standings", "Download statements (PDF)", "Download tests (ZIP)")]
     public async Task UnavailableActionsFollowContestVisibilityRules(string culture, string participants, string registration,
         string standings, string statements, string tests)
     {
@@ -77,28 +86,24 @@ public class ContestListTests(WebAppFactory factory) : IClassFixture<WebAppFacto
             await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
         var articles = document.QuerySelectorAll("main article");
         string rules = culture == "ru" ? "Правила" : "Rules";
-        Assert.Equal([rules, participants, registration], articles[0].QuerySelectorAll("li").Select(action => action.TextContent));
-        Assert.NotNull(articles[0].QuerySelector($"a[href='contests/competitors/{future.Id}']"));
+        Assert.Equal([participants, rules, registration], articles[0].QuerySelectorAll("li").Select(action => action.TextContent.Trim()));
+        Assert.NotNull(articles[0].QuerySelector($"a[href='contests/{future.Id}/competitors']"));
         var pastActions = articles[1].QuerySelectorAll("li");
         Assert.Single(pastActions, action => action.TextContent.StartsWith(standings, StringComparison.Ordinal));
         Assert.Equal(6, pastActions.Length);
         Assert.Contains(statements, pastActions.Select(action => action.TextContent));
         Assert.Contains(tests, pastActions.Select(action => action.TextContent));
         Assert.DoesNotContain(registration, pastActions.Select(action => action.TextContent));
-        Assert.All(document.QuerySelectorAll("main li span"), action =>
-        {
-            Assert.Equal("true", action.GetAttribute("aria-disabled"));
-            Assert.False(string.IsNullOrWhiteSpace(action.GetAttribute("title")));
-        });
         Assert.Equal([
-            $"contests/rules/{future.Id}",
-            $"contests/competitors/{future.Id}",
-            $"contests/registration/{future.Id}",
-            $"contests/rules/{past.Id}",
-            $"contests/competitors/{past.Id}",
-            $"contests/standing/{past.Id}",
-            $"contests/downloadproblems/{past.Id}",
-            $"contests/downloadtests/{past.Id}"
+            $"contests/{future.Id}/competitors",
+            $"contests/{future.Id}/rules",
+            $"contests/{future.Id}/registration",
+            $"contests/{past.Id}/standing",
+            $"contests/{past.Id}/problems",
+            $"contests/{past.Id}/competitors",
+            $"contests/{past.Id}/rules",
+            $"contests/{past.Id}/downloadproblems",
+            $"contests/{past.Id}/downloadtests"
         ], document.QuerySelectorAll("main a").Select(link => link.GetAttribute("href")));
     }
 

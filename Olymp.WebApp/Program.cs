@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization.Policy;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Localization;
+using Microsoft.AspNetCore.Rewrite;
 using Microsoft.EntityFrameworkCore;
 
 using Olymp.Domain;
@@ -25,18 +26,29 @@ var identityFeatures = builder.Configuration.GetSection(IdentityFeatures.Section
 builder.Services.AddSingleton(identityFeatures);
 builder.Services.AddScoped<IAuthorizationHandler, EmailAsLoginHandler>();
 builder.Services.AddSingleton<IAuthorizationMiddlewareResultHandler, EmailAsLoginRedirectHandler>();
+
+var signedInPolicy = new AuthorizationPolicyBuilder()
+    .RequireAuthenticatedUser()
+    .Build();
+// Account management must remain accessible before email migration is complete.
+var permanentAccountPolicy = new AuthorizationPolicyBuilder(signedInPolicy)
+    .RequireAssertion(context => !context.User.HasClaim(claim => claim.Type == ClaimNames.CompetitorContest))
+    .Build();
+var defaultPolicy = new AuthorizationPolicyBuilder(signedInPolicy)
+    .AddRequirements(new EmailAsLoginRequirement())
+    .Build();
+var olympUserPolicy = new AuthorizationPolicyBuilder(defaultPolicy)
+    .Combine(permanentAccountPolicy)
+    .Build();
+
 builder.Services.AddAuthorizationBuilder()
-    // Account management keeps its own policy so users can complete the transition.
-    // Future application policies must also include EmailAsLoginRequirement.
-    .SetDefaultPolicy(new AuthorizationPolicyBuilder()
-        .RequireAuthenticatedUser()
-        .AddRequirements(new EmailAsLoginRequirement())
-        .Build())
-    .AddPolicy("SignedIn", policy => policy.RequireAuthenticatedUser())
-    .AddPolicy(PolicyNames.OlympUser, policy => policy
-        .RequireAuthenticatedUser()
-        .RequireAssertion(context => !context.User.HasClaim(claim => claim.Type == ClaimNames.CompetitorContest)))
-    .AddPolicy(PolicyNames.Coach, policy => policy.RequireClaim(ClaimNames.CoachOrg))
+    .SetDefaultPolicy(defaultPolicy)
+    .AddPolicy("SignedIn", signedInPolicy)
+    .AddPolicy(PolicyNames.PermanentAccount, permanentAccountPolicy)
+    .AddPolicy(PolicyNames.OlympUser, olympUserPolicy)
+    .AddPolicy(PolicyNames.Coach, policy => policy
+        .Combine(olympUserPolicy)
+        .RequireClaim(ClaimNames.CoachOrg))
     .AddPolicy(IdentityFeatures.PasskeysPolicy, policy => policy
         .RequireAssertion(_ => identityFeatures.PasskeysEnabled));
 
@@ -123,6 +135,11 @@ else
 app.UseRequestLocalization();
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 app.UseHttpsRedirection();
+
+app.UseRewriter(new RewriteOptions()
+    .AddRedirectToNonWwwPermanent()
+    // Legacy links point directly to the current standings route.
+    .AddRedirect(@"^(?:olympiad|contests)/standing/(\d+)/?$", "contests/$1/standing", StatusCodes.Status301MovedPermanently));
 
 app.MapStaticAssets();
 app.MapRazorComponents<App>()

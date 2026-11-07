@@ -47,7 +47,7 @@ public class ContestRegistrationTests(WebAppFactory factory) : IClassFixture<Web
         using var page = await client.GetAsync(Path(contest.Id), TestContext.Current.CancellationToken);
         using var document = await new HtmlParser().ParseDocumentAsync(
             await page.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
-        Assert.Equal(culture == "ru" ? $"Регистрация на «{contest.Name}»" : $"Registration for {contest.Name}", document.Title);
+        Assert.Equal(culture == "ru" ? $"Регистрация – {contest.Name}" : $"Registration – {contest.Name}", document.Title);
         Assert.Contains(culture == "ru" ? "Ожидает подтверждения" : "Pending approval", document.QuerySelector("main")!.TextContent);
         Assert.NotNull(document.QuerySelector("form input[name='_handler'][value='cancel-registration']"));
         Assert.Null(document.QuerySelector("input[name='Input.AcceptRules']"));
@@ -181,19 +181,46 @@ public class ContestRegistrationTests(WebAppFactory factory) : IClassFixture<Web
         }
         var user = await AddProfileAsync();
         using var client = await factory.LoginAsync(user.UserName!);
-        if (reason == "ended")
-        {
-            using var response = await PostAsync(client, contest.Id, false);
-            Assert.NotEqual(HttpStatusCode.Redirect, response.StatusCode);
-        }
-        else
-        {
-            using var response = await client.GetAsync(Path(reason == "missing" ? int.MaxValue : contest.Id), TestContext.Current.CancellationToken);
-            Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
-        }
+        using var response = await client.GetAsync(Path(reason == "missing" ? int.MaxValue : contest.Id), TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
         using var check = factory.Services.CreateScope();
         Assert.False(await check.ServiceProvider.GetRequiredService<OlympContext>().Competitors
             .AnyAsync(item => item.ContestId == contest.Id, TestContext.Current.CancellationToken));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task FinishedContestRejectsRegistrationPageAndPreviouslyOpenedForm(bool registered)
+    {
+        var contest = await AddContestAsync();
+        var user = await AddProfileAsync();
+        using var client = await factory.LoginAsync(user.UserName!);
+        if (registered)
+        {
+            using var registration = await PostAsync(client, contest.Id, false);
+            Assert.Equal(HttpStatusCode.Redirect, registration.StatusCode);
+        }
+        using var page = await client.GetAsync(Path(contest.Id), TestContext.Current.CancellationToken);
+        page.EnsureSuccessStatusCode();
+        using var document = await new HtmlParser().ParseDocumentAsync(
+            await page.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
+        var form = document.QuerySelector("main form")!;
+        var fields = form.QuerySelectorAll("input[type='hidden'][name]")
+            .ToDictionary(input => input.GetAttribute("name")!, input => input.GetAttribute("value") ?? "");
+        fields["Input.AcceptRules"] = "true";
+        fields["Input.OutOfCompetition"] = "false";
+        await SetTimesAsync(contest.Id, DateTimeOffset.UtcNow.AddHours(-6), DateTimeOffset.UtcNow.AddHours(-1));
+
+        using var unavailable = await client.GetAsync(Path(contest.Id), TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.NotFound, unavailable.StatusCode);
+        using var content = new FormUrlEncodedContent(fields);
+        using var posted = await client.PostAsync(Path(contest.Id), content, TestContext.Current.CancellationToken);
+        Assert.False(posted.IsSuccessStatusCode);
+        Assert.NotEqual(HttpStatusCode.Redirect, posted.StatusCode);
+        using var scope = factory.Services.CreateScope();
+        Assert.Equal(registered ? 1 : 0, await scope.ServiceProvider.GetRequiredService<OlympContext>().Competitors
+            .CountAsync(item => item.ContestId == contest.Id, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -261,7 +288,7 @@ public class ContestRegistrationTests(WebAppFactory factory) : IClassFixture<Web
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
-    private static string Path(int id) => $"/contests/registration/{id}";
+    private static string Path(int id) => $"/contests/{id}/registration";
 
     private static async Task<HttpResponseMessage> PostAsync(HttpClient client, int id, bool? outOfCompetition,
         bool acceptRules = true, string handler = "contest-registration")

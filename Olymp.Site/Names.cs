@@ -3,6 +3,7 @@ namespace Olymp.Site;
 public static class PolicyNames
 {
     public const string Runner = nameof(Runner);
+    public const string PermanentAccount = nameof(PermanentAccount);
     public const string OlympUser = nameof(OlympUser);
     public const string Admin = nameof(Admin);
     public const string JuryOrAdmin = nameof(JuryOrAdmin);
