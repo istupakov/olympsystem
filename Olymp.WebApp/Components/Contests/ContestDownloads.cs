@@ -1,9 +1,10 @@
 using System.Net.Mime;
-using System.Security.Claims;
 
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 using Olymp.Domain;
+using Olymp.Domain.Models;
 using Olymp.Site;
 
 namespace Olymp.WebApp.Components.Contests;
@@ -13,16 +14,16 @@ internal static class ContestDownloads
     public static IEndpointConventionBuilder MapContestDownloads(this IEndpointRouteBuilder endpoints)
     {
         var group = endpoints.MapGroup("/contests");
-        group.MapGet("/{id:int}/downloadproblems", (int id, HttpContext http, IDbContextFactory<OlympContext> factory) =>
-            DownloadProblemsAsync(id, http, factory, forPrinting: false)).AllowAnonymous();
-        group.MapGet("/{id:int}/printproblems", (int id, HttpContext http, IDbContextFactory<OlympContext> factory) =>
-            DownloadProblemsAsync(id, http, factory, forPrinting: true)).RequireAuthorization(PolicyNames.Coach);
+        group.MapGet("/{id:int}/downloadproblems", (int id, HttpContext http, IDbContextFactory<OlympContext> factory, UserManager<User> users) =>
+            DownloadProblemsAsync(id, http, factory, users, forPrinting: false)).AllowAnonymous();
+        group.MapGet("/{id:int}/printproblems", (int id, HttpContext http, IDbContextFactory<OlympContext> factory, UserManager<User> users) =>
+            DownloadProblemsAsync(id, http, factory, users, forPrinting: true)).RequireAuthorization(PolicyNames.Coach);
         group.MapGet("/{id:int}/downloadtests", DownloadTestsAsync).RequireAuthorization(PolicyNames.OlympUser);
         return group;
     }
 
     private static async Task<IResult> DownloadProblemsAsync(int id, HttpContext http, IDbContextFactory<OlympContext> factory,
-        bool forPrinting)
+        UserManager<User> users, bool forPrinting)
     {
         await using var context = await factory.CreateDbContextAsync(http.RequestAborted);
         var contest = await context.Contests.AsNoTracking().SingleOrDefaultAsync(item => item.Id == id && !item.IsHidden, http.RequestAborted);
@@ -32,7 +33,7 @@ internal static class ContestDownloads
 
         if (!contest.AllowShowProblems)
         {
-            int userId = int.Parse(http.User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            int userId = int.Parse(users.GetUserId(http.User)!);
             bool allowPrint = await context.Competitors.AnyAsync(participant => participant.ContestId == id
                 && participant.CoachId == userId, http.RequestAborted);
             if (!allowPrint)
@@ -44,7 +45,8 @@ internal static class ContestDownloads
         return Results.File(data, MediaTypeNames.Application.Pdf, $"{contest.Abbr}problems.pdf");
     }
 
-    private static async Task<IResult> DownloadTestsAsync(int id, HttpContext http, IDbContextFactory<OlympContext> factory)
+    private static async Task<IResult> DownloadTestsAsync(int id, HttpContext http, IDbContextFactory<OlympContext> factory,
+        UserManager<User> users)
     {
         await using var context = await factory.CreateDbContextAsync(http.RequestAborted);
         var contest = await context.Contests.AsNoTracking().SingleOrDefaultAsync(item => item.Id == id && !item.IsHidden, http.RequestAborted);
@@ -52,7 +54,7 @@ internal static class ContestDownloads
         if (contest is null || contest.TestZipId is null || !contest.AllowDownloadTests)
             return Results.NotFound();
 
-        int userId = int.Parse(http.User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        int userId = int.Parse(users.GetUserId(http.User)!);
         bool related = await context.Competitors.AnyAsync(participant => participant.ContestId == id
             && (participant.CoachId == userId || participant.Members.Any(member => member.Id == userId)), http.RequestAborted);
         if (!related)

@@ -4,6 +4,7 @@ using System.Security.Claims;
 using AngleSharp.Dom;
 using AngleSharp.Html.Parser;
 
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
@@ -13,6 +14,7 @@ using Olymp.Domain;
 using Olymp.Domain.Models;
 using Olymp.Site;
 using Olymp.Tests.Shared;
+using Olymp.WebApp.Components.Submissions;
 
 using Xunit;
 
@@ -21,6 +23,203 @@ namespace Olymp.IntegrationTests.WebApp;
 [Trait("Category", "Integration")]
 public class ProblemAccessTests(WebAppFactory factory) : IClassFixture<WebAppFactory>
 {
+    private const string Source = "// Submitted source\nclass Program { static void Main() {} }";
+
+    [Theory]
+    [InlineData(true, true, "user", true)]
+    [InlineData(true, false, "user", true)]
+    [InlineData(false, true, "user", false)]
+    [InlineData(false, false, "user", false)]
+    [InlineData(false, true, "ooc", false)]
+    [InlineData(true, true, "ooc", true)]
+    [InlineData(true, false, "ooc", true)]
+    [InlineData(false, false, "ooc", false)]
+    [InlineData(false, true, "pending-ooc", false)]
+    [InlineData(false, true, "disqualified-team", false)]
+    [InlineData(false, true, "official-member", false)]
+    [InlineData(true, true, "disqualified-user", false)]
+    [InlineData(false, true, "participant", true)]
+    [InlineData(true, true, "participant", true)]
+    [InlineData(true, false, "participant", false)]
+    [InlineData(false, false, "participant", false)]
+    [InlineData(false, true, "revoked-participant", false)]
+    [InlineData(false, true, RoleNames.Jury, false)]
+    [InlineData(false, true, RoleNames.Admin, false)]
+    public async Task SubmissionPermissionAndAttributionMatchContestState(bool open, bool running, string actor, bool allowed)
+    {
+        var data = await CreateDataAsync(open, running);
+        int expectedUserId = data.User.Id;
+        HttpClient client;
+        if (actor is "participant" or "revoked-participant")
+        {
+            var participant = await ParticipantAsync(data.Contest);
+            expectedUserId = participant.Id;
+            client = await factory.LoginAsync(participant.UserName!);
+            if (actor == "revoked-participant")
+            {
+                using var scope = factory.Services.CreateScope();
+                await scope.ServiceProvider.GetRequiredService<OlympContext>().Competitors
+                    .Where(team => team.Id == participant.Id)
+                    .ExecuteUpdateAsync(setters => setters.SetProperty(team => team.IsApproved, false), TestContext.Current.CancellationToken);
+            }
+        }
+        else
+        {
+            using var scope = factory.Services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<OlympContext>();
+            var team = await db.Competitors.SingleAsync(item => item.Id == data.Team.Id, TestContext.Current.CancellationToken);
+            team.IsOutOfCompetition = actor is "ooc" or "pending-ooc" or "disqualified-team";
+            team.IsApproved = actor != "pending-ooc";
+            team.IsDisqualified = actor == "disqualified-team";
+            if (actor == "disqualified-user")
+                (await db.OlympUsers.SingleAsync(user => user.Id == data.User.Id, TestContext.Current.CancellationToken)).IsDisqualified = true;
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+            if (actor is RoleNames.Jury or RoleNames.Admin)
+                await AddRoleAsync(data.User, actor);
+            client = await factory.LoginAsync(data.User.UserName!);
+        }
+        using (client)
+        {
+            string path = Path(data.Contest, data.Problem);
+            using var page = await GetAsync(client, path);
+            Assert.Equal(allowed, page.QuerySelector("#submission-code") is not null);
+            Assert.Equal(allowed, page.QuerySelector("a[href$='#submit-heading']") is not null);
+            using var posted = await PostAsync(client, path, page, data.Compiler.Id);
+            Assert.Equal(allowed ? HttpStatusCode.Redirect : HttpStatusCode.BadRequest, posted.StatusCode);
+            using var check = factory.Services.CreateScope();
+            var submissions = await check.ServiceProvider.GetRequiredService<OlympContext>().Submissions
+                .Where(item => item.ProblemId == data.Problem.Id).ToListAsync(TestContext.Current.CancellationToken);
+            if (allowed)
+                Assert.Equal(expectedUserId, Assert.Single(submissions).UserId);
+            else
+                Assert.Empty(submissions);
+        }
+    }
+
+    [Theory]
+    [InlineData("closed", true)]
+    [InlineData("disqualified", true)]
+    [InlineData("hidden", false)]
+    [InlineData("inactive", false)]
+    [InlineData("future", false)]
+    public async Task OwnerHistoryDependsOnProblemVisibilityNotSubmissionPermission(string state, bool visible)
+    {
+        var data = await CreateDataAsync();
+        int id = await AddSubmissionAsync(data.User.Id, data.Problem, data.Compiler);
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<OlympContext>();
+        if (state == "closed")
+            await db.Contests.Where(item => item.Id == data.Contest.Id).ExecuteUpdateAsync(setters => setters.SetProperty(item => item.IsOpen, false), TestContext.Current.CancellationToken);
+        else if (state == "disqualified")
+            await db.OlympUsers.Where(item => item.Id == data.User.Id).ExecuteUpdateAsync(setters => setters.SetProperty(item => item.IsDisqualified, true), TestContext.Current.CancellationToken);
+        else if (state == "hidden")
+            await db.Contests.Where(item => item.Id == data.Contest.Id).ExecuteUpdateAsync(setters => setters.SetProperty(item => item.IsHidden, true), TestContext.Current.CancellationToken);
+        else if (state == "inactive")
+            await db.Problems.Where(item => item.Id == data.Problem.Id).ExecuteUpdateAsync(setters => setters.SetProperty(item => item.IsActive, false), TestContext.Current.CancellationToken);
+        else
+            await db.Contests.Where(item => item.Id == data.Contest.Id).ExecuteUpdateAsync(setters => setters.SetProperty(item => item.StartTime, DateTimeOffset.UtcNow.AddHours(1)), TestContext.Current.CancellationToken);
+        using var client = await factory.LoginAsync(data.User.UserName!);
+        foreach (string path in new[] { $"/submissions/{id}", $"/submissions/{id}/download" })
+        {
+            using var response = await client.GetAsync(path, TestContext.Current.CancellationToken);
+            Assert.Equal(visible ? HttpStatusCode.OK : HttpStatusCode.NotFound, response.StatusCode);
+        }
+        if (visible)
+        {
+            using var page = await GetAsync(client, Path(data.Contest, data.Problem));
+            Assert.Null(page.QuerySelector("#submission-code"));
+            Assert.NotNull(page.QuerySelector($"#submission-{id}"));
+        }
+    }
+
+    [Theory]
+    [InlineData(true, "own-coach", true)]
+    [InlineData(false, "own-coach", false)]
+    [InlineData(true, "other-coach", false)]
+    [InlineData(true, "no-coach-claim", true)]
+    [InlineData(false, "no-coach-claim", false)]
+    [InlineData(true, "hidden-own-coach", false)]
+    [InlineData(true, "inactive-own-coach", false)]
+    [InlineData(true, RoleNames.Jury, false)]
+    [InlineData(true, RoleNames.Admin, false)]
+    public async Task CoachCanReadOwnTeamSubmissionInOpenContest(bool open, string actor, bool allowed)
+    {
+        var data = await CreateDataAsync(open, running: true);
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<OlympContext>();
+            await db.Competitors.Where(team => team.Id == data.Team.Id).ExecuteUpdateAsync(
+                setters => setters.SetProperty(team => team.CoachId,
+                    actor == "other-coach" ? data.User.Id
+                        : actor == RoleNames.Jury || actor == RoleNames.Admin ? (int?)null : data.Other.Id), TestContext.Current.CancellationToken);
+            // The shared-feed freeze does not restrict an authorized submission details view.
+            await db.Contests.Where(contest => contest.Id == data.Contest.Id).ExecuteUpdateAsync(
+                setters => setters.SetProperty(contest => contest.FreezeTime, DateTimeOffset.UtcNow.AddMinutes(-10)), TestContext.Current.CancellationToken);
+            if (actor == "hidden-own-coach")
+                await db.Contests.Where(contest => contest.Id == data.Contest.Id).ExecuteUpdateAsync(
+                    setters => setters.SetProperty(contest => contest.IsHidden, true), TestContext.Current.CancellationToken);
+            if (actor == "inactive-own-coach")
+                await db.Problems.Where(problem => problem.Id == data.Problem.Id).ExecuteUpdateAsync(
+                    setters => setters.SetProperty(problem => problem.IsActive, false), TestContext.Current.CancellationToken);
+        }
+        if (actor.EndsWith("coach", StringComparison.Ordinal))
+            await AddClaimAsync(data.Other, ClaimNames.CoachOrg, "7");
+        if (actor is RoleNames.Jury or RoleNames.Admin)
+            await AddRoleAsync(data.Other, actor);
+        int id = await AddSubmissionAsync(data.Team.Id, data.Problem, data.Compiler, diagnostics: true);
+        using var client = await factory.LoginAsync(data.Other.UserName!);
+        using var response = await client.GetAsync($"/submissions/{id}", TestContext.Current.CancellationToken);
+        Assert.Equal(allowed ? HttpStatusCode.OK : HttpStatusCode.NotFound, response.StatusCode);
+        if (allowed)
+        {
+            using var page = await ParseAsync(response);
+            Assert.Equal(Source, page.QuerySelector("pre code")!.TextContent);
+            Assert.Contains("Compilation error", page.QuerySelector("main")!.TextContent);
+            Assert.Equal("PRIVATE_DIAGNOSTICS", page.QuerySelector("#compilation-errors pre")!.TextContent);
+        }
+        using var download = await client.GetAsync($"/submissions/{id}/download", TestContext.Current.CancellationToken);
+        Assert.Equal(allowed ? HttpStatusCode.OK : HttpStatusCode.NotFound, download.StatusCode);
+        if (allowed)
+            Assert.Equal(Source, await download.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
+        int personalId = await AddSubmissionAsync(data.User.Id, data.Problem, data.Compiler);
+        using var personal = await client.GetAsync($"/submissions/{personalId}", TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.NotFound, personal.StatusCode);
+    }
+
+    [Theory]
+    [InlineData(true, "member", true)]
+    [InlineData(false, "member", false)]
+    [InlineData(true, "participant", true)]
+    [InlineData(false, "participant", true)]
+    public async Task TeamSubmissionAuthorHasAccessButLinkedMemberRequiresOpenContest(bool open, string actor, bool allowed)
+    {
+        var data = await CreateDataAsync(open, running: true);
+        var participant = await ParticipantAsync(data.Contest);
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<OlympContext>();
+            var team = await db.Competitors.Include(item => item.Members)
+                .SingleAsync(item => item.Id == participant.Id, TestContext.Current.CancellationToken);
+            team.Members.Add(await db.OlympUsers.SingleAsync(item => item.Id == data.User.Id, TestContext.Current.CancellationToken));
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+        int id = await AddSubmissionAsync(participant.Id, data.Problem, data.Compiler, diagnostics: true);
+        using var client = await factory.LoginAsync(actor == "participant" ? participant.UserName! : data.User.UserName!);
+        using var response = await client.GetAsync($"/submissions/{id}", TestContext.Current.CancellationToken);
+        Assert.Equal(allowed ? HttpStatusCode.OK : HttpStatusCode.NotFound, response.StatusCode);
+        if (allowed)
+        {
+            using var page = await ParseAsync(response);
+            Assert.Equal(Source, page.QuerySelector("pre code")!.TextContent);
+            Assert.Contains("Compilation error", page.QuerySelector("main")!.TextContent);
+            Assert.Equal("PRIVATE_DIAGNOSTICS", page.QuerySelector("#compilation-errors pre")!.TextContent);
+        }
+        using var download = await client.GetAsync($"/submissions/{id}/download", TestContext.Current.CancellationToken);
+        Assert.Equal(allowed ? HttpStatusCode.OK : HttpStatusCode.NotFound, download.StatusCode);
+        if (allowed)
+            Assert.Equal(Source, await download.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
+    }
+
     [Theory]
     [InlineData("guest", "/Account/Login")]
     [InlineData("user", "/Account/AccessDenied")]
@@ -125,6 +324,67 @@ public class ProblemAccessTests(WebAppFactory factory) : IClassFixture<WebAppFac
         }
     }
 
+    [Fact]
+    public async Task TemporaryAccountCanReadOtherContestsButOnlySubmitToOwnAndReadOwnSource()
+    {
+        var data = await CreateDataAsync(running: true);
+        var other = await CreateDataAsync();
+        var participant = await ParticipantAsync(data.Contest);
+        int ownId = await AddSubmissionAsync(participant.Id, data.Problem, data.Compiler);
+        int foreignId = await AddSubmissionAsync(other.User.Id, other.Problem, other.Compiler);
+        using var client = await factory.LoginAsync(participant.UserName!);
+        using var own = await GetAsync(client, Path(data.Contest, data.Problem));
+        using var history = await GetAsync(client, "/submissions");
+        Assert.Single(history.QuerySelectorAll("#submissions tbody tr"));
+        Assert.Null(history.QuerySelector("#submissions .nav"));
+        foreach (string scope in new[] { "all", "participant", "coached" })
+        {
+            using var deniedScope = await client.GetAsync($"/submissions?scope={scope}", TestContext.Current.CancellationToken);
+            Assert.Equal(HttpStatusCode.NotFound, deniedScope.StatusCode);
+        }
+        Assert.NotNull(own.QuerySelector("#submission-code"));
+        Assert.Null(own.QuerySelector("header a[href='account/manage']"));
+        Assert.Equal(participant.Name, own.QuerySelector("header .navbar-text")!.TextContent);
+        using var source = await GetAsync(client, $"/submissions/{ownId}");
+        Assert.Equal(Source, source.QuerySelector("pre code")!.TextContent);
+        foreach (string path in new[]
+        {
+            Path(other.Contest, other.Problem), $"/contests/{other.Contest.Id}/competitors", $"/contests/{other.Contest.Id}/rules",
+            $"/contests/{other.Contest.Id}/standing", $"/contests/{other.Contest.Id}/downloadproblems"
+        })
+        {
+            using var response = await client.GetAsync(path, TestContext.Current.CancellationToken);
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        }
+        using var foreign = await GetAsync(client, Path(other.Contest, other.Problem));
+        Assert.NotNull(foreign.QuerySelector(".statement-html"));
+        Assert.Null(foreign.QuerySelector("#submission-code"));
+        Assert.Null(foreign.QuerySelector($"#submission-{foreignId}"));
+        using var tests = await client.GetAsync($"/contests/{other.Contest.Id}/downloadtests", TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.Redirect, tests.StatusCode);
+        Assert.Equal("/Account/AccessDenied", new Uri(client.BaseAddress!, tests.Headers.Location!).AbsolutePath);
+        foreach (string path in new[] { $"/submissions/{foreignId}", $"/submissions/{foreignId}/download" })
+        {
+            using var denied = await client.GetAsync(path, TestContext.Current.CancellationToken);
+            Assert.Equal(HttpStatusCode.NotFound, denied.StatusCode);
+        }
+        using var list = await GetAsync(client, "/contests");
+        Assert.Equal(2, list.QuerySelectorAll("main article").Length);
+        Assert.NotNull(list.QuerySelector("header a[href='contests']"));
+        Assert.Null(list.QuerySelector("header a[href='account/manage']"));
+        using var foreignPost = await PostAsync(client, Path(other.Contest, other.Problem), own, other.Compiler.Id);
+        Assert.Equal(HttpStatusCode.BadRequest, foreignPost.StatusCode);
+        using var rejected = await ParseAsync(foreignPost);
+        Assert.Null(rejected.QuerySelector("#submission-code"));
+        using var check = factory.Services.CreateScope();
+        var viewer = await check.ServiceProvider.GetRequiredService<IUserClaimsPrincipalFactory<User>>().CreateAsync(participant);
+        var permission = await check.ServiceProvider.GetRequiredService<IAuthorizationService>().AuthorizeAsync(viewer, other.Problem,
+            new SubmitSolutionRequirement());
+        Assert.False(permission.Succeeded);
+        Assert.Equal(1, await check.ServiceProvider.GetRequiredService<OlympContext>().Submissions
+            .CountAsync(item => item.ProblemId == other.Problem.Id, TestContext.Current.CancellationToken));
+    }
+
     [Theory]
     [InlineData("member", true)]
     [InlineData("pending-member", true)]
@@ -216,6 +476,31 @@ public class ProblemAccessTests(WebAppFactory factory) : IClassFixture<WebAppFac
         return (user, other, contest, problem, compiler, team);
     }
 
+    private async Task<int> AddSubmissionAsync(int userId, Problem problem, Compilator compiler, bool diagnostics = false)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<OlympContext>();
+        var submission = new Submission
+        {
+            User = null!,
+            UserId = userId,
+            Problem = null!,
+            ProblemId = problem.Id,
+            Compilator = null!,
+            CompilatorId = compiler.Id,
+            SourceCode = null!,
+            Text = Source,
+            CommitTime = DateTimeOffset.UtcNow,
+            StatusCode = diagnostics ? -1 : 2,
+            CheckResults = []
+        };
+        if (diagnostics)
+            submission.CheckResults.Add(new CheckResult { Submission = submission, StatusCode = -1, CheckTime = DateTimeOffset.UtcNow, Log = "PRIVATE_DIAGNOSTICS" });
+        db.Submissions.Add(submission);
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        return submission.Id;
+    }
+
     private async Task<Competitor> ParticipantAsync(Contest contest)
     {
         var participant = TestEntities.CreateCompetitor(contest, $"temp_{Guid.NewGuid():N}");
@@ -245,6 +530,8 @@ public class ProblemAccessTests(WebAppFactory factory) : IClassFixture<WebAppFac
         Assert.True((await users.AddToRoleAsync((await users.FindByIdAsync(user.Id.ToString()))!, role)).Succeeded);
     }
 
+    private static string Path(Contest contest, Problem problem) => $"/contests/{contest.Id}/problems?problemId={problem.Id}";
+
     private static async Task<IDocument> GetAsync(HttpClient client, string path)
     {
         using var response = await client.GetAsync(path, TestContext.Current.CancellationToken);
@@ -255,4 +542,15 @@ public class ProblemAccessTests(WebAppFactory factory) : IClassFixture<WebAppFac
     private static async Task<IDocument> ParseAsync(HttpResponseMessage response) => await new HtmlParser().ParseDocumentAsync(
         await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
 
+    private static async Task<HttpResponseMessage> PostAsync(HttpClient client, string path, IDocument page, int compilerId)
+    {
+        var form = page.QuerySelector("form:has(#submission-code)");
+        var fields = form?.QuerySelectorAll("input[type='hidden'][name]")
+            .ToDictionary(input => input.GetAttribute("name")!, input => input.GetAttribute("value") ?? "") ?? [];
+        fields["_handler"] = "submit-solution";
+        fields["Input.CompilatorId"] = compilerId.ToString();
+        fields["Input.Code"] = Source;
+        using var content = new FormUrlEncodedContent(fields);
+        return await client.PostAsync(path, content, TestContext.Current.CancellationToken);
+    }
 }

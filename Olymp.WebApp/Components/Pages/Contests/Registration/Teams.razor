@@ -1,7 +1,7 @@
 @page "/contests/{Id:int}/registration/teams"
 
-@using System.Security.Claims
 @using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Identity
 @using Microsoft.EntityFrameworkCore
 @using Olymp.Domain
 @using Olymp.Site
@@ -15,6 +15,7 @@
 @inject OlympContext Context
 @inject CompetitorManagementService Competitors
 @inject NavigationManager Navigation
+@inject UserManager<User> Users
 
 @if (contest is not null)
 {
@@ -120,7 +121,7 @@
             return;
         }
 
-        userId = int.Parse(HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        userId = int.Parse(Users.GetUserId(HttpContext.User)!);
         var orgIds = HttpContext.User.FindAll(ClaimNames.CoachOrg).Select(claim => int.Parse(claim.Value)).ToArray();
         organizations = await Context.Organizations.AsNoTracking().Where(item => orgIds.Contains(item.Id))
             .OrderBy(item => item.Name).ToListAsync(HttpContext.RequestAborted);

@@ -123,6 +123,42 @@
   <data name="Examples" xml:space="preserve"><value>Examples</value></data>
   <data name="StandardInput" xml:space="preserve"><value>Standard input</value></data>
   <data name="StandardOutput" xml:space="preserve"><value>Standard output</value></data>
+  <data name="CompilerRequired" xml:space="preserve"><value>Select a compiler.</value></data>
+  <data name="SourceCodeRequired" xml:space="preserve"><value>Enter the source code.</value></data>
+  <data name="SourceCodeLength" xml:space="preserve"><value>Source code must contain between 10 and 32768 characters.</value></data>
+  <data name="SourceCodeEncoding" xml:space="preserve"><value>The source contains characters that cannot be stored in Windows-1251. Replace them and try again.</value></data>
+  <data name="SubmissionNotAllowed" xml:space="preserve"><value>You are not allowed to submit solutions.</value></data>
+  <data name="CompilerUnavailable" xml:space="preserve"><value>The selected compiler is unavailable. Select an active compiler.</value></data>
+  <data name="SubmissionDiagnosticsUnavailable" xml:space="preserve"><value>Compilation diagnostics are unavailable.</value></data>
+  <data name="SubmitSolution" xml:space="preserve"><value>Submit solution</value></data>
+  <data name="Compiler" xml:space="preserve"><value>Compiler</value></data>
+  <data name="SelectCompiler" xml:space="preserve"><value>Select a compiler</value></data>
+  <data name="SourceCode" xml:space="preserve"><value>Source code</value></data>
+  <data name="SubmissionRulesLink" xml:space="preserve"><value>System usage rules</value></data>
+  <data name="NoActiveCompilers" xml:space="preserve"><value>There are no active compilers. Submission is temporarily unavailable.</value></data>
+  <data name="Refresh" xml:space="preserve"><value>Refresh</value></data>
+  <data name="NoSubmissions" xml:space="preserve"><value>There are no submissions yet.</value></data>
+  <data name="SubmissionTime" xml:space="preserve"><value>Time</value></data>
+  <data name="SubmissionAuthor" xml:space="preserve"><value>Author</value></data>
+  <data name="SubmissionStatus" xml:space="preserve"><value>Status</value></data>
+  <data name="SubmissionSource" xml:space="preserve"><value>Submission</value></data>
+  <data name="ViewSource" xml:space="preserve"><value>View</value></data>
+  <data name="DownloadSource" xml:space="preserve"><value>Download</value></data>
+  <data name="BackToProblem" xml:space="preserve"><value>Back to the problem</value></data>
+  <data name="SubmissionCompilationError" xml:space="preserve"><value>Compilation error</value></data>
   <data name="ProblemsForContest" xml:space="preserve"><value>Problems – {0}</value></data>
   <data name="RulesForContest" xml:space="preserve"><value>Rules – {0}</value></data>
+  <data name="JumpToSubmission" xml:space="preserve"><value>Go to submission ↓</value></data>
+  <data name="Submissions" xml:space="preserve"><value>Submissions</value></data>
+  <data name="Problem" xml:space="preserve"><value>Problem</value></data>
+  <data name="SubmissionScope" xml:space="preserve"><value>Submission scope</value></data>
+  <data name="OwnSubmissions" xml:space="preserve"><value>Own</value></data>
+  <data name="ParticipantSubmissions" xml:space="preserve"><value>My participants</value></data>
+  <data name="CoachedSubmissions" xml:space="preserve"><value>Coached authors</value></data>
+  <data name="AllSubmissions" xml:space="preserve"><value>All</value></data>
+  <data name="SubmissionRecorded" xml:space="preserve"><value>Submitted</value></data>
+  <data name="SubmissionPages" xml:space="preserve"><value>Submission pages</value></data>
+  <data name="NextPage" xml:space="preserve"><value>Next</value></data>
+  <data name="ParticipantAccountSignIn" xml:space="preserve"><value>Sign in with this participant account to participate in the contest.</value></data>
+  <data name="ParticipantAccountNotIssued" xml:space="preserve"><value>The participant login and password have not been issued yet.</value></data>
 </root>

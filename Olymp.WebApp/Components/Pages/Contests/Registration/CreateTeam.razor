@@ -1,8 +1,8 @@
 @page "/contests/{Id:int}/registration/teams/create"
 
 @using System.ComponentModel.DataAnnotations
-@using System.Security.Claims
 @using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Identity
 @using Microsoft.EntityFrameworkCore
 @using Olymp.Domain
 @using Olymp.Site
@@ -17,6 +17,7 @@
 @inject CompetitorManagementService Competitors
 @inject NavigationManager Navigation
 @inject ILogger<CreateTeam> Logger
+@inject UserManager<User> Users
 
 @if (contest is not null && organization is not null)
 {
@@ -40,21 +41,21 @@
             <div class="col-md-4">
                 <div class="form-floating">
                     <InputText @bind-Value="Input.TeamPrefix" id="Input.TeamPrefix" class="form-control" placeholder=" " readonly="@preview" />
-                    <label for="Input.TeamPrefix">@SiteResources.TeamPrefix</label>
+                    <label for="Input.TeamPrefix"><DisplayName For="() => Input.TeamPrefix" /></label>
                 </div>
                 <ValidationMessage For="() => Input.TeamPrefix" class="text-danger" />
             </div>
             <div class="col-md-3">
                 <div class="form-floating">
                     <InputNumber @bind-Value="Input.TeamNumber" id="Input.TeamNumber" class="form-control" placeholder=" " readonly="@preview" />
-                    <label for="Input.TeamNumber">@SiteResources.TeamNumber</label>
+                    <label for="Input.TeamNumber"><DisplayName For="() => Input.TeamNumber" /></label>
                 </div>
                 <ValidationMessage For="() => Input.TeamNumber" class="text-danger" />
             </div>
             <div class="col-md-5">
                 <div class="form-floating">
                     <InputText @bind-Value="Input.TeamSuffix" id="Input.TeamSuffix" class="form-control" placeholder=" " readonly="@preview" />
-                    <label for="Input.TeamSuffix">@SiteResources.TeamSuffix</label>
+                    <label for="Input.TeamSuffix"><DisplayName For="() => Input.TeamSuffix" /></label>
                 </div>
                 <ValidationMessage For="() => Input.TeamSuffix" class="text-danger" />
             </div>
@@ -73,7 +74,7 @@
                 <div class="col-md-6">
                     <div class="form-floating">
                         <InputText @bind-Value="Input.Member1Name" id="Input.Member1Name" aria-describedby="member1-name-hint" class="form-control" placeholder="@SiteResources.ContestMemberNameExample" readonly="@preview" />
-                        <label for="Input.Member1Name">@SiteResources.ContestMemberName</label>
+                        <label for="Input.Member1Name"><DisplayName For="() => Input.Member1Name" /></label>
                     </div>
                     <div id="member1-name-hint" class="form-text">@SiteResources.TeamMemberSelectionHint</div>
                     <ValidationMessage For="() => Input.Member1Name" class="text-danger" />
@@ -87,7 +88,7 @@
                                 <option value="@member.Id">@GetAccountLabel(member)</option>
                             }
                         </InputSelect>
-                        <label for="Input.Member1Id">@SiteResources.OptionalMemberAccount</label>
+                        <label for="Input.Member1Id"><DisplayName For="() => Input.Member1Id" /></label>
                     </div>
                     <ValidationMessage For="() => Input.Member1Id" class="text-danger" />
                 </div>
@@ -99,7 +100,7 @@
                 <div class="col-md-6">
                     <div class="form-floating">
                         <InputText @bind-Value="Input.Member2Name" id="Input.Member2Name" aria-describedby="member2-name-hint" class="form-control" placeholder="@SiteResources.ContestMemberNameExample" readonly="@preview" />
-                        <label for="Input.Member2Name">@SiteResources.ContestMemberName</label>
+                        <label for="Input.Member2Name"><DisplayName For="() => Input.Member2Name" /></label>
                     </div>
                     <div id="member2-name-hint" class="form-text">@SiteResources.TeamMemberSelectionHint</div>
                     <ValidationMessage For="() => Input.Member2Name" class="text-danger" />
@@ -113,7 +114,7 @@
                                 <option value="@member.Id">@GetAccountLabel(member)</option>
                             }
                         </InputSelect>
-                        <label for="Input.Member2Id">@SiteResources.OptionalMemberAccount</label>
+                        <label for="Input.Member2Id"><DisplayName For="() => Input.Member2Id" /></label>
                     </div>
                     <ValidationMessage For="() => Input.Member2Id" class="text-danger" />
                 </div>
@@ -125,7 +126,7 @@
                 <div class="col-md-6">
                     <div class="form-floating">
                         <InputText @bind-Value="Input.Member3Name" id="Input.Member3Name" aria-describedby="member3-name-hint" class="form-control" placeholder="@SiteResources.ContestMemberNameExample" readonly="@preview" />
-                        <label for="Input.Member3Name">@SiteResources.ContestMemberName</label>
+                        <label for="Input.Member3Name"><DisplayName For="() => Input.Member3Name" /></label>
                     </div>
                     <div id="member3-name-hint" class="form-text">@SiteResources.TeamMemberSelectionHint</div>
                     <ValidationMessage For="() => Input.Member3Name" class="text-danger" />
@@ -139,7 +140,7 @@
                                 <option value="@member.Id">@GetAccountLabel(member)</option>
                             }
                         </InputSelect>
-                        <label for="Input.Member3Id">@SiteResources.OptionalMemberAccount</label>
+                        <label for="Input.Member3Id"><DisplayName For="() => Input.Member3Id" /></label>
                     </div>
                     <ValidationMessage For="() => Input.Member3Id" class="text-danger" />
                 </div>
@@ -147,7 +148,7 @@
         </fieldset>
         <div class="form-check mb-3">
             <InputCheckbox @bind-Value="Input.OutOfCompetition" id="Input.OutOfCompetition" class="form-check-input" disabled="@preview" />
-            <label for="Input.OutOfCompetition" class="form-check-label">@SiteResources.ParticipateOutOfCompetition</label>
+            <label for="Input.OutOfCompetition" class="form-check-label"><DisplayName For="() => Input.OutOfCompetition" /></label>
         </div>
 
         @if (preview)
@@ -179,7 +180,7 @@
             </section>
             <div class="form-check mb-3">
                 <InputCheckbox @bind-Value="Input.Confirmation" id="Input.Confirmation" class="form-check-input" />
-                <label for="Input.Confirmation" class="form-check-label">@SiteResources.ConfirmTeamData</label>
+                <label for="Input.Confirmation" class="form-check-label"><DisplayName For="() => Input.Confirmation" /></label>
                 <ValidationMessage For="() => Input.Confirmation" class="text-danger" />
             </div>
             <div class="form-check mb-3">
@@ -365,7 +366,7 @@
         if (editContext.GetValidationMessages().Any())
             return;
 
-        int coachId = int.Parse(HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        int coachId = int.Parse(Users.GetUserId(HttpContext.User)!);
         try
         {
             await Competitors.RegisterTeamAsync(Id, OrgId, coachId, teamName, participants, Input.OutOfCompetition, HttpContext.RequestAborted);
@@ -400,6 +401,7 @@
         public string TeamPrefix { get; set; } = "";
 
         [Range(1, 32, ErrorMessageResourceName = nameof(SiteResources.TeamNumberRange), ErrorMessageResourceType = typeof(SiteResources))]
+        [Display(Name = nameof(SiteResources.TeamNumber), ResourceType = typeof(SiteResources))]
         public int? TeamNumber { get; set; }
 
         [StringLength(32, ErrorMessageResourceName = nameof(AccountResources.FieldMaximumLength), ErrorMessageResourceType = typeof(AccountResources))]
@@ -407,6 +409,7 @@
         [Display(Name = nameof(SiteResources.TeamSuffix), ResourceType = typeof(SiteResources))]
         public string? TeamSuffix { get; set; }
 
+        [Display(Name = nameof(SiteResources.OptionalMemberAccount), ResourceType = typeof(SiteResources))]
         public int? Member1Id { get; set; }
 
         [StringLength(129, ErrorMessageResourceName = nameof(AccountResources.FieldMaximumLength), ErrorMessageResourceType = typeof(AccountResources))]
@@ -414,6 +417,7 @@
         [Display(Name = nameof(SiteResources.ContestMemberName), ResourceType = typeof(SiteResources))]
         public string? Member1Name { get; set; }
 
+        [Display(Name = nameof(SiteResources.OptionalMemberAccount), ResourceType = typeof(SiteResources))]
         public int? Member2Id { get; set; }
 
         [StringLength(129, ErrorMessageResourceName = nameof(AccountResources.FieldMaximumLength), ErrorMessageResourceType = typeof(AccountResources))]
@@ -421,6 +425,7 @@
         [Display(Name = nameof(SiteResources.ContestMemberName), ResourceType = typeof(SiteResources))]
         public string? Member2Name { get; set; }
 
+        [Display(Name = nameof(SiteResources.OptionalMemberAccount), ResourceType = typeof(SiteResources))]
         public int? Member3Id { get; set; }
 
         [StringLength(129, ErrorMessageResourceName = nameof(AccountResources.FieldMaximumLength), ErrorMessageResourceType = typeof(AccountResources))]
@@ -428,8 +433,12 @@
         [Display(Name = nameof(SiteResources.ContestMemberName), ResourceType = typeof(SiteResources))]
         public string? Member3Name { get; set; }
 
+        [Display(Name = nameof(SiteResources.ParticipateOutOfCompetition), ResourceType = typeof(SiteResources))]
         public bool OutOfCompetition { get; set; }
+
+        [Display(Name = nameof(SiteResources.ConfirmTeamData), ResourceType = typeof(SiteResources))]
         public bool Confirmation { get; set; }
+
         public bool AcceptRules { get; set; }
         public string Action { get; set; } = "preview";
     }

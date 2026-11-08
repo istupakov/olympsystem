@@ -3,6 +3,10 @@
 <div class="problem-browser row g-4 align-items-start">
     <nav class="problem-list col-lg-3 text-break" aria-label="@SiteResources.ProblemList">
         <form action="@ProblemUrl(Selected?.Id ?? 0)" method="get" data-enhance class="d-lg-none mb-3">
+            @if (!string.IsNullOrEmpty(Scope))
+            {
+                <input type="hidden" name="scope" value="@Scope" />
+            }
             <label for="workspace-problem" class="form-label">@SiteResources.Problems</label>
             <div class="d-flex gap-2">
                 <select id="workspace-problem" name="problemId" class="form-select">
@@ -37,6 +41,9 @@
 
     [Parameter]
     public Problem? Selected { get; set; }
+
+    [Parameter]
+    public string? Scope { get; set; }
 
     [Parameter, EditorRequired]
     public Func<int, string> ProblemUrl { get; set; } = default!;

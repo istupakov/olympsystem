@@ -1,17 +1,19 @@
 @page "/contests/{ContestId:int}/problems"
 
-@using System.Text
 @using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.WebUtilities
 @using Microsoft.EntityFrameworkCore
 @using Olymp.Domain
 @using Olymp.Domain.Models
 @using Olymp.WebApp.Components.Contests
 @using Olymp.WebApp.Components.Problems
+@using Olymp.WebApp.Components.Submissions
 
 @attribute [Authorize]
 @attribute [ExcludeFromInteractiveRouting]
 @inject NavigationManager Navigation
 @inject IDbContextFactory<OlympContext> ContextFactory
+@inject IAuthorizationService Authorization
 
 @if (contest is not null)
 {
@@ -19,10 +21,23 @@
         ? $"{selected.NameWithNumber} – {contest.Name}"
         : string.Format(SiteResources.ProblemsForContest, contest.Name))</PageTitle>
     <ContestHeader Contest="contest" ActiveSection="problems" />
-    @if (selected is not null && statement is not null)
+    @if (selected is not null)
     {
-        <ProblemWorkspace Problems="problems" Selected="selected" ProblemUrl="ProblemUrl">
-            <ProblemStatementView Statement="statement" />
+        <ProblemWorkspace Problems="problems" Selected="selected" ProblemUrl="ProblemUrl" Scope="@Scope">
+            @if (canSubmit)
+            {
+                <p><a href="@ProblemUrl(selected.Id)#submit-heading">@SiteResources.JumpToSubmission</a></p>
+            }
+            <ProblemStatementView Problem="selected" Examples="examples" />
+            @if (canSubmit)
+            {
+                <SubmitSolutionForm Problem="selected" Action="@FormUrl" />
+            }
+            else
+            {
+                <p class="text-body-secondary">@SiteResources.SubmissionNotAllowed</p>
+            }
+            <SubmissionList ContestId="ContestId" ProblemId="selected.Id" Scope="@Scope" Page="@(SubmissionPage ?? 1)" />
         </ProblemWorkspace>
     }
     else
@@ -38,23 +53,38 @@
     [SupplyParameterFromQuery]
     public int? ProblemId { get; set; }
 
+    [SupplyParameterFromQuery]
+    public string? Scope { get; set; }
+
+    [SupplyParameterFromQuery(Name = "page")]
+    public int? SubmissionPage { get; set; }
+
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
 
     private Contest? contest;
     private IReadOnlyList<Problem> problems = [];
     private Problem? selected;
-    private ProblemStatement? statement;
+    private IReadOnlyList<Test> examples = [];
+    private bool canSubmit;
 
-    private string ProblemUrl(int problemId) => $"contests/{ContestId}/problems?problemId={problemId}";
+    private string ProblemUrl(int problemId)
+    {
+        string url = $"contests/{ContestId}/problems?problemId={problemId}";
+        return string.IsNullOrEmpty(Scope) ? url : QueryHelpers.AddQueryString(url, "scope", Scope);
+    }
+
+    private string FormUrl => SubmissionPage is null or 1 ? ProblemUrl(selected!.Id)
+        : QueryHelpers.AddQueryString(ProblemUrl(selected!.Id), "page", SubmissionPage.Value.ToString(CultureInfo.InvariantCulture));
 
     protected override async Task OnParametersSetAsync()
     {
-        await using var context = await ContextFactory.CreateDbContextAsync(HttpContext.RequestAborted);
+        var token = HttpContext.RequestAborted;
+        await using var context = await ContextFactory.CreateDbContextAsync(token);
         contest = await context.Contests.AsNoTracking()
             .Where(item => item.Id == ContestId && !item.IsHidden)
             .Include(item => item.Problems.Where(problem => problem.IsActive))
-            .SingleOrDefaultAsync(HttpContext.RequestAborted);
+            .SingleOrDefaultAsync(token);
         if (contest is null || !contest.AllowShowProblems)
         {
             contest = null;
@@ -66,34 +96,22 @@
         selected = ProblemId.HasValue
             ? problems.SingleOrDefault(problem => problem.Id == ProblemId.Value)
             : problems.FirstOrDefault();
-
-        if (selected is not null)
+        if (selected is null)
         {
-            var problem = await context.Problems.AsNoTracking()
-                .Where(problem => problem.IsActive && !problem.Contest.IsHidden && problem.Contest.StartTime <= DateTimeOffset.UtcNow)
-                .Where(item => item.Id == selected.Id)
-                .Select(item => new
-                {
-                    item.ContestId,
-                    item.TimeLimit,
-                    item.MemoryLimit,
-                    item.Text,
-                    HasPdf = item.Contest.ProblemPdfId.HasValue,
-                    Examples = item.Tests.Where(test => test.IsOpen && test.IsActive).OrderBy(test => test.Number)
-                        .Select(test => new { test.Input, test.Output }).ToList()
-                })
-                .SingleOrDefaultAsync(HttpContext.RequestAborted);
-
-            if (problem is not null)
-                statement = new(problem.ContestId, problem.TimeLimit, problem.MemoryLimit, problem.Text, problem.HasPdf,
-                    [.. problem.Examples.Select(test => new ProblemExample(
-                        Encoding.Default.GetString(test.Input), Encoding.Default.GetString(test.Output)))]);
+            if (ProblemId.HasValue)
+            {
+                contest = null;
+                Navigation.NotFound();
+            }
+            return;
         }
 
-        if ((ProblemId.HasValue && selected is null) || (selected is not null && statement is null))
-        {
-            contest = null;
-            Navigation.NotFound();
-        }
+        examples = await context.Tests.AsNoTracking()
+            .Where(test => test.ProblemId == selected.Id && test.IsOpen && test.IsActive)
+            .OrderBy(test => test.Number)
+            .ToListAsync(token);
+
+        canSubmit = (await Authorization.AuthorizeAsync(HttpContext.User, selected,
+            new SubmitSolutionRequirement())).Succeeded;
     }
 }

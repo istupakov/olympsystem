@@ -84,14 +84,15 @@ public class PublicPagesTests(WebAppFactory factory) : IClassFixture<WebAppFacto
         Assert.Equal(news, document.Title);
         Assert.Equal(news, document.QuerySelector("main h1")!.TextContent);
         Assert.Equal("OlympSystem", document.QuerySelector("header .navbar-brand")!.TextContent.Trim());
-        Assert.Equal([news, contests, culture == "ru" ? "Правила" : "Rules"], document.QuerySelectorAll("header ul.nav a").Select(link => link.TextContent));
+        Assert.Equal([news, contests, culture == "ru" ? "Решения" : "Submissions", culture == "ru" ? "Правила" : "Rules"],
+            document.QuerySelectorAll("header ul.nav a").Select(link => link.TextContent));
         Assert.Equal(news, Assert.Single(document.QuerySelectorAll("header ul.nav a.active")).TextContent);
         Assert.Equal("contests", document.QuerySelector("header ul.nav a[href='contests']")!.GetAttribute("href"));
         Assert.NotNull(document.QuerySelector("header ul.nav a[href='rules']"));
         Assert.Equal(login, document.QuerySelector("header a[href='account/login']")!.TextContent);
         Assert.Equal(register, document.QuerySelector("header a[href='account/register']")!.TextContent);
         Assert.Null(document.QuerySelector("header a[href='account/manage']"));
-        Assert.Equal(contacts, document.QuerySelector("footer a[href='contacts']")!.TextContent);
+        Assert.Equal(contacts, document.QuerySelector("footer a[href='contacts']")!.TextContent.Trim());
         Assert.Equal("GitHub", document.QuerySelector("footer a[href='https://github.com/istupakov/olympsystem']")!.TextContent.Trim());
         var footer = document.QuerySelector("footer")!;
         Assert.Equal(culture == "ru" ? "НГТУ" : "NSTU", footer.QuerySelector(culture == "ru" ? "a[href='https://nstu.ru']" : "a[href='https://en.nstu.ru']")!.TextContent);

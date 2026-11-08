@@ -1,7 +1,8 @@
-@using System.Security.Claims
+@using Microsoft.AspNetCore.Identity
 @using Microsoft.EntityFrameworkCore
 @using Olymp.Domain
 @using Olymp.Site
+@inject UserManager<User> Users
 @inject IDbContextFactory<OlympContext> ContextFactory
 @inject NavigationManager NavigationManager
 
@@ -18,6 +19,9 @@
             </li>
             <li class="nav-item">
                 <NavLink class="nav-link" href="contests">@SiteResources.Contests</NavLink>
+            </li>
+            <li class="nav-item">
+                <NavLink class="nav-link" href="submissions">@SiteResources.Submissions</NavLink>
             </li>
             <li class="nav-item">
                 <NavLink class="nav-link" href="rules">@SiteResources.Rules</NavLink>
@@ -62,8 +66,10 @@
     protected override async Task OnInitializedAsync()
     {
         var state = await AuthenticationState;
-        if (state.User.Identity?.IsAuthenticated != true
-            || !int.TryParse(state.User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
+        if (state.User.Identity?.IsAuthenticated != true)
+            return;
+
+        if (!int.TryParse(Users.GetUserId(state.User), out int userId))
             return;
 
         await using var context = await ContextFactory.CreateDbContextAsync();

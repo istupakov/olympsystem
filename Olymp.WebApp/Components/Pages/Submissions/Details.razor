@@ -1,0 +1,83 @@
+@page "/submissions/{Id:int}"
+
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.EntityFrameworkCore
+@using Olymp.Domain
+@using Olymp.WebApp.Components.Submissions
+
+@attribute [Authorize]
+@inject NavigationManager Navigation
+@inject IDbContextFactory<OlympContext> ContextFactory
+@inject IAuthorizationService Authorization
+
+<PageTitle>@SiteResources.SubmissionSource</PageTitle>
+
+@if (submission is not null)
+{
+    <p><a href="contests/@submission.Problem.ContestId/problems?problemId=@submission.ProblemId#submissions">@SiteResources.BackToProblem</a></p>
+    <h1>@SiteResources.SubmissionSource #@submission.Id</h1>
+    <p>@submission.Problem.NameWithNumber · @(submission.Compilator.Description ?? submission.Compilator.Name) · @submission.CommitTime.ToLocalTime().ToString("g")</p>
+    <p><SubmissionStatus StatusCode="submission.StatusCode" /></p>
+    <p><a href="submissions/@submission.Id/download" data-enhance-nav="false">@SiteResources.DownloadSource</a></p>
+    <pre class="border rounded p-3 overflow-auto"><code>@submission.Text</code></pre>
+    @if (compilationErrors is not null)
+    {
+        <section id="compilation-errors" class="mt-4">
+            <h2 class="h4">@SiteResources.SubmissionCompilationError</h2>
+            <pre class="border rounded p-3 overflow-auto">@compilationErrors</pre>
+        </section>
+    }
+}
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    private Submission? submission;
+    private string? compilationErrors;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var token = HttpContext.RequestAborted;
+        await using var context = await ContextFactory.CreateDbContextAsync(token);
+        submission = await context.Submissions.AsNoTracking()
+            .Include(item => item.Problem).ThenInclude(item => item.Contest)
+            .Include(item => item.Compilator)
+            .SingleOrDefaultAsync(item => item.Id == Id, token);
+        if (submission is null || !(await Authorization.AuthorizeAsync(HttpContext.User, submission,
+            new ViewSolutionRequirement())).Succeeded)
+        {
+            submission = null;
+            Navigation.NotFound();
+            return;
+        }
+        if (submission.StatusCode == -1)
+        {
+            var result = await context.CheckResults.Where(item => item.SubmissionId == Id)
+                .OrderByDescending(item => item.CheckTime).ThenByDescending(item => item.Id)
+                .Select(item => new { item.Log, item.CheckTime }).FirstOrDefaultAsync(token);
+            compilationErrors = CompilationErrors(result?.Log, result?.CheckTime);
+        }
+    }
+
+    private static string CompilationErrors(string? log, DateTimeOffset? checkTime)
+    {
+        if (log is null)
+            return SiteResources.SubmissionDiagnosticsUnavailable;
+        if (checkTime < new DateTimeOffset(2023, 3, 1, 0, 0, 0, TimeSpan.Zero))
+        {
+            int output = log.IndexOf("StandartOutput", StringComparison.Ordinal);
+            return output >= 0 ? log[output..] : SiteResources.SubmissionDiagnosticsUnavailable;
+        }
+        if (log.StartsWith("Runner:", StringComparison.Ordinal) || log.StartsWith("Compilation:", StringComparison.Ordinal))
+        {
+            int compilation = log.IndexOf("Compilation:", StringComparison.Ordinal);
+            return compilation >= 0 ? string.Join('\n', log[compilation..].Split('\n').Skip(3))
+                : SiteResources.SubmissionDiagnosticsUnavailable;
+        }
+        return log;
+    }
+}
