@@ -1,23 +1,26 @@
+@using System.Text
+@using Olymp.Domain.Models
+
 <div class="problem-statement text-break">
     <ul class="list-unstyled text-body-secondary">
-        <li>@SiteResources.TimeLimit: @Statement.TimeLimit @SiteResources.Seconds</li>
-        <li>@SiteResources.MemoryLimit: @Statement.MemoryLimit @SiteResources.Megabytes</li>
+        <li>@SiteResources.TimeLimit: @Problem.TimeLimit @SiteResources.Seconds</li>
+        <li>@SiteResources.MemoryLimit: @Problem.MemoryLimit @SiteResources.Megabytes</li>
     </ul>
 
-    @if (!string.IsNullOrWhiteSpace(Statement.Html))
+    @if (!string.IsNullOrWhiteSpace(Problem.Text))
     {
-        <div class="statement-html overflow-x-auto">@((MarkupString)Statement.Html)</div>
+        <div class="statement-html overflow-x-auto">@((MarkupString)Problem.Text)</div>
     }
-    else if (Statement.HasPdf)
+    else if (Problem.Contest.ProblemPdfId.HasValue)
     {
-        <p><a href="contests/@Statement.ContestId/downloadproblems">@SiteResources.DownloadStatements</a></p>
+        <p><a href="contests/@Problem.ContestId/downloadproblems">@SiteResources.DownloadStatements</a></p>
     }
     else
     {
         <p class="text-body-secondary">@SiteResources.StatementUnavailable</p>
     }
 
-    @if (Statement.Examples.Count > 0)
+    @if (Examples.Count > 0)
     {
         <section class="mt-4" aria-label="@SiteResources.Examples">
             <h3 class="h5">@SiteResources.Examples</h3>
@@ -30,11 +33,11 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach (var example in Statement.Examples)
+                        @foreach (var example in Examples)
                         {
                             <tr>
-                                <td><pre class="mb-0"><samp>@example.Input</samp></pre></td>
-                                <td><pre class="mb-0"><samp>@example.Output</samp></pre></td>
+                                <td><pre class="mb-0"><samp>@Encoding.Default.GetString(example.Input)</samp></pre></td>
+                                <td><pre class="mb-0"><samp>@Encoding.Default.GetString(example.Output)</samp></pre></td>
                             </tr>
                         }
                     </tbody>
@@ -46,5 +49,8 @@
 
 @code {
     [Parameter, EditorRequired]
-    public ProblemStatement Statement { get; set; } = default!;
+    public Problem Problem { get; set; } = default!;
+
+    [Parameter]
+    public IReadOnlyList<Test> Examples { get; set; } = [];
 }

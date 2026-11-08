@@ -1,3 +1,5 @@
+using System.Text;
+
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authorization.Policy;
 using Microsoft.AspNetCore.Components.Authorization;
@@ -17,6 +19,9 @@ using Olymp.WebApp.Components;
 using Olymp.WebApp.Components.Account;
 using Olymp.WebApp.Components.Contests;
 using Olymp.WebApp.Components.Layout;
+using Olymp.WebApp.Components.Submissions;
+
+Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -69,6 +74,9 @@ builder.Services.AddRequestLocalization(options =>
 });
 
 builder.Services.AddScoped<CompetitorManagementService>();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<IAuthorizationHandler, SubmitSolutionHandler>();
+builder.Services.AddScoped<IAuthorizationHandler, ViewSolutionHandler>();
 
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddScoped<IdentityRedirectManager>();
@@ -150,5 +158,6 @@ app.MapAdditionalIdentityEndpoints();
 
 app.MapLanguageEndpoint();
 app.MapContestDownloads();
+app.MapSubmissionDownloads();
 
 app.Run();

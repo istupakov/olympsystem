@@ -55,11 +55,53 @@ public class ContestRegistrationTests(WebAppFactory factory) : IClassFixture<Web
         var name = Assert.Single(document.QuerySelectorAll("main .fw-semibold"));
         Assert.Equal("Иван Иванов, Test university, ПМ-01", name.TextContent);
         Assert.NotNull(name.ParentElement!.QuerySelector(".badge"));
+        Assert.Equal(outOfCompetition, document.QuerySelector("main")!.TextContent.Contains(culture == "ru"
+            ? "Логин и пароль участника ещё не выданы."
+            : "The participant login and password have not been issued yet."));
         using var repeated = await PostAsync(client, contest.Id, outOfCompetition);
         Assert.NotEqual(HttpStatusCode.Redirect, repeated.StatusCode);
         using var check = factory.Services.CreateScope();
         Assert.Equal(1, await check.ServiceProvider.GetRequiredService<OlympContext>().Competitors
             .CountAsync(item => item.ContestId == contest.Id, TestContext.Current.CancellationToken));
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task AssignedCredentialsAreVisibleOnlyOnOwnOutOfCompetitionRegistration(bool outOfCompetition)
+    {
+        var contest = await AddContestAsync();
+        var owner = await AddProfileAsync();
+        var other = await AddProfileAsync();
+        using var client = await factory.LoginAsync(owner.UserName!);
+        using var registered = await PostAsync(client, contest.Id, outOfCompetition);
+        Assert.Equal(HttpStatusCode.Redirect, registered.StatusCode);
+        string login = $"participant_{Guid.NewGuid():N}";
+        const string password = "ParticipantTestPassword123!";
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<OlympContext>();
+            var participant = await db.Competitors.SingleAsync(item => item.ContestId == contest.Id
+                && item.Members.Any(member => member.Id == owner.Id), TestContext.Current.CancellationToken);
+            var users = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
+            Assert.True((await users.SetUserNameAsync(participant, login)).Succeeded);
+            Assert.True((await users.AddPasswordAsync(participant, password)).Succeeded);
+            Assert.False(participant.IsApproved);
+        }
+        using var own = await client.GetAsync(Path(contest.Id), TestContext.Current.CancellationToken);
+        using var document = await new HtmlParser().ParseDocumentAsync(
+            await own.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
+        var values = document.QuerySelectorAll("main dd").Select(item => item.TextContent).ToArray();
+        if (outOfCompetition)
+            Assert.Equal([login, password], values);
+        else
+            Assert.Empty(values);
+
+        using var otherClient = await factory.LoginAsync(other.UserName!);
+        using var foreign = await otherClient.GetAsync(Path(contest.Id), TestContext.Current.CancellationToken);
+        string html = await foreign.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+        Assert.DoesNotContain(login, html);
+        Assert.DoesNotContain(password, html);
     }
 
     [Theory]

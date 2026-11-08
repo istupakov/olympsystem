@@ -44,7 +44,8 @@ public class ContestProblemTests(WebAppFactory factory) : IClassFixture<WebAppFa
             document.QuerySelectorAll(".problem-list .list-group-item").Select(link => link.TextContent));
         Assert.Equal("1. Problem 1", document.QuerySelector("#problem-detail h2")!.TextContent);
         Assert.Equal("Statement 1", document.QuerySelector(".statement-html")!.TextContent);
-        Assert.Null(document.QuerySelector("#submission-code, #submissions"));
+        Assert.NotNull(document.QuerySelector("#submission-code"));
+        Assert.NotNull(document.QuerySelector("#submissions"));
         Assert.Null(document.QuerySelector("#problem-year, #problem-contest, #problem-search, .pagination"));
         Assert.DoesNotContain("Unrelated problem", document.QuerySelector("main")!.TextContent);
         Assert.DoesNotContain("<!--Blazor:", document.DocumentElement.OuterHtml);
@@ -70,6 +71,15 @@ public class ContestProblemTests(WebAppFactory factory) : IClassFixture<WebAppFa
         var mobile = selected.QuerySelector(".problem-list form")!;
         Assert.Equal("get", mobile.GetAttribute("method"));
         Assert.Equal("problemId", mobile.QuerySelector("select")!.GetAttribute("name"));
+        Assert.Equal(Path(contest, second).TrimStart('/'), selected.QuerySelector("#submission-code")!.Closest("form")!.GetAttribute("action"));
+        foreach (var (page, problem) in new[] { (document, first), (selected, second) })
+        {
+            var baseUri = new Uri(client.BaseAddress!, page.QuerySelector("base")!.GetAttribute("href")!);
+            var submitLink = page.QuerySelector("#problem-detail a[href$='#submit-heading']")!;
+            Assert.Equal(new Uri(client.BaseAddress!, Path(contest, problem) + "#submit-heading"),
+                new Uri(baseUri, submitLink.GetAttribute("href")!));
+            Assert.NotNull(page.QuerySelector("#submit-heading"));
+        }
         using var returned = await GetAsync(client, Path(contest, first));
         Assert.Equal($"{first.NameWithNumber} – {contest.Name}", returned.Title);
         Assert.Equal(first.NameWithNumber, returned.QuerySelector("#problem-detail h2")!.TextContent);

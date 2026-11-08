@@ -123,6 +123,42 @@
   <data name="Examples" xml:space="preserve"><value>Примеры</value></data>
   <data name="StandardInput" xml:space="preserve"><value>Стандартный ввод</value></data>
   <data name="StandardOutput" xml:space="preserve"><value>Стандартный вывод</value></data>
+  <data name="CompilerRequired" xml:space="preserve"><value>Выберите компилятор.</value></data>
+  <data name="SourceCodeRequired" xml:space="preserve"><value>Введите исходный код.</value></data>
+  <data name="SourceCodeLength" xml:space="preserve"><value>Исходный код должен содержать от 10 до 32768 символов.</value></data>
+  <data name="SourceCodeEncoding" xml:space="preserve"><value>В коде есть символы, которые нельзя сохранить в Windows-1251. Замените их и повторите отправку.</value></data>
+  <data name="SubmissionNotAllowed" xml:space="preserve"><value>Вам недоступна отправка решений.</value></data>
+  <data name="CompilerUnavailable" xml:space="preserve"><value>Выбранный компилятор недоступен. Выберите активный компилятор.</value></data>
+  <data name="SubmissionDiagnosticsUnavailable" xml:space="preserve"><value>Диагностика компиляции недоступна.</value></data>
+  <data name="SubmitSolution" xml:space="preserve"><value>Отправить решение</value></data>
+  <data name="Compiler" xml:space="preserve"><value>Компилятор</value></data>
+  <data name="SelectCompiler" xml:space="preserve"><value>Выберите компилятор</value></data>
+  <data name="SourceCode" xml:space="preserve"><value>Исходный код</value></data>
+  <data name="SubmissionRulesLink" xml:space="preserve"><value>Правила использования системы</value></data>
+  <data name="NoActiveCompilers" xml:space="preserve"><value>Нет активных компиляторов. Отправка временно недоступна.</value></data>
+  <data name="Refresh" xml:space="preserve"><value>Обновить</value></data>
+  <data name="NoSubmissions" xml:space="preserve"><value>Решений пока нет.</value></data>
+  <data name="SubmissionTime" xml:space="preserve"><value>Время</value></data>
+  <data name="SubmissionAuthor" xml:space="preserve"><value>Отправитель</value></data>
+  <data name="SubmissionStatus" xml:space="preserve"><value>Статус</value></data>
+  <data name="SubmissionSource" xml:space="preserve"><value>Решение</value></data>
+  <data name="ViewSource" xml:space="preserve"><value>Посмотреть</value></data>
+  <data name="DownloadSource" xml:space="preserve"><value>Скачать</value></data>
+  <data name="BackToProblem" xml:space="preserve"><value>К задаче</value></data>
+  <data name="SubmissionCompilationError" xml:space="preserve"><value>Ошибка компиляции</value></data>
   <data name="ProblemsForContest" xml:space="preserve"><value>Задачи – {0}</value></data>
   <data name="RulesForContest" xml:space="preserve"><value>Правила – {0}</value></data>
+  <data name="JumpToSubmission" xml:space="preserve"><value>К отправке решения ↓</value></data>
+  <data name="Submissions" xml:space="preserve"><value>Решения</value></data>
+  <data name="Problem" xml:space="preserve"><value>Задача</value></data>
+  <data name="SubmissionScope" xml:space="preserve"><value>Какие решения показывать</value></data>
+  <data name="OwnSubmissions" xml:space="preserve"><value>Свои</value></data>
+  <data name="ParticipantSubmissions" xml:space="preserve"><value>Мои участия</value></data>
+  <data name="CoachedSubmissions" xml:space="preserve"><value>Подопечные</value></data>
+  <data name="AllSubmissions" xml:space="preserve"><value>Все</value></data>
+  <data name="SubmissionRecorded" xml:space="preserve"><value>Отправлено</value></data>
+  <data name="SubmissionPages" xml:space="preserve"><value>Страницы решений</value></data>
+  <data name="NextPage" xml:space="preserve"><value>Далее</value></data>
+  <data name="ParticipantAccountSignIn" xml:space="preserve"><value>Для участия в соревновании войдите под этим аккаунтом участника.</value></data>
+  <data name="ParticipantAccountNotIssued" xml:space="preserve"><value>Логин и пароль участника ещё не выданы.</value></data>
 </root>

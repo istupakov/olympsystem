@@ -1,0 +1,26 @@
+@page "/submissions"
+
+@using Microsoft.AspNetCore.Authorization
+@using Olymp.WebApp.Components.Submissions
+
+@attribute [Authorize]
+@attribute [ExcludeFromInteractiveRouting]
+
+<PageTitle>@SiteResources.Submissions</PageTitle>
+<h1>@SiteResources.Submissions</h1>
+
+<SubmissionList ContestId="ContestId" ProblemId="ProblemId" Scope="@Scope" Page="@(Page ?? 1)" ShowHeading="false" />
+
+@code {
+    [SupplyParameterFromQuery]
+    public int? ContestId { get; set; }
+
+    [SupplyParameterFromQuery]
+    public int? ProblemId { get; set; }
+
+    [SupplyParameterFromQuery]
+    public string? Scope { get; set; }
+
+    [SupplyParameterFromQuery]
+    public int? Page { get; set; }
+}

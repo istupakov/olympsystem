@@ -85,6 +85,7 @@ public class ErrorPagesTests(WebAppFactory factory) : IClassFixture<WebAppFactor
             "/contests/2147483647/rules",
             "/contests/2147483647/problems",
             "/contests/2147483647/registration",
+            "/submissions/2147483647",
             "/Account/ConfirmEmail?userId=2147483647&code=invalid",
             "/Account/RegisterConfirmation?email=missing-user%40example.test"
         })

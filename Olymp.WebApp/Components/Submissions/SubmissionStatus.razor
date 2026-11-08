@@ -1,0 +1,17 @@
+@using Olymp.Domain
+
+<span class="@StatusClass">@CheckStatusCodes.Description(StatusCode)</span>
+
+@code {
+    [Parameter]
+    public int StatusCode { get; set; }
+
+    private string? StatusClass => StatusCode switch
+    {
+        1 => "text-info-emphasis",
+        2 => "text-success",
+        -1 => "text-warning-emphasis",
+        < -1000 and > -7000 when CheckStatusCodes.TestNumber(StatusCode) != 0 => "text-danger",
+        _ => null
+    };
+}

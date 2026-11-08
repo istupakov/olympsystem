@@ -1,8 +1,8 @@
 @page "/contests/{Id:int}/registration"
 
 @using System.ComponentModel.DataAnnotations
-@using System.Security.Claims
 @using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Identity
 @using Microsoft.EntityFrameworkCore
 @using Olymp.Domain
 @using Olymp.Site
@@ -16,6 +16,7 @@
 @inject OlympContext Context
 @inject CompetitorManagementService Competitors
 @inject NavigationManager Navigation
+@inject UserManager<User> Users
 
 @if (contest is not null && user is not null)
 {
@@ -45,6 +46,23 @@
 
     @if (participant is not null)
     {
+        @if (participant.IsOutOfCompetition)
+        {
+            @if (!string.IsNullOrEmpty(participant.UserName) && !string.IsNullOrEmpty(participant.PasswordHash))
+            {
+                <p>@SiteResources.ParticipantAccountSignIn</p>
+                <dl class="row">
+                    <dt class="col-sm-3">@AccountResources.UserName</dt>
+                    <dd class="col-sm-9 text-break">@participant.UserName</dd>
+                    <dt class="col-sm-3">@AccountResources.Password</dt>
+                    <dd class="col-sm-9 text-break">@participant.PasswordHash</dd>
+                </dl>
+            }
+            else
+            {
+                <p class="text-body-secondary">@SiteResources.ParticipantAccountNotIssued</p>
+            }
+        }
         @if (DateTimeOffset.Now < contest.StartTime)
         {
             <form method="post" @formname="cancel-registration" @onsubmit="CancelAsync">
@@ -75,7 +93,7 @@
             <div class="form-check mb-3">
                 <InputCheckbox @bind-Value="Input.OutOfCompetition" id="Input.OutOfCompetition" class="form-check-input" disabled="@(!HasGroup)" />
                 <label for="Input.OutOfCompetition" class="form-check-label">
-                    @SiteResources.ParticipateOutOfCompetition
+                    <DisplayName For="() => Input.OutOfCompetition" />
                     @if (!HasGroup)
                     {
                         <span>@($" ({SiteResources.RegistrationGroupRequired})")</span>
@@ -123,7 +141,7 @@
             return;
         }
 
-        int userId = int.Parse(HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        int userId = int.Parse(Users.GetUserId(HttpContext.User)!);
         user = await Context.OlympUsers.AsNoTracking().Include(item => item.Organization)
             .SingleAsync(item => item.Id == userId, HttpContext.RequestAborted);
         participant = await Context.Competitors.AsNoTracking()
@@ -200,6 +218,7 @@
 
     private sealed class InputModel
     {
+        [Display(Name = nameof(SiteResources.ParticipateOutOfCompetition), ResourceType = typeof(SiteResources))]
         public bool OutOfCompetition { get; set; }
 
         [Range(typeof(bool), "true", "true", ErrorMessageResourceName = nameof(SiteResources.ContestRulesRequired), ErrorMessageResourceType = typeof(SiteResources))]

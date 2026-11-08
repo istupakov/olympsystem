@@ -15,15 +15,26 @@ namespace Olymp.IntegrationTests.WebApp;
 public class RulesTests(WebAppFactory factory) : IClassFixture<WebAppFactory>
 {
     [Theory]
-    [InlineData("ru", "acm", true, true)]
-    [InlineData("en", "acm", true, true)]
-    [InlineData("ru", "nstu", false, true)]
-    [InlineData("en", "nstu", false, true)]
-    [InlineData("ru", "school", false, false)]
-    [InlineData("en", "school", false, false)]
-    public async Task ContestRulesMatchContestFormat(string culture, string abbreviation, bool team, bool scoring)
+    [InlineData("ru", "acm", true, true, false)]
+    [InlineData("en", "acm", true, true, false)]
+    [InlineData("ru", "nstu", false, true, false)]
+    [InlineData("en", "nstu", false, true, false)]
+    [InlineData("ru", "school", false, false, false)]
+    [InlineData("en", "school", false, false, false)]
+    [InlineData("ru", "acm", true, true, true)]
+    [InlineData("en", "acm", true, true, true)]
+    [InlineData("ru", "nstu", false, true, true)]
+    [InlineData("en", "nstu", false, true, true)]
+    [InlineData("ru", "school", false, false, true)]
+    [InlineData("en", "school", false, false, true)]
+    public async Task ContestRulesMatchContestFormat(string culture, string abbreviation, bool team, bool scoring, bool ended)
     {
         var contest = CreateContest(abbreviation);
+        if (ended)
+        {
+            contest.StartTime = DateTimeOffset.UtcNow.AddHours(-2);
+            contest.EndTime = DateTimeOffset.UtcNow.AddHours(-1);
+        }
         using (var scope = factory.Services.CreateScope())
         {
             var context = scope.ServiceProvider.GetRequiredService<OlympContext>();
@@ -45,6 +56,11 @@ public class RulesTests(WebAppFactory factory) : IClassFixture<WebAppFactory>
         Assert.Equal(scoring, text.Contains("60 + 2 × 20", StringComparison.Ordinal));
         Assert.DoesNotContain("Runtime error", text);
         Assert.NotNull(document.QuerySelector("a[href='rules']"));
+        Assert.Equal(!ended, text.Contains(culture == "ru" ? "Вход для участия" : "Signing In to Participate", StringComparison.Ordinal));
+        Assert.Equal(!ended && team, document.QuerySelector($"main a[href='contests/{contest.Id}/registration/teams']") is not null);
+        Assert.Equal(!ended && !team, document.QuerySelector($"main a[href='contests/{contest.Id}/registration']") is not null);
+        Assert.Equal(!ended && team, text.Contains(culture == "ru" ? "под аккаунтом команды" : "with the team account", StringComparison.Ordinal));
+        Assert.Equal(!ended && !team, text.Contains(culture == "ru" ? "При участии вне конкурса" : "For out-of-competition participation", StringComparison.Ordinal));
     }
 
     [Theory]
