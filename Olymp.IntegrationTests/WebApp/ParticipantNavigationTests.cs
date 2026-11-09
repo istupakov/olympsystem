@@ -44,7 +44,7 @@ public class ParticipantNavigationTests(WebAppFactory factory) : IClassFixture<W
 
         using var client = await factory.LoginAsync(participant.UserName);
         client.DefaultRequestHeaders.AcceptLanguage.ParseAdd(culture);
-        foreach (string section in state == "upcoming" ? new[] { "rules" } : new[] { "problems", "standing", "rules" })
+        foreach (string section in state == "upcoming" ? new[] { "rules" } : ["problems", "standing", "rules"])
         {
             using var response = await client.GetAsync($"/contests/{contest.Id}/{section}", TestContext.Current.CancellationToken);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);

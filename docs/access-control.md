@@ -97,13 +97,12 @@ Time-based availability and actor authorization are separate checks.
 `IsOpen` implies `FreezeTime == null`. Reject changes that would violate this
 invariant, whether changing `IsOpen` or `FreezeTime`. This also prevents a future
 scheduled freeze from taking effect in an open contest. Opening a contest
-requires clearing its freeze first or as part of the same change. This validation
-is a migration target; the Domain properties above do not currently enforce it.
+requires clearing its freeze first or as part of the same change. The WebApp
+contest editor enforces this validation; the Domain properties above do not.
 The standings calculation and manual unfreeze behavior remain unchanged.
 The new submission lists apply freeze restrictions only to closed contests,
 following the visibility matrix even if legacy data still has both flags set.
-Validation will be added with contest editing in the new interface. Do not change
-the legacy Site editor as part of the submissions-list migration.
+The legacy Site editor retains its existing behavior.
 
 **Confirmed:** `ProblemShowTime` exists to allow PDF printing before the contest
 starts. It does not publish HTML statements early.
@@ -540,15 +539,112 @@ Source: [legacy messaging](../Olymp.Site/Pages/Contests/Submits/SendMessage.csht
 
 ## 10. Jury, administration, and service accounts
 
-These interfaces remain a later migration stage and use separate protected
-pages/endpoints from the shared user interface. Their permissions are not
-overrides on the shared pages or download routes.
+Staff tools use separate protected pages from the shared user interface. Their
+permissions are not overrides on the shared pages or download routes.
+
+**Current, WebApp:** `/jury/contests` lists all contests, including hidden ones.
+Jury members and administrators can create contests; creation assigns
+`contest-manage` to the creator in the same transaction. Editing the basic fields
+requires an administrator or a jury member with that stored assignment. The
+assignment is read from the database when opening and saving the editor, so a
+creator can continue editing without refreshing their sign-in claims. Roles use
+the current authentication state. New contests are hidden by default.
+
+The Interactive Server editor accepts a start date/time in the server time zone,
+a duration, optional PDF printing advance before the start, and optional freeze
+advance before the end. Moving the start preserves these intervals and shifts
+all calculated dates. Existing absolute date columns are retained. This stage
+does not include problem creation or uploads.
+
+**Current, WebApp:** `/admin/news` allows administrators to create, edit, and
+delete news. Deletion requires confirmation in the editor and an administrator
+check in its handler. News editing includes titles, HTML text, and publication
+dates in the server time zone. News appears
+immediately after saving, including with a future publication date. Editing does
+not automatically change that date. Both editors support HTML previews and check
+operation permissions again on save.
+
+**Current, WebApp:** contest staff navigation links settings, participant management,
+submissions, and anti-cheat reports. Jury and administrators can view all contests'
+participants, including hidden accounts and assigned logins/passwords. Participant
+mutations require an administrator or the current stored `contest-manage` assignment.
+They reuse the existing participant service, including import, credential issuance,
+approval, competition status, disqualification, and deletion restrictions. Imports,
+bulk operations, and deletion require confirmation.
+
+The staff submission list includes every submission to the selected contest's
+problems, including hidden accounts, hidden submissions, inactive problems, and
+practice submissions. Author, problem, compiler, status, date filters, and pagination
+are stored in the URL. `/jury/submissions/{id}` and its `/download` endpoint grant
+jury and administrators source access independently of shared-page publication or
+relationship rules. The staff details page additionally shows full check history
+and logs. Source presentation and compilation diagnostics are shared with the
+ordinary submission page; its existing authorization remains unchanged.
+The shared table receives already filtered result/source visibility from each
+interface. Staff author links filter by exact account ID within the same contest.
+The staff list supports All, Own, Participants, and Jury author scopes,
+combined with the other URL filters. Jury means the author's `IsHidden` flag,
+including hidden participant accounts; it does not depend on assigned roles.
+The task workspace includes paginated Own/Jury submission lists using
+the same author filtering and row projection. Successful submission stays on the
+selected task, clears the source while retaining the compiler, and refreshes Own
+on its first page. Source links preserve the task, scope, and list page on return.
+Report source links open a new tab; a return-to-list link appears only when the
+source was opened with a valid list return URL, preserving that list's filters.
+
+`/jury/contests/{id}/problems` shows all tasks, including inactive tasks in hidden
+or unpublished contests, their existing HTML statements, open active examples,
+and common problem clarifications. PDF download is not provided in this view.
+Clarification presentation is shared with the ordinary problem statement; private
+messages are excluded. Each interface loads its own authorized statement data.
+
+**Confirmed, implemented in WebApp:** any jury member or administrator can submit
+solutions from the staff task page, without a `contest-manage` assignment or
+publication, activity, start/end, or open-participation restrictions on the task
+and contest. This exception applies to submitting solutions; editing public
+contest data and registrations still requires the existing management permission.
+Solutions belong to the signed-in account and use the existing Runner queue.
+The queue also accepts inactive problems for authors with a current Jury/Admin
+role; ordinary authors still require an active problem.
+Staff and public submission handlers share compiler availability, source length
+and encoding validation, and persistence. Public submission authorization remains
+unchanged. Both submission operations use `SubmitSolutionHandler`; the staff
+operation explicitly sets `SubmitSolutionRequirement.ForJury`, which checks the
+current Jury/Admin role instead of public contest availability rules.
+
+Contest anti-cheat examines submissions to that contest's problems from both
+permanent and temporary accounts. Hidden **authors** are excluded; a submission's
+own hidden flag does not exclude it. Similarity compares different authors on the
+same problem. Additional jury tools support analysis by author, by period against
+problem history, direct comparison of two submissions, and AI indicators for a
+single submission. Hidden authors are excluded from selection and comparison
+history in these tools as well. Analysis supports cancellation and does not apply
+participant penalties automatically. Legacy analysis entry points retain their
+existing selection behavior.
+
+`/admin/users` and `/admin/users/{id}/edit` are administrator-only. They provide
+search and filters, account details, Admin/Jury roles, coach organization claims,
+visibility, login/email synchronization, and account lockout controls through
+Identity. Role and coach controls apply to permanent accounts; lockout controls
+also apply to participant accounts. Granting Admin/Jury hides the account, matching
+the legacy implementation. Removing roles/coach claims and blocking accounts
+updates the security stamp through the existing session invalidation mechanism.
+
+`/admin/organizations` and its new/edit pages are administrator-only Interactive
+Server pages. Administrators can search, create, and edit short/full organization
+names and the existing team-name prefix. Deletion requires explicit confirmation
+showing the stored organization name and is allowed only when no user/participant
+has that `OrganizationId` and no `coach-org` claim references the organization.
+The UI shows linked-account and distinct coach counts. Both references are checked
+again in the delete statement, so connections added after opening the editor also
+prevent deletion. Linked accounts and coach claims are retained.
 
 **Confirmed target for the future staff interface:** jury members have global
 read-only access to contest information, including hidden contests, unpublished
 materials, submissions, source, diagnostics, and results without public freeze
 restrictions. Editing and other contest mutations require assignment to that
-contest through `contest-manage`. The jury role alone does not grant global write
+contest through `contest-manage`, except for the explicitly allowed staff solution
+submissions described above. The jury role alone does not grant global editing
 privileges. Administrators retain global management access in their dedicated
 interface. None of these expanded permissions is being introduced into the
 current shared interface.
@@ -643,6 +739,6 @@ Sources: [contest management scope](../Olymp.Site/Services/Authorization/Contest
 | P2 | Confirmed | Use 20 submissions per page. Limit "All" to 10 pages after filters, enforced on the server; other scopes have no depth limit. Default to "Own". |
 
 The WebApp implements list scopes, per-row result visibility, pagination, and
-direct coaching relationships. Open/freeze validation awaits the new contest
-editor. The separate staff interface in section 10 remains deferred; its mutation
-rules will be specified when those features are migrated.
+direct coaching relationships. The staff contest editor enforces open/freeze
+validation; basic contest and news editing is described in section 10. Further
+staff mutation rules will be specified when those features are migrated.

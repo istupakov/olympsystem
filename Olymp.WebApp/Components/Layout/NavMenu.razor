@@ -50,6 +50,16 @@
                 <li class="nav-item">
                     <NavLink class="nav-link" href="sponsors">@SiteResources.Sponsors</NavLink>
                 </li>
+                <AuthorizeView Roles="@($"{RoleNames.Jury},{RoleNames.Admin}")">
+                    <li class="nav-item">
+                        <NavLink class="nav-link" href="jury/contests">@SiteResources.JurySection</NavLink>
+                    </li>
+                </AuthorizeView>
+                <AuthorizeView Roles="@RoleNames.Admin">
+                    <li class="nav-item">
+                        <NavLink class="nav-link" href="admin/news">@SiteResources.AdminSection</NavLink>
+                    </li>
+                </AuthorizeView>
             </ul>
         }
 

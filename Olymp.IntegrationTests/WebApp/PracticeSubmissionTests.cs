@@ -335,7 +335,10 @@ public class PracticeSubmissionTests(WebAppFactory factory) : IClassFixture<WebA
         submission.StatusCode = -1;
         submission.CheckResults.Add(new CheckResult
         {
-            Submission = submission, StatusCode = -1, CheckTime = DateTimeOffset.UtcNow, Log = "Compiler diagnostics"
+            Submission = submission,
+            StatusCode = -1,
+            CheckTime = DateTimeOffset.UtcNow,
+            Log = "Compiler diagnostics"
         });
         db.Submissions.Add(submission);
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -609,13 +612,13 @@ public class PracticeSubmissionTests(WebAppFactory factory) : IClassFixture<WebA
     private sealed class RejectRepeatedSubmissionHandler(IHttpContextAccessor http)
         : AuthorizationHandler<SubmitSolutionRequirement, Problem>
     {
-        private int checks;
+        private int _checks;
 
         protected override Task HandleRequirementAsync(AuthorizationHandlerContext context,
             SubmitSolutionRequirement requirement, Problem resource)
         {
             // Allow POST initialization to render the form, then deny the handler's recheck.
-            if (HttpMethods.IsPost(http.HttpContext!.Request.Method) && ++checks > 1)
+            if (HttpMethods.IsPost(http.HttpContext!.Request.Method) && ++_checks > 1)
                 context.Fail();
             return Task.CompletedTask;
         }

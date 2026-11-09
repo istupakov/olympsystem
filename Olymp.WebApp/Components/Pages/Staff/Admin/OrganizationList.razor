@@ -1,0 +1,85 @@
+@page "/admin/organizations"
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@inject IDbContextFactory<OlympContext> ContextFactory
+@inject NavigationManager Navigation
+
+<PageTitle>@SiteResources.StaffOrganizations</PageTitle>
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+    <h1 class="mb-0">@SiteResources.StaffOrganizations</h1>
+    <a class="btn btn-primary" href="admin/organizations/new">@SiteResources.StaffCreateOrganization</a>
+</div>
+<EditForm Model="_filters" OnValidSubmit="ApplyFilters" class="row g-3 mb-4">
+    <div class="col-md-8">
+        <label for="organization-search" class="form-label">@SiteResources.StaffOrganizationSearch</label>
+        <InputText id="organization-search" class="form-control" @bind-Value="_filters.Search" />
+    </div>
+    <div class="col-12 d-flex gap-2">
+        <button class="btn btn-primary">@SiteResources.StaffFind</button>
+        <a class="btn btn-outline-secondary" href="admin/organizations">@SiteResources.StaffReset</a>
+    </div>
+</EditForm>
+@if (!_loaded) { <p role="status">@SiteResources.StaffLoading</p> }
+else
+{
+    <div class="table-responsive">
+        <table class="table table-striped align-middle">
+            <thead><tr><th>ID</th><th>@SiteResources.StaffOrganizationName</th><th>@SiteResources.StaffOrganizationFullName</th><th>@SiteResources.StaffTeamPrefix</th></tr></thead>
+            <tbody>
+                @foreach (var organization in _organizations)
+                {
+                    <tr>
+                        <td><a href="admin/organizations/@organization.Id/edit">@organization.Id</a></td>
+                        <td>@organization.Name</td><td>@organization.FullName</td><td>@organization.ACMName</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    @if (_organizations.Count == 0) { <p>@SiteResources.StaffNoOrganizations</p> }
+    <Pagination Page="CurrentPage" HasNextPage="_hasNext" PageUrl="PageUrl" Label="@SiteResources.StaffOrganizationPages" />
+}
+
+@code {
+    [SupplyParameterFromQuery]
+    public string? Search { get; set; }
+
+    [SupplyParameterFromQuery]
+    public int? Page { get; set; }
+
+    private const int PageSize = 20;
+    private int CurrentPage => Math.Max(1, Page ?? 1);
+    private List<Organization> _organizations = [];
+    private Filters _filters = new();
+    private bool _loaded;
+    private bool _hasNext;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _loaded = false;
+        _filters = new() { Search = Search };
+        await using var db = await ContextFactory.CreateDbContextAsync();
+        var query = db.Organizations.AsNoTracking();
+        if (!string.IsNullOrWhiteSpace(Search))
+        {
+            string search = Search.Trim();
+            query = query.Where(item => item.Name.Contains(search) || (item.FullName != null && item.FullName.Contains(search))
+                || (item.ACMName != null && item.ACMName.Contains(search)));
+        }
+        long skip = ((long)CurrentPage - 1) * PageSize;
+        _organizations = skip > int.MaxValue ? [] : await query.OrderBy(item => item.Name).ThenBy(item => item.Id)
+            .Skip((int)skip).Take(PageSize + 1).ToListAsync();
+        _hasNext = _organizations.Count > PageSize;
+        if (_hasNext) _organizations.RemoveAt(PageSize);
+        _loaded = true;
+    }
+
+    private void ApplyFilters() => Navigation.NavigateTo(Navigation.GetUriWithQueryParameters(new Dictionary<string, object?> {
+        [nameof(Search)] = _filters.Search, [nameof(Page)] = null
+    }));
+    private string PageUrl(int page) => Navigation.GetUriWithQueryParameter(nameof(Page), page);
+
+    private sealed class Filters
+    {
+        public string? Search { get; set; }
+    }
+}

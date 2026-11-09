@@ -1,0 +1,193 @@
+@page "/admin/organizations/new"
+@page "/admin/organizations/{Id:int}/edit"
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@using System.ComponentModel.DataAnnotations
+@using System.Data.Common
+@inject IDbContextFactory<OlympContext> ContextFactory
+@inject NavigationManager Navigation
+@inject ILogger<EditOrganization> Logger
+
+<PageTitle>@Title</PageTitle>
+<h1 class="mb-4">@Title</h1>
+@if (!_loaded) { <p role="status">@SiteResources.StaffLoading</p> }
+else if (_unavailable)
+{
+    <p>@SiteResources.PageNotFoundMessage</p>
+    <a href="admin/organizations">@SiteResources.StaffOrganizations</a>
+}
+else
+{
+    @if (_error is not null) { <div class="alert alert-danger" role="alert">@_error</div> }
+    @if (_saved) { <div class="alert alert-success" role="status">@SiteResources.StaffSaved</div> }
+    <EditForm Model="_input" OnValidSubmit="SaveAsync" OnInvalidSubmit="ClearSavedStatus">
+        <DataAnnotationsValidator />
+        <ValidationSummary class="text-danger" />
+        <fieldset disabled="@(_busy || _confirmDelete)">
+            <div class="mb-3">
+                <label for="organization-name" class="form-label">@SiteResources.StaffOrganizationName</label>
+                <InputText id="organization-name" class="form-control" @bind-Value="_input.Name" />
+                <ValidationMessage For="() => _input.Name" class="text-danger" />
+            </div>
+            <div class="mb-3">
+                <label for="organization-full-name" class="form-label">@SiteResources.StaffOrganizationFullName</label>
+                <InputText id="organization-full-name" class="form-control" @bind-Value="_input.FullName" />
+            </div>
+            <div class="mb-4">
+                <label for="organization-team-prefix" class="form-label">@SiteResources.StaffTeamPrefix</label>
+                <InputText id="organization-team-prefix" class="form-control" @bind-Value="_input.ACMName" />
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+                <button class="btn btn-primary">@SiteResources.StaffSave</button>
+                <a class="btn btn-outline-secondary" href="admin/organizations">@SiteResources.StaffCancel</a>
+                @if (Id is not null)
+                {
+                    <button type="button" class="btn btn-outline-danger ms-sm-auto" disabled="@HasReferences" @onclick="() => _confirmDelete = true">@SiteResources.StaffDeleteOrganization</button>
+                }
+            </div>
+        </fieldset>
+    </EditForm>
+    @if (HasReferences)
+    {
+        <p class="alert alert-info mt-3">@string.Format(SiteResources.StaffOrganizationInUse, _users, _coaches)</p>
+    }
+    @if (_confirmDelete)
+    {
+        <section class="alert alert-warning mt-3" role="alert">
+            <p>@string.Format(SiteResources.StaffConfirmDeleteOrganization, _storedName)</p>
+            <div class="d-flex flex-wrap gap-2">
+                <button type="button" class="btn btn-danger" disabled="@_busy" @onclick="DeleteAsync">@SiteResources.StaffDeleteOrganization</button>
+                <button type="button" class="btn btn-outline-secondary" disabled="@_busy" @onclick="() => _confirmDelete = false">@SiteResources.StaffCancel</button>
+            </div>
+        </section>
+    }
+}
+
+@code {
+    [Parameter]
+    public int? Id { get; set; }
+
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthenticationState { get; set; } = default!;
+
+    private InputModel _input = new();
+    private bool _loaded;
+    private bool _unavailable;
+    private bool _busy;
+    private bool _saved;
+    private bool _confirmDelete;
+    private string? _error;
+    private string? _storedName;
+    private int _users;
+    private int _coaches;
+    private bool HasReferences => _users > 0 || _coaches > 0;
+    private string Title => Id.HasValue ? SiteResources.StaffEditOrganization : SiteResources.StaffCreateOrganization;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _loaded = false;
+        _unavailable = _saved = _confirmDelete = false;
+        _error = null;
+        _users = _coaches = 0;
+        _input = new();
+        if (Id is int id)
+        {
+            await using var db = await ContextFactory.CreateDbContextAsync();
+            var organization = await db.Organizations.AsNoTracking().SingleOrDefaultAsync(item => item.Id == id);
+            _unavailable = organization is null;
+            if (organization is not null)
+            {
+                _storedName = organization.Name;
+                _input = new() { Name = organization.Name, FullName = organization.FullName, ACMName = organization.ACMName };
+                await LoadReferencesAsync(db, id);
+            }
+        }
+        _loaded = true;
+    }
+
+    private void ClearSavedStatus() => _saved = false;
+
+    private async Task<bool> IsAdminAsync()
+    {
+        if ((await AuthenticationState).User.IsInRole(RoleNames.Admin)) return true;
+        _error = SiteResources.StaffAccessDenied;
+        return false;
+    }
+
+    private async Task SaveAsync()
+    {
+        if (_busy) return;
+        int? organizationId = Id;
+        string name = _input.Name.Trim();
+        string? fullName = NullIfEmpty(_input.FullName), prefix = NullIfEmpty(_input.ACMName);
+        _busy = true;
+        _saved = false;
+        _error = null;
+        try
+        {
+            if (!await IsAdminAsync()) return;
+            await using var db = await ContextFactory.CreateDbContextAsync();
+            var organization = organizationId is int id ? await db.Organizations.SingleOrDefaultAsync(item => item.Id == id)
+                : new Organization { Name = "", Users = [] };
+            if (organization is null) { _unavailable = true; return; }
+            organization.Name = name;
+            organization.FullName = fullName;
+            organization.ACMName = prefix;
+            if (!organizationId.HasValue) db.Organizations.Add(organization);
+            await db.SaveChangesAsync();
+            if (Id != organizationId) return;
+            _storedName = organization.Name;
+            if (!organizationId.HasValue) Navigation.NavigateTo($"admin/organizations/{organization.Id}/edit", replace: true);
+            else _saved = true;
+        }
+        catch (Exception exception) when (exception is DbUpdateException or DbException)
+        {
+            Logger.LogError(exception, "Failed to save organization {OrganizationId}", organizationId);
+            _error = SiteResources.StaffSaveFailed;
+        }
+        finally { _busy = false; }
+    }
+
+    private async Task LoadReferencesAsync(OlympContext db, int id)
+    {
+        string value = id.ToString(CultureInfo.InvariantCulture);
+        _users = await db.Users.CountAsync(item => item.OrganizationId == id);
+        _coaches = await db.UserClaims.Where(item => item.ClaimType == ClaimNames.CoachOrg && item.ClaimValue == value)
+            .Select(item => item.UserId).Distinct().CountAsync();
+    }
+
+    private async Task DeleteAsync()
+    {
+        if (_busy || !_confirmDelete || Id is not int id) return;
+        _busy = true;
+        _saved = false;
+        _error = null;
+        try
+        {
+            if (!await IsAdminAsync()) return;
+            await using var db = await ContextFactory.CreateDbContextAsync();
+            string value = id.ToString(CultureInfo.InvariantCulture);
+            int deleted = await db.Organizations.Where(item => item.Id == id
+                && !db.Users.Any(user => user.OrganizationId == id)
+                && !db.UserClaims.Any(claim => claim.ClaimType == ClaimNames.CoachOrg && claim.ClaimValue == value)).ExecuteDeleteAsync();
+            if (deleted > 0) { Navigation.NavigateTo("admin/organizations", replace: true); return; }
+            _unavailable = !await db.Organizations.AnyAsync(item => item.Id == id);
+            await LoadReferencesAsync(db, id);
+        }
+        catch (Exception exception) when (exception is DbUpdateException or DbException)
+        {
+            Logger.LogError(exception, "Failed to delete organization {OrganizationId}", id);
+            _error = SiteResources.StaffOrganizationDeleteFailed;
+        }
+        finally { _busy = _confirmDelete = false; }
+    }
+
+    private static string? NullIfEmpty(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private sealed class InputModel
+    {
+        [Required(ErrorMessageResourceType = typeof(SiteResources), ErrorMessageResourceName = nameof(SiteResources.StaffOrganizationNameRequired))]
+        public string Name { get; set; } = "";
+        public string? FullName { get; set; }
+        public string? ACMName { get; set; }
+    }
+}

@@ -151,7 +151,7 @@ public class ProblemAccessTests(WebAppFactory factory) : IClassFixture<WebAppFac
             await db.Competitors.Where(team => team.Id == data.Team.Id).ExecuteUpdateAsync(
                 setters => setters.SetProperty(team => team.CoachId,
                     actor == "other-coach" ? data.User.Id
-                        : actor == RoleNames.Jury || actor == RoleNames.Admin ? (int?)null : data.Other.Id), TestContext.Current.CancellationToken);
+                        : actor is RoleNames.Jury or RoleNames.Admin ? (int?)null : data.Other.Id), TestContext.Current.CancellationToken);
             // The shared-feed freeze does not restrict an authorized submission details view.
             await db.Contests.Where(contest => contest.Id == data.Contest.Id).ExecuteUpdateAsync(
                 setters => setters.SetProperty(contest => contest.FreezeTime, DateTimeOffset.UtcNow.AddMinutes(-10)), TestContext.Current.CancellationToken);

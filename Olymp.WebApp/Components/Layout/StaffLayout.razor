@@ -1,0 +1,24 @@
+@inherits LayoutComponentBase
+@layout MainLayout
+@using Olymp.Site
+
+<div class="row g-4">
+    <aside class="col-md-3 col-xl-2">
+        <nav class="nav nav-pills flex-column gap-1" aria-label="@SiteResources.StaffNavigation">
+            <AuthorizeView Roles="@($"{RoleNames.Jury},{RoleNames.Admin}")">
+                <div class="small text-body-secondary px-3 py-2">@SiteResources.JurySection</div>
+                <NavLink class="nav-link" href="jury/contests">@SiteResources.Contests</NavLink>
+                <NavLink class="nav-link" href="jury/anticheat">@SiteResources.StaffAntiCheatTools</NavLink>
+            </AuthorizeView>
+            <AuthorizeView Roles="@RoleNames.Admin">
+                <div class="small text-body-secondary px-3 py-2">@SiteResources.AdminSection</div>
+                <NavLink class="nav-link" href="admin/news">@SiteResources.News</NavLink>
+                <NavLink class="nav-link" href="admin/users">@SiteResources.StaffUsers</NavLink>
+                <NavLink class="nav-link" href="admin/organizations">@SiteResources.StaffOrganizations</NavLink>
+            </AuthorizeView>
+        </nav>
+    </aside>
+    <div class="col-md-9 col-xl-10">
+        @Body
+    </div>
+</div>

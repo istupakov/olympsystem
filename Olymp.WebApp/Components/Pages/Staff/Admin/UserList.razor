@@ -1,0 +1,149 @@
+@page "/admin/users"
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@inject IDbContextFactory<OlympContext> ContextFactory
+@inject NavigationManager Navigation
+
+<PageTitle>@SiteResources.StaffUsers</PageTitle>
+<h1>@SiteResources.StaffUsers</h1>
+<EditForm Model="_filters" OnValidSubmit="ApplyFilters" class="row g-3 mb-4">
+    <div class="col-12">
+        <label for="user-search" class="form-label">@SiteResources.StaffUserSearch</label>
+        <InputText id="user-search" class="form-control" @bind-Value="_filters.Search" />
+    </div>
+    <div class="col-md-4">
+        <label for="user-type" class="form-label">@SiteResources.StaffAccountType</label>
+        <InputSelect id="user-type" class="form-select" @bind-Value="_filters.AccountType">
+            <option value="">@SiteResources.StaffAll</option>
+            <option value="permanent">@SiteResources.StaffPermanentAccounts</option>
+            <option value="participant">@SiteResources.ContestParticipants</option>
+        </InputSelect>
+    </div>
+    <div class="col-md-4">
+        <label for="user-role" class="form-label">@SiteResources.StaffRoles</label>
+        <InputSelect id="user-role" class="form-select" @bind-Value="_filters.Role">
+            <option value="">@SiteResources.StaffAll</option>
+            <option value="admin">@SiteResources.AdminSection</option>
+            <option value="jury">@SiteResources.JurySection</option>
+            <option value="coach">@SiteResources.StaffCoaches</option>
+        </InputSelect>
+    </div>
+    <div class="col-md-4">
+        <label for="user-visibility" class="form-label">@SiteResources.StaffVisibility</label>
+        <InputSelect id="user-visibility" class="form-select" @bind-Value="_filters.Visibility">
+            <option value="">@SiteResources.StaffAll</option>
+            <option value="hidden">@SiteResources.StaffHiddenAccounts</option>
+            <option value="visible">@SiteResources.StaffVisibleAccounts</option>
+        </InputSelect>
+    </div>
+    <div class="col-12 d-flex gap-2">
+        <button class="btn btn-primary">@SiteResources.StaffFind</button>
+        <a class="btn btn-outline-secondary" href="admin/users">@SiteResources.StaffReset</a>
+    </div>
+</EditForm>
+@if (!_loaded) { <p role="status">@SiteResources.StaffLoading</p> }
+else {
+    <div class="table-responsive">
+        <table class="table table-striped align-middle">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>@AccountResources.PublicName</th>
+                    <th>@SiteResources.StaffLogin</th>
+                    <th>@SiteResources.StaffEmail</th>
+                    <th>@SiteResources.StaffAccountType</th>
+                    <th>@SiteResources.StaffRoles</th>
+                    <th>@SiteResources.StaffStatus</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var user in _users) {
+                    <tr>
+                        <td>
+                            <a href="admin/users/@user.Id/edit">@user.Id</a>
+                        </td>
+                        <td>@user.Name</td>
+                        <td>@user.Login</td>
+                        <td>@user.Email</td>
+                        <td>@(user.Participant ? SiteResources.Competitor : SiteResources.StaffPermanentAccount)</td>
+                        <td>
+                            @if (user.Admin) { <span class="badge text-bg-secondary me-1">@SiteResources.AdminSection</span> }
+                            @if (user.Jury) { <span class="badge text-bg-secondary me-1">@SiteResources.JurySection</span> }
+                            @if (user.Coach) { <span class="badge text-bg-secondary">@SiteResources.StaffCoach</span> }
+                        </td>
+                        <td>
+                            @if (user.Hidden) { <span class="badge text-bg-secondary me-1">@SiteResources.StaffHiddenAccount</span> }@if (user.Locked) { <span class="badge text-bg-danger">@SiteResources.StaffBanned</span> }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    @if (_users.Count == 0) { <p>@SiteResources.StaffNoUsers</p> }
+    <Pagination Page="CurrentPage" HasNextPage="_hasNext" PageUrl="PageUrl" Label="@SiteResources.StaffUserPages" />
+}
+
+@code {
+    [SupplyParameterFromQuery]
+    public string? Search { get; set; }
+    [SupplyParameterFromQuery]
+    public string? Group { get; set; }
+    [SupplyParameterFromQuery]
+    public string? AccountType { get; set; }
+    [SupplyParameterFromQuery]
+    public string? Role { get; set; }
+    [SupplyParameterFromQuery]
+    public string? Visibility { get; set; }
+    [SupplyParameterFromQuery]
+    public int? Page { get; set; }
+    private const int PageSize = 20;
+    private int CurrentPage => Math.Max(1, Page ?? 1);
+    private List<Row> _users = [];
+    private Filters _filters = new();
+    private bool _loaded;
+    private bool _hasNext;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _loaded = false;
+        string? accountType = AccountType ?? (Group is "permanent" or "participant" ? Group : null);
+        string? selectedRole = Role ?? (Group is "admin" or "jury" or "coach" ? Group : null);
+        _filters = new() { Search = Search, AccountType = accountType, Role = selectedRole, Visibility = Visibility };
+        await using var db = await ContextFactory.CreateDbContextAsync();
+        var query = db.Users.AsNoTracking();
+        if (!string.IsNullOrWhiteSpace(Search)) {
+            string search = Search.Trim();
+            bool hasId = int.TryParse(search, out int id);
+            query = query.Where(item => (hasId && item.Id == id) || item.Name.Contains(search)
+                || (item.UserName != null && item.UserName.Contains(search)) || (item.Email != null && item.Email.Contains(search)));
+        }
+        if (selectedRole is "admin" or "jury") {
+            string role = selectedRole == "admin" ? RoleNames.Admin : RoleNames.Jury;
+            query = query.Where(item => db.UserRoles.Any(link => link.UserId == item.Id && db.Roles.Any(value => value.Id == link.RoleId && value.Name == role)));
+        } else if (selectedRole == "coach") query = query.Where(item => db.UserClaims.Any(claim => claim.UserId == item.Id && claim.ClaimType == ClaimNames.CoachOrg));
+        if (accountType == "permanent") query = query.Where(item => item is OlympUser);
+        else if (accountType == "participant") query = query.Where(item => item is Competitor);
+        if (Visibility == "hidden") query = query.Where(item => item.IsHidden);
+        else if (Visibility == "visible") query = query.Where(item => !item.IsHidden);
+        long skip = ((long)CurrentPage - 1) * PageSize;
+        _users = skip > int.MaxValue ? [] : await query.OrderBy(item => item.Name).ThenBy(item => item.Id)
+            .Skip((int)skip).Take(PageSize + 1).Select(item => new Row(item.Id, item.Name, item.UserName, item.Email,
+                item is Competitor, item.IsHidden, item.LockoutEnabled && item.LockoutEnd > DateTimeOffset.Now,
+                db.UserRoles.Any(link => link.UserId == item.Id && db.Roles.Any(role => role.Id == link.RoleId && role.Name == RoleNames.Admin)),
+                db.UserRoles.Any(link => link.UserId == item.Id && db.Roles.Any(role => role.Id == link.RoleId && role.Name == RoleNames.Jury)),
+                db.UserClaims.Any(claim => claim.UserId == item.Id && claim.ClaimType == ClaimNames.CoachOrg))).ToListAsync();
+        _hasNext = _users.Count > PageSize;
+        if (_hasNext) _users.RemoveAt(PageSize);
+        _loaded = true;
+    }
+    private void ApplyFilters() => Navigation.NavigateTo(Navigation.GetUriWithQueryParameters(new Dictionary<string, object?> {
+        [nameof(Search)] = _filters.Search, [nameof(Group)] = null, [nameof(AccountType)] = _filters.AccountType, [nameof(Role)] = _filters.Role, [nameof(Visibility)] = _filters.Visibility, [nameof(Page)] = null
+    }));
+    private string PageUrl(int page) => Navigation.GetUriWithQueryParameter(nameof(Page), page);
+    private sealed class Filters {
+        public string? Search { get; set; }
+        public string? AccountType { get; set; }
+        public string? Role { get; set; }
+        public string? Visibility { get; set; }
+    }
+    private sealed record Row(int Id, string Name, string? Login, string? Email, bool Participant, bool Hidden, bool Locked, bool Admin, bool Jury, bool Coach);
+}

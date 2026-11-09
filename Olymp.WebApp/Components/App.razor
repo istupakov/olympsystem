@@ -17,7 +17,7 @@
     <link rel="stylesheet" href="@Assets["Olymp.WebApp.styles.css"]" />
     <ImportMap />
     <link rel="icon" type="image/svg+xml" href="@Assets["favicon.svg"]" />
-    <HeadOutlet />
+    <HeadOutlet @rendermode="HeadRenderMode" />
 </head>
 
 <body>
@@ -31,3 +31,13 @@
 </body>
 
 </html>
+
+@code {
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    private IComponentRenderMode? HeadRenderMode =>
+        HttpContext.Request.Path.StartsWithSegments("/jury", StringComparison.OrdinalIgnoreCase)
+        || HttpContext.Request.Path.StartsWithSegments("/admin", StringComparison.OrdinalIgnoreCase)
+            ? new InteractiveServerRenderMode(prerender: false) : null;
+}

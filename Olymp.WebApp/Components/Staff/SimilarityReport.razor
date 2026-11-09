@@ -1,0 +1,26 @@
+@using Olymp.Site.Services.AntiCheat
+@using Olymp.WebApp.Components.Submissions
+
+@foreach (var report in Reports)
+{
+    <details class="card mb-3">
+        <summary class="card-header">@report.Competitor1.Name · @report.Competitor2.Name · @report.Cases.Max(item => item.Similarity).ToString("P2")</summary>
+        <div class="card-body">
+            @foreach (var pair in report.Cases)
+            {
+                <section class="mb-4">
+                    <h3 class="h5">@pair.Submission1.Problem.NameWithNumber · @pair.Similarity.ToString("P2")</h3>
+                    @foreach (var submission in new[] { pair.Submission1, pair.Submission2 })
+                    {
+                        <p><a target="_blank" rel="noopener" href="jury/submissions/@submission.Id">#@submission.Id – @submission.User.Name</a> · @submission.CommitTime.LocalDateTime.ToString("g") · @submission.Compilator.Name · <SubmissionStatus StatusCode="submission.StatusCode" /></p>
+                    }
+                </section>
+            }
+        </div>
+    </details>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public IReadOnlyList<PlagiarismReport> Reports { get; set; } = [];
+}

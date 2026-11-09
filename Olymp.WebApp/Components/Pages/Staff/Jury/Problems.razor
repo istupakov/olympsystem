@@ -1,0 +1,199 @@
+@page "/jury/contests/{ContestId:int}/problems"
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@using System.Security.Claims
+@using Olymp.WebApp.Components.Problems
+@using Olymp.WebApp.Components.Submissions
+@inject IDbContextFactory<OlympContext> ContextFactory
+@inject SubmissionService Submissions
+@inject NavigationManager Navigation
+@inject ILogger<Problems> Logger
+
+<PageTitle>@SiteResources.Problems</PageTitle>
+@if (!_loaded)
+{
+    <p role="status">@SiteResources.StaffLoading</p>
+}
+else if (_contest is null)
+{
+    <p role="status">@SiteResources.PageNotFoundMessage</p>
+}
+else
+{
+    <StaffContestNavigation ContestId="ContestId" ContestName="@_contest.Name" />
+    <h1 class="h3">@SiteResources.Problems</h1>
+    @if (_selected is null)
+    {
+        <p>@SiteResources.NoProblemsFound</p>
+    }
+    else
+    {
+        <ProblemWorkspace Progress="_progress" Selected="_selected" ProblemUrl="ProblemUrl" OnProblemChanged="SelectProblem">
+            @if (!_selected.IsActive) { <p class="badge text-bg-secondary">@SiteResources.StaffInactiveProblem</p> }
+            <p><a href="@ProblemUrl(_selected.Id)#submit-heading">@SiteResources.JumpToSubmission</a></p>
+            <ProblemStatementView Problem="_selected" Examples="_examples" Clarifications="_clarifications" ShowPdfLink="false" />
+            <section class="mt-4" aria-labelledby="submit-heading">
+                <h2 id="submit-heading" class="h4">@SiteResources.SubmitSolution</h2>
+                @if (_error is not null) { <p class="text-danger" role="alert">@_error</p> }
+                <EditForm @key="_input" Model="_input" OnValidSubmit="SubmitAsync">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary class="text-danger" role="alert" />
+                    <SubmissionFields Input="_input" Compilers="_compilers" Disabled="_busy" />
+                </EditForm>
+            </section>
+            <section id="submissions" class="mt-4" aria-labelledby="problem-submissions-heading">
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                    <h2 id="problem-submissions-heading" class="h4 mb-0">@SiteResources.Submissions</h2>
+                    <a class="btn btn-sm btn-outline-secondary" href="@SubmissionsUrl(CurrentScope, CurrentPage)">@SiteResources.Refresh</a>
+                </div>
+                <nav aria-label="@SiteResources.StaffSubmissionAuthors" class="mb-3">
+                    <ul class="nav nav-underline">
+                        <li class="nav-item"><a class="nav-link @(CurrentScope == "own" ? "active" : null)" aria-current="@(CurrentScope == "own" ? "page" : null)" href="@SubmissionsUrl("own", 1)">@SiteResources.OwnSubmissions</a></li>
+                        <li class="nav-item"><a class="nav-link @(CurrentScope == "hidden" ? "active" : null)" aria-current="@(CurrentScope == "hidden" ? "page" : null)" href="@SubmissionsUrl("hidden", 1)">@SiteResources.StaffJuryAuthors</a></li>
+                    </ul>
+                </nav>
+                @if (_rows.Count == 0) { <p>@SiteResources.NoSubmissions</p> }
+                else
+                {
+                    <SubmissionTable Items="_rows" ShowId="true" ShowProblem="false" ShowSource="false" ShowScores="_contest.IsSchool"
+                                     SourceUrl="@(item => SourceUrl(item.Id))" />
+                }
+                <Pagination Page="CurrentPage" HasNextPage="_hasNext" PageUrl="@(page => SubmissionsUrl(CurrentScope, page))" Label="@SiteResources.SubmissionPages" />
+                <p class="mt-3"><a href="jury/contests/@ContestId/submissions?Problem=@_selected.Id">@SiteResources.StaffProblemSubmissions</a></p>
+            </section>
+        </ProblemWorkspace>
+    }
+}
+
+@code {
+    [Parameter]
+    public int ContestId { get; set; }
+
+    [SupplyParameterFromQuery]
+    public int? ProblemId { get; set; }
+
+    [SupplyParameterFromQuery]
+    public string? Scope { get; set; }
+
+    [SupplyParameterFromQuery]
+    public int? SubmissionPage { get; set; }
+
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthenticationState { get; set; } = default!;
+
+    private Contest? _contest;
+    private Problem? _selected;
+    private IReadOnlyList<Test> _examples = [];
+    private List<Message> _clarifications = [];
+    private IReadOnlyList<Compilator> _compilers = [];
+    private IReadOnlyList<Olymp.Domain.Standing.UserProblemResult> _progress = [];
+    private SubmissionInput _input = new();
+    private string? _error;
+    private bool _loaded;
+    private bool _busy;
+    private int _loadVersion;
+    private const int PageSize = 20;
+    private int CurrentPage => Math.Max(1, SubmissionPage ?? 1);
+    private string CurrentScope => Scope == "hidden" ? "hidden" : "own";
+    private List<SubmissionListItem> _rows = [];
+    private bool _hasNext;
+
+    private string ProblemUrl(int id) => $"jury/contests/{ContestId}/problems?problemId={id}" + (CurrentScope == "hidden" ? "&scope=hidden" : "");
+    private string SubmissionsUrl(string scope, int page) => Navigation.GetUriWithQueryParameters(Navigation.Uri.Split('#')[0],
+        new Dictionary<string, object?> { [nameof(Scope)] = scope == "own" ? null : scope, [nameof(SubmissionPage)] = page == 1 ? null : page });
+    private string SourceUrl(int id) => $"jury/submissions/{id}?returnUrl={Uri.EscapeDataString(new Uri(Navigation.Uri).PathAndQuery)}";
+    private void SelectProblem(int id) => Navigation.NavigateTo(ProblemUrl(id));
+
+    protected override async Task OnParametersSetAsync()
+    {
+        int version = ++_loadVersion;
+        int contestId = ContestId;
+        int? requestedProblem = ProblemId;
+        string selectedScope = CurrentScope;
+        int page = CurrentPage;
+        _loaded = false;
+        _error = null;
+        int? previousProblem = _selected?.Id;
+        int? compiler = _input.CompilatorId;
+        await using var context = await ContextFactory.CreateDbContextAsync();
+        var contest = await context.Contests.AsNoTracking().Include(item => item.Problems)
+            .SingleOrDefaultAsync(item => item.Id == contestId);
+        var problems = contest?.Problems.OrderBy(item => item.Number).ThenBy(item => item.Id).ToList() ?? [];
+        var selected = requestedProblem is int id ? problems.SingleOrDefault(item => item.Id == id) : problems.FirstOrDefault();
+        if (selected is null && requestedProblem.HasValue) contest = null;
+        IReadOnlyList<Test> examples = [];
+        List<Message> clarifications = [];
+        IReadOnlyList<Compilator> compilers = [];
+        IReadOnlyList<Olymp.Domain.Standing.UserProblemResult> progress = [];
+        List<SubmissionListItem> rows = [];
+        if (selected is not null)
+        {
+            examples = await context.Tests.AsNoTracking()
+                .Where(item => item.ProblemId == selected.Id && item.IsOpen && item.IsActive)
+                .OrderBy(item => item.Number).ToListAsync();
+            clarifications = await context.Messages.AsNoTracking()
+                .Where(item => item.ContestId == contestId && item.ProblemId == selected.Id && item.UserId == null && item.JuryText != null)
+                .OrderByDescending(item => item.SendTime).ThenByDescending(item => item.Id).ToListAsync();
+            clarifications.RemoveAll(item => string.IsNullOrWhiteSpace(item.JuryText));
+            compilers = await context.Compilators.AsNoTracking().Where(item => item.IsActive)
+                .OrderBy(item => item.Description).ThenBy(item => item.Name).ToListAsync();
+            var user = (await AuthenticationState).User;
+            int userId = int.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var own = context.Submissions.AsNoTracking().Where(item => item.UserId == userId && item.Problem.ContestId == contestId);
+            if (!compilers.Any(item => item.Id == compiler))
+                compiler = await own.Where(item => item.Compilator.IsActive)
+                    .OrderByDescending(item => item.CommitTime).ThenByDescending(item => item.Id)
+                    .Select(item => (int?)item.CompilatorId).FirstOrDefaultAsync();
+            var submissions = await own.Where(item => item.StatusCode != 0 && item.StatusCode != 1 && item.StatusCode != -1)
+                .Select(item => new Submission { ProblemId = item.ProblemId, StatusCode = item.StatusCode, Score = item.Score,
+                    CommitTime = item.CommitTime, SourceCode = null!, User = null!, Problem = null!, Compilator = null!, CheckResults = null! })
+                .ToListAsync();
+            progress = Olymp.Domain.Standing.UserProblemStanding(problems, submissions).ToList();
+            long skip = ((long)page - 1) * PageSize;
+            if (skip <= int.MaxValue)
+                rows = await context.Submissions.AsNoTracking().Where(item => item.ProblemId == selected.Id)
+                    .ForAuthors(selectedScope, userId, context, contestId)
+                    .OrderByDescending(item => item.CommitTime).ThenByDescending(item => item.Id)
+                    .Skip((int)skip).Take(PageSize + 1).AsStaffRows(context, contestId).ToListAsync();
+        }
+        if (version != _loadVersion) return;
+        _contest = contest;
+        _selected = selected;
+        _examples = examples;
+        _clarifications = clarifications;
+        _compilers = compilers;
+        _progress = progress;
+        _rows = rows;
+        _hasNext = _rows.Count > PageSize;
+        if (_hasNext) _rows.RemoveAt(PageSize);
+        if (previousProblem != selected?.Id) _input = new() { CompilatorId = compiler };
+        _loaded = true;
+    }
+
+    private async Task SubmitAsync()
+    {
+        if (_busy || _selected is null) return;
+        _busy = true;
+        _error = null;
+        int contestId = ContestId, problemId = _selected.Id;
+        try
+        {
+            var result = await Submissions.SubmitJuryAsync((await AuthenticationState).User, contestId, problemId, _input);
+            if (ContestId != contestId || _selected?.Id != problemId) return;
+            if (result.NotFound) { Navigation.NotFound(); return; }
+            _error = result.Error;
+            if (result.Id is not null)
+            {
+                _input = new() { CompilatorId = _input.CompilatorId };
+                string url = SubmissionsUrl("own", 1);
+                if (url == Navigation.Uri.Split('#')[0]) await OnParametersSetAsync();
+                else Navigation.NavigateTo(url, replace: true);
+            }
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Jury submission failed for problem {ProblemId}", problemId);
+            _error = SiteResources.StaffSubmissionFailed;
+        }
+        finally { _busy = false; }
+    }
+}

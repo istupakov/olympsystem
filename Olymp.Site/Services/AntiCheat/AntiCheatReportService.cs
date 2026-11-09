@@ -16,6 +16,24 @@ public sealed record AIUsingReport(User Competitor, IReadOnlyList<AIUsingCase> C
 public sealed class AntiCheatReportService(OlympContext context, ISubmissionSimilarityService similarityService,
     IAIDetectionService aiDetectionService)
 {
+    /// <summary>Analyze selected submissions against problem history, excluding hidden authors on both sides.</summary>
+    public async Task<IReadOnlyList<PlagiarismReport>> FindPlagiarismAsync(IQueryable<Submission> selected,
+        float threshold, CancellationToken token = default)
+    {
+        var sources = await LoadAsync(selected.Where(item => !item.User.IsHidden), token);
+        var problemIds = sources.Select(item => item.ProblemId).Distinct().ToArray();
+        var history = await LoadAsync(context.Submissions.Where(item => !item.User.IsHidden && problemIds.Contains(item.ProblemId)), token);
+        return await Task.Run(() => Compare(sources, history, threshold, token), token);
+    }
+
+    /// <summary>Analyze selected submissions for AI indicators, excluding hidden authors.</summary>
+    public async Task<IReadOnlyList<AIUsingReport>> DetectAiAsync(IQueryable<Submission> selected,
+        float threshold, CancellationToken token = default)
+    {
+        var sources = await LoadAsync(selected.Where(item => !item.User.IsHidden), token);
+        return await Task.Run(() => Detect(sources, threshold, token), token);
+    }
+
     public async Task<IReadOnlyList<PlagiarismReport>> FindContestPlagiarismAsync(int contestId, float threshold,
         CancellationToken token = default)
     {
@@ -53,6 +71,11 @@ public sealed class AntiCheatReportService(OlympContext context, ISubmissionSimi
         CancellationToken token = default)
     {
         var submissions = await LoadAsync(ContestSubmissions(contestId), token);
+        return Detect(submissions, threshold, token);
+    }
+
+    private IReadOnlyList<AIUsingReport> Detect(IReadOnlyList<Submission> submissions, float threshold, CancellationToken token)
+    {
         var cases = new List<AIUsingCase>();
         foreach (var submission in submissions)
         {

@@ -1,0 +1,38 @@
+@if (Page > 1 || HasNextPage)
+{
+    <nav aria-label="@Label">
+        <ul class="pagination flex-wrap mb-0">
+            @if (Page > 1)
+            {
+                <li class="page-item"><a class="page-link" href="@PageUrl(1)">1</a></li>
+                @if (Page > 5)
+                {
+                    <li class="page-item disabled"><span class="page-link">…</span></li>
+                }
+                @for (int number = Math.Max(2, Page - 3); number < Page; number++)
+                {
+                    <li class="page-item"><a class="page-link" href="@PageUrl(number)">@number</a></li>
+                }
+            }
+            <li class="page-item active"><span class="page-link" aria-current="page">@Page</span></li>
+            @if (HasNextPage)
+            {
+                <li class="page-item"><a class="page-link" href="@PageUrl(Page + 1)" rel="next">@SiteResources.NextPage</a></li>
+            }
+        </ul>
+    </nav>
+}
+
+@code {
+    [Parameter]
+    public int Page { get; set; } = 1;
+
+    [Parameter]
+    public bool HasNextPage { get; set; }
+
+    [Parameter, EditorRequired]
+    public Func<int, string> PageUrl { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public string Label { get; set; } = "";
+}

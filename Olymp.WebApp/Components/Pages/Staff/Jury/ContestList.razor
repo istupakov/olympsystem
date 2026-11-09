@@ -1,0 +1,82 @@
+@page "/jury/contests"
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@using System.Security.Claims
+@inject IDbContextFactory<OlympContext> ContextFactory
+
+<PageTitle>@SiteResources.JurySection – @SiteResources.Contests</PageTitle>
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+    <h1 class="mb-0">@SiteResources.Contests</h1>
+    <a class="btn btn-primary" href="jury/contests/new">@SiteResources.CreateContest</a>
+</div>
+
+@if (contests is null)
+{
+    <p role="status">@SiteResources.StaffLoading</p>
+}
+else
+{
+    <div class="list-group">
+        @foreach (var contest in contests)
+        {
+            <div class="list-group-item d-flex flex-wrap justify-content-between align-items-center gap-3">
+                <div class="text-break">
+                    <div class="fw-semibold">@contest.Name</div>
+                    <div class="small text-body-secondary">@contest.StartTime.LocalDateTime.ToString("g") · @FormatDuration(contest.EndTime - contest.StartTime)</div>
+                    @if (contest.IsHidden)
+                    {
+                        <span class="badge text-bg-secondary">@SiteResources.HiddenContest</span>
+                    }
+                    @if (contest.IsOpen)
+                    {
+                        <span class="badge text-bg-info">@SiteResources.OpenContest</span>
+                    }
+                </div>
+                <div class="d-flex flex-wrap gap-2">
+                    <a class="btn btn-outline-secondary btn-sm" href="jury/contests/@contest.Id/problems">@SiteResources.Problems</a>
+                    <a class="btn btn-outline-secondary btn-sm" href="jury/contests/@contest.Id/participants">@SiteResources.ContestParticipants</a>
+                    <a class="btn btn-outline-secondary btn-sm" href="jury/contests/@contest.Id/submissions">@SiteResources.Submissions</a>
+                    <a class="btn btn-outline-secondary btn-sm" href="jury/contests/@contest.Id/anticheat">@SiteResources.StaffAntiCheat</a>
+                @if (admin || managed.Contains(contest.Id.ToString(CultureInfo.InvariantCulture)))
+                {
+                    <a class="btn btn-outline-primary btn-sm" href="jury/contests/@contest.Id/edit">@SiteResources.StaffEdit</a>
+                }
+                </div>
+            </div>
+        }
+    </div>
+    @if (contests.Count == 0)
+    {
+        <p>@SiteResources.NoStaffContests</p>
+    }
+}
+
+@code {
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthenticationState { get; set; } = default!;
+    private List<Contest>? contests;
+    private HashSet<string?> managed = [];
+    private bool admin;
+
+    private static string FormatDuration(TimeSpan duration)
+    {
+        int hours = (int)duration.TotalHours;
+        if (hours == 0)
+            return string.Format(SiteResources.DurationMinutes, duration.Minutes);
+        return duration.Minutes == 0
+            ? string.Format(SiteResources.DurationHours, hours)
+            : string.Format(SiteResources.DurationHoursMinutes, hours, duration.Minutes);
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var user = (await AuthenticationState).User;
+        admin = user.IsInRole(RoleNames.Admin);
+        await using var context = await ContextFactory.CreateDbContextAsync();
+        contests = await context.Contests.AsNoTracking().OrderByDescending(contest => contest.StartTime)
+            .ThenByDescending(contest => contest.Id).ToListAsync();
+        if (!admin && int.TryParse(user.FindFirstValue(ClaimTypes.NameIdentifier), out int userId))
+            managed = (await context.UserClaims.Where(claim => claim.UserId == userId && claim.ClaimType == ClaimNames.ContestManage)
+                .Select(claim => claim.ClaimValue).ToListAsync()).ToHashSet();
+    }
+}

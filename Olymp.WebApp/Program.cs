@@ -8,10 +8,13 @@ using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.Rewrite;
 using Microsoft.EntityFrameworkCore;
 
+using Olymp.Checker;
+using Olymp.Checker.AntiCheat;
 using Olymp.Domain;
 using Olymp.Domain.Models;
 using Olymp.Site;
 using Olymp.Site.IdentityUI;
+using Olymp.Site.Services.AntiCheat;
 using Olymp.Site.Services.Contests;
 using Olymp.Site.Services.Identity;
 using Olymp.Site.Services.Mail;
@@ -51,6 +54,12 @@ builder.Services.AddAuthorizationBuilder()
     .AddPolicy("SignedIn", signedInPolicy)
     .AddPolicy(PolicyNames.PermanentAccount, permanentAccountPolicy)
     .AddPolicy(PolicyNames.OlympUser, olympUserPolicy)
+    .AddPolicy(PolicyNames.JuryOrAdmin, policy => policy
+        .Combine(defaultPolicy)
+        .RequireRole(RoleNames.Jury, RoleNames.Admin))
+    .AddPolicy(PolicyNames.Admin, policy => policy
+        .Combine(defaultPolicy)
+        .RequireRole(RoleNames.Admin))
     .AddPolicy(PolicyNames.Coach, policy => policy
         .Combine(olympUserPolicy)
         .RequireClaim(ClaimNames.CoachOrg))
@@ -74,8 +83,12 @@ builder.Services.AddRequestLocalization(options =>
 });
 
 builder.Services.AddScoped<CompetitorManagementService>();
+builder.Services.AddScoped<AntiCheatReportService>();
+builder.Services.AddTransient<ISubmissionSimilarityService, SimpleSubmissionSimilarityService>();
+builder.Services.AddTransient<IAIDetectionService, SimpleAIDetectionService>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IAuthorizationHandler, SubmitSolutionHandler>();
+builder.Services.AddScoped<SubmissionService>();
 builder.Services.AddScoped<IAuthorizationHandler, ViewSolutionHandler>();
 
 builder.Services.AddCascadingAuthenticationState();

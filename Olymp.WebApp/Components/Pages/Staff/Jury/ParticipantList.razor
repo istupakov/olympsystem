@@ -1,0 +1,109 @@
+@page "/jury/contests/{ContestId:int}/participants"
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@using Olymp.Site.Services
+@using Olymp.Site.Services.Contests
+@inject IDbContextFactory<OlympContext> ContextFactory
+@inject IServiceScopeFactory ScopeFactory
+@inject ILogger<ParticipantList> Logger
+
+<PageTitle>@SiteResources.ContestParticipants</PageTitle>
+@if (_contest is null)
+{
+    <p role="status">@(_loaded ? SiteResources.PageNotFoundMessage : SiteResources.StaffLoading)</p>
+}
+else
+{
+    <StaffContestNavigation ContestId="ContestId" ContestName="@_contest.Name" />
+    <h1 class="h3">@SiteResources.ContestParticipants</h1>
+    @if (_error is not null) { <div class="alert alert-danger" role="alert">@_error</div> }
+    @if (_status is not null) { <div class="alert alert-success" role="status">@_status</div> }
+    @if (_pending is { } pending)
+    {
+        <div class="alert alert-warning" role="alert">
+            <p>@SiteResources.StaffConfirmOperation <strong>@OperationName(pending.Action)</strong> @pending.Name</p>
+            <button class="btn btn-danger me-2" disabled="@_busy" @onclick="ExecuteAsync">@SiteResources.StaffConfirm</button>
+            <button class="btn btn-outline-secondary" disabled="@_busy" @onclick="() => _pending = null">@SiteResources.StaffCancel</button>
+        </div>
+    }
+    @if (_canManage)
+    {
+        <fieldset disabled="@_busy" class="mb-4">
+            <div class="d-flex flex-wrap gap-2 mb-3">
+                <button class="btn btn-outline-primary" @onclick="() => Ask(ParticipantAction.ApproveAll)">@SiteResources.StaffApproveAll</button>
+                <button class="btn btn-outline-primary" @onclick="() => Ask(ParticipantAction.GenerateLogins)">@SiteResources.StaffGenerateLogins</button>
+                <button class="btn btn-outline-danger" @onclick="() => Ask(ParticipantAction.RemoveLogins)">@SiteResources.StaffRemoveLogins</button>
+                @if (DateTimeOffset.Now > _contest.EndTime) { <button class="btn btn-outline-danger" @onclick="() => Ask(ParticipantAction.DeleteEmpty)">@SiteResources.StaffDeleteEmptyParticipants</button> }
+            </div>
+            <div class="row g-3">
+                @if (!_contest.IsAcm)
+                {
+                    <div class="col-lg-6">
+                        <label for="participants-file" class="form-label">@SiteResources.StaffImportParticipants</label>
+                        <InputFile id="participants-file" class="form-control" accept=".csv,.txt" OnChange="SelectParticipantsAsync" />
+                        <div class="form-text">@SiteResources.StaffParticipantsFileHint</div>
+                    </div>
+                }
+                <div class="col-lg-6">
+                    <label for="logins-file" class="form-label">@SiteResources.StaffImportLogins</label>
+                    <InputFile id="logins-file" class="form-control" accept=".csv,.txt" OnChange="SelectLoginsAsync" />
+                    <div class="form-text">@SiteResources.StaffLoginsFileHint</div>
+                </div>
+            </div>
+        </fieldset>
+    }
+    <div class="table-responsive">
+        <table class="table table-striped align-middle">
+            <thead>
+                <tr>
+                    <th>@AccountResources.PublicName</th>
+                    <th>@SiteResources.StaffMembers</th>
+                    <th>@SiteResources.StaffOrganization</th>
+                    <th>@SiteResources.StaffCoach</th>
+                    <th>@SiteResources.StaffLogin</th>
+                    <th>@SiteResources.StaffPassword</th>
+                    <th>@SiteResources.StaffStatus</th>
+                    <th>@SiteResources.StaffRegistrationDate</th>
+                    @if (_canManage || _admin) { <th>@SiteResources.StaffActions</th> }</tr>
+            </thead>
+            <tbody>
+                @foreach (var participant in _participants) {
+                    <tr>
+                        <td>@participant.Name @if (participant.IsHidden) { <span class="badge text-bg-secondary">@SiteResources.StaffHiddenAccount</span> }
+                        </td>
+                        <td>
+                            @foreach (var (name, member) in participant.GetMembers() ?? []) { <div>@name @if (member?.Email is { } email) { <a href="mailto:@email">@email</a> }
+                                </div> }
+                        </td>
+                        <td>@participant.Organization?.Name</td>
+                        <td>@participant.Coach?.Name @if (participant.Coach?.Email is { } coachEmail) { <div>
+                                    <a href="mailto:@coachEmail">@coachEmail</a>
+                                </div> }
+                        </td>
+                        <td>@participant.UserName</td>
+                        <td>@participant.PasswordHash</td>
+                        <td>
+                            <div>@(participant.IsApproved ? SiteResources.StaffApproved : SiteResources.StaffUnapproved)</div>
+                            <div>@(participant.IsOutOfCompetition ? SiteResources.StaffUnofficial : SiteResources.StaffOfficial)</div>
+                            @if (participant.IsDisqualified) { <span class="badge text-bg-danger">@SiteResources.StaffDisqualified</span> }
+                        </td>
+                        <td>@participant.RegistrationDate?.LocalDateTime.ToString("g")</td>
+                        @if (_canManage || _admin) {
+                            <td>
+                                <div class="d-flex flex-wrap gap-2">
+                                    @if (_canManage) {
+                                        <button class="btn btn-sm btn-outline-primary" disabled="@_busy" @onclick="() => Ask(participant.IsApproved ? ParticipantAction.Disapprove : ParticipantAction.Approve, participant)">@(participant.IsApproved ? SiteResources.StaffDisapprove : SiteResources.StaffApprove)</button>
+                                        <button class="btn btn-sm btn-outline-primary" disabled="@_busy" @onclick="() => Ask(participant.IsOutOfCompetition ? ParticipantAction.Official : ParticipantAction.Unofficial, participant)">@(participant.IsOutOfCompetition ? SiteResources.StaffMakeOfficial : SiteResources.StaffMakeUnofficial)</button>
+                                        <button class="btn btn-sm btn-outline-warning" disabled="@_busy" @onclick="() => Ask(participant.IsDisqualified ? ParticipantAction.Restore : ParticipantAction.Disqualify, participant)">@(participant.IsDisqualified ? SiteResources.StaffRestoreParticipant : SiteResources.StaffDisqualify)</button>
+                                        <button class="btn btn-sm btn-outline-danger" disabled="@_busy" @onclick="() => Ask(ParticipantAction.Delete, participant)">@SiteResources.StaffDelete</button>
+                                    }
+                                    @if (_admin) { <a class="btn btn-sm btn-outline-secondary" href="admin/users/@participant.Id/edit">@SiteResources.StaffAccount</a> }
+                                </div>
+                            </td>
+                        }
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    @if (_participants.Count == 0) { <p>@SiteResources.StaffNoParticipants</p> }
+}

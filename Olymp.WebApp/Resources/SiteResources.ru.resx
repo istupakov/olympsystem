@@ -24,6 +24,7 @@
   <data name="TimeUntilEnd" xml:space="preserve"><value>До конца {0}</value></data>
   <data name="DurationDaysHours" xml:space="preserve"><value>{0} д {1} ч</value></data>
   <data name="DurationHoursMinutes" xml:space="preserve"><value>{0} ч {1} мин</value></data>
+  <data name="DurationHours" xml:space="preserve"><value>{0} ч</value></data>
   <data name="DurationMinutes" xml:space="preserve"><value>{0} мин</value></data>
   <data name="DurationSeconds" xml:space="preserve"><value>{0} с</value></data>
   <data name="ContestParticipants" xml:space="preserve"><value>Участники</value></data>
@@ -182,4 +183,195 @@
   <data name="QuestionProblemUnavailable" xml:space="preserve"><value>Выбранная задача недоступна. Выберите действующую задачу этого соревнования.</value></data>
   <data name="QuestionRequired" xml:space="preserve"><value>Введите вопрос.</value></data>
   <data name="QuestionLength" xml:space="preserve"><value>Вопрос должен содержать от 10 до 4096 символов.</value></data>
+  <data name="JurySection" xml:space="preserve"><value>Жюри</value></data>
+  <data name="AdminSection" xml:space="preserve"><value>Админ</value></data>
+  <data name="StaffNavigation" xml:space="preserve"><value>Разделы управления</value></data>
+  <data name="StaffLoading" xml:space="preserve"><value>Загрузка…</value></data>
+  <data name="StaffName" xml:space="preserve"><value>Название</value></data>
+  <data name="StaffDescription" xml:space="preserve"><value>Описание</value></data>
+  <data name="StaffEdit" xml:space="preserve"><value>Редактировать</value></data>
+  <data name="StaffSave" xml:space="preserve"><value>Сохранить</value></data>
+  <data name="StaffSaving" xml:space="preserve"><value>Сохранение…</value></data>
+  <data name="StaffCancel" xml:space="preserve"><value>Отмена</value></data>
+  <data name="StaffSaved" xml:space="preserve"><value>Изменения сохранены.</value></data>
+  <data name="StaffSaveFailed" xml:space="preserve"><value>Не удалось сохранить изменения. Повторите попытку.</value></data>
+  <data name="StaffAccessDenied" xml:space="preserve"><value>У вас нет права управлять этой записью.</value></data>
+  <data name="StaffPreview" xml:space="preserve"><value>Предпросмотр</value></data>
+  <data name="HtmlSupported" xml:space="preserve"><value>Поддерживается HTML.</value></data>
+  <data name="CreateContest" xml:space="preserve"><value>Создать соревнование</value></data>
+  <data name="EditContest" xml:space="preserve"><value>Редактирование соревнования</value></data>
+  <data name="NoStaffContests" xml:space="preserve"><value>Соревнований пока нет.</value></data>
+  <data name="Abbreviation" xml:space="preserve"><value>Сокращение</value></data>
+  <data name="AbbreviationHint" xml:space="preserve"><value>Начните с латинской буквы; используйте латинские буквы, цифры, подчёркивания и дефисы. Префикс acm задаёт командный режим, school – школьный.</value></data>
+  <data name="AbbreviationFormat" xml:space="preserve"><value>Используйте латинскую букву, затем латинские буквы, цифры, подчёркивания или дефисы.</value></data>
+  <data name="AbbreviationInUse" xml:space="preserve"><value>Это сокращение уже используется.</value></data>
+  <data name="ContestStart" xml:space="preserve"><value>Дата и время начала</value></data>
+  <data name="ContestEnd" xml:space="preserve"><value>Окончание</value></data>
+  <data name="ContestDuration" xml:space="preserve"><value>Длительность (часы:минуты)</value></data>
+  <data name="IntervalHint" xml:space="preserve"><value>Интервалы задаются в формате часы:минуты, например 5:00 или 0:30. Часов может быть больше 23.</value></data>
+  <data name="EarlyPrinting" xml:space="preserve"><value>Разрешить печать условий (PDF) заранее</value></data>
+  <data name="PrintingAdvance" xml:space="preserve"><value>За сколько до начала (часы:минуты)</value></data>
+  <data name="EnableFreeze" xml:space="preserve"><value>Заморозка результатов</value></data>
+  <data name="FreezeAdvance" xml:space="preserve"><value>За сколько до конца (часы:минуты)</value></data>
+  <data name="PrintingAvailableFrom" xml:space="preserve"><value>Печать доступна с</value></data>
+  <data name="FreezeStartsAt" xml:space="preserve"><value>Начало заморозки</value></data>
+  <data name="HiddenContest" xml:space="preserve"><value>Скрытое соревнование</value></data>
+  <data name="OpenContest" xml:space="preserve"><value>Открытое участие</value></data>
+  <data name="ServerTimeZone" xml:space="preserve"><value>Часовой пояс сервера</value></data>
+  <data name="PositiveDurationRequired" xml:space="preserve"><value>Укажите положительную длительность в формате часы:минуты.</value></data>
+  <data name="IntervalFormat" xml:space="preserve"><value>Укажите неотрицательный интервал в формате часы:минуты.</value></data>
+  <data name="FreezeIntervalInvalid" xml:space="preserve"><value>Интервал заморозки должен быть неотрицательным и не превышать длительность соревнования.</value></data>
+  <data name="OpenContestCannotFreeze" xml:space="preserve"><value>Открытое участие несовместимо с заморозкой. Чтобы открыть соревнование, отключите заморозку.</value></data>
+  <data name="UnambiguousServerTime" xml:space="preserve"><value>Укажите однозначное время в часовом поясе сервера.</value></data>
+  <data name="ScheduleOutOfRange" xml:space="preserve"><value>Вычисленные даты выходят за допустимый диапазон.</value></data>
+  <data name="InvalidDate" xml:space="preserve"><value>Укажите корректные дату и время.</value></data>
+  <data name="CreateNews" xml:space="preserve"><value>Создать новость</value></data>
+  <data name="EditNews" xml:space="preserve"><value>Редактирование новости</value></data>
+  <data name="NewsTitle" xml:space="preserve"><value>Заголовок</value></data>
+  <data name="NewsText" xml:space="preserve"><value>Текст</value></data>
+  <data name="PublicationDate" xml:space="preserve"><value>Дата и время публикации</value></data>
+  <data name="NewsPublishesImmediately" xml:space="preserve"><value>Новость появляется на сайте сразу после сохранения, в том числе при будущей дате публикации.</value></data>
+  <data name="DeleteNews" xml:space="preserve"><value>Удалить новость</value></data>
+  <data name="ConfirmDeleteNews" xml:space="preserve"><value>Удалить эту новость? Это действие нельзя отменить.</value></data>
+  <data name="DeletingNews" xml:space="preserve"><value>Удаление…</value></data>
+  <data name="NewsDeleteFailed" xml:space="preserve"><value>Не удалось удалить новость. Повторите попытку.</value></data>
+  <data name="StaffAccount" xml:space="preserve"><value>Учётная запись</value></data>
+  <data name="StaffAccountGroup" xml:space="preserve"><value>Тип аккаунта / роль</value></data>
+  <data name="StaffActions" xml:space="preserve"><value>Действия</value></data>
+  <data name="StaffAddAdmin" xml:space="preserve"><value>Назначить администратором</value></data>
+  <data name="StaffAddCoach" xml:space="preserve"><value>Дать права тренера своей организации</value></data>
+  <data name="StaffAddJury" xml:space="preserve"><value>Назначить членом жюри</value></data>
+  <data name="StaffAiDetection" xml:space="preserve"><value>Признаки использования ИИ</value></data>
+  <data name="StaffAll" xml:space="preserve"><value>Все</value></data>
+  <data name="StaffAnalysisByPeriod" xml:space="preserve"><value>Сходство за период</value></data>
+  <data name="StaffAnalysisByUser" xml:space="preserve"><value>Сходство по автору</value></data>
+  <data name="StaffAnalysisFailed" xml:space="preserve"><value>Не удалось выполнить анализ. Попробуйте ещё раз.</value></data>
+  <data name="StaffAnalysisKind" xml:space="preserve"><value>Тип проверки</value></data>
+  <data name="StaffAnalyzing" xml:space="preserve"><value>Выполняется анализ…</value></data>
+  <data name="StaffAntiCheat" xml:space="preserve"><value>Античит</value></data>
+  <data name="StaffAntiCheatScope" xml:space="preserve"><value>Проверяются все посылки к задачам соревнования, кроме посылок скрытых аккаунтов.</value></data>
+  <data name="StaffAntiCheatTools" xml:space="preserve"><value>Инструменты античита</value></data>
+  <data name="StaffApprove" xml:space="preserve"><value>Допустить</value></data>
+  <data name="StaffApproveAll" xml:space="preserve"><value>Допустить всех</value></data>
+  <data name="StaffApproved" xml:space="preserve"><value>Допущен</value></data>
+  <data name="StaffBackToSubmissions" xml:space="preserve"><value>Вернуться к списку решений</value></data>
+  <data name="StaffBan" xml:space="preserve"><value>Заблокировать аккаунт</value></data>
+  <data name="StaffBanned" xml:space="preserve"><value>Заблокирован</value></data>
+  <data name="StaffCheckHistory" xml:space="preserve"><value>История проверок</value></data>
+  <data name="StaffCoach" xml:space="preserve"><value>Тренер</value></data>
+  <data name="StaffCoachOrganizations" xml:space="preserve"><value>Организации тренера</value></data>
+  <data name="StaffCoaches" xml:space="preserve"><value>Тренеры</value></data>
+  <data name="StaffCompareSubmissions" xml:space="preserve"><value>Сравнить две посылки</value></data>
+  <data name="StaffConfirm" xml:space="preserve"><value>Подтвердить</value></data>
+  <data name="StaffConfirmOperation" xml:space="preserve"><value>Подтвердите действие:</value></data>
+  <data name="StaffContestSections" xml:space="preserve"><value>Управление соревнованием</value></data>
+  <data name="StaffCyrillicComments" xml:space="preserve"><value>Комментарии на кириллице</value></data>
+  <data name="StaffDateFrom" xml:space="preserve"><value>С</value></data>
+  <data name="StaffDateTo" xml:space="preserve"><value>По</value></data>
+  <data name="StaffDelete" xml:space="preserve"><value>Удалить</value></data>
+  <data name="StaffDeleteEmptyParticipants" xml:space="preserve"><value>Удалить участников без посылок и сообщений</value></data>
+  <data name="StaffDeletedCount" xml:space="preserve"><value>Удалено участников: {0}.</value></data>
+  <data name="StaffDisapprove" xml:space="preserve"><value>Снять допуск</value></data>
+  <data name="StaffDisqualified" xml:space="preserve"><value>Дисквалифицирован</value></data>
+  <data name="StaffDisqualify" xml:space="preserve"><value>Дисквалифицировать</value></data>
+  <data name="StaffEmail" xml:space="preserve"><value>Email</value></data>
+  <data name="StaffEmailConfirmed" xml:space="preserve"><value>Email подтверждён</value></data>
+  <data name="StaffEnglishComments" xml:space="preserve"><value>Комментарии на английском</value></data>
+  <data name="StaffFileInvalid" xml:space="preserve"><value>Не удалось прочитать файл. Максимальный размер – 500 КБ.</value></data>
+  <data name="StaffFind" xml:space="preserve"><value>Найти</value></data>
+  <data name="StaffFullName" xml:space="preserve"><value>ФИО</value></data>
+  <data name="StaffGenerateLogins" xml:space="preserve"><value>Создать недостающие логины</value></data>
+  <data name="StaffHiddenAccount" xml:space="preserve"><value>Скрытый аккаунт</value></data>
+  <data name="StaffHiddenAccounts" xml:space="preserve"><value>Скрытые</value></data>
+  <data name="StaffHideAccount" xml:space="preserve"><value>Скрыть аккаунт</value></data>
+  <data name="StaffImportLogins" xml:space="preserve"><value>Загрузить логины</value></data>
+  <data name="StaffImportParticipants" xml:space="preserve"><value>Импортировать участников</value></data>
+  <data name="StaffImportedCount" xml:space="preserve"><value>Добавлено: {0}; уже существовало: {1}.</value></data>
+  <data name="StaffInvalidPeriod" xml:space="preserve"><value>Укажите корректный период: конец не раньше начала.</value></data>
+  <data name="StaffLogin" xml:space="preserve"><value>Логин</value></data>
+  <data name="StaffLoginsFileHint" xml:space="preserve"><value>UTF-8: логин и пароль через точку с запятой, запятую или табуляцию. Без заголовка.</value></data>
+  <data name="StaffLoginsFileInvalid" xml:space="preserve"><value>Файл логинов пуст, содержит неверные строки или повторяющиеся логины.</value></data>
+  <data name="StaffMakeOfficial" xml:space="preserve"><value>Перевести в зачёт</value></data>
+  <data name="StaffMakeUnofficial" xml:space="preserve"><value>Перевести вне конкурса</value></data>
+  <data name="StaffMembers" xml:space="preserve"><value>Состав</value></data>
+  <data name="StaffNameOrLogin" xml:space="preserve"><value>Имя или логин автора</value></data>
+  <data name="StaffNo" xml:space="preserve"><value>Нет</value></data>
+  <data name="StaffNoMatches" xml:space="preserve"><value>Совпадений не найдено.</value></data>
+  <data name="StaffNoParticipants" xml:space="preserve"><value>Участников нет.</value></data>
+  <data name="StaffNoUsers" xml:space="preserve"><value>Пользователи не найдены.</value></data>
+  <data name="StaffOfficial" xml:space="preserve"><value>В зачёте</value></data>
+  <data name="StaffOrganization" xml:space="preserve"><value>Организация</value></data>
+  <data name="StaffOrganizationRequired" xml:space="preserve"><value>У аккаунта не указана организация.</value></data>
+  <data name="StaffParticipantsFileHint" xml:space="preserve"><value>Для личных соревнований. UTF-8, одно имя на строку, без заголовка.</value></data>
+  <data name="StaffPassword" xml:space="preserve"><value>Пароль</value></data>
+  <data name="StaffPending" xml:space="preserve"><value>В очереди / проверяется</value></data>
+  <data name="StaffPermanentAccount" xml:space="preserve"><value>Постоянный аккаунт</value></data>
+  <data name="StaffPermanentAccounts" xml:space="preserve"><value>Постоянные аккаунты</value></data>
+  <data name="StaffPrevious" xml:space="preserve"><value>Назад</value></data>
+  <data name="StaffProfileDetails" xml:space="preserve"><value>Год / сведения профиля</value></data>
+  <data name="StaffRegistrationDate" xml:space="preserve"><value>Дата регистрации</value></data>
+  <data name="StaffRejected" xml:space="preserve"><value>Не принято</value></data>
+  <data name="StaffRemoveAdmin" xml:space="preserve"><value>Снять роль администратора</value></data>
+  <data name="StaffRemoveCoach" xml:space="preserve"><value>Снять права тренера организаций</value></data>
+  <data name="StaffRemoveJury" xml:space="preserve"><value>Снять роль жюри</value></data>
+  <data name="StaffRemoveLogins" xml:space="preserve"><value>Удалить логины</value></data>
+  <data name="StaffReset" xml:space="preserve"><value>Сбросить</value></data>
+  <data name="StaffRestoreParticipant" xml:space="preserve"><value>Отменить дисквалификацию</value></data>
+  <data name="StaffRoles" xml:space="preserve"><value>Роли</value></data>
+  <data name="StaffRunAnalysis" xml:space="preserve"><value>Запустить проверку</value></data>
+  <data name="StaffSecondSubmissionId" xml:space="preserve"><value>ID второй посылки</value></data>
+  <data name="StaffSettings" xml:space="preserve"><value>Настройки</value></data>
+  <data name="StaffShowAccount" xml:space="preserve"><value>Показывать аккаунт</value></data>
+  <data name="StaffSimilarity" xml:space="preserve"><value>Сходство решений</value></data>
+  <data name="StaffStatus" xml:space="preserve"><value>Статус</value></data>
+  <data name="StaffSubmissionId" xml:space="preserve"><value>ID посылки</value></data>
+  <data name="StaffSubmissionIdRequired" xml:space="preserve"><value>Укажите положительный ID посылки.</value></data>
+  <data name="StaffSubmissionNotFound" xml:space="preserve"><value>Посылка не найдена или её автор скрыт.</value></data>
+  <data name="StaffSyncLogin" xml:space="preserve"><value>Синхронизировать логин с email</value></data>
+  <data name="StaffThreshold" xml:space="preserve"><value>Порог (0–1)</value></data>
+  <data name="StaffThresholdInvalid" xml:space="preserve"><value>Порог должен быть от 0 до 1.</value></data>
+  <data name="StaffToggleHidden" xml:space="preserve"><value>Изменить видимость аккаунта</value></data>
+  <data name="StaffUnapproved" xml:space="preserve"><value>Не допущен</value></data>
+  <data name="StaffUnban" xml:space="preserve"><value>Разблокировать аккаунт</value></data>
+  <data name="StaffUnofficial" xml:space="preserve"><value>Вне конкурса</value></data>
+  <data name="StaffUserNotFound" xml:space="preserve"><value>Пользователь не найден.</value></data>
+  <data name="StaffUserPages" xml:space="preserve"><value>Страницы списка пользователей</value></data>
+  <data name="StaffUserRequired" xml:space="preserve"><value>Укажите имя или логин автора.</value></data>
+  <data name="StaffUserSearch" xml:space="preserve"><value>Имя, логин, email или ID</value></data>
+  <data name="StaffUsers" xml:space="preserve"><value>Пользователи</value></data>
+  <data name="StaffVisibility" xml:space="preserve"><value>Видимость</value></data>
+  <data name="StaffVisibleAccounts" xml:space="preserve"><value>Видимые</value></data>
+  <data name="StaffYes" xml:space="preserve"><value>Да</value></data>
+  <data name="StaffAccountType" xml:space="preserve"><value>Тип аккаунта</value></data>
+  <data name="StaffOnlyParticipants" xml:space="preserve"><value>Только участники соревнования</value></data>
+  <data name="StaffTeam" xml:space="preserve"><value>Команда</value></data>
+  <data name="StaffAnyError" xml:space="preserve"><value>Любая ошибка</value></data>
+  <data name="StaffVerdictAccepted" xml:space="preserve"><value>Accepted</value></data>
+  <data name="StaffVerdictCompilation" xml:space="preserve"><value>Compilation error</value></data>
+  <data name="StaffVerdictWrongAnswer" xml:space="preserve"><value>Wrong answer</value></data>
+  <data name="StaffVerdictTimeLimit" xml:space="preserve"><value>Time limit exceeded</value></data>
+  <data name="StaffVerdictRuntimeError" xml:space="preserve"><value>Runtime error</value></data>
+  <data name="StaffVerdictPresentationError" xml:space="preserve"><value>Presentation error</value></data>
+  <data name="StaffVerdictIdlenessLimit" xml:space="preserve"><value>Idleness limit exceeded</value></data>
+  <data name="StaffVerdictMemoryLimit" xml:space="preserve"><value>Memory limit exceeded</value></data>
+  <data name="StaffAuthorSubmissions" xml:space="preserve"><value>Решения автора</value></data>
+  <data name="StaffInactiveProblem" xml:space="preserve"><value>Неактивна</value></data>
+  <data name="StaffProblemSubmissions" xml:space="preserve"><value>Решения по этой задаче</value></data>
+  <data name="StaffSubmissionFailed" xml:space="preserve"><value>Не удалось отправить решение. Попробуйте ещё раз.</value></data>
+  <data name="StaffSubmissionAuthors" xml:space="preserve"><value>Авторы</value></data>
+  <data name="StaffJuryAuthors" xml:space="preserve"><value>Жюри</value></data>
+  <data name="StaffOrganizations" xml:space="preserve"><value>Организации</value></data>
+  <data name="StaffCreateOrganization" xml:space="preserve"><value>Создание организации</value></data>
+  <data name="StaffEditOrganization" xml:space="preserve"><value>Редактирование организации</value></data>
+  <data name="StaffOrganizationName" xml:space="preserve"><value>Краткое название</value></data>
+  <data name="StaffOrganizationFullName" xml:space="preserve"><value>Полное название</value></data>
+  <data name="StaffTeamPrefix" xml:space="preserve"><value>Префикс названий команд</value></data>
+  <data name="StaffOrganizationSearch" xml:space="preserve"><value>Название или префикс команд</value></data>
+  <data name="StaffNoOrganizations" xml:space="preserve"><value>Организации не найдены.</value></data>
+  <data name="StaffOrganizationPages" xml:space="preserve"><value>Страницы списка организаций</value></data>
+  <data name="StaffOrganizationNameRequired" xml:space="preserve"><value>Введите название организации.</value></data>
+  <data name="StaffDeleteOrganization" xml:space="preserve"><value>Удалить организацию</value></data>
+  <data name="StaffConfirmDeleteOrganization" xml:space="preserve"><value>Удалить организацию «{0}»?</value></data>
+  <data name="StaffOrganizationInUse" xml:space="preserve"><value>Удаление недоступно: связанных аккаунтов – {0}; тренеров с правами на организацию – {1}.</value></data>
+  <data name="StaffOrganizationDeleteFailed" xml:space="preserve"><value>Не удалось удалить организацию. Попробуйте ещё раз.</value></data>
 </root>
