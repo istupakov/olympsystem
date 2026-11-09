@@ -1,5 +1,6 @@
 @using System.Text
 @using Olymp.Domain.Models
+@using Olymp.WebApp.Components.Contests
 
 <div class="problem-statement text-break">
     <ul class="list-unstyled text-body-secondary">
@@ -11,7 +12,7 @@
     {
         <div class="statement-html overflow-x-auto">@((MarkupString)Problem.Text)</div>
     }
-    else if (Problem.Contest.ProblemPdfId.HasValue)
+    else if (ShowPdfLink && Problem.Contest.ProblemPdfId.HasValue)
     {
         <p><a href="contests/@Problem.ContestId/downloadproblems">@SiteResources.DownloadStatements</a></p>
     }
@@ -45,6 +46,7 @@
             </div>
         </section>
     }
+    <JuryMessageList Messages="Clarifications" Title="@SiteResources.ProblemClarifications" />
 </div>
 
 @code {
@@ -53,4 +55,10 @@
 
     [Parameter]
     public IReadOnlyList<Test> Examples { get; set; } = [];
+
+    [Parameter]
+    public IReadOnlyList<Message> Clarifications { get; set; } = [];
+
+    [Parameter]
+    public bool ShowPdfLink { get; set; } = true;
 }

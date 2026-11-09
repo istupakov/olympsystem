@@ -88,13 +88,13 @@ public class JuryQuestionsTests(WebAppFactory factory) : IClassFixture<WebAppFac
         }
         using var client = await factory.LoginAsync(participant.UserName!);
         using var document = await GetAsync(client, Path(contest));
-        Assert.Equal(new[] { $"question-{tie.Id}", $"question-{task.Id}", $"question-{general.Id}" },
+        Assert.Equal<string>([$"question-{tie.Id}", $"question-{task.Id}", $"question-{general.Id}"],
             document.QuerySelectorAll("main article.card").Select(item => item.Id));
         Assert.NotNull(document.QuerySelector($"#question-{task.Id} strong"));
         Assert.NotNull(document.QuerySelector($"#question-{task.Id} time[datetime]"));
         foreach (string secret in new[] { "OTHER PRIVATE", "PUBLIC QUESTION", "INACTIVE QUESTION", "OTHER CONTEST", "MISMATCHED PROBLEM" })
             Assert.DoesNotContain(secret, document.QuerySelector("main")!.TextContent);
-        Assert.Equal(new[] { "", contest.Problems.First().Id.ToString(), contest.Problems.Skip(1).First().Id.ToString() },
+        Assert.Equal<string?>(["", contest.Problems.First().Id.ToString(), contest.Problems.Skip(1).First().Id.ToString()],
             document.QuerySelectorAll("#question-topic option").Select(item => item.GetAttribute("value")));
 
         using (var scope = factory.Services.CreateScope())
@@ -201,16 +201,22 @@ public class JuryQuestionsTests(WebAppFactory factory) : IClassFixture<WebAppFac
         client.DefaultRequestHeaders.AcceptLanguage.ParseAdd("ru");
         string text = invalid switch
         {
-            "empty" => "", "short" => "Short", "long" => new string('x', 4097), "whitespace" => new string(' ', 15),
+            "empty" => "",
+            "short" => "Short",
+            "long" => new string('x', 4097),
+            "whitespace" => new string(' ', 15),
             _ => "A valid question about a problem"
         };
         string problemId = invalid switch
         {
-            "inactive" => contest.Problems.Last().Id.ToString(), "foreign" => foreign.Problems.First().Id.ToString(), _ => ""
+            "inactive" => contest.Problems.Last().Id.ToString(),
+            "foreign" => foreign.Problems.First().Id.ToString(),
+            _ => ""
         };
         using var response = await WebAppFactory.PostFormAsync(client, Path(contest), "jury-question", new()
         {
-            ["Input.Text"] = text, ["Input.ProblemId"] = problemId
+            ["Input.Text"] = text,
+            ["Input.ProblemId"] = problemId
         });
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         using var document = await new HtmlParser().ParseDocumentAsync(
@@ -230,7 +236,8 @@ public class JuryQuestionsTests(WebAppFactory factory) : IClassFixture<WebAppFac
         using var client = await factory.LoginAsync(participant.UserName!);
         using var content = new FormUrlEncodedContent(new Dictionary<string, string>
         {
-            ["_handler"] = "jury-question", ["Input.Text"] = "A cross-site question"
+            ["_handler"] = "jury-question",
+            ["Input.Text"] = "A cross-site question"
         });
         using var request = new HttpRequestMessage(HttpMethod.Post, Path(contest)) { Content = content };
         request.Headers.Add("Sec-Fetch-Site", "cross-site");
@@ -275,7 +282,12 @@ public class JuryQuestionsTests(WebAppFactory factory) : IClassFixture<WebAppFac
 
     private static Message Message(Contest contest, int? userId, string text, DateTimeOffset sent, Problem? problem = null) => new()
     {
-        Contest = null!, ContestId = contest.Id, UserId = userId, UserText = text, SendTime = sent, ProblemId = problem?.Id
+        Contest = null!,
+        ContestId = contest.Id,
+        UserId = userId,
+        UserText = text,
+        SendTime = sent,
+        ProblemId = problem?.Id
     };
 
     private static string Path(Contest contest) => $"/contests/{contest.Id}/questions";

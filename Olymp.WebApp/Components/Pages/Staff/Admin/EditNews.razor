@@ -1,0 +1,225 @@
+@page "/admin/news/new"
+@page "/admin/news/{Id:int}/edit"
+@using System.ComponentModel.DataAnnotations
+@using System.Data.Common
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+
+@inject IDbContextFactory<OlympContext> ContextFactory
+@inject NavigationManager Navigation
+@inject ILogger<EditNews> Logger
+
+<PageTitle>@Title</PageTitle>
+<h1 class="mb-4">@Title</h1>
+
+@if (_unavailable)
+{
+    <p>@SiteResources.PageNotFoundMessage</p>
+    <a href="admin/news">@SiteResources.News</a>
+}
+else if (_editContext is null)
+{
+    <p role="status">@SiteResources.StaffLoading</p>
+}
+else
+{
+    @if (_error is not null)
+    {
+        <div class="alert alert-danger" role="alert">@_error</div>
+    }
+    @if (_saved)
+    {
+        <div class="alert alert-success" role="status">@SiteResources.StaffSaved</div>
+    }
+    <EditForm EditContext="_editContext" OnValidSubmit="SaveAsync" OnInvalidSubmit="ClearSavedStatus">
+        <DataAnnotationsValidator />
+        <ValidationSummary class="text-danger" />
+        <fieldset disabled="@(_saving || _deleting)">
+            <div class="mb-3">
+                <label for="news-title" class="form-label">@SiteResources.NewsTitle</label>
+                <InputText id="news-title" class="form-control" @bind-Value="_input.Title" />
+                <ValidationMessage For="() => _input.Title" class="text-danger" />
+            </div>
+            <div class="mb-3">
+                <label for="news-text" class="form-label">@SiteResources.NewsText</label>
+                <InputTextArea id="news-text" class="form-control" rows="12" @bind-Value="_input.Text" aria-describedby="news-text-help" />
+                <div id="news-text-help" class="form-text">@SiteResources.HtmlSupported</div>
+                <ValidationMessage For="() => _input.Text" class="text-danger" />
+                <button type="button" class="btn btn-outline-secondary btn-sm mt-2" @onclick="() => _preview = !_preview">@SiteResources.StaffPreview</button>
+            </div>
+            @if (_preview)
+            {
+                <section class="card mb-3" aria-label="@SiteResources.StaffPreview">
+                    <div class="card-header"><h2 class="h5 mb-0">@_input.Title</h2></div>
+                    <div class="card-body overflow-auto">@((MarkupString)_input.Text)</div>
+                </section>
+            }
+            <div class="mb-4">
+                <label for="news-publication" class="form-label">@SiteResources.PublicationDate</label>
+                <InputDate id="news-publication" Type="InputDateType.DateTimeLocal" class="form-control" @bind-Value="_input.PublicationDate" ParsingErrorMessage="@SiteResources.InvalidDate" />
+                <div class="form-text">@SiteResources.ServerTimeZone: @TimeZoneInfo.Local.Id</div>
+                <ValidationMessage For="() => _input.PublicationDate" class="text-danger" />
+            </div>
+            <p class="small text-body-secondary">@SiteResources.NewsPublishesImmediately</p>
+            <div class="d-flex flex-wrap gap-2">
+                <button type="submit" class="btn btn-primary">@(_saving ? SiteResources.StaffSaving : Id is null ? SiteResources.CreateNews : SiteResources.StaffSave)</button>
+                <a class="btn btn-outline-secondary" href="admin/news">@SiteResources.StaffCancel</a>
+                @if (Id is not null)
+                {
+                    <button type="button" class="btn btn-outline-danger ms-sm-auto" @onclick="() => _confirmDelete = true">@SiteResources.DeleteNews</button>
+                }
+            </div>
+        </fieldset>
+    </EditForm>
+    @if (_confirmDelete)
+    {
+        <section class="alert alert-warning mt-3" role="alert">
+            <p>@SiteResources.ConfirmDeleteNews</p>
+            <div class="d-flex flex-wrap gap-2">
+                <button type="button" class="btn btn-danger" disabled="@(_saving || _deleting)" @onclick="DeleteAsync">@(_deleting ? SiteResources.DeletingNews : SiteResources.DeleteNews)</button>
+                <button type="button" class="btn btn-outline-secondary" disabled="@(_saving || _deleting)" @onclick="() => _confirmDelete = false">@SiteResources.StaffCancel</button>
+            </div>
+        </section>
+    }
+}
+
+@code {
+    [Parameter]
+    public int? Id { get; set; }
+
+    [SupplyParameterFromQuery(Name = "saved")]
+    public bool ShowSaved { get; set; }
+
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthenticationState { get; set; } = default!;
+
+    private InputModel _input = new();
+    private EditContext? _editContext;
+    private bool _unavailable;
+    private string? _error;
+    private bool _preview;
+    private bool _saving;
+    private bool _saved;
+    private bool _confirmDelete;
+    private bool _deleting;
+    private string Title => Id is null ? SiteResources.CreateNews : SiteResources.EditNews;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _editContext = null;
+        _unavailable = _preview = _confirmDelete = false;
+        _saved = ShowSaved;
+        _error = null;
+        _input = new();
+        if (Id is { } id)
+        {
+            await using var context = await ContextFactory.CreateDbContextAsync();
+            var item = await context.News.AsNoTracking().SingleOrDefaultAsync(item => item.Id == id);
+            if (item is null)
+            {
+                _unavailable = true;
+                return;
+            }
+            _input = new() { Title = item.Title, Text = item.Text, PublicationDate = item.PublicationDate.LocalDateTime };
+        }
+        _editContext = new(_input);
+        _editContext.OnFieldChanged += (_, _) => ClearSavedStatus();
+    }
+
+    private void ClearSavedStatus() => _saved = false;
+
+    private async Task SaveAsync()
+    {
+        if (_saving || _deleting)
+            return;
+        _error = null;
+        _saved = false;
+        var user = (await AuthenticationState).User;
+        if (user.Identity?.IsAuthenticated != true || !user.IsInRole(RoleNames.Admin))
+        {
+            _error = SiteResources.StaffAccessDenied;
+            return;
+        }
+        _saving = true;
+        try
+        {
+            await using var context = await ContextFactory.CreateDbContextAsync();
+            var item = Id is { } id ? await context.News.SingleOrDefaultAsync(item => item.Id == id) : new News { Title = "", Text = "" };
+            if (item is null)
+            {
+                _error = SiteResources.PageNotFoundMessage;
+                return;
+            }
+            item.Title = _input.Title.Trim();
+            item.Text = _input.Text;
+            item.PublicationDate = new DateTimeOffset(DateTime.SpecifyKind(_input.PublicationDate!.Value, DateTimeKind.Unspecified),
+                TimeZoneInfo.Local.GetUtcOffset(_input.PublicationDate.Value));
+            if (Id is null)
+                context.News.Add(item);
+            await context.SaveChangesAsync();
+            if (Id is null)
+                Navigation.NavigateTo($"admin/news/{item.Id}/edit?saved=true");
+            else
+                _saved = true;
+        }
+        catch (DbUpdateException exception)
+        {
+            Logger.LogError(exception, "Failed to save news {NewsId}", Id);
+            _error = SiteResources.StaffSaveFailed;
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private async Task DeleteAsync()
+    {
+        if (_saving || _deleting || !_confirmDelete || Id is not { } id)
+            return;
+        _error = null;
+        _saved = false;
+        var user = (await AuthenticationState).User;
+        if (user.Identity?.IsAuthenticated != true || !user.IsInRole(RoleNames.Admin))
+        {
+            _error = SiteResources.StaffAccessDenied;
+            return;
+        }
+        _deleting = true;
+        try
+        {
+            await using var context = await ContextFactory.CreateDbContextAsync();
+            await context.News.Where(item => item.Id == id).ExecuteDeleteAsync();
+            Navigation.NavigateTo("admin/news");
+        }
+        catch (DbException exception)
+        {
+            Logger.LogError(exception, "Failed to delete news {NewsId}", id);
+            _error = SiteResources.NewsDeleteFailed;
+        }
+        finally
+        {
+            _deleting = false;
+        }
+    }
+
+    private sealed class InputModel : IValidatableObject
+    {
+        [Required(ErrorMessageResourceType = typeof(AccountResources), ErrorMessageResourceName = nameof(AccountResources.FieldRequired))]
+        [Display(Name = nameof(SiteResources.NewsTitle), ResourceType = typeof(SiteResources))]
+        public string Title { get; set; } = "";
+
+        [Required(ErrorMessageResourceType = typeof(AccountResources), ErrorMessageResourceName = nameof(AccountResources.FieldRequired))]
+        [Display(Name = nameof(SiteResources.NewsText), ResourceType = typeof(SiteResources))]
+        public string Text { get; set; } = "";
+
+        [Required(ErrorMessageResourceType = typeof(AccountResources), ErrorMessageResourceName = nameof(AccountResources.FieldRequired))]
+        [Display(Name = nameof(SiteResources.PublicationDate), ResourceType = typeof(SiteResources))]
+        public DateTime? PublicationDate { get; set; } = DateTime.Now;
+
+        public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+        {
+            if (PublicationDate is { } date && (TimeZoneInfo.Local.IsInvalidTime(date) || TimeZoneInfo.Local.IsAmbiguousTime(date)))
+                yield return new(SiteResources.UnambiguousServerTime, [nameof(PublicationDate)]);
+        }
+    }
+}

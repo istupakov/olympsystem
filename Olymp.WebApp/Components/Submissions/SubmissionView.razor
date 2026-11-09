@@ -1,0 +1,80 @@
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.JSInterop
+@using Olymp.Domain
+@inject IDbContextFactory<OlympContext> ContextFactory
+@inject IJSRuntime JavaScript
+
+<h1>@SiteResources.SubmissionSource #@Submission.Id</h1>
+<p>@Submission.Problem.NameWithNumber · @(Submission.Compilator.Description ?? Submission.Compilator.Name) · @Submission.CommitTime.ToLocalTime().ToString("g")</p>
+<p>
+    <SubmissionStatus StatusCode="Submission.StatusCode" />
+</p>
+<p>
+    <a href="@DownloadUrl" data-enhance-nav="false">@SiteResources.DownloadSource</a>
+</p>
+<pre @key="Submission.Id" class="border rounded overflow-auto"><code @ref="_sourceElement" class="d-block p-3" id="submission-source-@Submission.Id" data-source-language="@Submission.Compilator.SourceExtension.TrimStart('.').ToLowerInvariant()">@Submission.Text</code></pre>
+@if (_compilationErrors is not null)
+{
+    <section id="compilation-errors" class="mt-4">
+        <h2 class="h4">@SiteResources.SubmissionCompilationError</h2>
+        <pre class="border rounded p-3 overflow-auto">@_compilationErrors</pre>
+    </section>
+}
+
+
+@code {
+    [Parameter, EditorRequired]
+    public Submission Submission { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public string DownloadUrl { get; set; } = "";
+
+    private string? _compilationErrors;
+    private int? _highlightedId;
+    private ElementReference _sourceElement;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _compilationErrors = null;
+        if (Submission.StatusCode == -1)
+        {
+            await using var context = await ContextFactory.CreateDbContextAsync();
+            var result = await context.CheckResults.AsNoTracking().Where(item => item.SubmissionId == Submission.Id)
+                .OrderByDescending(item => item.CheckTime).ThenByDescending(item => item.Id)
+                .Select(item => new { item.Log, item.CheckTime }).FirstOrDefaultAsync();
+            _compilationErrors = CompilationErrors(result?.Log, result?.CheckTime);
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_highlightedId == Submission.Id)
+            return;
+        try
+        {
+            var module = await JavaScript.InvokeAsync<IJSObjectReference>("import", "./Components/Submissions/SubmissionView.razor.js");
+            await using (module)
+                await module.InvokeVoidAsync("highlight", _sourceElement);
+            _highlightedId = Submission.Id;
+        }
+        catch (JSDisconnectedException) { }
+    }
+
+    private static string CompilationErrors(string? log, DateTimeOffset? checkTime)
+    {
+        if (log is null)
+            return SiteResources.SubmissionDiagnosticsUnavailable;
+        if (checkTime < new DateTimeOffset(2023, 3, 1, 0, 0, 0, TimeSpan.Zero))
+        {
+            int output = log.IndexOf("StandartOutput", StringComparison.Ordinal);
+            return output >= 0 ? log[output..] : SiteResources.SubmissionDiagnosticsUnavailable;
+        }
+        if (log.StartsWith("Runner:", StringComparison.Ordinal) || log.StartsWith("Compilation:", StringComparison.Ordinal))
+        {
+            int compilation = log.IndexOf("Compilation:", StringComparison.Ordinal);
+            return compilation >= 0 ? string.Join('\n', log[compilation..].Split('\n').Skip(3))
+                : SiteResources.SubmissionDiagnosticsUnavailable;
+        }
+        return log;
+    }
+}

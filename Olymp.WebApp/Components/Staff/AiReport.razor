@@ -1,0 +1,25 @@
+@using Olymp.Site.Services.AntiCheat
+@using Olymp.WebApp.Components.Submissions
+
+@foreach (var report in Reports)
+{
+    <details class="card mb-3">
+        <summary class="card-header">@report.Competitor.Name · @report.Cases.Max(item => item.Result.Score).ToString("P2")</summary>
+        <div class="card-body">
+            @foreach (var item in report.Cases)
+            {
+                <section class="mb-4">
+                    <h3 class="h5">@item.Submission.Problem.NameWithNumber · @item.Result.Score.ToString("P2")</h3>
+                    <p><a target="_blank" rel="noopener" href="jury/submissions/@item.Submission.Id">#@item.Submission.Id</a> · @item.Submission.CommitTime.LocalDateTime.ToString("g") · @item.Submission.Compilator.Name · <SubmissionStatus StatusCode="item.Submission.StatusCode" /></p>
+                    <p>@SiteResources.StaffCyrillicComments: @item.Result.CyrillicComments · @SiteResources.StaffEnglishComments: @item.Result.EnglishComments</p>
+                    @foreach (var fragment in item.Result.SuspiciousFragments ?? []) { <pre class="border rounded p-3 overflow-auto">@fragment</pre> }
+                </section>
+            }
+        </div>
+    </details>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public IReadOnlyList<AIUsingReport> Reports { get; set; } = [];
+}

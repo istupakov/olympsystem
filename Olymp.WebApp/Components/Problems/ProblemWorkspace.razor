@@ -3,31 +3,48 @@
 
 <div class="problem-browser row g-4 align-items-start">
     <nav class="problem-list col-lg-3 text-break" aria-label="@SiteResources.ProblemList">
-        <form action="@ProblemUrl(Selected?.Id ?? 0)" method="get" data-enhance class="d-lg-none mb-3">
-            @if (!string.IsNullOrEmpty(Scope))
-            {
-                <input type="hidden" name="scope" value="@Scope" />
-            }
-            <label for="workspace-problem" class="form-label">@SiteResources.Problems</label>
-            <div class="d-flex gap-2">
-                <select id="workspace-problem" name="problemId" class="form-select">
+        @if (OnProblemChanged.HasDelegate)
+        {
+            <div class="d-lg-none mb-3">
+                <label for="workspace-problem" class="form-label">@SiteResources.Problems</label>
+                <select id="workspace-problem" class="form-select" value="@Selected?.Id" @onchange="SelectProblemAsync">
                     @foreach (var result in Progress)
                     {
-                        var problem = result.Problem;
-                        var text = ResultText(result);
-                        <option value="@problem.Id" selected="@(Selected?.Id == problem.Id)">@(text.Length == 0 ? problem.NameWithNumber : $"{problem.NameWithNumber} ({text})")</option>
+                        <option value="@result.Problem.Id">@OptionText(result)</option>
                     }
                 </select>
-                <button type="submit" class="btn btn-outline-primary">@SiteResources.Show</button>
             </div>
-        </form>
+        }
+        else
+        {
+            <form action="@ProblemUrl(Selected?.Id ?? 0)" method="get" data-enhance class="d-lg-none mb-3">
+                @if (!string.IsNullOrEmpty(Scope))
+                {
+                    <input type="hidden" name="scope" value="@Scope" />
+                }
+                <label for="workspace-problem" class="form-label">@SiteResources.Problems</label>
+                <div class="d-flex gap-2">
+                    <select id="workspace-problem" name="problemId" class="form-select">
+                        @foreach (var result in Progress)
+                        {
+                            var problem = result.Problem;
+                            var text = ResultText(result);
+                            <option value="@problem.Id" selected="@(Selected?.Id == problem.Id)">@(text.Length == 0 ? problem.NameWithNumber : $"{problem.NameWithNumber} ({text})")</option>
+                        }
+                    </select>
+                    <button type="submit" class="btn btn-outline-primary">@SiteResources.Show</button>
+                </div>
+            </form>
+        }
         <div class="list-group mt-2 d-none d-lg-flex">
             @foreach (var result in Progress)
             {
                 var problem = result.Problem;
                 <a class="list-group-item list-group-item-action d-flex justify-content-between gap-2 @ResultClass(result) @(Selected?.Id == problem.Id ? "active" : null)"
                    href="@ProblemUrl(problem.Id)" aria-current="@(Selected?.Id == problem.Id ? "page" : null)">
-                    <span>@problem.NameWithNumber</span>
+                    <span>@problem.NameWithNumber
+                        @if (!problem.IsActive) { <span class="badge text-bg-secondary ms-1">@SiteResources.StaffInactiveProblem</span> }
+                    </span>
                     @if (result.CommitNumber > 0)
                     {
                         <span class="text-nowrap">@ResultText(result)</span>
@@ -60,6 +77,19 @@
 
     [Parameter]
     public RenderFragment? ChildContent { get; set; }
+
+    [Parameter]
+    public EventCallback<int> OnProblemChanged { get; set; }
+
+    private Task SelectProblemAsync(ChangeEventArgs args) => int.TryParse(args.Value?.ToString(), out int id)
+        ? OnProblemChanged.InvokeAsync(id) : Task.CompletedTask;
+
+    private static string OptionText(Standing.UserProblemResult result)
+    {
+        string text = ResultText(result);
+        string label = text.Length == 0 ? result.Problem.NameWithNumber : $"{result.Problem.NameWithNumber} ({text})";
+        return result.Problem.IsActive ? label : $"{label} – {SiteResources.StaffInactiveProblem}";
+    }
 
     private static string? ResultClass(Standing.UserProblemResult result)
     {

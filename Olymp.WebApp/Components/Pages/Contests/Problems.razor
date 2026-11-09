@@ -30,8 +30,7 @@
             {
                 <p><a href="@ProblemUrl(selected.Id)#submit-heading">@SiteResources.JumpToSubmission</a></p>
             }
-            <ProblemStatementView Problem="selected" Examples="examples" />
-            <JuryAnnouncements Contest="contest" ProblemId="selected.Id" />
+            <ProblemStatementView Problem="selected" Examples="examples" Clarifications="clarifications" />
             @if (canSubmit)
             {
                 <SubmitSolutionForm Problem="selected" Action="@FormUrl" />
@@ -69,6 +68,7 @@
     private IReadOnlyList<Problem> problems = [];
     private Problem? selected;
     private IReadOnlyList<Test> examples = [];
+    private List<Message> clarifications = [];
     private IReadOnlyList<Olymp.Domain.Standing.UserProblemResult> progress = [];
     private bool canSubmit;
 
@@ -114,6 +114,11 @@
             .Where(test => test.ProblemId == selected.Id && test.IsOpen && test.IsActive)
             .OrderBy(test => test.Number)
             .ToListAsync(token);
+
+        clarifications = await context.Messages.AsNoTracking()
+            .Where(item => item.ContestId == ContestId && item.ProblemId == selected.Id && item.UserId == null && item.JuryText != null)
+            .OrderByDescending(item => item.SendTime).ThenByDescending(item => item.Id).ToListAsync(token);
+        clarifications.RemoveAll(item => string.IsNullOrWhiteSpace(item.JuryText));
 
         int userId = int.Parse(Users.GetUserId(HttpContext.User)!);
         var submissions = await context.Submissions.AsNoTracking()

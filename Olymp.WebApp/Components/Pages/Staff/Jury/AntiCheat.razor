@@ -1,0 +1,109 @@
+@page "/jury/contests/{ContestId:int}/anticheat"
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@implements IDisposable
+@using Olymp.Site.Services.AntiCheat
+@inject IDbContextFactory<OlympContext> ContextFactory
+@inject IServiceScopeFactory ScopeFactory
+@inject ILogger<AntiCheat> Logger
+
+<PageTitle>@SiteResources.StaffAntiCheat</PageTitle>
+@if (_contest is null)
+{
+    <p role="status">@(_loaded ? SiteResources.PageNotFoundMessage : SiteResources.StaffLoading)</p>
+}
+else
+{
+    <StaffContestNavigation ContestId="ContestId" ContestName="@_contest.Name" />
+    <h1 class="h3">@SiteResources.StaffAntiCheat</h1>
+    <p>@SiteResources.StaffAntiCheatScope</p>
+    <EditForm Model="_input" OnValidSubmit="RunAsync" class="mb-4">
+        <DataAnnotationsValidator />
+        <ValidationSummary class="text-danger" />
+        <fieldset disabled="@(_cancellation is not null)">
+            <div class="mb-3">
+                <label for="analysis-kind" class="form-label">@SiteResources.StaffAnalysisKind</label>
+                <InputSelect id="analysis-kind" class="form-select" @bind-Value="_input.Ai">
+                    <option value="false">@SiteResources.StaffSimilarity</option>
+                    <option value="true">@SiteResources.StaffAiDetection</option>
+                </InputSelect>
+            </div>
+            <div class="mb-3">
+                <label for="threshold" class="form-label">@SiteResources.StaffThreshold</label>
+                <InputNumber id="threshold" class="form-control" min="0" max="1" step="0.01" @bind-Value="_input.Threshold" />
+            </div>
+            <button class="btn btn-primary">@SiteResources.StaffRunAnalysis</button>
+        </fieldset>
+    </EditForm>
+    @if (_cancellation is not null) { <p role="status">@SiteResources.StaffAnalyzing</p>
+        <button class="btn btn-outline-secondary mb-3" @onclick="Cancel">@SiteResources.StaffCancel</button> }
+    @if (_error is not null) { <p class="alert alert-danger" role="alert">@_error</p> }
+    @if (_finished && _similarity.Count == 0 && _ai.Count == 0) { <p role="status">@SiteResources.StaffNoMatches</p> }
+    <SimilarityReport Reports="_similarity" />
+    <AiReport Reports="_ai" />
+}
+
+@code {
+    [Parameter]
+    public int ContestId { get; set; }
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthenticationState { get; set; } = default!;
+    private Contest? _contest;
+    private readonly InputModel _input = new();
+    private CancellationTokenSource? _cancellation;
+    private IReadOnlyList<PlagiarismReport> _similarity = [];
+    private IReadOnlyList<AIUsingReport> _ai = [];
+    private string? _error;
+    private bool _loaded;
+    private bool _finished;
+    private bool _disposed;
+    private int _generation;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        Cancel();
+        _generation++;
+        _similarity = []; _ai = []; _finished = false; _error = null;
+        await using var db = await ContextFactory.CreateDbContextAsync();
+        _contest = await db.Contests.AsNoTracking().SingleOrDefaultAsync(item => item.Id == ContestId);
+        _loaded = true;
+    }
+
+    private async Task RunAsync()
+    {
+        if (_cancellation is not null) return;
+        var user = (await AuthenticationState).User;
+        if (!user.IsInRole(RoleNames.Jury) && !user.IsInRole(RoleNames.Admin)) { _error = SiteResources.StaffAccessDenied; return; }
+        using var cancellation = new CancellationTokenSource();
+        _cancellation = cancellation;
+        int generation = _generation;
+        int contestId = ContestId;
+        bool ai = _input.Ai;
+        float threshold = _input.Threshold;
+        _similarity = []; _ai = []; _error = null; _finished = false;
+        try {
+            await using var scope = ScopeFactory.CreateAsyncScope();
+            var db = scope.ServiceProvider.GetRequiredService<OlympContext>();
+            if (!await db.Contests.AnyAsync(item => item.Id == contestId, cancellation.Token)) { _error = SiteResources.PageNotFoundMessage; return; }
+            var service = scope.ServiceProvider.GetRequiredService<AntiCheatReportService>();
+            var selected = db.Submissions.Where(item => item.Problem.ContestId == contestId);
+            if (ai) {
+                var reports = await service.DetectAiAsync(selected, threshold, cancellation.Token);
+                if (!_disposed && generation == _generation) _ai = reports;
+            } else {
+                var reports = await service.FindPlagiarismAsync(selected, threshold, cancellation.Token);
+                if (!_disposed && generation == _generation) _similarity = reports;
+            }
+            if (!_disposed && generation == _generation) _finished = true;
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception exception) { Logger.LogError(exception, "Contest analysis failed for {ContestId}", contestId); if (!_disposed && generation == _generation) _error = SiteResources.StaffAnalysisFailed; }
+        finally { if (ReferenceEquals(_cancellation, cancellation)) _cancellation = null; }
+    }
+    private void Cancel() => _cancellation?.Cancel();
+    public void Dispose() { _disposed = true; Cancel(); GC.SuppressFinalize(this); }
+    private sealed class InputModel {
+        public bool Ai { get; set; }
+        [System.ComponentModel.DataAnnotations.Range(0, 1, ErrorMessageResourceType = typeof(SiteResources), ErrorMessageResourceName = nameof(SiteResources.StaffThresholdInvalid))]
+        public float Threshold { get; set; } = 0.8f;
+    }
+}

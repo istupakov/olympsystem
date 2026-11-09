@@ -1,0 +1,26 @@
+@if (Messages.Count > 0)
+{
+    <section class="jury-announcements alert alert-info mt-3" aria-label="@Title">
+        <h2 class="h6">@Title</h2>
+        @foreach (var message in Messages)
+        {
+            <article class="mb-2">
+                @if (message.SendTime is DateTimeOffset sent)
+                {
+                    <div class="small text-body-secondary mb-1">
+                        <time datetime="@sent.ToString("O", CultureInfo.InvariantCulture)">@sent.ToLocalTime().ToString("g", CultureInfo.CurrentCulture)</time>
+                    </div>
+                }
+                <div class="text-break overflow-auto">@((MarkupString)message.JuryText!)</div>
+            </article>
+        }
+    </section>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public IReadOnlyList<Message> Messages { get; set; } = [];
+
+    [Parameter, EditorRequired]
+    public string Title { get; set; } = "";
+}

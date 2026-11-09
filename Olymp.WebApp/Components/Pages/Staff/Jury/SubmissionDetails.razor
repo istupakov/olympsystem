@@ -1,0 +1,68 @@
+@page "/jury/submissions/{Id:int}"
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@using Olymp.WebApp.Components.Submissions
+@inject IDbContextFactory<OlympContext> ContextFactory
+
+<PageTitle>@SiteResources.SubmissionSource</PageTitle>
+@if (_submission is null)
+{
+    <p role="status">@(_loaded ? SiteResources.PageNotFoundMessage : SiteResources.StaffLoading)</p>
+}
+else
+{
+    <StaffContestNavigation ContestId="_submission.Problem.ContestId" ContestName="@_submission.Problem.Contest.Name" />
+    @if (BackUrl is not null)
+    {
+        <p><a href="@BackUrl">@(BackToProblem ? SiteResources.BackToProblem : SiteResources.StaffBackToSubmissions)</a></p>
+    }
+    <p>@SiteResources.SubmissionAuthor: @_submission.User.Name · <a href="jury/contests/@_submission.Problem.ContestId/submissions?AuthorId=@_submission.UserId">@SiteResources.StaffAuthorSubmissions</a></p>
+    <SubmissionView Submission="_submission" DownloadUrl="@($"jury/submissions/{Id}/download")" />
+    <h2 class="h4 mt-4">@SiteResources.StaffCheckHistory</h2>
+    @foreach (var check in _checks)
+    {
+        <details class="card mb-3">
+            <summary class="card-header">@check.CheckTime.LocalDateTime.ToString("g") · <SubmissionStatus StatusCode="check.StatusCode" />
+            </summary>
+            <div class="card-body">
+                <p>@SiteResources.Points: @check.Score</p>
+                <p class="text-break">@check.TestResults</p>
+                <pre class="overflow-auto">@check.Log</pre>
+            </div>
+        </details>
+    }
+}
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    [SupplyParameterFromQuery]
+    public string? ReturnUrl { get; set; }
+
+    private Submission? _submission;
+    private List<CheckResult> _checks = [];
+    private bool _loaded;
+    private bool BackToProblem => ReturnUrl?.Split('?')[0] == $"/jury/contests/{_submission?.Problem.ContestId}/problems";
+    private string? BackUrl
+    {
+        get
+        {
+            string list = $"/jury/contests/{_submission?.Problem.ContestId}/submissions";
+            string problems = $"/jury/contests/{_submission?.Problem.ContestId}/problems";
+            return ReturnUrl is { } url && (url.Split('?')[0] == list || url.Split('?')[0] == problems)
+                && !url.Contains('\\') && !url.Contains('#') ? url + (BackToProblem ? "#submissions" : "") : null;
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _loaded = false;
+        await using var context = await ContextFactory.CreateDbContextAsync();
+        _submission = await context.Submissions.AsNoTracking().Include(item => item.User)
+            .Include(item => item.Problem).ThenInclude(item => item.Contest).Include(item => item.Compilator)
+            .SingleOrDefaultAsync(item => item.Id == Id);
+        _checks = _submission is null ? [] : await context.CheckResults.AsNoTracking()
+            .Where(item => item.SubmissionId == Id).OrderByDescending(item => item.CheckTime).ThenByDescending(item => item.Id).ToListAsync();
+        _loaded = true;
+    }
+}

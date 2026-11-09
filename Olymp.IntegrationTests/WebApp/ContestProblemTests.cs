@@ -113,7 +113,7 @@ public class ContestProblemTests(WebAppFactory factory) : IClassFixture<WebAppFa
 
         string[] texts = school ? ["100/100", "0/100", "37/100", "", "", ""] : ["+2", "-3", "+", "", "", ""];
         string?[] colors = ["success", "danger", school ? "warning" : "success", null, null, null];
-        foreach (string suffix in temporary ? new[] { "" } : new[] { "", "&scope=all" })
+        foreach (string suffix in temporary ? new[] { "" } : ["", "&scope=all"])
         {
             using var document = await GetAsync(client, Path(contest, problems[0]) + suffix);
             var links = document.QuerySelectorAll(".problem-list .list-group-item");

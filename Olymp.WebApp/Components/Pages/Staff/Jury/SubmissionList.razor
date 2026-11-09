@@ -1,0 +1,203 @@
+@page "/jury/contests/{ContestId:int}/submissions"
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@using System.Security.Claims
+@using Olymp.WebApp.Components.Submissions
+@inject IDbContextFactory<OlympContext> ContextFactory
+@inject NavigationManager Navigation
+
+<PageTitle>@SiteResources.Submissions</PageTitle>
+@if (_contest is null)
+{
+    <p role="status">@(_loaded ? SiteResources.PageNotFoundMessage : SiteResources.StaffLoading)</p>
+}
+else
+{
+    <StaffContestNavigation ContestId="ContestId" ContestName="@_contest.Name" />
+    <h1 class="h3">@SiteResources.Submissions</h1>
+    @if (_authorName is not null) { <p>@SiteResources.SubmissionAuthor: @_authorName</p> }
+    <EditForm Model="_filters" OnValidSubmit="ApplyFilters" class="row g-3 mb-4">
+        <div class="col-md-6 col-xl-3">
+            <label for="author" class="form-label">@SiteResources.SubmissionAuthor</label>
+            <InputText id="author" class="form-control" @bind-Value="_filters.Author" />
+        </div>
+        <div class="col-md-6 col-xl-3">
+            <label for="problem" class="form-label">@SiteResources.Problem</label>
+            <InputSelect id="problem" class="form-select" @bind-Value="_filters.Problem">
+                <option value="">@SiteResources.StaffAll</option>
+                @foreach (var problem in _problems) { <option value="@problem.Id">@problem.NameWithNumber</option> }
+            </InputSelect>
+        </div>
+        <div class="col-md-6 col-xl-3">
+            <label for="compiler" class="form-label">@SiteResources.Compiler</label>
+            <InputSelect id="compiler" class="form-select" @bind-Value="_filters.Compiler">
+                <option value="">@SiteResources.StaffAll</option>
+                @foreach (var compiler in _compilers) { <option value="@compiler.Id">@(compiler.Description ?? compiler.Name)</option> }
+            </InputSelect>
+        </div>
+        <div class="col-md-6 col-xl-3">
+            <label for="status" class="form-label">@SiteResources.SubmissionStatus</label>
+            <InputSelect id="status" class="form-select" @bind-Value="_filters.Status">
+                <option value="">@SiteResources.StaffAll</option>
+                <option value="accepted">@SiteResources.StaffVerdictAccepted</option>
+                <option value="rejected">@SiteResources.StaffAnyError</option>
+                <option value="compilation">@SiteResources.StaffVerdictCompilation</option>
+                <option value="wrong-answer">@SiteResources.StaffVerdictWrongAnswer</option>
+                <option value="time-limit">@SiteResources.StaffVerdictTimeLimit</option>
+                <option value="runtime-error">@SiteResources.StaffVerdictRuntimeError</option>
+                <option value="presentation-error">@SiteResources.StaffVerdictPresentationError</option>
+                <option value="idleness-limit">@SiteResources.StaffVerdictIdlenessLimit</option>
+                <option value="memory-limit">@SiteResources.StaffVerdictMemoryLimit</option>
+                <option value="internal-error">@CheckStatusCodes.Template(-10)</option>
+                <option value="queued">@CheckStatusCodes.Template(0)</option>
+                <option value="checking">@CheckStatusCodes.Template(1)</option>
+            </InputSelect>
+        </div>
+        <div class="col-md-6">
+            <label for="from" class="form-label">@SiteResources.StaffDateFrom</label>
+            <InputDate id="from" Type="InputDateType.DateTimeLocal" class="form-control" @bind-Value="_filters.From" ParsingErrorMessage="@SiteResources.InvalidDate" />
+        </div>
+        <div class="col-md-6">
+            <label for="to" class="form-label">@SiteResources.StaffDateTo</label>
+            <InputDate id="to" Type="InputDateType.DateTimeLocal" class="form-control" @bind-Value="_filters.To" ParsingErrorMessage="@SiteResources.InvalidDate" />
+        </div>
+        <div class="col-md-6">
+            <label for="submission-authors" class="form-label">@SiteResources.StaffSubmissionAuthors</label>
+            <InputSelect id="submission-authors" class="form-select" @bind-Value="_filters.Scope">
+                <option value="all">@SiteResources.StaffAll</option>
+                <option value="own">@SiteResources.OwnSubmissions</option>
+                <option value="participants">@SiteResources.ContestParticipants</option>
+                <option value="hidden">@SiteResources.StaffJuryAuthors</option>
+            </InputSelect>
+        </div>
+        <div class="col-12 d-flex flex-wrap gap-2">
+            <button class="btn btn-primary">@SiteResources.StaffFind</button>
+            <a class="btn btn-outline-secondary" href="jury/contests/@ContestId/submissions">@SiteResources.StaffReset</a>
+            <a class="btn btn-outline-secondary" href="@PageUrl(CurrentPage)">@SiteResources.Refresh</a>
+        </div>
+    </EditForm>
+    <p class="small text-body-secondary">@SiteResources.ServerTimeZone: @TimeZoneInfo.Local.Id</p>
+    @if (_error is not null) { <p class="alert alert-danger" role="alert">@_error</p> }
+    <SubmissionTable Items="_rows" ShowId="true" ShowSource="false" SourceUrl="@(item => DetailsUrl(item.Id))"
+                     ProblemUrl="@(item => $"jury/contests/{ContestId}/problems?problemId={item.ProblemId}")" />
+    @if (_rows.Count == 0 && _error is null) { <p>@SiteResources.NoSubmissions</p> }
+    <Pagination Page="CurrentPage" HasNextPage="_hasNext" PageUrl="PageUrl" Label="@SiteResources.SubmissionPages" />
+}
+
+@code {
+    [Parameter]
+    public int ContestId { get; set; }
+    [SupplyParameterFromQuery]
+    public string? Author { get; set; }
+    [SupplyParameterFromQuery]
+    public int? AuthorId { get; set; }
+    [SupplyParameterFromQuery]
+    public int? Problem { get; set; }
+    [SupplyParameterFromQuery]
+    public int? Compiler { get; set; }
+    [SupplyParameterFromQuery]
+    public string? Status { get; set; }
+    [SupplyParameterFromQuery]
+    public DateTime? From { get; set; }
+    [SupplyParameterFromQuery]
+    public DateTime? To { get; set; }
+    [SupplyParameterFromQuery]
+    public int? Page { get; set; }
+    [SupplyParameterFromQuery]
+    public bool OnlyParticipants { get; set; }
+    [SupplyParameterFromQuery]
+    public string? Scope { get; set; }
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthenticationState { get; set; } = default!;
+
+    private const int PageSize = 20;
+    private string EffectiveScope => Scope ?? (OnlyParticipants ? "participants" : "all");
+    private int CurrentPage => Math.Max(1, Page ?? 1);
+    private Contest? _contest;
+    private List<Problem> _problems = [];
+    private List<Compilator> _compilers = [];
+    private List<SubmissionListItem> _rows = [];
+    private Filters _filters = new();
+    private bool _loaded;
+    private bool _hasNext;
+    private string? _error;
+    private string? _authorName;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _loaded = false;
+        _error = null;
+        _authorName = null;
+        _rows = [];
+        _hasNext = false;
+        _filters = new() { Author = Author, Problem = Problem, Compiler = Compiler, Status = Status, From = From, To = To, Scope = EffectiveScope };
+        await using var db = await ContextFactory.CreateDbContextAsync();
+        if (AuthorId is int selectedAuthor)
+            _authorName = await db.Users.Where(item => item.Id == selectedAuthor).Select(item => item.Name).SingleOrDefaultAsync();
+        _contest = await db.Contests.AsNoTracking().SingleOrDefaultAsync(item => item.Id == ContestId);
+        if (_contest is not null)
+        {
+            _problems = await db.Problems.AsNoTracking().Where(item => item.ContestId == ContestId).OrderBy(item => item.Number).ThenBy(item => item.Id).ToListAsync();
+            var query = db.Submissions.AsNoTracking().Where(item => item.Problem.ContestId == ContestId);
+            _compilers = await query.Select(item => item.Compilator).Distinct().OrderBy(item => item.Name).ToListAsync();
+            if (AuthorId is int authorId) query = query.Where(item => item.UserId == authorId);
+            if (!string.IsNullOrWhiteSpace(Author)) query = query.Where(item => item.User.Name.Contains(Author) || (item.User.UserName != null && item.User.UserName.Contains(Author)));
+            if (Problem is { } problem) query = query.Where(item => item.ProblemId == problem);
+            if (Compiler is { } compiler) query = query.Where(item => item.CompilatorId == compiler);
+            int.TryParse((await AuthenticationState).User.FindFirstValue(ClaimTypes.NameIdentifier), out int userId);
+            query = query.ForAuthors(EffectiveScope, userId, db, ContestId);
+            query = Status switch {
+                "accepted" => query.Where(item => item.StatusCode == 2),
+                "compilation" => query.Where(item => item.StatusCode == -1),
+                "wrong-answer" => query.Where(item => item.StatusCode < -1000 && item.StatusCode > -2000),
+                "time-limit" => query.Where(item => item.StatusCode < -2000 && item.StatusCode > -3000),
+                "runtime-error" => query.Where(item => item.StatusCode < -3000 && item.StatusCode > -4000),
+                "presentation-error" => query.Where(item => item.StatusCode < -4000 && item.StatusCode > -5000),
+                "idleness-limit" => query.Where(item => item.StatusCode < -5000 && item.StatusCode > -6000),
+                "memory-limit" => query.Where(item => item.StatusCode < -6000 && item.StatusCode > -7000),
+                "internal-error" => query.Where(item => item.StatusCode != 0 && item.StatusCode != 1 && item.StatusCode != 2 && item.StatusCode != -1
+                    && !(item.StatusCode < -1000 && item.StatusCode > -2000)
+                    && !(item.StatusCode < -2000 && item.StatusCode > -3000)
+                    && !(item.StatusCode < -3000 && item.StatusCode > -4000)
+                    && !(item.StatusCode < -4000 && item.StatusCode > -5000)
+                    && !(item.StatusCode < -5000 && item.StatusCode > -6000)
+                    && !(item.StatusCode < -6000 && item.StatusCode > -7000)),
+                "queued" => query.Where(item => item.StatusCode == 0),
+                "checking" => query.Where(item => item.StatusCode == 1),
+                "pending" => query.Where(item => item.StatusCode == 0 || item.StatusCode == 1),
+                "rejected" => query.Where(item => item.StatusCode != 0 && item.StatusCode != 1 && item.StatusCode != 2),
+                _ => query
+            };
+            try
+            {
+                if (From > To) throw new ArgumentException();
+                if (From is { } from) query = query.Where(item => item.CommitTime >= new DateTimeOffset(from));
+                if (To is { } to) query = query.Where(item => item.CommitTime <= new DateTimeOffset(to));
+                long skip = ((long)CurrentPage - 1) * PageSize;
+                if (skip <= int.MaxValue)
+                    _rows = await query.OrderByDescending(item => item.CommitTime).ThenByDescending(item => item.Id)
+                        .Skip((int)skip).Take(PageSize + 1).AsStaffRows(db, ContestId).ToListAsync();
+                _hasNext = _rows.Count > PageSize;
+                if (_hasNext) _rows.RemoveAt(PageSize);
+            }
+            catch (ArgumentException) { _error = SiteResources.StaffInvalidPeriod; }
+        }
+        _loaded = true;
+    }
+
+    private void ApplyFilters() => Navigation.NavigateTo(Navigation.GetUriWithQueryParameters(new Dictionary<string, object?> {
+        [nameof(Author)] = _filters.Author, [nameof(Problem)] = _filters.Problem, [nameof(Compiler)] = _filters.Compiler,
+        [nameof(Status)] = _filters.Status, [nameof(OnlyParticipants)] = null, [nameof(Scope)] = _filters.Scope == "all" ? null : _filters.Scope, [nameof(From)] = _filters.From, [nameof(To)] = _filters.To, [nameof(Page)] = null
+    }));
+    private string PageUrl(int page) => Navigation.GetUriWithQueryParameter(nameof(Page), page);
+    private string DetailsUrl(int id) => $"jury/submissions/{id}?returnUrl={Uri.EscapeDataString(new Uri(Navigation.Uri).PathAndQuery)}";
+
+    private sealed class Filters {
+        public string? Author { get; set; }
+        public int? Problem { get; set; }
+        public int? Compiler { get; set; }
+        public string? Status { get; set; }
+        public DateTime? From { get; set; }
+        public DateTime? To { get; set; }
+        public string Scope { get; set; } = "all";
+    }
+}

@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 using Olymp.Domain;
+using Olymp.Site;
 using Olymp.Site.Services.Checker;
 
 using Xunit;
@@ -13,6 +14,33 @@ namespace Olymp.IntegrationTests.Site.Checkers;
 [Trait("Category", "Integration")]
 public class QueueTests(SiteFactory factory) : IClassFixture<SiteFactory>
 {
+    [Theory]
+    [InlineData(RoleNames.Jury, true)]
+    [InlineData(RoleNames.Admin, true)]
+    [InlineData("team", false)]
+    public async Task InactiveProblemsAreCheckedOnlyForStaffAuthors(string account, bool shouldCheck)
+    {
+        var submission = Assert.Single(await AddSubmissionsAsync(factory, "acm", [0]));
+        var token = TestContext.Current.CancellationToken;
+        await using (var scope = factory.Services.CreateAsyncScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<OlympContext>();
+            int userId = await db.Users.Where(user => user.UserName == account).Select(user => user.Id).SingleAsync(token);
+            await db.Submissions.Where(item => item.Id == submission.Id)
+                .ExecuteUpdateAsync(setters => setters.SetProperty(item => item.UserId, userId), token);
+            await db.Problems.Where(problem => problem.Id == submission.ProblemId)
+                .ExecuteUpdateAsync(setters => setters.SetProperty(problem => problem.IsActive, false), token);
+        }
+        var runner = new TestRunner();
+        var checker = await CreateCheckerAsync(runner, submission.Compilator.Name);
+        Assert.Equal(shouldCheck, await factory.Services.GetRequiredService<ICheckerManager>().TryCheckFromDB(checker, token));
+        Assert.Equal(shouldCheck ? 4 : 0, runner.TestsRun);
+        await using var savedScope = factory.Services.CreateAsyncScope();
+        var saved = await savedScope.ServiceProvider.GetRequiredService<OlympContext>().Submissions
+            .SingleAsync(item => item.Id == submission.Id, token);
+        Assert.Equal(shouldCheck ? 2 : 0, saved.StatusCode);
+    }
+
     [Fact]
     public async Task ClaimedSubmissionIsNotPickedAgainAndGateIsFreeDuringExecution()
     {

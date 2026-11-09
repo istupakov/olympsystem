@@ -1,0 +1,70 @@
+@page "/jury/anticheat"
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@implements IDisposable
+@using System.ComponentModel.DataAnnotations
+@using Olymp.Checker
+@using Olymp.Site.Services.AntiCheat
+@inject IServiceScopeFactory ScopeFactory
+@inject ILogger<AntiCheatTools> Logger
+
+<PageTitle>@SiteResources.StaffAntiCheatTools</PageTitle>
+<h1>@SiteResources.StaffAntiCheatTools</h1>
+<EditForm Model="_input" OnValidSubmit="RunAsync" class="mb-4">
+    <DataAnnotationsValidator />
+    <ValidationSummary class="text-danger" />
+    <fieldset disabled="@(_cancellation is not null)">
+        <div class="mb-3">
+            <label for="mode" class="form-label">@SiteResources.StaffAnalysisKind</label>
+            <InputSelect id="mode" class="form-select" @bind-Value="_input.Mode">
+                <option value="User">@SiteResources.StaffAnalysisByUser</option>
+                <option value="Period">@SiteResources.StaffAnalysisByPeriod</option>
+                <option value="Compare">@SiteResources.StaffCompareSubmissions</option>
+                <option value="Ai">@SiteResources.StaffAiDetection</option>
+            </InputSelect>
+        </div>
+        @if (_input.Mode == AnalysisMode.User) {
+            <div class="mb-3">
+                <label for="analysis-user" class="form-label">@SiteResources.StaffNameOrLogin</label>
+                <InputText id="analysis-user" class="form-control" @bind-Value="_input.User" />
+            </div>
+        }
+        @if (_input.Mode == AnalysisMode.Period) {
+            <p class="small text-body-secondary">@SiteResources.ServerTimeZone: @TimeZoneInfo.Local.Id</p>
+            <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                    <label for="analysis-from" class="form-label">@SiteResources.StaffDateFrom</label>
+                    <InputDate id="analysis-from" Type="InputDateType.DateTimeLocal" class="form-control" @bind-Value="_input.From" ParsingErrorMessage="@SiteResources.InvalidDate" />
+                </div>
+                <div class="col-md-6">
+                    <label for="analysis-to" class="form-label">@SiteResources.StaffDateTo</label>
+                    <InputDate id="analysis-to" Type="InputDateType.DateTimeLocal" class="form-control" @bind-Value="_input.To" ParsingErrorMessage="@SiteResources.InvalidDate" />
+                </div>
+            </div>
+        }
+        @if (_input.Mode is AnalysisMode.User or AnalysisMode.Period) {
+            <div class="mb-3">
+                <label for="tools-threshold" class="form-label">@SiteResources.StaffThreshold</label>
+                <InputNumber id="tools-threshold" class="form-control" min="0" max="1" step="0.01" @bind-Value="_input.Threshold" />
+            </div>
+        }
+        @if (_input.Mode is AnalysisMode.Compare or AnalysisMode.Ai) {
+            <div class="mb-3">
+                <label for="first-id" class="form-label">@SiteResources.StaffSubmissionId</label>
+                <InputNumber id="first-id" class="form-control" min="1" @bind-Value="_input.FirstId" />
+            </div>
+        }
+        @if (_input.Mode == AnalysisMode.Compare) {
+            <div class="mb-3">
+                <label for="second-id" class="form-label">@SiteResources.StaffSecondSubmissionId</label>
+                <InputNumber id="second-id" class="form-control" min="1" @bind-Value="_input.SecondId" />
+            </div>
+        }
+        <button class="btn btn-primary">@SiteResources.StaffRunAnalysis</button>
+    </fieldset>
+</EditForm>
+@if (_cancellation is not null) { <p role="status">@SiteResources.StaffAnalyzing</p>
+    <button class="btn btn-outline-secondary mb-3" @onclick="Cancel">@SiteResources.StaffCancel</button> }
+@if (_error is not null) { <p class="alert alert-danger" role="alert">@_error</p> }
+@if (_finished && _similarity.Count == 0 && _ai.Count == 0) { <p role="status">@SiteResources.StaffNoMatches</p> }
+<SimilarityReport Reports="_similarity" />
+<AiReport Reports="_ai" />

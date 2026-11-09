@@ -1,9 +1,9 @@
 import { formatSavedStandings } from './saved-standings.js';
-import { highlightCode } from './syntax-highlighting.js';
+import { highlightAll } from './Components/Submissions/SubmissionView.razor.js';
 
 export function afterWebStarted(blazor) {
     formatSavedStandings();
-    highlightCode();
+    highlightAll();
     blazor.addEventListener('enhancedload', formatSavedStandings);
-    blazor.addEventListener('enhancedload', highlightCode);
+    blazor.addEventListener('enhancedload', highlightAll);
 }

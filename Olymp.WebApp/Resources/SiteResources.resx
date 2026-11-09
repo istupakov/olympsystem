@@ -24,6 +24,7 @@
   <data name="TimeUntilEnd" xml:space="preserve"><value>Ends in {0}</value></data>
   <data name="DurationDaysHours" xml:space="preserve"><value>{0} d {1} h</value></data>
   <data name="DurationHoursMinutes" xml:space="preserve"><value>{0} h {1} min</value></data>
+  <data name="DurationHours" xml:space="preserve"><value>{0} h</value></data>
   <data name="DurationMinutes" xml:space="preserve"><value>{0} min</value></data>
   <data name="DurationSeconds" xml:space="preserve"><value>{0} s</value></data>
   <data name="ContestParticipants" xml:space="preserve"><value>Participants</value></data>
@@ -182,4 +183,195 @@
   <data name="QuestionProblemUnavailable" xml:space="preserve"><value>The selected problem is unavailable. Select an active problem from this contest.</value></data>
   <data name="QuestionRequired" xml:space="preserve"><value>Enter your question.</value></data>
   <data name="QuestionLength" xml:space="preserve"><value>A question must contain between 10 and 4096 characters.</value></data>
+  <data name="JurySection" xml:space="preserve"><value>Jury</value></data>
+  <data name="AdminSection" xml:space="preserve"><value>Admin</value></data>
+  <data name="StaffNavigation" xml:space="preserve"><value>Staff sections</value></data>
+  <data name="StaffLoading" xml:space="preserve"><value>Loading…</value></data>
+  <data name="StaffName" xml:space="preserve"><value>Name</value></data>
+  <data name="StaffDescription" xml:space="preserve"><value>Description</value></data>
+  <data name="StaffEdit" xml:space="preserve"><value>Edit</value></data>
+  <data name="StaffSave" xml:space="preserve"><value>Save</value></data>
+  <data name="StaffSaving" xml:space="preserve"><value>Saving…</value></data>
+  <data name="StaffCancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="StaffSaved" xml:space="preserve"><value>Changes saved.</value></data>
+  <data name="StaffSaveFailed" xml:space="preserve"><value>Could not save the changes. Please try again.</value></data>
+  <data name="StaffAccessDenied" xml:space="preserve"><value>You do not have permission to manage this item.</value></data>
+  <data name="StaffPreview" xml:space="preserve"><value>Preview</value></data>
+  <data name="HtmlSupported" xml:space="preserve"><value>HTML is supported.</value></data>
+  <data name="CreateContest" xml:space="preserve"><value>Create contest</value></data>
+  <data name="EditContest" xml:space="preserve"><value>Edit contest</value></data>
+  <data name="NoStaffContests" xml:space="preserve"><value>No contests yet.</value></data>
+  <data name="Abbreviation" xml:space="preserve"><value>Abbreviation</value></data>
+  <data name="AbbreviationHint" xml:space="preserve"><value>Start with a Latin letter; use Latin letters, digits, underscores and hyphens. Prefix acm selects team mode, school selects school mode.</value></data>
+  <data name="AbbreviationFormat" xml:space="preserve"><value>Use a Latin letter followed by Latin letters, digits, underscores or hyphens.</value></data>
+  <data name="AbbreviationInUse" xml:space="preserve"><value>This abbreviation is already in use.</value></data>
+  <data name="ContestStart" xml:space="preserve"><value>Start date and time</value></data>
+  <data name="ContestEnd" xml:space="preserve"><value>End</value></data>
+  <data name="ContestDuration" xml:space="preserve"><value>Duration (hours:minutes)</value></data>
+  <data name="IntervalHint" xml:space="preserve"><value>Enter intervals as hours:minutes, for example 5:00 or 0:30. Hours may exceed 23.</value></data>
+  <data name="EarlyPrinting" xml:space="preserve"><value>Allow early printing of statements (PDF)</value></data>
+  <data name="PrintingAdvance" xml:space="preserve"><value>Before the start (hours:minutes)</value></data>
+  <data name="EnableFreeze" xml:space="preserve"><value>Freeze standings</value></data>
+  <data name="FreezeAdvance" xml:space="preserve"><value>Before the end (hours:minutes)</value></data>
+  <data name="PrintingAvailableFrom" xml:space="preserve"><value>Printing available from</value></data>
+  <data name="FreezeStartsAt" xml:space="preserve"><value>Freeze starts</value></data>
+  <data name="HiddenContest" xml:space="preserve"><value>Hidden contest</value></data>
+  <data name="OpenContest" xml:space="preserve"><value>Open participation</value></data>
+  <data name="ServerTimeZone" xml:space="preserve"><value>Server time zone</value></data>
+  <data name="PositiveDurationRequired" xml:space="preserve"><value>Enter a positive duration as hours:minutes.</value></data>
+  <data name="IntervalFormat" xml:space="preserve"><value>Enter a non-negative interval as hours:minutes.</value></data>
+  <data name="FreezeIntervalInvalid" xml:space="preserve"><value>The freeze interval must be non-negative and no longer than the contest duration.</value></data>
+  <data name="OpenContestCannotFreeze" xml:space="preserve"><value>Open participation cannot be combined with a freeze. Disable the freeze to open the contest.</value></data>
+  <data name="UnambiguousServerTime" xml:space="preserve"><value>Specify an unambiguous time in the server time zone.</value></data>
+  <data name="ScheduleOutOfRange" xml:space="preserve"><value>The calculated dates are outside the supported range.</value></data>
+  <data name="InvalidDate" xml:space="preserve"><value>Enter a valid date and time.</value></data>
+  <data name="CreateNews" xml:space="preserve"><value>Create news</value></data>
+  <data name="EditNews" xml:space="preserve"><value>Edit news</value></data>
+  <data name="NewsTitle" xml:space="preserve"><value>Title</value></data>
+  <data name="NewsText" xml:space="preserve"><value>Text</value></data>
+  <data name="PublicationDate" xml:space="preserve"><value>Publication date and time</value></data>
+  <data name="NewsPublishesImmediately" xml:space="preserve"><value>The news appears on the site as soon as it is saved, including when its publication date is in the future.</value></data>
+  <data name="DeleteNews" xml:space="preserve"><value>Delete news</value></data>
+  <data name="ConfirmDeleteNews" xml:space="preserve"><value>Delete this news item? This action cannot be undone.</value></data>
+  <data name="DeletingNews" xml:space="preserve"><value>Deleting…</value></data>
+  <data name="NewsDeleteFailed" xml:space="preserve"><value>Could not delete the news item. Please try again.</value></data>
+  <data name="StaffAccount" xml:space="preserve"><value>Account</value></data>
+  <data name="StaffAccountGroup" xml:space="preserve"><value>Account type / role</value></data>
+  <data name="StaffActions" xml:space="preserve"><value>Actions</value></data>
+  <data name="StaffAddAdmin" xml:space="preserve"><value>Grant administrator role</value></data>
+  <data name="StaffAddCoach" xml:space="preserve"><value>Grant coach access for this organization</value></data>
+  <data name="StaffAddJury" xml:space="preserve"><value>Grant jury role</value></data>
+  <data name="StaffAiDetection" xml:space="preserve"><value>AI indicators</value></data>
+  <data name="StaffAll" xml:space="preserve"><value>All</value></data>
+  <data name="StaffAnalysisByPeriod" xml:space="preserve"><value>Similarity by period</value></data>
+  <data name="StaffAnalysisByUser" xml:space="preserve"><value>Similarity by author</value></data>
+  <data name="StaffAnalysisFailed" xml:space="preserve"><value>Analysis failed. Try again.</value></data>
+  <data name="StaffAnalysisKind" xml:space="preserve"><value>Analysis type</value></data>
+  <data name="StaffAnalyzing" xml:space="preserve"><value>Analyzing…</value></data>
+  <data name="StaffAntiCheat" xml:space="preserve"><value>Anti-cheat</value></data>
+  <data name="StaffAntiCheatScope" xml:space="preserve"><value>All submissions to this contest’s problems are analyzed, excluding hidden accounts.</value></data>
+  <data name="StaffAntiCheatTools" xml:space="preserve"><value>Anti-cheat tools</value></data>
+  <data name="StaffApprove" xml:space="preserve"><value>Approve</value></data>
+  <data name="StaffApproveAll" xml:space="preserve"><value>Approve all</value></data>
+  <data name="StaffApproved" xml:space="preserve"><value>Approved</value></data>
+  <data name="StaffBackToSubmissions" xml:space="preserve"><value>Back to submissions</value></data>
+  <data name="StaffBan" xml:space="preserve"><value>Block account</value></data>
+  <data name="StaffBanned" xml:space="preserve"><value>Blocked</value></data>
+  <data name="StaffCheckHistory" xml:space="preserve"><value>Check history</value></data>
+  <data name="StaffCoach" xml:space="preserve"><value>Coach</value></data>
+  <data name="StaffCoachOrganizations" xml:space="preserve"><value>Coach organizations</value></data>
+  <data name="StaffCoaches" xml:space="preserve"><value>Coaches</value></data>
+  <data name="StaffCompareSubmissions" xml:space="preserve"><value>Compare two submissions</value></data>
+  <data name="StaffConfirm" xml:space="preserve"><value>Confirm</value></data>
+  <data name="StaffConfirmOperation" xml:space="preserve"><value>Confirm operation:</value></data>
+  <data name="StaffContestSections" xml:space="preserve"><value>Contest management</value></data>
+  <data name="StaffCyrillicComments" xml:space="preserve"><value>Cyrillic comments</value></data>
+  <data name="StaffDateFrom" xml:space="preserve"><value>From</value></data>
+  <data name="StaffDateTo" xml:space="preserve"><value>Until</value></data>
+  <data name="StaffDelete" xml:space="preserve"><value>Delete</value></data>
+  <data name="StaffDeleteEmptyParticipants" xml:space="preserve"><value>Delete participants without submissions or messages</value></data>
+  <data name="StaffDeletedCount" xml:space="preserve"><value>Participants deleted: {0}.</value></data>
+  <data name="StaffDisapprove" xml:space="preserve"><value>Revoke approval</value></data>
+  <data name="StaffDisqualified" xml:space="preserve"><value>Disqualified</value></data>
+  <data name="StaffDisqualify" xml:space="preserve"><value>Disqualify</value></data>
+  <data name="StaffEmail" xml:space="preserve"><value>Email</value></data>
+  <data name="StaffEmailConfirmed" xml:space="preserve"><value>Email confirmed</value></data>
+  <data name="StaffEnglishComments" xml:space="preserve"><value>English comments</value></data>
+  <data name="StaffFileInvalid" xml:space="preserve"><value>Could not read the file. Maximum size is 500 KB.</value></data>
+  <data name="StaffFind" xml:space="preserve"><value>Search</value></data>
+  <data name="StaffFullName" xml:space="preserve"><value>Full name</value></data>
+  <data name="StaffGenerateLogins" xml:space="preserve"><value>Generate missing logins</value></data>
+  <data name="StaffHiddenAccount" xml:space="preserve"><value>Hidden account</value></data>
+  <data name="StaffHiddenAccounts" xml:space="preserve"><value>Hidden</value></data>
+  <data name="StaffHideAccount" xml:space="preserve"><value>Hide account</value></data>
+  <data name="StaffImportLogins" xml:space="preserve"><value>Upload logins</value></data>
+  <data name="StaffImportParticipants" xml:space="preserve"><value>Import participants</value></data>
+  <data name="StaffImportedCount" xml:space="preserve"><value>Added: {0}; already existed: {1}.</value></data>
+  <data name="StaffInvalidPeriod" xml:space="preserve"><value>Specify a valid period with the end on or after the start.</value></data>
+  <data name="StaffLogin" xml:space="preserve"><value>Login</value></data>
+  <data name="StaffLoginsFileHint" xml:space="preserve"><value>UTF-8: login and password separated by a semicolon, comma or tab. No header.</value></data>
+  <data name="StaffLoginsFileInvalid" xml:space="preserve"><value>Invalid or empty logins file, or duplicate logins.</value></data>
+  <data name="StaffMakeOfficial" xml:space="preserve"><value>Move into competition</value></data>
+  <data name="StaffMakeUnofficial" xml:space="preserve"><value>Move out of competition</value></data>
+  <data name="StaffMembers" xml:space="preserve"><value>Members</value></data>
+  <data name="StaffNameOrLogin" xml:space="preserve"><value>Author name or login</value></data>
+  <data name="StaffNo" xml:space="preserve"><value>No</value></data>
+  <data name="StaffNoMatches" xml:space="preserve"><value>No matches found.</value></data>
+  <data name="StaffNoParticipants" xml:space="preserve"><value>No participants.</value></data>
+  <data name="StaffNoUsers" xml:space="preserve"><value>No users found.</value></data>
+  <data name="StaffOfficial" xml:space="preserve"><value>In competition</value></data>
+  <data name="StaffOrganization" xml:space="preserve"><value>Organization</value></data>
+  <data name="StaffOrganizationRequired" xml:space="preserve"><value>The account has no organization.</value></data>
+  <data name="StaffParticipantsFileHint" xml:space="preserve"><value>Individual contests only. UTF-8, one name per line, no header.</value></data>
+  <data name="StaffPassword" xml:space="preserve"><value>Password</value></data>
+  <data name="StaffPending" xml:space="preserve"><value>Queued / checking</value></data>
+  <data name="StaffPermanentAccount" xml:space="preserve"><value>Permanent account</value></data>
+  <data name="StaffPermanentAccounts" xml:space="preserve"><value>Permanent accounts</value></data>
+  <data name="StaffPrevious" xml:space="preserve"><value>Previous</value></data>
+  <data name="StaffProfileDetails" xml:space="preserve"><value>Year / profile details</value></data>
+  <data name="StaffRegistrationDate" xml:space="preserve"><value>Registered</value></data>
+  <data name="StaffRejected" xml:space="preserve"><value>Rejected</value></data>
+  <data name="StaffRemoveAdmin" xml:space="preserve"><value>Revoke administrator role</value></data>
+  <data name="StaffRemoveCoach" xml:space="preserve"><value>Revoke all coach organization access</value></data>
+  <data name="StaffRemoveJury" xml:space="preserve"><value>Revoke jury role</value></data>
+  <data name="StaffRemoveLogins" xml:space="preserve"><value>Remove logins</value></data>
+  <data name="StaffReset" xml:space="preserve"><value>Reset</value></data>
+  <data name="StaffRestoreParticipant" xml:space="preserve"><value>Cancel disqualification</value></data>
+  <data name="StaffRoles" xml:space="preserve"><value>Roles</value></data>
+  <data name="StaffRunAnalysis" xml:space="preserve"><value>Run analysis</value></data>
+  <data name="StaffSecondSubmissionId" xml:space="preserve"><value>Second submission ID</value></data>
+  <data name="StaffSettings" xml:space="preserve"><value>Settings</value></data>
+  <data name="StaffShowAccount" xml:space="preserve"><value>Show account</value></data>
+  <data name="StaffSimilarity" xml:space="preserve"><value>Submission similarity</value></data>
+  <data name="StaffStatus" xml:space="preserve"><value>Status</value></data>
+  <data name="StaffSubmissionId" xml:space="preserve"><value>Submission ID</value></data>
+  <data name="StaffSubmissionIdRequired" xml:space="preserve"><value>Specify a positive submission ID.</value></data>
+  <data name="StaffSubmissionNotFound" xml:space="preserve"><value>Submission not found or its author is hidden.</value></data>
+  <data name="StaffSyncLogin" xml:space="preserve"><value>Use email as login</value></data>
+  <data name="StaffThreshold" xml:space="preserve"><value>Threshold (0–1)</value></data>
+  <data name="StaffThresholdInvalid" xml:space="preserve"><value>The threshold must be between 0 and 1.</value></data>
+  <data name="StaffToggleHidden" xml:space="preserve"><value>Change account visibility</value></data>
+  <data name="StaffUnapproved" xml:space="preserve"><value>Not approved</value></data>
+  <data name="StaffUnban" xml:space="preserve"><value>Unblock account</value></data>
+  <data name="StaffUnofficial" xml:space="preserve"><value>Out of competition</value></data>
+  <data name="StaffUserNotFound" xml:space="preserve"><value>User not found.</value></data>
+  <data name="StaffUserPages" xml:space="preserve"><value>User list pages</value></data>
+  <data name="StaffUserRequired" xml:space="preserve"><value>Specify an author name or login.</value></data>
+  <data name="StaffUserSearch" xml:space="preserve"><value>Name, login, email or ID</value></data>
+  <data name="StaffUsers" xml:space="preserve"><value>Users</value></data>
+  <data name="StaffVisibility" xml:space="preserve"><value>Visibility</value></data>
+  <data name="StaffVisibleAccounts" xml:space="preserve"><value>Visible</value></data>
+  <data name="StaffYes" xml:space="preserve"><value>Yes</value></data>
+  <data name="StaffAccountType" xml:space="preserve"><value>Account type</value></data>
+  <data name="StaffOnlyParticipants" xml:space="preserve"><value>Only contest participants</value></data>
+  <data name="StaffTeam" xml:space="preserve"><value>Team</value></data>
+  <data name="StaffAnyError" xml:space="preserve"><value>Any error</value></data>
+  <data name="StaffVerdictAccepted" xml:space="preserve"><value>Accepted</value></data>
+  <data name="StaffVerdictCompilation" xml:space="preserve"><value>Compilation error</value></data>
+  <data name="StaffVerdictWrongAnswer" xml:space="preserve"><value>Wrong answer</value></data>
+  <data name="StaffVerdictTimeLimit" xml:space="preserve"><value>Time limit exceeded</value></data>
+  <data name="StaffVerdictRuntimeError" xml:space="preserve"><value>Runtime error</value></data>
+  <data name="StaffVerdictPresentationError" xml:space="preserve"><value>Presentation error</value></data>
+  <data name="StaffVerdictIdlenessLimit" xml:space="preserve"><value>Idleness limit exceeded</value></data>
+  <data name="StaffVerdictMemoryLimit" xml:space="preserve"><value>Memory limit exceeded</value></data>
+  <data name="StaffAuthorSubmissions" xml:space="preserve"><value>Author’s submissions</value></data>
+  <data name="StaffInactiveProblem" xml:space="preserve"><value>Inactive</value></data>
+  <data name="StaffProblemSubmissions" xml:space="preserve"><value>Submissions for this problem</value></data>
+  <data name="StaffSubmissionFailed" xml:space="preserve"><value>Could not submit the solution. Please try again.</value></data>
+  <data name="StaffSubmissionAuthors" xml:space="preserve"><value>Authors</value></data>
+  <data name="StaffJuryAuthors" xml:space="preserve"><value>Jury</value></data>
+  <data name="StaffOrganizations" xml:space="preserve"><value>Organizations</value></data>
+  <data name="StaffCreateOrganization" xml:space="preserve"><value>Create organization</value></data>
+  <data name="StaffEditOrganization" xml:space="preserve"><value>Edit organization</value></data>
+  <data name="StaffOrganizationName" xml:space="preserve"><value>Short name</value></data>
+  <data name="StaffOrganizationFullName" xml:space="preserve"><value>Full name</value></data>
+  <data name="StaffTeamPrefix" xml:space="preserve"><value>Team name prefix</value></data>
+  <data name="StaffOrganizationSearch" xml:space="preserve"><value>Name or team name prefix</value></data>
+  <data name="StaffNoOrganizations" xml:space="preserve"><value>No organizations found.</value></data>
+  <data name="StaffOrganizationPages" xml:space="preserve"><value>Organization pages</value></data>
+  <data name="StaffOrganizationNameRequired" xml:space="preserve"><value>Enter the organization name.</value></data>
+  <data name="StaffDeleteOrganization" xml:space="preserve"><value>Delete organization</value></data>
+  <data name="StaffConfirmDeleteOrganization" xml:space="preserve"><value>Delete organization “{0}”?</value></data>
+  <data name="StaffOrganizationInUse" xml:space="preserve"><value>Deletion is unavailable: linked accounts – {0}; coaches with organization permissions – {1}.</value></data>
+  <data name="StaffOrganizationDeleteFailed" xml:space="preserve"><value>Could not delete the organization. Please try again.</value></data>
 </root>

@@ -1,0 +1,19 @@
+<nav aria-label="@SiteResources.StaffContestSections" class="mb-4">
+    <a href="jury/contests">@SiteResources.Contests</a>
+    <p class="h4 mt-2">@ContestName</p>
+    <ul class="nav nav-underline">
+        <li class="nav-item"><NavLink class="nav-link" href="@($"jury/contests/{ContestId}/edit")">@SiteResources.StaffSettings</NavLink></li>
+        <li class="nav-item"><NavLink class="nav-link" href="@($"jury/contests/{ContestId}/problems")">@SiteResources.Problems</NavLink></li>
+        <li class="nav-item"><NavLink class="nav-link" href="@($"jury/contests/{ContestId}/participants")">@SiteResources.ContestParticipants</NavLink></li>
+        <li class="nav-item"><NavLink class="nav-link" href="@($"jury/contests/{ContestId}/submissions")">@SiteResources.Submissions</NavLink></li>
+        <li class="nav-item"><NavLink class="nav-link" href="@($"jury/contests/{ContestId}/anticheat")">@SiteResources.StaffAntiCheat</NavLink></li>
+    </ul>
+</nav>
+
+@code {
+    [Parameter, EditorRequired]
+    public int ContestId { get; set; }
+
+    [Parameter, EditorRequired]
+    public string ContestName { get; set; } = "";
+}

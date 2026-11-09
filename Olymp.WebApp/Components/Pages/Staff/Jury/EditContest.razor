@@ -1,0 +1,134 @@
+@page "/jury/contests/new"
+@page "/jury/contests/{Id:int}/edit"
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+
+@inject IDbContextFactory<OlympContext> ContextFactory
+@inject IServiceScopeFactory ScopeFactory
+@inject NavigationManager Navigation
+@inject ILogger<EditContest> Logger
+
+<PageTitle>@Title</PageTitle>
+@if (Id is { } contestId)
+{
+    <StaffContestNavigation ContestId="contestId" ContestName="@_input.Name" />
+}
+<h1 class="mb-4">@Title</h1>
+
+@if (_unavailable is not null)
+{
+    <div class="alert alert-warning" role="alert">@_unavailable</div>
+    <a href="jury/contests">@SiteResources.Contests</a>
+}
+else if (_editContext is null)
+{
+    <p role="status">@SiteResources.StaffLoading</p>
+}
+else
+{
+    @if (_error is not null)
+    {
+        <div class="alert alert-danger" role="alert">@_error</div>
+    }
+    @if (_saved)
+    {
+        <div class="alert alert-success" role="status">@SiteResources.StaffSaved</div>
+    }
+    <EditForm EditContext="_editContext" OnSubmit="SaveAsync">
+        <DataAnnotationsValidator />
+        <ValidationSummary class="text-danger" />
+        <fieldset disabled="@_saving">
+            <div class="mb-3">
+                <label for="contest-name" class="form-label">@SiteResources.StaffName</label>
+                <InputText id="contest-name" class="form-control" @bind-Value="_input.Name" />
+                <ValidationMessage For="() => _input.Name" class="text-danger" />
+            </div>
+            <div class="mb-3">
+                <label for="contest-abbr" class="form-label">@SiteResources.Abbreviation</label>
+                <InputText id="contest-abbr" class="form-control" @bind-Value="_input.Abbr" aria-describedby="abbreviation-help" />
+                <div id="abbreviation-help" class="form-text">@SiteResources.AbbreviationHint</div>
+                <ValidationMessage For="() => _input.Abbr" class="text-danger" />
+            </div>
+            <div class="mb-3">
+                <label for="contest-description" class="form-label">@SiteResources.StaffDescription</label>
+                <InputTextArea id="contest-description" class="form-control" rows="6" @bind-Value="_input.Description" aria-describedby="description-help" />
+                <div id="description-help" class="form-text">@SiteResources.HtmlSupported</div>
+                <button type="button" class="btn btn-outline-secondary btn-sm mt-2" @onclick="() => _preview = !_preview">@SiteResources.StaffPreview</button>
+            </div>
+            @if (_preview)
+            {
+                <section class="card mb-3" aria-label="@SiteResources.StaffPreview">
+                    <div class="card-body overflow-auto">@((MarkupString)(_input.Description ?? ""))</div>
+                </section>
+            }
+            <p class="small text-body-secondary">@SiteResources.ServerTimeZone: @TimeZoneInfo.Local.Id</p>
+            <div class="row g-3 mb-3">
+                <div class="col-lg-7">
+                    <label for="contest-start" class="form-label">@SiteResources.ContestStart</label>
+                    <InputDate id="contest-start" Type="InputDateType.DateTimeLocal" class="form-control" @bind-Value="_input.StartTime" ParsingErrorMessage="@SiteResources.InvalidDate" />
+                    <ValidationMessage For="() => _input.StartTime" class="text-danger" />
+                </div>
+                <div class="col-lg-5">
+                    <label for="contest-duration" class="form-label">@SiteResources.ContestDuration</label>
+                    <InputText id="contest-duration" class="form-control" @bind-Value="_input.Duration" />
+                    <ValidationMessage For="() => _input.Duration" class="text-danger" />
+                </div>
+            </div>
+            <div class="form-text mb-3">@SiteResources.IntervalHint</div>
+            <div class="form-check mb-2">
+                <InputCheckbox id="contest-printing" class="form-check-input" @bind-Value="_input.EarlyPrinting" />
+                <label for="contest-printing" class="form-check-label">@SiteResources.EarlyPrinting</label>
+            </div>
+            @if (_input.EarlyPrinting)
+            {
+                <div class="mb-3">
+                    <label for="printing-advance" class="form-label">@SiteResources.PrintingAdvance</label>
+                    <InputText id="printing-advance" class="form-control" @bind-Value="_input.PrintingAdvance" />
+                    <ValidationMessage For="() => _input.PrintingAdvance" class="text-danger" />
+                </div>
+            }
+            <div class="form-check mb-2">
+                <InputCheckbox id="contest-freeze" class="form-check-input" @bind-Value="_input.Freeze" />
+                <label for="contest-freeze" class="form-check-label">@SiteResources.EnableFreeze</label>
+                <ValidationMessage For="() => _input.Freeze" class="text-danger" />
+            </div>
+            @if (_input.Freeze)
+            {
+                <div class="mb-3">
+                    <label for="freeze-advance" class="form-label">@SiteResources.FreezeAdvance</label>
+                    <InputText id="freeze-advance" class="form-control" @bind-Value="_input.FreezeAdvance" />
+                    <ValidationMessage For="() => _input.FreezeAdvance" class="text-danger" />
+                </div>
+            }
+            @if (_input.TryGetSchedule(out _, out var end, out var printing, out var freeze))
+            {
+                <dl class="row small bg-body-tertiary rounded p-3 mx-0 my-3" aria-live="polite">
+                    <dt class="col-sm-5">@SiteResources.ContestEnd</dt>
+                    <dd class="col-sm-7">@end.LocalDateTime.ToString("g")</dd>
+                    @if (printing is not null)
+                    {
+                        <dt class="col-sm-5">@SiteResources.PrintingAvailableFrom</dt>
+                        <dd class="col-sm-7">@printing.Value.LocalDateTime.ToString("g")</dd>
+                    }
+                    @if (freeze is not null)
+                    {
+                        <dt class="col-sm-5">@SiteResources.FreezeStartsAt</dt>
+                        <dd class="col-sm-7">@freeze.Value.LocalDateTime.ToString("g")</dd>
+                    }
+                </dl>
+            }
+            <div class="form-check mb-2">
+                <InputCheckbox id="contest-hidden" class="form-check-input" @bind-Value="_input.IsHidden" />
+                <label for="contest-hidden" class="form-check-label">@SiteResources.HiddenContest</label>
+            </div>
+            <div class="form-check mb-4">
+                <InputCheckbox id="contest-open" class="form-check-input" @bind-Value="_input.IsOpen" />
+                <label for="contest-open" class="form-check-label">@SiteResources.OpenContest</label>
+                <ValidationMessage For="() => _input.IsOpen" class="text-danger" />
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+                <button type="submit" class="btn btn-primary">@(_saving ? SiteResources.StaffSaving : Id is null ? SiteResources.CreateContest : SiteResources.StaffSave)</button>
+                <a class="btn btn-outline-secondary" href="jury/contests">@SiteResources.StaffCancel</a>
+            </div>
+        </fieldset>
+    </EditForm>
+}

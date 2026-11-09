@@ -107,7 +107,7 @@ public class JuryAnnouncementsTests(WebAppFactory factory) : IClassFixture<WebAp
         var block = document.QuerySelector("#problem-detail .jury-announcements")!;
         Assert.Equal(culture == "ru" ? "Уточнения" : "Clarifications", block.QuerySelector("h2")!.TextContent);
         Assert.Equal("Published clarification", Assert.Single(block.QuerySelectorAll("strong")).TextContent);
-        Assert.Equal(block, document.QuerySelector(".problem-statement")!.NextElementSibling);
+        Assert.Equal(block, document.QuerySelector(".problem-statement")!.LastElementChild);
         Assert.Null(block.QuerySelector("a, button"));
         Assert.DoesNotContain("GENERAL ANNOUNCEMENT", block.TextContent);
         if (actor != "participant" || state == "ended")
@@ -209,8 +209,12 @@ public class JuryAnnouncementsTests(WebAppFactory factory) : IClassFixture<WebAp
 
     private static Message Message(Contest contest, string? text, Problem? problem = null, int? userId = null, DateTimeOffset? sent = null) => new()
     {
-        ContestId = contest.Id, Contest = null!, ProblemId = problem?.Id, UserId = userId,
-        JuryText = text, SendTime = sent ?? DateTimeOffset.UtcNow
+        ContestId = contest.Id,
+        Contest = null!,
+        ProblemId = problem?.Id,
+        UserId = userId,
+        JuryText = text,
+        SendTime = sent ?? DateTimeOffset.UtcNow
     };
 
     private static async Task<IDocument> GetAsync(HttpClient client, string path)

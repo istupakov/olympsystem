@@ -1,23 +1,16 @@
-@using System.ComponentModel.DataAnnotations
-@using System.Text
-@using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Identity
 @using Microsoft.EntityFrameworkCore
 @using Olymp.Domain
 @using Olymp.Domain.Models
 
 @inject IDbContextFactory<OlympContext> ContextFactory
-@inject IAuthorizationService Authorization
+@inject SubmissionService Submissions
 @inject UserManager<User> Users
 @inject NavigationManager Navigation
 
 <section class="mt-4" aria-labelledby="submit-heading">
     <h2 id="submit-heading" class="h4">@SiteResources.SubmitSolution</h2>
     <p class="small"><a href="rules" target="_blank" rel="noopener">@SiteResources.SubmissionRulesLink</a></p>
-    @if (compilers.Count == 0)
-    {
-        <p class="text-body-secondary">@SiteResources.NoActiveCompilers</p>
-    }
     @if (error is not null)
     {
         <p class="text-danger" role="alert">@error</p>
@@ -25,33 +18,11 @@
     <EditForm Model="Input" method="post" action="@Action" FormName="submit-solution" OnValidSubmit="SubmitAsync">
         <DataAnnotationsValidator />
         <ValidationSummary class="text-danger" role="alert" />
-        <fieldset disabled="@(compilers.Count == 0)">
-            <div class="mb-3">
-                <label for="submission-compiler" class="form-label"><DisplayName For="() => Input!.CompilatorId" /></label>
-                <InputSelect @bind-Value="Input!.CompilatorId" id="submission-compiler" class="form-select">
-                    <option value="">@SiteResources.SelectCompiler</option>
-                    @foreach (var compiler in compilers)
-                    {
-                        <option value="@compiler.Id">@(compiler.Description ?? compiler.Name)</option>
-                    }
-                </InputSelect>
-                <ValidationMessage For="() => Input!.CompilatorId" class="text-danger" />
-            </div>
-            <div class="mb-3">
-                <label for="submission-code" class="form-label"><DisplayName For="() => Input!.Code" /></label>
-                <InputTextArea @bind-Value="Input!.Code" id="submission-code" class="form-control font-monospace" rows="14"
-                               spellcheck="false" />
-                <ValidationMessage For="() => Input!.Code" class="text-danger" />
-            </div>
-            <button type="submit" class="btn btn-primary">@SiteResources.SubmitSolution</button>
-        </fieldset>
+        <SubmissionFields Input="Input!" Compilers="compilers" />
     </EditForm>
 </section>
 
 @code {
-    private static readonly Encoding SourceEncoding = Encoding.GetEncoding(1251,
-        EncoderFallback.ExceptionFallback, DecoderFallback.ExceptionFallback);
-
     [Parameter, EditorRequired]
     public Problem Problem { get; set; } = default!;
 
@@ -62,7 +33,7 @@
     private HttpContext HttpContext { get; set; } = default!;
 
     [SupplyParameterFromForm(FormName = "submit-solution")]
-    private InputModel? Input { get; set; }
+    private SubmissionInput? Input { get; set; }
 
     private IReadOnlyList<Compilator> compilers = [];
     private string? error;
@@ -88,67 +59,14 @@
     private async Task SubmitAsync()
     {
         var token = HttpContext.RequestAborted;
-        await using var context = await ContextFactory.CreateDbContextAsync(token);
-        var problem = await context.Problems.AsNoTracking().Include(item => item.Contest)
-            .SingleOrDefaultAsync(item => item.Id == Problem.Id && item.ContestId == Problem.ContestId, token);
-        if (problem is null || !problem.IsActive || !problem.Contest.AllowShowProblems)
+        var result = await Submissions.SubmitPublicAsync(HttpContext.User, Problem.ContestId, Problem.Id, Input!, token);
+        if (result.NotFound)
         {
             Navigation.NotFound();
             return;
         }
-        if (!(await Authorization.AuthorizeAsync(HttpContext.User, problem,
-            new SubmitSolutionRequirement())).Succeeded)
-        {
-            error = SiteResources.SubmissionNotAllowed;
-            return;
-        }
-        if (!await context.Compilators.AnyAsync(compiler => compiler.Id == Input!.CompilatorId && compiler.IsActive, token))
-        {
-            error = SiteResources.CompilerUnavailable;
-            return;
-        }
-
-        byte[] source;
-        try
-        {
-            source = SourceEncoding.GetBytes(Input!.Code);
-        }
-        catch (EncoderFallbackException)
-        {
-            error = SiteResources.SourceCodeEncoding;
-            return;
-        }
-
-        var now = DateTimeOffset.UtcNow;
-        var submission = new Submission
-        {
-            User = null!,
-            UserId = int.Parse(Users.GetUserId(HttpContext.User)!),
-            Problem = null!,
-            ProblemId = problem.Id,
-            Compilator = null!,
-            CompilatorId = Input!.CompilatorId!.Value,
-            SourceCode = source,
-            StatusCode = 0,
-            CommitTime = now,
-            LastModification = now,
-            CheckResults = []
-        };
-        context.Submissions.Add(submission);
-        await context.SaveChangesAsync(token);
-        Navigation.NavigateTo($"contests/{problem.ContestId}/problems?problemId={problem.Id}#submission-{submission.Id}");
-    }
-
-    private sealed class InputModel
-    {
-        [Required(ErrorMessageResourceType = typeof(SiteResources), ErrorMessageResourceName = nameof(SiteResources.CompilerRequired))]
-        [Display(Name = nameof(SiteResources.Compiler), ResourceType = typeof(SiteResources))]
-        public int? CompilatorId { get; set; }
-
-        [Required(ErrorMessageResourceType = typeof(SiteResources), ErrorMessageResourceName = nameof(SiteResources.SourceCodeRequired))]
-        [StringLength(32 * 1024, MinimumLength = 10,
-            ErrorMessageResourceType = typeof(SiteResources), ErrorMessageResourceName = nameof(SiteResources.SourceCodeLength))]
-        [Display(Name = nameof(SiteResources.SourceCode), ResourceType = typeof(SiteResources))]
-        public string Code { get; set; } = "";
+        error = result.Error;
+        if (result.Id is int id)
+            Navigation.NavigateTo($"contests/{Problem.ContestId}/problems?problemId={Problem.Id}#submission-{id}");
     }
 }
