@@ -1,0 +1,84 @@
+@page "/jury/contests/{ContestId:int}/standing"
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@using Olymp.WebApp.Components.Contests
+@inject IDbContextFactory<OlympContext> ContextFactory
+
+<PageTitle>@SiteResources.ContestStandings</PageTitle>
+@if (!_loaded)
+{
+    <p role="status">@SiteResources.StaffLoading</p>
+}
+else if (_contest is null)
+{
+    <p>@SiteResources.PageNotFoundMessage</p>
+}
+else
+{
+    <StaffContestNavigation ContestId="ContestId" ContestName="@_contest.Name" />
+    <h1 class="h3">@SiteResources.ContestStandings</h1>
+    <p class="text-body-secondary">@SiteResources.StaffWithoutFreeze</p>
+    <nav class="d-flex flex-wrap gap-2 mb-3" aria-label="@SiteResources.StandingView">
+        <a class="btn @(!Official ? "btn-primary" : "btn-outline-primary")" aria-current="@(!Official ? "page" : null)" href="jury/contests/@ContestId/standing">@SiteResources.FullStanding</a>
+        @if (_contest.FinalTableId is null || _contest.OfficialTableId is not null)
+        {
+            <a class="btn @(Official ? "btn-primary" : "btn-outline-primary")" aria-current="@(Official ? "page" : null)" href="jury/contests/@ContestId/standing?official=true">@SiteResources.OfficialStanding</a>
+        }
+        <button class="btn btn-outline-secondary" @onclick="LoadAsync">@SiteResources.Refresh</button>
+    </nav>
+    @if (Official)
+    {
+        <p>@SiteResources.OfficialStandingDescription</p>
+    }
+    @if (_savedTable is not null)
+    {
+        <SavedStandingView Html="@_savedTable" />
+    }
+    else if (_standing is not null)
+    {
+        <StandingTable Standing="_standing" />
+    }
+}
+
+@code {
+    [Parameter]
+    public int ContestId { get; set; }
+    [SupplyParameterFromQuery]
+    public bool Official { get; set; }
+
+    private Contest? _contest;
+    private Olymp.Domain.Standing? _standing;
+    private string? _savedTable;
+    private bool _loaded;
+
+    protected override Task OnParametersSetAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loaded = false;
+        _standing = null;
+        _savedTable = null;
+        await using var db = await ContextFactory.CreateDbContextAsync();
+        _contest = await db.Contests.AsNoTracking().SingleOrDefaultAsync(item => item.Id == ContestId);
+        if (_contest is not null)
+        {
+            if (Official && _contest.FinalTableId is not null && _contest.OfficialTableId is null)
+            {
+                _contest = null;
+            }
+            else if ((Official ? _contest.OfficialTableId : _contest.FinalTableId) is int tableId)
+            {
+                var bytes = await db.Blobs.Where(item => item.Id == tableId).Select(item => item.Data).SingleAsync();
+                _savedTable = System.Text.CodePagesEncodingProvider.Instance.GetEncoding(1251)!.GetString(bytes);
+            }
+            else
+            {
+                _contest = await db.Contests.AsNoTrackingWithIdentityResolution()
+                    .Include(item => item.Competitors).ThenInclude(item => item.Members)
+                    .Include(item => item.Problems).ThenInclude(item => item.Submissions).ThenInclude(item => item.User)
+                    .AsSplitQuery().SingleAsync(item => item.Id == ContestId);
+                _standing = Olymp.Domain.Standing.Create(_contest, includeAll: !Official, official: Official, notFreeze: true, startTime: null);
+            }
+        }
+        _loaded = true;
+    }
+}

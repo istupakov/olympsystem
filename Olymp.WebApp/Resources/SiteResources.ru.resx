@@ -374,4 +374,71 @@
   <data name="StaffConfirmDeleteOrganization" xml:space="preserve"><value>Удалить организацию «{0}»?</value></data>
   <data name="StaffOrganizationInUse" xml:space="preserve"><value>Удаление недоступно: связанных аккаунтов – {0}; тренеров с правами на организацию – {1}.</value></data>
   <data name="StaffOrganizationDeleteFailed" xml:space="preserve"><value>Не удалось удалить организацию. Попробуйте ещё раз.</value></data>
+  <data name="StaffContest" xml:space="preserve"><value>Соревнование</value></data>
+  <data name="StaffRetestFiltered" xml:space="preserve"><value>Перепроверить по фильтрам</value></data>
+  <data name="StaffRetestConfirm" xml:space="preserve"><value>Перепроверить решения ({0}) со всех страниц? Учитываются завершённые проверки активных задач.</value></data>
+  <data name="StaffRetestAcceptedWarning" xml:space="preserve"><value>Будут перепроверены успешные решения: {0}. Их текущие результаты будут сброшены до завершения проверки. Итоговые результаты и таблица соревнования могут измениться.</value></data>
+  <data name="StaffRetestQueued" xml:space="preserve"><value>Поставлено на перепроверку: {0}.</value></data>
+  <data name="StaffRetestChanged" xml:space="preserve"><value>В выборке стало больше успешных решений. Проверьте предупреждение и подтвердите ещё раз.</value></data>
+  <data name="StaffMessages" xml:space="preserve"><value>Сообщения</value></data>
+  <data name="StaffQuestions" xml:space="preserve"><value>Вопросы</value></data>
+  <data name="StaffAnnouncements" xml:space="preserve"><value>Объявления и пояснения</value></data>
+  <data name="StaffUnanswered" xml:space="preserve"><value>Без ответа</value></data>
+  <data name="StaffAnswered" xml:space="preserve"><value>С ответом</value></data>
+  <data name="StaffReply" xml:space="preserve"><value>Ответить</value></data>
+  <data name="StaffAnswer" xml:space="preserve"><value>Ответ</value></data>
+  <data name="StaffClearReply" xml:space="preserve"><value>Очистить ответ</value></data>
+  <data name="StaffDeleteMessage" xml:space="preserve"><value>Удалить объявление</value></data>
+  <data name="StaffDeleteMessageConfirm" xml:space="preserve"><value>Удалить это объявление или пояснение?</value></data>
+  <data name="StaffClearReplyConfirm" xml:space="preserve"><value>Очистить ответ? Вопрос участника сохранится.</value></data>
+  <data name="StaffNewAnnouncement" xml:space="preserve"><value>Новое объявление или пояснение</value></data>
+  <data name="StaffMessageText" xml:space="preserve"><value>Текст</value></data>
+  <data name="StaffMessageRequired" xml:space="preserve"><value>Введите текст сообщения.</value></data>
+  <data name="StaffMessageConflict" xml:space="preserve"><value>Сообщение изменилось или было удалено. Обновите список и откройте его снова; введённый текст сохранён.</value></data>
+  <data name="StaffNoMessages" xml:space="preserve"><value>Сообщений не найдено.</value></data>
+  <data name="StaffMessagePages" xml:space="preserve"><value>Страницы сообщений</value></data>
+  <data name="StaffMessagesUpdated" xml:space="preserve"><value>Список обновляется каждые 10 секунд. Введённый текст сохраняется.</value></data>
+  <data name="StaffEnableSound" xml:space="preserve"><value>Включить звук</value></data>
+  <data name="StaffDisableSound" xml:space="preserve"><value>Выключить звук</value></data>
+  <data name="StaffSoundUnavailable" xml:space="preserve"><value>Не удалось включить звук. Проверьте настройки звука вкладки и попробуйте ещё раз.</value></data>
+  <data name="StaffRefreshFailed" xml:space="preserve"><value>Не удалось обновить список. Повторите попытку.</value></data>
+  <data name="StaffRunner" xml:space="preserve"><value>Runner</value></data>
+  <data name="StaffCompilers" xml:space="preserve"><value>Компиляторы</value></data>
+  <data name="StaffNoRunners" xml:space="preserve"><value>Нет подключённых Runner.</value></data>
+  <data name="StaffRunnerConnected" xml:space="preserve"><value>Подключён</value></data>
+  <data name="StaffRunnerId" xml:space="preserve"><value>ID Runner</value></data>
+  <data name="StaffSelfTests" xml:space="preserve"><value>Самопроверка</value></data>
+  <data name="StaffSelfTestUnknown" xml:space="preserve"><value>Ожидание самопроверки</value></data>
+  <data name="StaffSelfTestRunning" xml:space="preserve"><value>Выполняется самопроверка</value></data>
+  <data name="StaffSelfTestPassed" xml:space="preserve"><value>Самопроверка пройдена</value></data>
+  <data name="StaffSelfTestFailed" xml:space="preserve"><value>Самопроверка не пройдена</value></data>
+  <data name="StaffTestsSummary" xml:space="preserve"><value>Пройдено: {0}/{1}; ошибок: {2}.</value></data>
+  <data name="StaffTest" xml:space="preserve"><value>Тест</value></data>
+  <data name="StaffExpected" xml:space="preserve"><value>Ожидалось</value></data>
+  <data name="StaffActual" xml:space="preserve"><value>Получено</value></data>
+  <data name="StaffLog" xml:space="preserve"><value>Журнал</value></data>
+  <data name="StaffConfiguration" xml:space="preserve"><value>Конфигурация</value></data>
+  <data name="StaffVersionError" xml:space="preserve"><value>Не удалось определить версию</value></data>
+  <data name="StaffLoadingVersions" xml:space="preserve"><value>Загрузка версий компиляторов…</value></data>
+  <data name="StaffEnabledOnSite" xml:space="preserve"><value>Включён на сайте</value></data>
+  <data name="StaffAvailableRunners" xml:space="preserve"><value>Доступные Runner</value></data>
+  <data name="StaffEnabled" xml:space="preserve"><value>Включён</value></data>
+  <data name="StaffDisabled" xml:space="preserve"><value>Выключен</value></data>
+  <data name="StaffEnable" xml:space="preserve"><value>Включить</value></data>
+  <data name="StaffDisable" xml:space="preserve"><value>Выключить</value></data>
+  <data name="StaffAddCompiler" xml:space="preserve"><value>Добавить компилятор</value></data>
+  <data name="StaffNotAdded" xml:space="preserve"><value>Не добавлен</value></data>
+  <data name="StaffCompilerAdded" xml:space="preserve"><value>Компилятор добавлен выключенным. При необходимости включите его отдельно.</value></data>
+  <data name="StaffCompilerUnavailable" xml:space="preserve"><value>Компилятор недоступен или Runner не прошёл самопроверку.</value></data>
+  <data name="StaffDisableCompilerConfirm" xml:space="preserve"><value>Выключить «{0}»? Его нельзя будет выбрать для новых решений, а решения с ним в очереди будут ждать повторного включения.</value></data>
+  <data name="StaffRunCode" xml:space="preserve"><value>Пробный запуск</value></data>
+  <data name="StaffInputData" xml:space="preserve"><value>Входные данные</value></data>
+  <data name="StaffRun" xml:space="preserve"><value>Запустить</value></data>
+  <data name="StaffRunOutput" xml:space="preserve"><value>Результат запуска</value></data>
+  <data name="StaffRunLimits" xml:space="preserve"><value>Ограничения запуска: 1 с, 128 МБ.</value></data>
+  <data name="StaffRunnerDisconnected" xml:space="preserve"><value>Runner отключился или запуск завершился ошибкой. Введённые данные сохранены.</value></data>
+  <data name="StaffCancelRun" xml:space="preserve"><value>Отменить запуск</value></data>
+  <data name="StaffRunnerRefresh" xml:space="preserve"><value>Состояние Runner обновляется каждые 10 секунд.</value></data>
+  <data name="StaffNoCompilers" xml:space="preserve"><value>Компиляторы не найдены.</value></data>
+  <data name="StaffWithoutFreeze" xml:space="preserve"><value>Просмотр жюри – результаты без заморозки.</value></data>
 </root>

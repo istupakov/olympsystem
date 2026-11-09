@@ -1,20 +1,39 @@
+@page "/jury/submissions"
 @page "/jury/contests/{ContestId:int}/submissions"
 @rendermode @(new InteractiveServerRenderMode(prerender: false))
 @using System.Security.Claims
 @using Olymp.WebApp.Components.Submissions
+@using Olymp.Site.Services.Checker
 @inject IDbContextFactory<OlympContext> ContextFactory
 @inject NavigationManager Navigation
+@inject ICheckerManager Checkers
 
 <PageTitle>@SiteResources.Submissions</PageTitle>
-@if (_contest is null)
+@if (!_loaded || (ContestId is not null && _contest is null))
 {
     <p role="status">@(_loaded ? SiteResources.PageNotFoundMessage : SiteResources.StaffLoading)</p>
 }
 else
 {
-    <StaffContestNavigation ContestId="ContestId" ContestName="@_contest.Name" />
+    @if (_contest is not null)
+    {
+        <StaffContestNavigation ContestId="_contest.Id" ContestName="@_contest.Name" />
+    }
     <h1 class="h3">@SiteResources.Submissions</h1>
     @if (_authorName is not null) { <p>@SiteResources.SubmissionAuthor: @_authorName</p> }
+    @if (ContestId is null)
+    {
+        <div class="mb-3">
+            <label for="contest-filter" class="form-label">@SiteResources.StaffContest</label>
+            <select id="contest-filter" class="form-select" value="@Contest" @onchange="SelectContest">
+                <option value="">@SiteResources.StaffAll</option>
+                @foreach (var contest in _contests)
+                {
+                    <option value="@contest.Id">@contest.Name</option>
+                }
+            </select>
+        </div>
+    }
     <EditForm Model="_filters" OnValidSubmit="ApplyFilters" class="row g-3 mb-4">
         <div class="col-md-6 col-xl-3">
             <label for="author" class="form-label">@SiteResources.SubmissionAuthor</label>
@@ -24,7 +43,7 @@ else
             <label for="problem" class="form-label">@SiteResources.Problem</label>
             <InputSelect id="problem" class="form-select" @bind-Value="_filters.Problem">
                 <option value="">@SiteResources.StaffAll</option>
-                @foreach (var problem in _problems) { <option value="@problem.Id">@problem.NameWithNumber</option> }
+                @foreach (var problem in _problems) { <option value="@problem.Id">@(EffectiveContest is null ? $"{problem.Contest.Name}: {problem.NameWithNumber}" : problem.NameWithNumber)</option> }
             </InputSelect>
         </div>
         <div class="col-md-6 col-xl-3">
@@ -71,21 +90,47 @@ else
         </div>
         <div class="col-12 d-flex flex-wrap gap-2">
             <button class="btn btn-primary">@SiteResources.StaffFind</button>
-            <a class="btn btn-outline-secondary" href="jury/contests/@ContestId/submissions">@SiteResources.StaffReset</a>
+            <a class="btn btn-outline-secondary" href="@BaseUrl">@SiteResources.StaffReset</a>
             <a class="btn btn-outline-secondary" href="@PageUrl(CurrentPage)">@SiteResources.Refresh</a>
         </div>
     </EditForm>
     <p class="small text-body-secondary">@SiteResources.ServerTimeZone: @TimeZoneInfo.Local.Id</p>
     @if (_error is not null) { <p class="alert alert-danger" role="alert">@_error</p> }
-    <SubmissionTable Items="_rows" ShowId="true" ShowSource="false" SourceUrl="@(item => DetailsUrl(item.Id))"
-                     ProblemUrl="@(item => $"jury/contests/{ContestId}/problems?problemId={item.ProblemId}")" />
+    @if (_canRetest)
+    {
+        <div class="mb-3">
+            <button class="btn btn-outline-warning" disabled="@(_busy || _error is not null)" @onclick="PrepareRetestAsync">@SiteResources.StaffRetestFiltered</button>
+        </div>
+        @if (_retestTotal is int total)
+        {
+            <section class="card mb-3" aria-label="@SiteResources.StaffRetestFiltered">
+                <div class="card-body">
+                    <p>@string.Format(SiteResources.StaffRetestConfirm, total)</p>
+                    @if (_retestAccepted > 0)
+                    {
+                        <div class="alert alert-warning" role="alert">@string.Format(SiteResources.StaffRetestAcceptedWarning, _retestAccepted)</div>
+                    }
+                    <button class="btn btn-warning" disabled="@(_busy || total == 0)" @onclick="RetestAsync">@SiteResources.StaffConfirm</button>
+                    <button class="btn btn-outline-secondary ms-2" disabled="@_busy" @onclick="() => _retestTotal = null">@SiteResources.StaffCancel</button>
+                </div>
+            </section>
+        }
+    }
+    @if (_notice is not null)
+    {
+        <p class="alert alert-info" role="status">@_notice</p>
+    }
+    <SubmissionTable Items="_rows" ShowContest="@(ContestId is null)" ShowId="true" ShowSource="false" SourceUrl="@(item => DetailsUrl(item.Id))"
+                     ProblemUrl="@(item => $"jury/contests/{item.ContestId}/problems?problemId={item.ProblemId}")" />
     @if (_rows.Count == 0 && _error is null) { <p>@SiteResources.NoSubmissions</p> }
     <Pagination Page="CurrentPage" HasNextPage="_hasNext" PageUrl="PageUrl" Label="@SiteResources.SubmissionPages" />
 }
 
 @code {
     [Parameter]
-    public int ContestId { get; set; }
+    public int? ContestId { get; set; }
+    [SupplyParameterFromQuery]
+    public int? Contest { get; set; }
     [SupplyParameterFromQuery]
     public string? Author { get; set; }
     [SupplyParameterFromQuery]
@@ -110,79 +155,180 @@ else
     private Task<AuthenticationState> AuthenticationState { get; set; } = default!;
 
     private const int PageSize = 20;
+    private int? EffectiveContest => ContestId ?? Contest;
+    private string BaseUrl => ContestId is int id ? $"jury/contests/{id}/submissions" : "jury/submissions";
     private string EffectiveScope => Scope ?? (OnlyParticipants ? "participants" : "all");
     private int CurrentPage => Math.Max(1, Page ?? 1);
     private Contest? _contest;
+    private List<Contest> _contests = [];
     private List<Problem> _problems = [];
     private List<Compilator> _compilers = [];
     private List<SubmissionListItem> _rows = [];
     private Filters _filters = new();
     private bool _loaded;
     private bool _hasNext;
+    private bool _canRetest;
+    private bool _busy;
+    private int _userId;
+    private int? _retestTotal;
+    private int[] _retestAcceptedIds = [];
+    private int _retestAccepted => _retestAcceptedIds.Length;
+    private int _retestMaxId;
     private string? _error;
+    private string? _notice;
     private string? _authorName;
 
     protected override async Task OnParametersSetAsync()
     {
         _loaded = false;
-        _error = null;
-        _authorName = null;
+        _error = _authorName = _notice = null;
         _rows = [];
         _hasNext = false;
+        _retestTotal = null;
         _filters = new() { Author = Author, Problem = Problem, Compiler = Compiler, Status = Status, From = From, To = To, Scope = EffectiveScope };
+        var user = (await AuthenticationState).User;
+        _canRetest = user.IsInRole(RoleNames.Admin);
+        int.TryParse(user.FindFirstValue(ClaimTypes.NameIdentifier), out _userId);
         await using var db = await ContextFactory.CreateDbContextAsync();
         if (AuthorId is int selectedAuthor)
             _authorName = await db.Users.Where(item => item.Id == selectedAuthor).Select(item => item.Name).SingleOrDefaultAsync();
-        _contest = await db.Contests.AsNoTracking().SingleOrDefaultAsync(item => item.Id == ContestId);
-        if (_contest is not null)
+        _contest = EffectiveContest is int selectedContest
+            ? await db.Contests.AsNoTracking().SingleOrDefaultAsync(item => item.Id == selectedContest) : null;
+        if (ContestId is null)
+            _contests = await db.Contests.AsNoTracking().OrderByDescending(item => item.StartTime).ToListAsync();
+        if (EffectiveContest is null || _contest is not null)
         {
-            _problems = await db.Problems.AsNoTracking().Where(item => item.ContestId == ContestId).OrderBy(item => item.Number).ThenBy(item => item.Id).ToListAsync();
-            var query = db.Submissions.AsNoTracking().Where(item => item.Problem.ContestId == ContestId);
-            _compilers = await query.Select(item => item.Compilator).Distinct().OrderBy(item => item.Name).ToListAsync();
-            if (AuthorId is int authorId) query = query.Where(item => item.UserId == authorId);
-            if (!string.IsNullOrWhiteSpace(Author)) query = query.Where(item => item.User.Name.Contains(Author) || (item.User.UserName != null && item.User.UserName.Contains(Author)));
-            if (Problem is { } problem) query = query.Where(item => item.ProblemId == problem);
-            if (Compiler is { } compiler) query = query.Where(item => item.CompilatorId == compiler);
-            int.TryParse((await AuthenticationState).User.FindFirstValue(ClaimTypes.NameIdentifier), out int userId);
-            query = query.ForAuthors(EffectiveScope, userId, db, ContestId);
-            query = Status switch {
-                "accepted" => query.Where(item => item.StatusCode == 2),
-                "compilation" => query.Where(item => item.StatusCode == -1),
-                "wrong-answer" => query.Where(item => item.StatusCode < -1000 && item.StatusCode > -2000),
-                "time-limit" => query.Where(item => item.StatusCode < -2000 && item.StatusCode > -3000),
-                "runtime-error" => query.Where(item => item.StatusCode < -3000 && item.StatusCode > -4000),
-                "presentation-error" => query.Where(item => item.StatusCode < -4000 && item.StatusCode > -5000),
-                "idleness-limit" => query.Where(item => item.StatusCode < -5000 && item.StatusCode > -6000),
-                "memory-limit" => query.Where(item => item.StatusCode < -6000 && item.StatusCode > -7000),
-                "internal-error" => query.Where(item => item.StatusCode != 0 && item.StatusCode != 1 && item.StatusCode != 2 && item.StatusCode != -1
-                    && !(item.StatusCode < -1000 && item.StatusCode > -2000)
-                    && !(item.StatusCode < -2000 && item.StatusCode > -3000)
-                    && !(item.StatusCode < -3000 && item.StatusCode > -4000)
-                    && !(item.StatusCode < -4000 && item.StatusCode > -5000)
-                    && !(item.StatusCode < -5000 && item.StatusCode > -6000)
-                    && !(item.StatusCode < -6000 && item.StatusCode > -7000)),
-                "queued" => query.Where(item => item.StatusCode == 0),
-                "checking" => query.Where(item => item.StatusCode == 1),
-                "pending" => query.Where(item => item.StatusCode == 0 || item.StatusCode == 1),
-                "rejected" => query.Where(item => item.StatusCode != 0 && item.StatusCode != 1 && item.StatusCode != 2),
-                _ => query
-            };
-            try
-            {
-                if (From > To) throw new ArgumentException();
-                if (From is { } from) query = query.Where(item => item.CommitTime >= new DateTimeOffset(from));
-                if (To is { } to) query = query.Where(item => item.CommitTime <= new DateTimeOffset(to));
-                long skip = ((long)CurrentPage - 1) * PageSize;
-                if (skip <= int.MaxValue)
-                    _rows = await query.OrderByDescending(item => item.CommitTime).ThenByDescending(item => item.Id)
-                        .Skip((int)skip).Take(PageSize + 1).AsStaffRows(db, ContestId).ToListAsync();
-                _hasNext = _rows.Count > PageSize;
-                if (_hasNext) _rows.RemoveAt(PageSize);
-            }
-            catch (ArgumentException) { _error = SiteResources.StaffInvalidPeriod; }
+            _problems = await db.Problems.AsNoTracking().Include(item => item.Contest)
+                .Where(item => EffectiveContest == null || item.ContestId == EffectiveContest)
+                .OrderBy(item => item.ContestId).ThenBy(item => item.Number).ToListAsync();
+            _compilers = await db.Submissions.Where(item => EffectiveContest == null || item.Problem.ContestId == EffectiveContest)
+                .Select(item => item.Compilator).Distinct().OrderBy(item => item.Name).ToListAsync();
+            await LoadRowsAsync(db);
         }
         _loaded = true;
     }
+
+    private IQueryable<Submission> FilteredQuery(OlympContext db)
+    {
+        if (From > To)
+            throw new ArgumentException();
+        var query = db.Submissions.AsNoTracking()
+            .Where(item => EffectiveContest == null || item.Problem.ContestId == EffectiveContest);
+        if (AuthorId is int authorId)
+            query = query.Where(item => item.UserId == authorId);
+        if (!string.IsNullOrWhiteSpace(Author))
+            query = query.Where(item => item.User.Name.Contains(Author) || (item.User.UserName != null && item.User.UserName.Contains(Author)));
+        if (Problem is int problem)
+            query = query.Where(item => item.ProblemId == problem);
+        if (Compiler is int compiler)
+            query = query.Where(item => item.CompilatorId == compiler);
+        query = query.ForAuthors(EffectiveScope, _userId, db, EffectiveContest);
+    query = Status switch {
+        "accepted" => query.Where(item => item.StatusCode == 2),
+        "compilation" => query.Where(item => item.StatusCode == -1),
+        "wrong-answer" => query.Where(item => item.StatusCode < -1000 && item.StatusCode > -2000),
+        "time-limit" => query.Where(item => item.StatusCode < -2000 && item.StatusCode > -3000),
+        "runtime-error" => query.Where(item => item.StatusCode < -3000 && item.StatusCode > -4000),
+        "presentation-error" => query.Where(item => item.StatusCode < -4000 && item.StatusCode > -5000),
+        "idleness-limit" => query.Where(item => item.StatusCode < -5000 && item.StatusCode > -6000),
+        "memory-limit" => query.Where(item => item.StatusCode < -6000 && item.StatusCode > -7000),
+        "internal-error" => query.Where(item => item.StatusCode != 0 && item.StatusCode != 1 && item.StatusCode != 2 && item.StatusCode != -1
+            && !(item.StatusCode < -1000 && item.StatusCode > -2000)
+            && !(item.StatusCode < -2000 && item.StatusCode > -3000)
+            && !(item.StatusCode < -3000 && item.StatusCode > -4000)
+            && !(item.StatusCode < -4000 && item.StatusCode > -5000)
+            && !(item.StatusCode < -5000 && item.StatusCode > -6000)
+            && !(item.StatusCode < -6000 && item.StatusCode > -7000)),
+        "queued" => query.Where(item => item.StatusCode == 0),
+        "checking" => query.Where(item => item.StatusCode == 1),
+        "pending" => query.Where(item => item.StatusCode == 0 || item.StatusCode == 1),
+        "rejected" => query.Where(item => item.StatusCode != 0 && item.StatusCode != 1 && item.StatusCode != 2),
+        _ => query
+    };
+        if (From is DateTime from)
+            query = query.Where(item => item.CommitTime >= new DateTimeOffset(from));
+        if (To is DateTime to)
+            query = query.Where(item => item.CommitTime <= new DateTimeOffset(to));
+        return query;
+    }
+
+    private async Task LoadRowsAsync(OlympContext db)
+    {
+        try
+        {
+            long skip = ((long)CurrentPage - 1) * PageSize;
+            _rows = skip <= int.MaxValue ? await FilteredQuery(db)
+                .OrderByDescending(item => item.CommitTime).ThenByDescending(item => item.Id)
+                .Skip((int)skip).Take(PageSize + 1).AsStaffRows(db, EffectiveContest).ToListAsync() : [];
+            _hasNext = _rows.Count > PageSize;
+            if (_hasNext)
+                _rows.RemoveAt(PageSize);
+        }
+        catch (ArgumentException)
+        {
+            _error = SiteResources.StaffInvalidPeriod;
+        }
+    }
+
+    private IQueryable<Submission> RetestQuery(OlympContext db) => FilteredQuery(db)
+        .Where(item => item.Id <= _retestMaxId && item.Problem.IsActive && item.StatusCode != 0 && item.StatusCode != 1);
+
+    private async Task PrepareRetestAsync()
+    {
+        if (!(await AuthenticationState).User.IsInRole(RoleNames.Admin) || _busy)
+            return;
+        _busy = true;
+        _notice = null;
+        try
+        {
+            await using var db = await ContextFactory.CreateDbContextAsync();
+            _retestMaxId = await FilteredQuery(db).MaxAsync(item => (int?)item.Id) ?? 0;
+            _retestTotal = await RetestQuery(db).CountAsync();
+            _retestAcceptedIds = await RetestQuery(db).Where(item => item.StatusCode == 2).Select(item => item.Id).ToArrayAsync();
+        }
+        catch (ArgumentException)
+        {
+            _error = SiteResources.StaffInvalidPeriod;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task RetestAsync()
+    {
+        if (!(await AuthenticationState).User.IsInRole(RoleNames.Admin) || _retestTotal is null || _busy)
+            return;
+        _busy = true;
+        try
+        {
+            await using var db = await ContextFactory.CreateDbContextAsync();
+            int? count = await Checkers.QueueRetestAsync(RetestQuery(db), _retestAcceptedIds);
+            if (count is null)
+            {
+                _retestTotal = await RetestQuery(db).CountAsync();
+                _retestAcceptedIds = await RetestQuery(db).Where(item => item.StatusCode == 2).Select(item => item.Id).ToArrayAsync();
+                _notice = SiteResources.StaffRetestChanged;
+                return;
+            }
+            _retestTotal = null;
+            _notice = string.Format(SiteResources.StaffRetestQueued, count);
+            await LoadRowsAsync(db);
+        }
+        catch (Exception exception) when (exception is System.Data.Common.DbException or DbUpdateException)
+        {
+            _error = SiteResources.StaffSaveFailed;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private void SelectContest(ChangeEventArgs args) => Navigation.NavigateTo(Navigation.GetUriWithQueryParameters(
+        new Dictionary<string, object?> { [nameof(Contest)] = int.TryParse(args.Value?.ToString(), out int id) ? id : null,
+            [nameof(Problem)] = null, [nameof(Compiler)] = null, [nameof(Page)] = null }));
 
     private void ApplyFilters() => Navigation.NavigateTo(Navigation.GetUriWithQueryParameters(new Dictionary<string, object?> {
         [nameof(Author)] = _filters.Author, [nameof(Problem)] = _filters.Problem, [nameof(Compiler)] = _filters.Compiler,

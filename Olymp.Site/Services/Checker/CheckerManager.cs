@@ -18,6 +18,9 @@ public interface ICheckerManager
     Task<bool> TryCheckFromDB(ICheckerService checker, CancellationToken token);
     Task<int> AddCompilators(Guid checkerId, CancellationToken token);
     Task<int> DisableCompilatorsWithoutRunner(CancellationToken token);
+    Task<int> AddCompilatorAsync(Guid runnerId, string name, string description, CancellationToken token = default);
+    Task SetCompilatorActiveAsync(int id, bool active, CancellationToken token = default);
+    Task<int?> QueueRetestAsync(IQueryable<Submission> selection, IReadOnlyCollection<int> confirmedAccepted, CancellationToken token = default);
 }
 
 public sealed class CheckerManager(IServiceProvider provider, ILogger<CheckerManager> logger) : ICheckerManager
@@ -74,16 +77,7 @@ public sealed class CheckerManager(IServiceProvider provider, ILogger<CheckerMan
                 var record = records.SingleOrDefault(x => x.Name == configuration.Name && x.Description == info.DisplayName);
                 if (record is null)
                 {
-                    record = new Compilator
-                    {
-                        Name = configuration.Name,
-                        Description = info.DisplayName,
-                        Language = configuration.Language,
-                        ConfigName = configuration.ConfigName,
-                        SourceExtension = configuration.SourceExtension,
-                        CommandLine = configuration.CompileCommand,
-                        Submissions = []
-                    };
+                    record = CreateCompilator(info);
                     context.Compilators.Add(record);
                 }
 
@@ -125,6 +119,58 @@ public sealed class CheckerManager(IServiceProvider provider, ILogger<CheckerMan
         }
     }
 
+    private static Compilator CreateCompilator(CompilatorInfo info) => new()
+    {
+        Name = info.Configuration.Name,
+        Description = info.DisplayName,
+        Language = info.Configuration.Language,
+        ConfigName = info.Configuration.ConfigName,
+        SourceExtension = info.Configuration.SourceExtension,
+        CommandLine = info.Configuration.CompileCommand,
+        Submissions = []
+    };
+
+    public async Task<int> AddCompilatorAsync(Guid runnerId, string name, string description, CancellationToken token = default)
+    {
+        using var gate = await EnterAsync(token);
+        if (!_checkers.TryGetValue(runnerId, out var runner) || runner.SelfTestingStatus != CheckerSelfTestingStatus.Success)
+            throw new InvalidOperationException("The selected runner has not passed self-testing.");
+        var info = runner.Compilators?.SingleOrDefault(item => item.Configuration.Name == name
+            && item.DisplayName == description && item.Error is null)
+            ?? throw new InvalidOperationException("The selected compilator is unavailable on this runner.");
+        await using var scope = provider.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<OlympContext>();
+        var existing = await db.Compilators.SingleOrDefaultAsync(item => item.Name == name && item.Description == description, token);
+        if (existing is not null)
+            return existing.Id;
+        var compiler = CreateCompilator(info);
+        db.Compilators.Add(compiler);
+        await db.SaveChangesAsync(token);
+        return compiler.Id;
+    }
+
+    public async Task SetCompilatorActiveAsync(int id, bool active, CancellationToken token = default)
+    {
+        using var gate = await EnterAsync(token);
+        await using var scope = provider.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<OlympContext>();
+        if (await db.Compilators.Where(item => item.Id == id)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(item => item.IsActive, active), token) == 0)
+            throw new InvalidOperationException("The selected compilator is unavailable on this runner.");
+    }
+
+    public async Task<int?> QueueRetestAsync(IQueryable<Submission> selection, IReadOnlyCollection<int> confirmedAccepted, CancellationToken token = default)
+    {
+        using var gate = await EnterAsync(token);
+        var eligible = selection.Where(item => item.Problem.IsActive && item.StatusCode != 0 && item.StatusCode != 1);
+        if (await eligible.AnyAsync(item => item.StatusCode == 2 && !confirmedAccepted.Contains(item.Id), token))
+            return null;
+        return await eligible.Where(item => item.StatusCode != 2 || confirmedAccepted.Contains(item.Id))
+            .ExecuteUpdateAsync(setters => setters.SetProperty(item => item.StatusCode, 0)
+            .SetProperty(item => item.Score, (int?)null).SetProperty(item => item.ScoresByTest, (string?)null)
+            .SetProperty(item => item.LastModification, DateTimeOffset.UtcNow), token);
+    }
+
     public async Task<bool> TryCheckFromDB(ICheckerService checker, CancellationToken token)
     {
         await using var scope = provider.CreateAsyncScope();
@@ -144,9 +190,11 @@ public sealed class CheckerManager(IServiceProvider provider, ILogger<CheckerMan
         using (await EnterAsync(token))
         {
             var span = DateTimeOffset.Now - TimeSpan.FromMinutes(2);
+            var staffIds = context.UserRoles.Where(assignment => context.Roles.Any(role => role.Id == assignment.RoleId
+                && (role.Name == RoleNames.Jury || role.Name == RoleNames.Admin))).Select(assignment => assignment.UserId);
             submission = await context.Submissions
                 .Where(x => x.StatusCode == 0 || (x.StatusCode == 1 && x.LastModification < span))
-                .Where(x => x.Problem.IsActive && compilatorIds.Contains(x.CompilatorId))
+                .Where(x => (x.Problem.IsActive || staffIds.Contains(x.UserId)) && compilatorIds.Contains(x.CompilatorId))
                 .Where(x => x.Problem.Tests.Any(test => test.IsActive))
                 .OrderBy(x => x.CommitTime)
                 .Include(x => x.Compilator)

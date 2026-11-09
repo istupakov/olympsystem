@@ -19,7 +19,7 @@ using static Olymp.IntegrationTests.Site.Checkers.CheckerTestData;
 namespace Olymp.IntegrationTests.Site.Checkers;
 
 [Trait("Category", "Integration")]
-public class CompilatorSynchronizationTests(SiteFactory factory) : IClassFixture<SiteFactory>
+public partial class CompilatorSynchronizationTests(SiteFactory factory) : IClassFixture<SiteFactory>
 {
     [Fact]
     public async Task AdminAddsRunnerCompilerAndRepeatedCommandDoesNotCreateDuplicates()

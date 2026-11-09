@@ -280,7 +280,7 @@ public class ContestPublicPagesTests(WebAppFactory factory) : IClassFixture<WebA
         Assert.Equal(text, document.QuerySelector("main tbody td")!.TextContent);
         Assert.NotNull(document.QuerySelector("main [data-saved-standing] table.result"));
         Assert.Equal([text, "-1", "+"], document.QuerySelectorAll("main tbody td").Select(cell => cell.TextContent));
-        using var script = await client.GetAsync("/saved-standings.js", TestContext.Current.CancellationToken);
+        using var script = await client.GetAsync("/Components/Contests/SavedStandingView.razor.js", TestContext.Current.CancellationToken);
         script.EnsureSuccessStatusCode();
         Assert.DoesNotContain("Should not replace archive", document.QuerySelector("main")!.TextContent);
     }

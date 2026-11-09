@@ -33,7 +33,7 @@
     }
     @if (savedTable is not null)
     {
-        <div class="table-responsive" data-saved-standing>@((MarkupString)savedTable)</div>
+        <SavedStandingView Html="@savedTable" />
     }
     else if (standing is not null)
     {
