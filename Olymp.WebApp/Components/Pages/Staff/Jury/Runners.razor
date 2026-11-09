@@ -1,0 +1,184 @@
+@page "/jury/runners"
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@using Olymp.Checker
+@using Olymp.Site.Services.Checker
+@inject ICheckerManager Checkers
+@inject IDbContextFactory<OlympContext> ContextFactory
+@inject NavigationManager Navigation
+@inject ILogger<Runners> Logger
+@implements IAsyncDisposable
+
+<PageTitle>@SiteResources.StaffRunner</PageTitle>
+<h1 class="h3">@SiteResources.StaffRunner</h1>
+<nav class="mb-3" aria-label="@SiteResources.StaffRunner">
+    <ul class="nav nav-underline">
+        <li class="nav-item"><a class="nav-link @(!Compilers ? "active" : null)" aria-current="@(!Compilers ? "page" : null)" href="jury/runners">@SiteResources.StaffRunner</a></li>
+        <li class="nav-item"><a class="nav-link @(Compilers ? "active" : null)" aria-current="@(Compilers ? "page" : null)" href="jury/runners?Compilers=true">@SiteResources.StaffCompilers</a></li>
+    </ul>
+</nav>
+@if (!_loaded)
+{
+    <p role="status">@SiteResources.StaffLoading</p>
+}
+else
+{
+    <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
+        <button class="btn btn-outline-secondary" @onclick="RefreshAsync">@SiteResources.Refresh</button>
+        <span class="small text-body-secondary">@SiteResources.StaffRunnerRefresh</span>
+    </div>
+    @if (_error is not null)
+    {
+        <p class="alert alert-danger" role="alert">@_error</p>
+    }
+    @if (_notice is not null)
+    {
+        <p class="alert alert-info" role="status">@_notice</p>
+    }
+    @if (_pendingDisable is { } pending)
+    {
+        <section class="alert alert-warning" role="alert">
+            <p>@string.Format(SiteResources.StaffDisableCompilerConfirm, pending.Description ?? pending.Name)</p>
+            <button class="btn btn-warning" disabled="@_busy" @onclick="() => SetActiveAsync(pending.Id, false)">@SiteResources.StaffConfirm</button>
+            <button class="btn btn-outline-secondary ms-2" disabled="@_busy" @onclick="() => _pendingDisable = null">@SiteResources.StaffCancel</button>
+        </section>
+    }
+    @if (Compilers)
+    {
+        <label for="compiler-search" class="form-label">@SiteResources.Compiler</label>
+        <input id="compiler-search" type="search" class="form-control mb-3" @bind="_search" @bind:event="oninput" />
+        <div class="table-responsive">
+            <table class="table table-striped align-middle">
+                <thead><tr><th>ID</th><th>@SiteResources.Compiler</th><th>@SiteResources.StaffConfiguration</th><th>@SiteResources.StaffEnabledOnSite</th><th>@SiteResources.StaffAvailableRunners</th>@if (_admin) { <th>@SiteResources.StaffEdit</th> }</tr></thead>
+                <tbody>
+                    @foreach (var compiler in VisibleCompilers)
+                    {
+                        <tr @key="compiler.Id">
+                            <td>@compiler.Id</td>
+                            <td><div>@(compiler.Description ?? compiler.Name)</div><div class="small text-body-secondary">@compiler.Name · @compiler.Language · @compiler.SourceExtension</div><details class="mt-1"><summary>@SiteResources.StaffConfiguration</summary><pre class="text-wrap text-break">@compiler.CommandLine</pre></details></td>
+                            <td>@compiler.ConfigName</td>
+                            <td><span class="badge @(compiler.IsActive ? "text-bg-success" : "text-bg-secondary")">@(compiler.IsActive ? SiteResources.StaffEnabled : SiteResources.StaffDisabled)</span></td>
+                            <td>@foreach (var runner in AvailableRunners(compiler)) { <div><a href="@RunnerUrl(runner.Id)">@runner.Name</a></div> }</td>
+                            @if (_admin)
+                            {
+                                <td><button class="btn btn-sm btn-outline-secondary" disabled="@_busy" @onclick="() => ToggleAsync(compiler)">@(compiler.IsActive ? SiteResources.StaffDisable : SiteResources.StaffEnable)</button></td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        @if (!VisibleCompilers.Any()) { <p>@SiteResources.StaffNoCompilers</p> }
+    }
+    else
+    {
+        @if (_runners.Count == 0)
+        {
+            <p class="alert alert-info">@SiteResources.StaffNoRunners</p>
+        }
+        else
+        {
+            <div class="table-responsive mb-4">
+                <table class="table table-hover align-middle">
+                    <thead><tr><th>@SiteResources.StaffRunner</th><th>@SiteResources.StaffRunnerConnected</th><th>@SiteResources.StaffSelfTests</th></tr></thead>
+                    <tbody>
+                        @foreach (var runner in _runners)
+                        {
+                            var tests = runner.SelfTestingResults.ToArray();
+                            <tr @key="runner.Id"><td><a href="@RunnerUrl(runner.Id)">@runner.Name</a></td><td>@runner.ConnectingTime.ToLocalTime().ToString("g")</td><td><span class="badge @StatusClass(runner.SelfTestingStatus)">@StatusText(runner.SelfTestingStatus)</span><div class="small mt-1">@Summary(tests)</div></td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        @if (SelectedRunner is { } selected)
+        {
+            <section class="mb-4" aria-label="@selected.Name">
+                <h2 class="h4">@selected.Name</h2>
+                <dl class="row small"><dt class="col-sm-3">@SiteResources.StaffRunnerId</dt><dd class="col-sm-9 text-break">@selected.Id</dd><dt class="col-sm-3">@SiteResources.StaffRunnerConnected</dt><dd class="col-sm-9">@selected.ConnectingTime.ToLocalTime().ToString("g")</dd></dl>
+                @if (selected.Compilators is null) { <p>@SiteResources.StaffLoadingVersions</p> }
+                @foreach (var info in RunnerCompilers(selected))
+                {
+                    var tests = selected.SelfTestingResults.Where(item => item.Compilator.Configuration.Name == info.Configuration.Name).ToArray();
+                    var record = _compilers.SingleOrDefault(item => item.Name == info.Configuration.Name && item.Description == info.DisplayName);
+                    var failed = info.Error is not null || tests.Any(item => item.Result is not null && item.Result != item.ExpectedResult);
+                    <details class="border rounded mb-2" open="@failed" @key="info.Configuration.Name">
+                        <summary class="p-3"><span class="fw-semibold">@info.DisplayName</span> <span class="badge @(failed ? "text-bg-danger" : "text-bg-secondary")">@Summary(tests)</span></summary>
+                        <div class="border-top p-3">
+                            <p class="text-break">@SiteResources.StaffConfiguration: @info.Configuration.Name (@info.Configuration.ConfigName)</p>
+                            @if (!string.IsNullOrWhiteSpace(info.Description)) { <pre class="text-wrap text-break">@info.Description</pre> }
+                            @if (info.Error is not null)
+                            {
+                                <p class="text-danger">@SiteResources.StaffVersionError</p>
+                                <pre class="text-wrap text-break text-danger">@info.Error</pre>
+                            }
+                            <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
+                                <a class="btn btn-sm btn-outline-primary" href="@RunUrl(selected.Id, info.Configuration.Name)">@SiteResources.StaffRunCode</a>
+                                @if (record is not null)
+                                {
+                                    <span>@SiteResources.StaffEnabledOnSite: @(record.IsActive ? SiteResources.StaffEnabled : SiteResources.StaffDisabled)</span>
+                                    @if (_admin) { <button class="btn btn-sm btn-outline-secondary" disabled="@_busy" @onclick="() => ToggleAsync(record)">@(record.IsActive ? SiteResources.StaffDisable : SiteResources.StaffEnable)</button> }
+                                }
+                                else
+                                {
+                                    <span class="text-body-secondary">@SiteResources.StaffNotAdded</span>
+                                    @if (_admin)
+                                    {
+                                        <button class="btn btn-sm btn-outline-secondary" disabled="@(_busy || info.Error is not null || selected.SelfTestingStatus != CheckerSelfTestingStatus.Success)" @onclick="() => AddCompilerAsync(selected.Id, info)">@SiteResources.StaffAddCompiler</button>
+                                    }
+                                }
+                            </div>
+                            @if (tests.Length > 0)
+                            {
+                                <div class="table-responsive">
+                                    <table class="table table-sm"><thead><tr><th>@SiteResources.StaffTest</th><th>@SiteResources.StaffExpected</th><th>@SiteResources.StaffActual</th></tr></thead><tbody>
+                                        @foreach (var test in tests)
+                                        {
+                                            <tr class="@(test.Result is not null && test.Result != test.ExpectedResult ? "table-danger" : null)"><td>@test.Name</td><td>@test.ExpectedResult</td><td>@test.Result</td></tr>
+                                            @if (!string.IsNullOrEmpty(test.Output)) { <tr><td colspan="3"><details><summary>@SiteResources.StaffLog</summary><pre class="text-wrap text-break">@test.Output</pre></details></td></tr> }
+                                        }
+                                    </tbody></table>
+                                </div>
+                            }
+                        </div>
+                    </details>
+                }
+            </section>
+        }
+        <section id="trial-run" class="card" aria-labelledby="run-heading">
+            <div class="card-body">
+                <h2 id="run-heading" class="h4">@SiteResources.StaffRunCode</h2>
+                <label for="run-runner" class="form-label">@SiteResources.StaffRunner</label>
+                <select id="run-runner" class="form-select mb-3" value="@_selectedId" @onchange="SelectRunner" disabled="@_running">
+                    <option value="">@SiteResources.StaffNoRunners</option>
+                    @foreach (var runner in _runners) { <option value="@runner.Id">@runner.Name</option> }
+                </select>
+                <EditForm Model="_input" OnValidSubmit="RunAsync">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary class="text-danger" />
+                    <fieldset disabled="@_running">
+                        <label for="run-compiler" class="form-label">@SiteResources.Compiler</label>
+                        <InputSelect id="run-compiler" class="form-select mb-3" @bind-Value="_input.Compiler">
+                            <option value="">@SiteResources.SelectCompiler</option>
+                            @foreach (var config in SelectedRunner?.Configurations ?? [])
+                            {
+                                <option value="@config.Name">@(SelectedRunner?.Compilators?.SingleOrDefault(item => item.Configuration.Name == config.Name)?.DisplayName ?? config.Name)</option>
+                            }
+                        </InputSelect>
+                        <label for="run-source" class="form-label">@SiteResources.SourceCode</label>
+                        <InputTextArea id="run-source" class="form-control font-monospace mb-3" rows="10" @bind-Value="_input.Code" />
+                        <label for="run-input" class="form-label">@SiteResources.StaffInputData</label>
+                        <InputTextArea id="run-input" class="form-control font-monospace mb-3" rows="5" @bind-Value="_input.Input" />
+                        <p class="small text-body-secondary">@SiteResources.StaffRunLimits</p>
+                        <button class="btn btn-primary" disabled="@(SelectedRunner is null || string.IsNullOrEmpty(_input.Compiler))">@SiteResources.StaffRun</button>
+                    </fieldset>
+                </EditForm>
+                @if (_running) { <button class="btn btn-outline-secondary mt-2" @onclick="CancelRunAsync">@SiteResources.StaffCancelRun</button> }
+                @if (_output is not null)
+                {
+                    <h3 class="h5 mt-3">@SiteResources.StaffRunOutput</h3>
+                    <pre class="border rounded p-3 text-wrap text-break"><samp>@_output</samp></pre>
+                }
+            </div>
+        </section>
+    }
+}

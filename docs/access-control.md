@@ -639,6 +639,52 @@ The UI shows linked-account and distinct coach counts. Both references are check
 again in the delete statement, so connections added after opening the editor also
 prevent deletion. Linked accounts and coach claims are retained.
 
+**Current, WebApp:** `/jury/contests/{id}/standing` provides full and official
+standings for hidden contests without freeze restrictions, reusing the existing
+standings calculation and table. Saved final/official tables remain available.
+The public standings retain their existing publication and freeze rules.
+
+`/jury/submissions` provides the same staff submission list across contests,
+including a contest filter. All author, compiler, verdict, problem, and date
+filters apply before pagination. Source links preserve global or contest list
+context on return.
+
+Administrators can rejudge the applied filtered selection across all pages.
+Confirmation shows the eligible count and a separate warning listing the count of
+accepted submissions. Only completed submissions to active problems are eligible;
+queued and checking submissions are excluded. The selection excludes submissions
+created after the preview. Newly accepted submissions require renewed confirmation
+and cannot be silently included without it. Queueing clears current scores and
+updates the status and modification time, retaining source, authorship, and check
+history. The final notice reports the actual number queued. Jury alone cannot
+invoke this action. This is separate from the deferred contest preparation tools.
+
+`/jury/contests/{id}/messages` shows questions, replies, announcements, and problem
+clarifications, with problem/author/answer-state filters and pagination. Any jury
+member or administrator can read; mutations use the current stored contest
+management permission. Replies can be edited or cleared without deleting the
+question. Announcements and clarifications can be created, edited, or deleted
+with confirmation. Existing HTML is retained and previews are available. Updates
+check the original text and problem association to prevent silent overwrites of
+another editor's changes. Auto-refresh every ten seconds preserves drafts.
+Sound is explicitly enabled by a browser click and applies only while this page
+is open. New question IDs trigger one signal per refresh; initial history and
+filter changes do not trigger sound. The page owns and disposes its polling and
+collocated audio module; suspended/disconnected browser pages may delay alerts.
+
+`/jury/runners` has Runner and compiler views. It retains IDs, names, connection
+times, configurations, compiler/version descriptions and errors, self-test state,
+all test outcomes and logs, and trial code execution. Trials are available to
+jury and administrators, retaining the existing 1-second/128-MB limits and input
+on errors. Runner information refreshes every ten seconds. Compiler availability
+in the database is shown separately from availability on connected Runner.
+Only administrators may add or enable/disable compiler records. New records are
+imported from a connected Runner that passed self-testing and start disabled;
+repeated imports retain the existing record and its availability. Disabling a
+compiler requires confirmation and retains existing submissions. The legacy bulk
+compiler actions retain their existing behavior. Runner RPC, API-key hosting,
+production deployment, and contest material import remain a separate step.
+
 **Confirmed target for the future staff interface:** jury members have global
 read-only access to contest information, including hidden contests, unpublished
 materials, submissions, source, diagnostics, and results without public freeze

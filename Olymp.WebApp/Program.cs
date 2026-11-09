@@ -15,6 +15,7 @@ using Olymp.Domain.Models;
 using Olymp.Site;
 using Olymp.Site.IdentityUI;
 using Olymp.Site.Services.AntiCheat;
+using Olymp.Site.Services.Checker;
 using Olymp.Site.Services.Contests;
 using Olymp.Site.Services.Identity;
 using Olymp.Site.Services.Mail;
@@ -83,6 +84,10 @@ builder.Services.AddRequestLocalization(options =>
 });
 
 builder.Services.AddScoped<CompetitorManagementService>();
+builder.Services.AddSimpleCheckers();
+builder.Services.AddCheckerTests();
+builder.Services.AddCompilators();
+builder.Services.AddSingleton<ICheckerManager, CheckerManager>();
 builder.Services.AddScoped<AntiCheatReportService>();
 builder.Services.AddTransient<ISubmissionSimilarityService, SimpleSubmissionSimilarityService>();
 builder.Services.AddTransient<IAIDetectionService, SimpleAIDetectionService>();

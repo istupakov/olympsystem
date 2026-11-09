@@ -1,0 +1,162 @@
+@page "/jury/contests/{ContestId:int}/messages"
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@using Microsoft.JSInterop
+@inject IDbContextFactory<OlympContext> ContextFactory
+@inject NavigationManager Navigation
+@inject IJSRuntime JavaScript
+@inject ILogger<Messages> Logger
+@implements IAsyncDisposable
+
+<PageTitle>@SiteResources.StaffMessages</PageTitle>
+@if (!_loaded)
+{
+    <p role="status">@SiteResources.StaffLoading</p>
+}
+else if (_contest is null)
+{
+    <p>@SiteResources.PageNotFoundMessage</p>
+}
+else
+{
+    <StaffContestNavigation ContestId="ContestId" ContestName="@_contest.Name" />
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+        <h1 class="h3 mb-0">@SiteResources.StaffMessages</h1>
+        <button type="button" class="btn btn-outline-secondary" @ref="_soundButton"
+                data-enable-label="@SiteResources.StaffEnableSound" data-disable-label="@SiteResources.StaffDisableSound"
+                data-error-label="@SiteResources.StaffSoundUnavailable" aria-pressed="false">@SiteResources.StaffEnableSound</button>
+    </div>
+    <p class="text-danger" role="status" @ref="_soundStatus"></p>
+    <p class="small text-body-secondary">@SiteResources.StaffMessagesUpdated</p>
+    <nav aria-label="@SiteResources.StaffMessages" class="mb-3">
+        <ul class="nav nav-underline">
+            <li class="nav-item"><a class="nav-link @(!Announcements ? "active" : null)" aria-current="@(!Announcements ? "page" : null)" href="@TabUrl(false)">@SiteResources.StaffQuestions</a></li>
+            <li class="nav-item"><a class="nav-link @(Announcements ? "active" : null)" aria-current="@(Announcements ? "page" : null)" href="@TabUrl(true)">@SiteResources.StaffAnnouncements</a></li>
+        </ul>
+    </nav>
+    <EditForm Model="_filters" OnValidSubmit="ApplyFilters" class="row g-3 mb-3">
+        <div class="col-md-4">
+            <label for="message-problem" class="form-label">@SiteResources.Problem</label>
+            <InputSelect id="message-problem" class="form-select" @bind-Value="_filters.Problem">
+                <option value="">@SiteResources.StaffAll</option>
+                @foreach (var problem in _problems)
+                {
+                    <option value="@problem.Id">@problem.NameWithNumber</option>
+                }
+            </InputSelect>
+        </div>
+        @if (!Announcements)
+        {
+            <div class="col-md-4">
+                <label for="message-author" class="form-label">@SiteResources.SubmissionAuthor</label>
+                <InputText id="message-author" class="form-control" @bind-Value="_filters.Author" />
+            </div>
+            <div class="col-md-4">
+                <label for="message-answered" class="form-label">@SiteResources.SubmissionStatus</label>
+                <InputSelect id="message-answered" class="form-select" @bind-Value="_filters.Answered">
+                    <option value="">@SiteResources.StaffAll</option>
+                    <option value="false">@SiteResources.StaffUnanswered</option>
+                    <option value="true">@SiteResources.StaffAnswered</option>
+                </InputSelect>
+            </div>
+        }
+        <div class="col-12 d-flex flex-wrap gap-2">
+            <button class="btn btn-primary">@SiteResources.StaffFind</button>
+            <button type="button" class="btn btn-outline-secondary" @onclick="RefreshAsync">@SiteResources.Refresh</button>
+            @if (Announcements && _canManage)
+            {
+                <button type="button" class="btn btn-outline-primary" @onclick="NewAnnouncement">@SiteResources.StaffNewAnnouncement</button>
+            }
+        </div>
+    </EditForm>
+    @if (_error is not null)
+    {
+        <p class="alert alert-danger" role="alert">@_error</p>
+    }
+    @if (_editing)
+    {
+        <section class="card mb-4" aria-label="@SiteResources.StaffMessageText">
+            <div class="card-body">
+                <EditForm Model="_editor" OnValidSubmit="SaveAsync">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary class="text-danger" />
+                    <fieldset disabled="@_busy">
+                        <h2 class="h5">@(_isReply ? SiteResources.StaffAnswer : SiteResources.StaffAnnouncements)</h2>
+                        @if (_question is not null)
+                        {
+                            <pre class="text-wrap text-break">@_question</pre>
+                        }
+                        @if (!_isReply)
+                        {
+                            <label for="announcement-problem" class="form-label">@SiteResources.Problem</label>
+                            <InputSelect id="announcement-problem" class="form-select mb-3" @bind-Value="_editor.ProblemId">
+                                <option value="">@SiteResources.GeneralQuestion</option>
+                                @foreach (var problem in _problems)
+                                {
+                                    <option value="@problem.Id">@problem.NameWithNumber</option>
+                                }
+                            </InputSelect>
+                        }
+                        <label for="jury-text" class="form-label">@SiteResources.StaffMessageText</label>
+                        <InputTextArea id="jury-text" class="form-control mb-2" rows="6" @bind-Value="_editor.Text" />
+                        <p class="form-text">@SiteResources.HtmlSupported</p>
+                        <div class="d-flex flex-wrap gap-2">
+                            <button class="btn btn-primary">@SiteResources.StaffSave</button>
+                            <button type="button" class="btn btn-outline-secondary" @onclick="() => _preview = !_preview">@SiteResources.StaffPreview</button>
+                            <button type="button" class="btn btn-outline-secondary" @onclick="() => _editing = false">@SiteResources.StaffCancel</button>
+                        </div>
+                    </fieldset>
+                </EditForm>
+                @if (_preview)
+                {
+                    <div class="border rounded p-3 mt-3 overflow-auto">@((MarkupString)_editor.Text)</div>
+                }
+            </div>
+        </section>
+    }
+    @if (_pending is not null)
+    {
+        <section class="alert alert-warning" role="alert">
+            <p>@(_pending.UserId is null ? SiteResources.StaffDeleteMessageConfirm : SiteResources.StaffClearReplyConfirm)</p>
+            <button class="btn btn-danger" disabled="@_busy" @onclick="DeleteAsync">@SiteResources.StaffConfirm</button>
+            <button class="btn btn-outline-secondary ms-2" disabled="@_busy" @onclick="() => _pending = null">@SiteResources.StaffCancel</button>
+        </section>
+    }
+    @if (_messages.Count == 0)
+    {
+        <p>@SiteResources.StaffNoMessages</p>
+    }
+    @foreach (var message in _messages)
+    {
+        <article class="card mb-3" id="message-@message.Id" @key="message.Id">
+            <div class="card-header d-flex flex-wrap justify-content-between gap-2">
+                <span>@(message.Problem?.NameWithNumber ?? SiteResources.GeneralQuestion)</span>
+                <span>@message.User?.Name @message.SendTime?.ToLocalTime().ToString("g")</span>
+            </div>
+            <div class="card-body">
+                @if (message.UserText is not null)
+                {
+                    <pre class="text-wrap text-break">@message.UserText</pre>
+                }
+                @if (!string.IsNullOrWhiteSpace(message.JuryText))
+                {
+                    <div class="text-break overflow-auto">@((MarkupString)message.JuryText)</div>
+                }
+                else if (message.UserId is not null)
+                {
+                    <p class="text-body-secondary">@SiteResources.StaffUnanswered</p>
+                }
+                @if (_canManage)
+                {
+                    <div class="d-flex flex-wrap gap-2 mt-3">
+                        <button class="btn btn-sm btn-outline-primary" @onclick="() => Edit(message)">@(message.UserId is null || !string.IsNullOrWhiteSpace(message.JuryText) ? SiteResources.StaffEdit : SiteResources.StaffReply)</button>
+                        @if (message.UserId is null || !string.IsNullOrWhiteSpace(message.JuryText))
+                        {
+                            <button class="btn btn-sm btn-outline-danger" @onclick="() => _pending = message">@(message.UserId is null ? SiteResources.StaffDeleteMessage : SiteResources.StaffClearReply)</button>
+                        }
+                    </div>
+                }
+            </div>
+        </article>
+    }
+    <Pagination Page="CurrentPage" HasNextPage="_hasNext" PageUrl="PageUrl" Label="@SiteResources.StaffMessagePages" />
+}

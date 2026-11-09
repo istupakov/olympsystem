@@ -49,7 +49,7 @@ else
         {
             string list = $"/jury/contests/{_submission?.Problem.ContestId}/submissions";
             string problems = $"/jury/contests/{_submission?.Problem.ContestId}/problems";
-            return ReturnUrl is { } url && (url.Split('?')[0] == list || url.Split('?')[0] == problems)
+            return ReturnUrl is { } url && (url.Split('?')[0] == list || url.Split('?')[0] == problems || url.Split('?')[0] == "/jury/submissions")
                 && !url.Contains('\\') && !url.Contains('#') ? url + (BackToProblem ? "#submissions" : "") : null;
         }
     }

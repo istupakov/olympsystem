@@ -374,4 +374,71 @@
   <data name="StaffConfirmDeleteOrganization" xml:space="preserve"><value>Delete organization “{0}”?</value></data>
   <data name="StaffOrganizationInUse" xml:space="preserve"><value>Deletion is unavailable: linked accounts – {0}; coaches with organization permissions – {1}.</value></data>
   <data name="StaffOrganizationDeleteFailed" xml:space="preserve"><value>Could not delete the organization. Please try again.</value></data>
+  <data name="StaffContest" xml:space="preserve"><value>Contest</value></data>
+  <data name="StaffRetestFiltered" xml:space="preserve"><value>Rejudge filtered submissions</value></data>
+  <data name="StaffRetestConfirm" xml:space="preserve"><value>Rejudge {0} submissions across all pages? Only completed submissions to active problems are included.</value></data>
+  <data name="StaffRetestAcceptedWarning" xml:space="preserve"><value>{0} accepted submissions will be rejudged. Their current results will be cleared until judging finishes. Final results and standings may change.</value></data>
+  <data name="StaffRetestQueued" xml:space="preserve"><value>Queued for rejudging: {0}.</value></data>
+  <data name="StaffRetestChanged" xml:space="preserve"><value>More accepted submissions now match. Review the warning and confirm again.</value></data>
+  <data name="StaffMessages" xml:space="preserve"><value>Messages</value></data>
+  <data name="StaffQuestions" xml:space="preserve"><value>Questions</value></data>
+  <data name="StaffAnnouncements" xml:space="preserve"><value>Announcements and clarifications</value></data>
+  <data name="StaffUnanswered" xml:space="preserve"><value>Unanswered</value></data>
+  <data name="StaffAnswered" xml:space="preserve"><value>Answered</value></data>
+  <data name="StaffReply" xml:space="preserve"><value>Reply</value></data>
+  <data name="StaffAnswer" xml:space="preserve"><value>Answer</value></data>
+  <data name="StaffClearReply" xml:space="preserve"><value>Clear reply</value></data>
+  <data name="StaffDeleteMessage" xml:space="preserve"><value>Delete announcement</value></data>
+  <data name="StaffDeleteMessageConfirm" xml:space="preserve"><value>Delete this announcement or clarification?</value></data>
+  <data name="StaffClearReplyConfirm" xml:space="preserve"><value>Clear this reply? The participant question will be retained.</value></data>
+  <data name="StaffNewAnnouncement" xml:space="preserve"><value>New announcement or clarification</value></data>
+  <data name="StaffMessageText" xml:space="preserve"><value>Text</value></data>
+  <data name="StaffMessageRequired" xml:space="preserve"><value>Enter the message text.</value></data>
+  <data name="StaffMessageConflict" xml:space="preserve"><value>The message changed or was deleted. Refresh the list and reopen it; your draft is retained.</value></data>
+  <data name="StaffNoMessages" xml:space="preserve"><value>No messages found.</value></data>
+  <data name="StaffMessagePages" xml:space="preserve"><value>Message pages</value></data>
+  <data name="StaffMessagesUpdated" xml:space="preserve"><value>The list refreshes every 10 seconds. Draft text is retained.</value></data>
+  <data name="StaffEnableSound" xml:space="preserve"><value>Enable sound</value></data>
+  <data name="StaffDisableSound" xml:space="preserve"><value>Disable sound</value></data>
+  <data name="StaffSoundUnavailable" xml:space="preserve"><value>Sound could not be enabled. Check the tab sound settings and try again.</value></data>
+  <data name="StaffRefreshFailed" xml:space="preserve"><value>Could not refresh the list. Try again.</value></data>
+  <data name="StaffRunner" xml:space="preserve"><value>Runner</value></data>
+  <data name="StaffCompilers" xml:space="preserve"><value>Compilers</value></data>
+  <data name="StaffNoRunners" xml:space="preserve"><value>No connected Runner.</value></data>
+  <data name="StaffRunnerConnected" xml:space="preserve"><value>Connected at</value></data>
+  <data name="StaffRunnerId" xml:space="preserve"><value>Runner ID</value></data>
+  <data name="StaffSelfTests" xml:space="preserve"><value>Self-testing</value></data>
+  <data name="StaffSelfTestUnknown" xml:space="preserve"><value>Waiting for self-testing</value></data>
+  <data name="StaffSelfTestRunning" xml:space="preserve"><value>Self-testing in progress</value></data>
+  <data name="StaffSelfTestPassed" xml:space="preserve"><value>Self-testing passed</value></data>
+  <data name="StaffSelfTestFailed" xml:space="preserve"><value>Self-testing failed</value></data>
+  <data name="StaffTestsSummary" xml:space="preserve"><value>Passed: {0}/{1}; failures: {2}.</value></data>
+  <data name="StaffTest" xml:space="preserve"><value>Test</value></data>
+  <data name="StaffExpected" xml:space="preserve"><value>Expected</value></data>
+  <data name="StaffActual" xml:space="preserve"><value>Actual</value></data>
+  <data name="StaffLog" xml:space="preserve"><value>Log</value></data>
+  <data name="StaffConfiguration" xml:space="preserve"><value>Configuration</value></data>
+  <data name="StaffVersionError" xml:space="preserve"><value>Could not determine the version</value></data>
+  <data name="StaffLoadingVersions" xml:space="preserve"><value>Loading compiler versions…</value></data>
+  <data name="StaffEnabledOnSite" xml:space="preserve"><value>Enabled on site</value></data>
+  <data name="StaffAvailableRunners" xml:space="preserve"><value>Available Runner</value></data>
+  <data name="StaffEnabled" xml:space="preserve"><value>Enabled</value></data>
+  <data name="StaffDisabled" xml:space="preserve"><value>Disabled</value></data>
+  <data name="StaffEnable" xml:space="preserve"><value>Enable</value></data>
+  <data name="StaffDisable" xml:space="preserve"><value>Disable</value></data>
+  <data name="StaffAddCompiler" xml:space="preserve"><value>Add compiler</value></data>
+  <data name="StaffNotAdded" xml:space="preserve"><value>Not added</value></data>
+  <data name="StaffCompilerAdded" xml:space="preserve"><value>Compiler added, disabled. Enable it separately when ready.</value></data>
+  <data name="StaffCompilerUnavailable" xml:space="preserve"><value>The compiler is unavailable, or Runner has not passed self-testing.</value></data>
+  <data name="StaffDisableCompilerConfirm" xml:space="preserve"><value>Disable “{0}”? New submissions cannot select it, and queued submissions using it will wait until it is enabled again.</value></data>
+  <data name="StaffRunCode" xml:space="preserve"><value>Trial run</value></data>
+  <data name="StaffInputData" xml:space="preserve"><value>Input data</value></data>
+  <data name="StaffRun" xml:space="preserve"><value>Run</value></data>
+  <data name="StaffRunOutput" xml:space="preserve"><value>Execution result</value></data>
+  <data name="StaffRunLimits" xml:space="preserve"><value>Execution limits: 1 s, 128 MB.</value></data>
+  <data name="StaffRunnerDisconnected" xml:space="preserve"><value>Runner disconnected or execution failed. Your input is retained.</value></data>
+  <data name="StaffCancelRun" xml:space="preserve"><value>Cancel execution</value></data>
+  <data name="StaffRunnerRefresh" xml:space="preserve"><value>Runner status refreshes every 10 seconds.</value></data>
+  <data name="StaffNoCompilers" xml:space="preserve"><value>No compilers found.</value></data>
+  <data name="StaffWithoutFreeze" xml:space="preserve"><value>Jury view – freeze restrictions do not apply.</value></data>
 </root>

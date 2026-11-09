@@ -6,11 +6,7 @@ Remaining work and ideas for future discussion. Access decisions are maintained 
 ## Remaining migration
 
 - Contest materials: import problems from ZIP, upload/remove statements PDF,
-  generate test archives, and rejudge submissions.
-- Jury standings without freeze restrictions and submission search across contests.
-- Runner monitoring, compiler versions and self-test results, manual code execution,
-  and administrator controls for compiler availability.
-- Jury replies, announcements, and problem clarifications, replacing QReply.
+  and generate test archives.
 - Runner RPC with API-key authentication and production hosting: health checks,
   persistent Data Protection keys, certificates, and Compose deployment.
 

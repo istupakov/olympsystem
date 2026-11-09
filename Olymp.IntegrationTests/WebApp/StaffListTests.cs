@@ -33,7 +33,7 @@ using Users = Olymp.WebApp.Components.Pages.Staff.Admin.UserList;
 namespace Olymp.IntegrationTests.WebApp;
 
 [Trait("Category", "Integration")]
-public class StaffListTests(WebAppFactory factory) : IClassFixture<WebAppFactory>
+public partial class StaffListTests(WebAppFactory factory) : IClassFixture<WebAppFactory>
 {
     [Fact]
     public async Task SubmittingAfterReturningToTaskClearsCodeAndRefreshesOwnList()
@@ -296,7 +296,7 @@ public class StaffListTests(WebAppFactory factory) : IClassFixture<WebAppFactory
     }
 
     private async Task<string> RenderAsync<T>(string path, Dictionary<string, object?> parameters, ClaimsPrincipal? user = null,
-        Func<T, Task>? action = null) where T : IComponent
+        Func<T, Task>? action = null, Action<IServiceCollection>? configure = null) where T : IComponent
     {
         using var host = factory.WithWebHostBuilder(builder => builder.ConfigureTestServices(services =>
         {
@@ -304,6 +304,7 @@ public class StaffListTests(WebAppFactory factory) : IClassFixture<WebAppFactory
             services.AddSingleton<NavigationManager>(new TestNavigation(path));
             services.RemoveAll<AuthenticationStateProvider>();
             services.AddScoped<AuthenticationStateProvider>(_ => new TestAuthentication(user ?? new ClaimsPrincipal(new ClaimsIdentity())));
+            configure?.Invoke(services);
         }));
         await using var scope = host.Services.CreateAsyncScope();
         await using var renderer = new PageRenderer(scope.ServiceProvider, scope.ServiceProvider.GetRequiredService<ILoggerFactory>());

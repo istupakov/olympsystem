@@ -1,0 +1,45 @@
+@using Microsoft.JSInterop
+@inject IJSRuntime JavaScript
+@implements IAsyncDisposable
+
+<div class="table-responsive" data-saved-standing>@((MarkupString)Html)</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Html { get; set; } = "";
+
+    private IJSObjectReference? _formatter;
+    private bool _format;
+
+    protected override void OnParametersSet() => _format = true;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!_format)
+            return;
+        _format = false;
+        try
+        {
+            _formatter ??= await JavaScript.InvokeAsync<IJSObjectReference>("import", "./Components/Contests/SavedStandingView.razor.js");
+            await _formatter.InvokeVoidAsync("formatSavedStandings");
+        }
+        catch (JSDisconnectedException)
+        {
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_formatter is not null)
+        {
+            try
+            {
+                await _formatter.DisposeAsync();
+            }
+            catch (JSDisconnectedException)
+            {
+            }
+        }
+        GC.SuppressFinalize(this);
+    }
+}
