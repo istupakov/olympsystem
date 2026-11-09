@@ -1,15 +1,31 @@
-<header class="contest-header mb-4">
-    <h1 class="mb-2 text-break">@Contest.Name</h1>
-    <p class="text-body-secondary mb-2">
-        <time datetime="@Contest.StartTime.ToString("O", CultureInfo.InvariantCulture)">@Contest.StartTime.ToString(IsFinished ? "d" : "g", CultureInfo.CurrentCulture)</time>
-        @if (!IsFinished || Contest.StartTime.Date != Contest.EndTime.Date)
-        {
-            <text> – </text><time datetime="@Contest.EndTime.ToString("O", CultureInfo.InvariantCulture)">@Contest.EndTime.ToString(IsFinished ? "d" : Contest.StartTime.Date == Contest.EndTime.Date ? "t" : "g", CultureInfo.CurrentCulture)</time>
-        }
-        · @(now < Contest.StartTime ? SiteResources.ContestUpcoming : now <= Contest.EndTime ? SiteResources.ContestInProgress : SiteResources.ContestOver)
-    </p>
-    <ContestNavigation Contest="Contest" Now="now" ActiveSection="@ActiveSection" />
-</header>
+@using Olymp.Site
+
+@if (isParticipant)
+{
+    <ParticipantContestHeader Contest="Contest" ActiveSection="@ActiveSection" />
+}
+else
+{
+    <header class="contest-header mb-4">
+        <h1 class="mb-2 text-break">@Contest.Name</h1>
+        <p class="text-body-secondary mb-2">
+            <time datetime="@Contest.StartTime.ToString("O", CultureInfo.InvariantCulture)">@Contest.StartTime.ToString(IsFinished ? "d" : "g", CultureInfo.CurrentCulture)</time>
+            @if (!IsFinished || Contest.StartTime.Date != Contest.EndTime.Date)
+            {
+                <text> – </text><time datetime="@Contest.EndTime.ToString("O", CultureInfo.InvariantCulture)">@Contest.EndTime.ToString(IsFinished ? "d" : Contest.StartTime.Date == Contest.EndTime.Date ? "t" : "g", CultureInfo.CurrentCulture)</time>
+            }
+            · @if (IsFinished)
+            {
+                @SiteResources.ContestOver
+            }
+            else
+            {
+                <span class="fw-semibold text-body text-nowrap"><ContestTimeRemaining Contest="Contest" Now="now" /></span>
+            }
+        </p>
+        <ContestNavigation Contest="Contest" Now="now" ActiveSection="@ActiveSection" />
+    </header>
+}
 
 @code {
     [Parameter, EditorRequired]
@@ -18,7 +34,19 @@
     [Parameter, EditorRequired]
     public string ActiveSection { get; set; } = "";
 
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthenticationState { get; set; } = default!;
+
+    private bool isParticipant;
     private readonly DateTimeOffset now = DateTimeOffset.Now;
 
     private bool IsFinished => now > Contest.EndTime;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var state = await AuthenticationState;
+        isParticipant = state.User.Identity?.IsAuthenticated == true
+            && int.TryParse(state.User.FindFirst(ClaimNames.CompetitorContest)?.Value, out int contestId)
+            && contestId == Contest.Id;
+    }
 }

@@ -51,6 +51,87 @@ public class ContestProblemTests(WebAppFactory factory) : IClassFixture<WebAppFa
         Assert.DoesNotContain("<!--Blazor:", document.DocumentElement.OuterHtml);
     }
 
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public async Task ProblemProgressUsesOwnHistoryAndStandingAttemptRules(bool school, bool temporary)
+    {
+        var contest = Contest("Progress contest", 2024);
+        contest.Abbr = school ? "school-progress" : "acm-progress";
+        contest.IsOpen = false;
+        contest.FreezeTime = contest.StartTime.AddMinutes(1);
+        var problems = Enumerable.Range(1, 6).Select(number => AddProblem(contest, number)).ToArray();
+        await SeedAsync(contest);
+        var user = await factory.AddUserAsync();
+        var other = await factory.AddUserAsync();
+        using var client = temporary ? await CreateAccountClientAsync("temporary", contest)
+            : await factory.LoginAsync(user.UserName!);
+        using (var scope = factory.Services.CreateScope())
+        {
+            var context = scope.ServiceProvider.GetRequiredService<OlympContext>();
+            var author = temporary
+                ? await context.Users.SingleAsync(item => item is Competitor && ((Competitor)item).ContestId == contest.Id, TestContext.Current.CancellationToken)
+                : await context.Users.SingleAsync(item => item.Id == user.Id, TestContext.Current.CancellationToken);
+            var storedProblems = await context.Problems.Where(item => item.ContestId == contest.Id)
+                .OrderBy(item => item.Number).ToListAsync(TestContext.Current.CancellationToken);
+            var compiler = TestEntities.CreateCompilator();
+            context.Compilators.Add(compiler);
+            void Add(int index, int status, int minute, int? score = null, bool hidden = false, bool foreign = false)
+            {
+                var submission = TestEntities.CreateSubmission(author, storedProblems[index], compiler, contest.EndTime.AddMinutes(minute));
+                submission.StatusCode = status;
+                submission.Score = score;
+                submission.IsHidden = hidden;
+                if (foreign)
+                {
+                    submission.User = null!;
+                    submission.UserId = other.Id;
+                }
+                context.Submissions.Add(submission);
+            }
+            Add(0, -1001, 1);
+            Add(0, -1002, 2);
+            Add(0, 2, 3, school ? 100 : null);
+            Add(0, -1003, 4);
+            Add(1, -1001, 1);
+            Add(1, -1002, 2);
+            Add(1, -1003, 3);
+            Add(1, -1, 4);
+            Add(1, 0, 5);
+            Add(2, school ? -1003 : 2, 1, school ? 37 : null);
+            if (school)
+                Add(2, -1004, 2, 12);
+            Add(3, 0, 1);
+            Add(3, 1, 2);
+            Add(3, -1, 3);
+            Add(4, 2, 1, school ? 100 : null, foreign: true);
+            Add(4, 2, 2, school ? 100 : null, hidden: true);
+            await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+
+        string[] texts = school ? ["100/100", "0/100", "37/100", "", "", ""] : ["+2", "-3", "+", "", "", ""];
+        string?[] colors = ["success", "danger", school ? "warning" : "success", null, null, null];
+        foreach (string suffix in temporary ? new[] { "" } : new[] { "", "&scope=all" })
+        {
+            using var document = await GetAsync(client, Path(contest, problems[0]) + suffix);
+            var links = document.QuerySelectorAll(".problem-list .list-group-item");
+            Assert.Equal(problems.Length, links.Length);
+            Assert.Contains("active", links[0].ClassList);
+            for (int index = 0; index < problems.Length; index++)
+            {
+                Assert.Equal(texts[index], links[index].QuerySelector(".text-nowrap")?.TextContent ?? "");
+                if (colors[index] is string color)
+                    Assert.Contains($"list-group-item-{color}", links[index].ClassList);
+                else
+                    Assert.DoesNotContain(links[index].ClassList, name => name is "list-group-item-success" or "list-group-item-danger" or "list-group-item-warning");
+                Assert.Equal(problems[index].NameWithNumber + (texts[index].Length == 0 ? "" : $" ({texts[index]})"),
+                    document.QuerySelector($"#workspace-problem option[value='{problems[index].Id}']")!.TextContent);
+            }
+        }
+    }
+
     [Fact]
     public async Task SelectionLinksAndMobileFormKeepContestAndSelectedProblem()
     {
@@ -274,6 +355,7 @@ public class ContestProblemTests(WebAppFactory factory) : IClassFixture<WebAppFa
     {
         using var scope = factory.Services.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<OlympContext>();
+        await context.Submissions.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
         await context.Contests.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
         context.Contests.AddRange(contests);
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);

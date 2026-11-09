@@ -370,7 +370,7 @@ public class ProblemAccessTests(WebAppFactory factory) : IClassFixture<WebAppFac
         }
         using var list = await GetAsync(client, "/contests");
         Assert.Equal(2, list.QuerySelectorAll("main article").Length);
-        Assert.NotNull(list.QuerySelector("header a[href='contests']"));
+        Assert.Null(list.QuerySelector("header a[href='contests']"));
         Assert.Null(list.QuerySelector("header a[href='account/manage']"));
         using var foreignPost = await PostAsync(client, Path(other.Contest, other.Problem), own, other.Compiler.Id);
         Assert.Equal(HttpStatusCode.BadRequest, foreignPost.StatusCode);

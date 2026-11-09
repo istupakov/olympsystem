@@ -1,0 +1,26 @@
+@RemainingTime
+
+@code {
+    [Parameter, EditorRequired]
+    public Contest Contest { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public DateTimeOffset Now { get; set; }
+
+    private string RemainingTime
+    {
+        get
+        {
+            bool upcoming = Now < Contest.StartTime;
+            var remaining = (upcoming ? Contest.StartTime : Contest.EndTime) - Now;
+            string duration = remaining.TotalDays >= 1
+                ? string.Format(SiteResources.DurationDaysHours, remaining.Days, remaining.Hours)
+                : remaining.TotalHours >= 1
+                    ? string.Format(SiteResources.DurationHoursMinutes, remaining.Hours, remaining.Minutes)
+                    : remaining.TotalMinutes >= 1
+                        ? string.Format(SiteResources.DurationMinutes, remaining.Minutes)
+                        : string.Format(SiteResources.DurationSeconds, (int)Math.Ceiling(remaining.TotalSeconds));
+            return string.Format(upcoming ? SiteResources.TimeUntilStart : SiteResources.TimeUntilEnd, duration);
+        }
+    }
+}

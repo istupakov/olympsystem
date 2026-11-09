@@ -19,7 +19,7 @@
     <p>@submission.Problem.NameWithNumber · @(submission.Compilator.Description ?? submission.Compilator.Name) · @submission.CommitTime.ToLocalTime().ToString("g")</p>
     <p><SubmissionStatus StatusCode="submission.StatusCode" /></p>
     <p><a href="submissions/@submission.Id/download" data-enhance-nav="false">@SiteResources.DownloadSource</a></p>
-    <pre class="border rounded p-3 overflow-auto"><code>@submission.Text</code></pre>
+    <pre class="border rounded overflow-auto"><code class="d-block p-3" id="submission-source-@submission.Id" data-source-language="@submission.Compilator.SourceExtension.TrimStart('.').ToLowerInvariant()">@submission.Text</code></pre>
     @if (compilationErrors is not null)
     {
         <section id="compilation-errors" class="mt-4">

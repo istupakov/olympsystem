@@ -24,6 +24,7 @@
                         <th scope="col">@SiteResources.Members</th>
                         <th scope="col">@SiteResources.Coach</th>
                         <th scope="col">@SiteResources.Status</th>
+                        <th scope="col">@SiteResources.RegistrationDate</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -47,6 +48,7 @@
                             </td>
                             <td>@team.Coach?.LastName @team.Coach?.FirstName @team.Coach?.Patronymic</td>
                             <td><CompetitorBadges User="team" /></td>
+                            <td class="text-nowrap">@team.RegistrationDate?.ToLocalTime().ToString("d", CultureInfo.CurrentCulture)</td>
                         </tr>
                     }
                 </tbody>

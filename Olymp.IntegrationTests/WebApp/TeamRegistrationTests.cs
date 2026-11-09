@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using System.Security.Claims;
 
@@ -83,6 +84,13 @@ public class TeamRegistrationTests(WebAppFactory factory) : IClassFixture<WebApp
         Assert.Equal(member.Id, Assert.Single(team.Members).Id);
         string[] expectedNames = ["Иванов Иван", "Second Member", "Third Member"];
         Assert.Equal(expectedNames.Take(size), team.MemberNames);
+        using var teamList = await client.GetAsync(ListPath(contest.Id), TestContext.Current.CancellationToken);
+        using var listDocument = await new HtmlParser().ParseDocumentAsync(
+            await teamList.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
+        var teamRow = Assert.Single(listDocument.QuerySelectorAll("main tbody tr"));
+        Assert.Equal("Иванов Иван", teamRow.QuerySelector($"a[href='mailto:{member.Email}']")!.TextContent);
+        Assert.Equal(coach.Email, teamRow.QuerySelector($"a[href='mailto:{coach.Email}']")!.TextContent);
+        Assert.Single(teamRow.QuerySelectorAll("td:nth-child(2) a"));
         using var publicPage = await client.GetAsync($"/contests/{contest.Id}/competitors", TestContext.Current.CancellationToken);
         string publicText = WebUtility.HtmlDecode(await publicPage.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
         Assert.Contains("Иванов Иван", publicText);
@@ -645,8 +653,10 @@ public class TeamRegistrationTests(WebAppFactory factory) : IClassFixture<WebApp
             .AnyAsync(team => team.Id == teamId, TestContext.Current.CancellationToken));
     }
 
-    [Fact]
-    public async Task CoachCanReadUniversityTeamsButCannotCancelOthersOrSeeTheirPasswords()
+    [Theory]
+    [InlineData("ru")]
+    [InlineData("en")]
+    public async Task CoachCanReadUniversityTeamsButCannotCancelOthersOrSeeTheirPasswords(string culture)
     {
         var (contest, organization, coach) = await SetupAsync();
         var other = await factory.AddUserAsync();
@@ -657,12 +667,25 @@ public class TeamRegistrationTests(WebAppFactory factory) : IClassFixture<WebApp
             await service.RegisterTeamAsync(contest.Id, organization.Id, other.Id, "Other Team", ["Four", "Five", "Six"], TestContext.Current.CancellationToken);
             var context = scope.ServiceProvider.GetRequiredService<OlympContext>();
             var teams = await context.Competitors.Where(team => team.ContestId == contest.Id).ToListAsync(TestContext.Current.CancellationToken);
-            foreach (var team in teams) team.PasswordHash = team.CoachId == coach.Id ? "own-visible-password" : "other-private-password";
+            foreach (var team in teams)
+            {
+                team.PasswordHash = team.CoachId == coach.Id ? "own-visible-password" : "other-private-password";
+                team.RegistrationDate = team.CoachId == coach.Id ? new DateTimeOffset(2026, 1, 17, 12, 30, 0, TimeSpan.Zero) : null;
+            }
             await context.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
         using var client = await factory.LoginAsync(coach.UserName!);
+        client.DefaultRequestHeaders.AcceptLanguage.ParseAdd(culture);
         using var response = await client.GetAsync(ListPath(contest.Id), TestContext.Current.CancellationToken);
         string html = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+        using var document = await new HtmlParser().ParseDocumentAsync(html, TestContext.Current.CancellationToken);
+        Assert.Equal(culture == "ru" ? "Дата регистрации" : "Registration date", document.QuerySelector("main th:nth-last-child(2)")!.TextContent);
+        var rows = document.QuerySelectorAll("main tbody tr");
+        var ownRow = Assert.Single(rows, row => row.QuerySelector(".fw-semibold")!.TextContent == "Own Team");
+        Assert.Equal(new DateTimeOffset(2026, 1, 17, 12, 30, 0, TimeSpan.Zero).ToLocalTime().ToString("d", CultureInfo.GetCultureInfo(culture)),
+            ownRow.QuerySelector("td:nth-last-child(2)")!.TextContent);
+        var otherRow = Assert.Single(rows, row => row.QuerySelector(".fw-semibold")!.TextContent == "Other Team");
+        Assert.Empty(otherRow.QuerySelector("td:nth-last-child(2)")!.TextContent);
         Assert.Contains("Other Team", html);
         Assert.Contains("own-visible-password", html);
         Assert.DoesNotContain("other-private-password", html);

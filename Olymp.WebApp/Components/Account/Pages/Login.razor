@@ -132,7 +132,12 @@
             if (user is not null && EmailAsLoginRequirement.NeedsMigration(user))
                 RedirectManager.RedirectTo("Account/Manage/Email", new() { ["returnUrl"] = ReturnUrl });
             else
-                RedirectManager.RedirectTo(ReturnUrl);
+            {
+                string? returnUrl = ReturnUrl;
+                if (user is Competitor participant && (string.IsNullOrEmpty(returnUrl) || returnUrl == "/"))
+                    returnUrl = $"contests/{participant.ContestId}/rules";
+                RedirectManager.RedirectTo(returnUrl);
+            }
         }
         else if (result.IsLockedOut)
         {

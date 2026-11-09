@@ -2,31 +2,56 @@
 @using Microsoft.EntityFrameworkCore
 @using Olymp.Domain
 @using Olymp.Site
+@using Olymp.WebApp.Components.Contests
 @inject UserManager<User> Users
 @inject IDbContextFactory<OlympContext> ContextFactory
 @inject NavigationManager NavigationManager
 
 <nav class="navbar bg-body-tertiary" aria-label="@SiteResources.MainNavigation">
     <div class="container-xxl d-flex flex-wrap align-items-center gap-3">
-        <a class="navbar-brand d-inline-flex align-items-center gap-2 me-0" href="">
+        <a class="navbar-brand d-inline-flex align-items-center gap-2 me-0" href="@HomeUrl">
             <img src="@Assets["favicon.svg"]" width="28" height="28" alt="" />
             <span>OlympSystem</span>
         </a>
 
-        <ul class="nav navbar-nav flex-row gap-3 me-auto">
-            <li class="nav-item">
-                <NavLink class="nav-link" href="" Match="NavLinkMatch.All">@SiteResources.News</NavLink>
-            </li>
-            <li class="nav-item">
-                <NavLink class="nav-link" href="contests">@SiteResources.Contests</NavLink>
-            </li>
-            <li class="nav-item">
-                <NavLink class="nav-link" href="submissions">@SiteResources.Submissions</NavLink>
-            </li>
-            <li class="nav-item">
-                <NavLink class="nav-link" href="rules">@SiteResources.Rules</NavLink>
-            </li>
-        </ul>
+        @if (participantContest is not null)
+        {
+            <div class="flex-grow-1 me-auto text-break">
+                <h1 class="h6 fw-semibold mb-0">
+                    <a class="nav-link" href="@HomeUrl">@participantContest.Name</a>
+                </h1>
+                <div class="small text-body-secondary">
+                    @if (now <= participantContest.EndTime)
+                    {
+                        <ContestTimeRemaining Contest="participantContest" Now="now" />
+                    }
+                    else
+                    {
+                        @SiteResources.ContestOver
+                    }
+                </div>
+            </div>
+        }
+        else
+        {
+            <ul class="nav navbar-nav flex-row gap-3 me-auto">
+                <li class="nav-item">
+                    <NavLink class="nav-link" href="" Match="NavLinkMatch.All">@SiteResources.News</NavLink>
+                </li>
+                <li class="nav-item">
+                    <NavLink class="nav-link" href="contests">@SiteResources.Contests</NavLink>
+                </li>
+                <li class="nav-item">
+                    <NavLink class="nav-link" href="submissions">@SiteResources.Submissions</NavLink>
+                </li>
+                <li class="nav-item">
+                    <NavLink class="nav-link" href="rules">@SiteResources.Rules</NavLink>
+                </li>
+                <li class="nav-item">
+                    <NavLink class="nav-link" href="sponsors">@SiteResources.Sponsors</NavLink>
+                </li>
+            </ul>
+        }
 
         <div class="d-flex flex-wrap align-items-center gap-2">
             <div class="navbar-nav flex-row gap-3">
@@ -62,6 +87,8 @@
     private Task<AuthenticationState> AuthenticationState { get; set; } = default!;
 
     private string? publicName;
+    private Contest? participantContest;
+    private readonly DateTimeOffset now = DateTimeOffset.Now;
 
     protected override async Task OnInitializedAsync()
     {
@@ -75,7 +102,13 @@
         await using var context = await ContextFactory.CreateDbContextAsync();
         publicName = await context.Users.Where(user => user.Id == userId)
             .Select(user => user.Name).SingleOrDefaultAsync();
+        if (int.TryParse(state.User.FindFirst(ClaimNames.CompetitorContest)?.Value, out int contestId))
+            participantContest = await context.Contests.AsNoTracking()
+                .SingleOrDefaultAsync(contest => contest.Id == contestId && !contest.IsHidden);
     }
 
     private string CurrentUrl => NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+
+    private string HomeUrl => participantContest is null ? ""
+        : $"contests/{participantContest.Id}/{(participantContest.AllowShowProblems ? "problems" : "rules")}";
 }

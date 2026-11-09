@@ -16,6 +16,10 @@
         document.documentElement.dataset.bsTheme = theme === 'auto'
             ? (systemTheme.matches ? 'dark' : 'light')
             : theme;
+        document.querySelectorAll('link[data-highlight-theme]').forEach(stylesheet => {
+            stylesheet.media = stylesheet.dataset.highlightTheme === document.documentElement.dataset.bsTheme
+                ? 'all' : 'not all';
+        });
         document.querySelector('[data-theme-icon]')?.setAttribute('href', `#theme-${theme}`);
         const button = document.querySelector('[data-theme-toggle]');
         if (button) {

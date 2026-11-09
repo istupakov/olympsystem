@@ -45,6 +45,10 @@ public class ContestListTests(WebAppFactory factory) : IClassFixture<WebAppFacto
         Assert.Equal([upcoming, archive], document.QuerySelectorAll("main section > h2").Select(heading => heading.TextContent));
         Assert.Equal([current.Name, future.Name, recent.Name, earlier.Name, oldest.Name],
             document.QuerySelectorAll("main article h3").Select(heading => heading.TextContent));
+        var items = document.QuerySelectorAll("main article");
+        Assert.StartsWith(culture == "ru" ? "До конца " : "Ends in ", items[0].QuerySelector("p.small")!.TextContent);
+        Assert.StartsWith(culture == "ru" ? "До начала " : "Starts in ", items[1].QuerySelector("p.small")!.TextContent);
+        Assert.All(items.Skip(2), item => Assert.Null(item.QuerySelector("p.small")));
         Assert.Null(document.QuerySelector("main article h3 em"));
         Assert.Equal(["contests-2025", "contests-2024"], document.QuerySelectorAll("main details[name='contest-years']").Select(group => group.Id));
         Assert.True(document.QuerySelector("#contests-2025")!.HasAttribute("open"));
@@ -139,6 +143,10 @@ public class ContestListTests(WebAppFactory factory) : IClassFixture<WebAppFacto
         using var document = await new HtmlParser().ParseDocumentAsync(
             await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
         Assert.Equal(visible.Name, Assert.Single(document.QuerySelectorAll("main article h3")).TextContent);
+        // Each request calculates its own remaining time; compare the published content and navigation.
+        foreach (var countdown in guestDocument.QuerySelectorAll("main article > p.small")
+            .Concat(document.QuerySelectorAll("main article > p.small")))
+            countdown.Remove();
         Assert.Equal(guestDocument.QuerySelector("main")!.InnerHtml, document.QuerySelector("main")!.InnerHtml);
     }
 

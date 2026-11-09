@@ -1,0 +1,11 @@
+.sponsor-logo-dark {
+    display: none;
+}
+
+[data-bs-theme="dark"] .sponsor-logo-light {
+    display: none;
+}
+
+[data-bs-theme="dark"] .sponsor-logo-dark {
+    display: inline;
+}

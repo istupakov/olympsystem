@@ -5,7 +5,7 @@
     </div>
     @if (Contest.EndTime >= Now)
     {
-        <p class="small text-body-secondary mb-2">@(Contest.StartTime > Now ? SiteResources.ContestUpcoming : SiteResources.ContestInProgress)</p>
+        <p class="small text-body-secondary mb-2"><ContestTimeRemaining Contest="Contest" Now="Now" /></p>
     }
     <ContestNavigation Contest="Contest" Now="Now" Compact="true" />
     @if (!Contest.IsOpen && !string.IsNullOrWhiteSpace(Contest.Description))

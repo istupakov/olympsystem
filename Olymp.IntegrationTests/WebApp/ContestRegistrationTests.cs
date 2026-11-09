@@ -52,7 +52,7 @@ public class ContestRegistrationTests(WebAppFactory factory) : IClassFixture<Web
         Assert.NotNull(document.QuerySelector("form input[name='_handler'][value='cancel-registration']"));
         Assert.Null(document.QuerySelector("input[name='Input.AcceptRules']"));
         Assert.Null(document.QuerySelector("input#participant-name"));
-        var name = Assert.Single(document.QuerySelectorAll("main .fw-semibold"));
+        var name = Assert.Single(document.QuerySelectorAll("main div.d-flex > span.fw-semibold"));
         Assert.Equal("Иван Иванов, Test university, ПМ-01", name.TextContent);
         Assert.NotNull(name.ParentElement!.QuerySelector(".badge"));
         Assert.Equal(outOfCompetition, document.QuerySelector("main")!.TextContent.Contains(culture == "ru"
