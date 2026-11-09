@@ -1,0 +1,18 @@
+@page "/Sponsors"
+
+@{
+    var sponsorName = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ru" ? "Т-Технологии" : "T-Technologies";
+}
+
+<PageTitle>@SiteResources.Sponsors</PageTitle>
+
+<h1 class="mb-4">@SiteResources.Sponsors</h1>
+
+<div class="row">
+    <div class="col-md-6">
+        <a class="d-inline-block p-3" href="https://t-technologies.ru/">
+            <img class="img-fluid sponsor-logo-light" src="@Assets["sponsors/T-Technology_logo_rus_black.svg"]" alt="@sponsorName" width="353" height="57" />
+            <img class="img-fluid sponsor-logo-dark" src="@Assets["sponsors/T-Technology_logo_rus_white.svg"]" alt="@sponsorName" width="353" height="57" />
+        </a>
+    </div>
+</div>

@@ -1,17 +1,34 @@
 @page "/submissions"
 
 @using Microsoft.AspNetCore.Authorization
+@using Microsoft.EntityFrameworkCore
+@using Olymp.Domain
+@using Olymp.Site
+@using Olymp.WebApp.Components.Contests
 @using Olymp.WebApp.Components.Submissions
 
 @attribute [Authorize]
 @attribute [ExcludeFromInteractiveRouting]
+@inject IDbContextFactory<OlympContext> ContextFactory
 
 <PageTitle>@SiteResources.Submissions</PageTitle>
-<h1>@SiteResources.Submissions</h1>
+@if (participantContest is not null)
+{
+    <ParticipantContestHeader Contest="participantContest" ActiveSection="submissions" />
+}
+else
+{
+    <h1>@SiteResources.Submissions</h1>
+}
 
 <SubmissionList ContestId="ContestId" ProblemId="ProblemId" Scope="@Scope" Page="@(Page ?? 1)" ShowHeading="false" />
 
 @code {
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthenticationState { get; set; } = default!;
+
+    private Contest? participantContest;
+
     [SupplyParameterFromQuery]
     public int? ContestId { get; set; }
 
@@ -23,4 +40,15 @@
 
     [SupplyParameterFromQuery]
     public int? Page { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var state = await AuthenticationState;
+        if (int.TryParse(state.User.FindFirst(ClaimNames.CompetitorContest)?.Value, out int contestId))
+        {
+            await using var context = await ContextFactory.CreateDbContextAsync();
+            participantContest = await context.Contests.AsNoTracking()
+                .SingleOrDefaultAsync(contest => contest.Id == contestId && !contest.IsHidden);
+        }
+    }
 }

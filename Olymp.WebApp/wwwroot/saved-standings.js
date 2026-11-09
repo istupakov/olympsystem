@@ -1,4 +1,4 @@
-function formatSavedStandings() {
+export function formatSavedStandings() {
     document.querySelectorAll('[data-saved-standing]').forEach(container => {
         container.querySelectorAll('table').forEach(table => {
             table.classList.add('table', 'caption-top', 'table-sm', 'table-hover', 'table-striped', 'table-bordered');
@@ -13,6 +13,3 @@ function formatSavedStandings() {
         }
     });
 }
-
-formatSavedStandings();
-Blazor.addEventListener('enhancedload', formatSavedStandings);

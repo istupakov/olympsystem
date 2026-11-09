@@ -51,6 +51,7 @@
                             <th scope="col">@SiteResources.Coach</th>
                             <th scope="col">@AccountResources.UserName</th>
                             <th scope="col">@AccountResources.Password</th>
+                            <th scope="col">@SiteResources.RegistrationDate</th>
                             <th scope="col">@SiteResources.TeamActions</th>
                         </tr>
                     </thead>
@@ -67,15 +68,31 @@
                                 </td>
                                 <td>
                                     <ul class="list-unstyled mb-0">
-                                        @foreach (var name in team.MemberNames ?? [])
+                                        @foreach (var (name, member) in team.GetMembers() ?? [])
                                         {
-                                            <li>@name</li>
+                                            <li>
+                                                @if (!string.IsNullOrEmpty(member?.Email))
+                                                {
+                                                    <a href="mailto:@member.Email">@name</a>
+                                                }
+                                                else
+                                                {
+                                                    @name
+                                                }
+                                            </li>
                                         }
                                     </ul>
                                 </td>
-                                <td>@team.Coach?.LastName @team.Coach?.FirstName @team.Coach?.Patronymic</td>
+                                <td>
+                                    @team.Coach?.LastName @team.Coach?.FirstName @team.Coach?.Patronymic
+                                    @if (!string.IsNullOrEmpty(team.Coach?.Email))
+                                    {
+                                        <div><a href="mailto:@team.Coach.Email">@team.Coach.Email</a></div>
+                                    }
+                                </td>
                                 <td>@team.UserName</td>
                                 <td>@(team.CoachId == userId ? team.PasswordHash : null)</td>
+                                <td class="text-nowrap">@team.RegistrationDate?.ToLocalTime().ToString("d", CultureInfo.CurrentCulture)</td>
                                 <td>
                                     @if (CanCancel(team))
                                     {

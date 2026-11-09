@@ -14,16 +14,18 @@
   <data name="Reload" xml:space="preserve"><value>Reload</value></data>
   <data name="Dismiss" xml:space="preserve"><value>Dismiss</value></data>
   <data name="Language" xml:space="preserve"><value>Language</value></data>
-  <data name="Theme" xml:space="preserve"><value>Theme</value></data>
   <data name="LightTheme" xml:space="preserve"><value>Light</value></data>
   <data name="DarkTheme" xml:space="preserve"><value>Dark</value></data>
   <data name="SystemTheme" xml:space="preserve"><value>System</value></data>
   <data name="CurrentAndUpcomingContests" xml:space="preserve"><value>Current and upcoming</value></data>
   <data name="ContestArchive" xml:space="preserve"><value>Past contests</value></data>
   <data name="NoContests" xml:space="preserve"><value>No contests have been published yet.</value></data>
-  <data name="ContestUpcoming" xml:space="preserve"><value>Upcoming</value></data>
-  <data name="ContestInProgress" xml:space="preserve"><value>In progress</value></data>
-  <data name="ActionUnavailable" xml:space="preserve"><value>This action is not available yet.</value></data>
+  <data name="TimeUntilStart" xml:space="preserve"><value>Starts in {0}</value></data>
+  <data name="TimeUntilEnd" xml:space="preserve"><value>Ends in {0}</value></data>
+  <data name="DurationDaysHours" xml:space="preserve"><value>{0} d {1} h</value></data>
+  <data name="DurationHoursMinutes" xml:space="preserve"><value>{0} h {1} min</value></data>
+  <data name="DurationMinutes" xml:space="preserve"><value>{0} min</value></data>
+  <data name="DurationSeconds" xml:space="preserve"><value>{0} s</value></data>
   <data name="ContestParticipants" xml:space="preserve"><value>Participants</value></data>
   <data name="ContestRegistration" xml:space="preserve"><value>Registration</value></data>
   <data name="ContestStandings" xml:space="preserve"><value>Standings</value></data>
@@ -31,7 +33,6 @@
   <data name="ContestStatementsForPrinting" xml:space="preserve"><value>Download statements for printing (PDF)</value></data>
   <data name="ContestTests" xml:space="preserve"><value>Download tests (ZIP)</value></data>
   <data name="ContestNavigation" xml:space="preserve"><value>Contest sections and downloads</value></data>
-  <data name="ContestSubmitSolution" xml:space="preserve"><value>Submit solution</value></data>
   <data name="ThemeSwitchHint" xml:space="preserve"><value>Theme: {0}. Next: {1}.</value></data>
   <data name="ParticipantsInContest" xml:space="preserve"><value>Participants – {0}</value></data>
   <data name="ResultsForContest" xml:space="preserve"><value>Standings – {0}</value></data>
@@ -81,6 +82,7 @@
   <data name="AddTeam" xml:space="preserve"><value>Add team</value></data>
   <data name="NoTeams" xml:space="preserve"><value>No teams have been registered yet.</value></data>
   <data name="TeamActions" xml:space="preserve"><value>Actions</value></data>
+  <data name="RegistrationDate" xml:space="preserve"><value>Registration date</value></data>
   <data name="CreateTeamForContest" xml:space="preserve"><value>Team registration – {0}</value></data>
   <data name="TeamName" xml:space="preserve"><value>Team name</value></data>
   <data name="TeamPrefix" xml:space="preserve"><value>University (team prefix)</value></data>
@@ -150,6 +152,7 @@
   <data name="RulesForContest" xml:space="preserve"><value>Rules – {0}</value></data>
   <data name="JumpToSubmission" xml:space="preserve"><value>Go to submission ↓</value></data>
   <data name="Submissions" xml:space="preserve"><value>Submissions</value></data>
+  <data name="MySubmissions" xml:space="preserve"><value>My submissions</value></data>
   <data name="Problem" xml:space="preserve"><value>Problem</value></data>
   <data name="SubmissionScope" xml:space="preserve"><value>Submission scope</value></data>
   <data name="OwnSubmissions" xml:space="preserve"><value>Own</value></data>
@@ -161,4 +164,22 @@
   <data name="NextPage" xml:space="preserve"><value>Next</value></data>
   <data name="ParticipantAccountSignIn" xml:space="preserve"><value>Sign in with this participant account to participate in the contest.</value></data>
   <data name="ParticipantAccountNotIssued" xml:space="preserve"><value>The participant login and password have not been issued yet.</value></data>
+  <data name="Sponsors" xml:space="preserve"><value>Sponsors</value></data>
+  <data name="JuryAnnouncements" xml:space="preserve"><value>Jury announcements</value></data>
+  <data name="ProblemClarifications" xml:space="preserve"><value>Clarifications</value></data>
+  <data name="JuryQuestions" xml:space="preserve"><value>Questions to the jury</value></data>
+  <data name="QuestionsForContest" xml:space="preserve"><value>Questions – {0}</value></data>
+  <data name="AskQuestion" xml:space="preserve"><value>Ask a question</value></data>
+  <data name="QuestionTopic" xml:space="preserve"><value>Topic</value></data>
+  <data name="GeneralQuestion" xml:space="preserve"><value>General question</value></data>
+  <data name="Question" xml:space="preserve"><value>Question</value></data>
+  <data name="SendQuestion" xml:space="preserve"><value>Send</value></data>
+  <data name="MyQuestions" xml:space="preserve"><value>My questions</value></data>
+  <data name="NoQuestions" xml:space="preserve"><value>You have not asked any questions yet.</value></data>
+  <data name="JuryReply" xml:space="preserve"><value>Jury reply</value></data>
+  <data name="AwaitingReply" xml:space="preserve"><value>Awaiting reply</value></data>
+  <data name="QuestionNotAllowed" xml:space="preserve"><value>You are not allowed to send questions.</value></data>
+  <data name="QuestionProblemUnavailable" xml:space="preserve"><value>The selected problem is unavailable. Select an active problem from this contest.</value></data>
+  <data name="QuestionRequired" xml:space="preserve"><value>Enter your question.</value></data>
+  <data name="QuestionLength" xml:space="preserve"><value>A question must contain between 10 and 4096 characters.</value></data>
 </root>

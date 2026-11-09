@@ -11,6 +11,8 @@
     <ResourcePreloader />
     <script src="@Assets["theme.js"]"></script>
     <link rel="stylesheet" href="@Assets["lib/bootstrap/dist/css/bootstrap.min.css"]" />
+    <link rel="stylesheet" href="@Assets["lib/highlightjs/github.min.css"]" data-highlight-theme="light" media="not all" />
+    <link rel="stylesheet" href="@Assets["lib/highlightjs/github-dark.min.css"]" data-highlight-theme="dark" media="not all" />
     <link rel="stylesheet" href="@Assets["app.css"]" />
     <link rel="stylesheet" href="@Assets["Olymp.WebApp.styles.css"]" />
     <ImportMap />
@@ -22,7 +24,6 @@
     <Routes />
     <ReconnectModal />
     <script src="@Assets["_framework/blazor.web.js"]"></script>
-    <script src="@Assets["saved-standings.js"]" type="module"></script>
     @if (Features.PasskeysEnabled)
     {
         <script src="@Assets["Components/Account/Shared/PasskeySubmit.razor.js"]" type="module"></script>

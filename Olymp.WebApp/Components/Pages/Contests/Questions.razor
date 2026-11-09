@@ -1,0 +1,172 @@
+@page "/contests/{Id:int}/questions"
+
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+@using Olymp.Domain
+@using Olymp.WebApp.Components.Contests
+
+@attribute [Authorize]
+@attribute [ExcludeFromInteractiveRouting]
+
+@inject IDbContextFactory<OlympContext> ContextFactory
+@inject UserManager<User> Users
+@inject NavigationManager Navigation
+
+@if (participant is not null)
+{
+    <PageTitle>@string.Format(SiteResources.QuestionsForContest, participant.Contest.Name)</PageTitle>
+    <ContestHeader Contest="participant.Contest" ActiveSection="questions" />
+
+    @if (CanSend)
+    {
+        <h2 class="h4">@SiteResources.AskQuestion</h2>
+        @if (error is not null)
+        {
+            <p class="text-danger" role="alert">@error</p>
+        }
+        <EditForm Model="Input" method="post" action="@PageUrl" FormName="jury-question" OnValidSubmit="SendAsync">
+            <DataAnnotationsValidator />
+            <ValidationSummary class="text-danger" role="alert" />
+            <div class="mb-3">
+                <label for="question-topic" class="form-label"><DisplayName For="() => Input!.ProblemId" /></label>
+                <InputSelect @bind-Value="Input!.ProblemId" id="question-topic" class="form-select">
+                    <option value="">@SiteResources.GeneralQuestion</option>
+                    @foreach (var problem in participant.Contest.Problems)
+                    {
+                        <option value="@problem.Id">@problem.NameWithNumber</option>
+                    }
+                </InputSelect>
+            </div>
+            <div class="mb-3">
+                <label for="question-text" class="form-label"><DisplayName For="() => Input!.Text" /></label>
+                <InputTextArea @bind-Value="Input!.Text" id="question-text" class="form-control" rows="5" />
+                <ValidationMessage For="() => Input!.Text" class="text-danger" />
+            </div>
+            <button type="submit" class="btn btn-primary">@SiteResources.SendQuestion</button>
+        </EditForm>
+    }
+    else
+    {
+        <p class="text-body-secondary">@SiteResources.QuestionNotAllowed</p>
+    }
+
+    <section class="mt-4" aria-labelledby="questions-heading">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+            <h2 id="questions-heading" class="h4 mb-0">@SiteResources.MyQuestions</h2>
+            <a class="btn btn-outline-secondary btn-sm" href="@PageUrl">@SiteResources.Refresh</a>
+        </div>
+        @if (messages.Count == 0)
+        {
+            <p class="text-body-secondary">@SiteResources.NoQuestions</p>
+        }
+        @foreach (var message in messages)
+        {
+            <article class="card mb-3" id="question-@message.Id">
+                <div class="card-header d-flex flex-wrap justify-content-between gap-2">
+                    <h3 class="h6 mb-0">@(message.Problem?.NameWithNumber ?? SiteResources.GeneralQuestion)</h3>
+                    @if (message.SendTime is DateTimeOffset sent)
+                    {
+                        <time class="small text-body-secondary" datetime="@sent.ToString("O", CultureInfo.InvariantCulture)">@sent.ToLocalTime().ToString("g", CultureInfo.CurrentCulture)</time>
+                    }
+                </div>
+                <div class="card-body">
+                    <pre class="text-wrap text-break">@message.UserText</pre>
+                    @if (!string.IsNullOrWhiteSpace(message.JuryText))
+                    {
+                        <h4 class="h6">@SiteResources.JuryReply</h4>
+                        <div class="text-break overflow-auto">@((MarkupString)message.JuryText)</div>
+                    }
+                    else
+                    {
+                        <p class="text-body-secondary mb-0">@SiteResources.AwaitingReply</p>
+                    }
+                </div>
+            </article>
+        }
+    </section>
+}
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromForm(FormName = "jury-question")]
+    private InputModel? Input { get; set; }
+
+    private Competitor? participant;
+    private IReadOnlyList<Message> messages = [];
+    private string? error;
+
+    private string PageUrl => $"contests/{Id}/questions";
+    private bool CanSend => participant is { IsApproved: true, IsDisqualified: false }
+        && participant.Contest.AllowSendMessage;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var token = HttpContext.RequestAborted;
+        int userId = int.Parse(Users.GetUserId(HttpContext.User)!);
+        await using var context = await ContextFactory.CreateDbContextAsync(token);
+        participant = await context.Competitors.AsNoTracking()
+            .Include(item => item.Contest)
+                .ThenInclude(item => item.Problems.Where(problem => problem.IsActive).OrderBy(problem => problem.Number))
+            .SingleOrDefaultAsync(item => item.Id == userId && item.ContestId == Id, token);
+        if (participant is null || !participant.Contest.AllowSendMessage)
+        {
+            participant = null;
+            Navigation.NotFound();
+            return;
+        }
+
+        messages = await context.Messages.AsNoTracking().Include(item => item.Problem)
+            .Where(item => item.ContestId == Id && item.UserId == userId
+                && (item.ProblemId == null || item.Problem != null && item.Problem.IsActive && item.Problem.ContestId == Id))
+            .OrderByDescending(item => item.SendTime).ThenByDescending(item => item.Id).ToListAsync(token);
+        Input ??= new();
+    }
+
+    private async Task SendAsync()
+    {
+        if (!CanSend)
+        {
+            error = SiteResources.QuestionNotAllowed;
+            return;
+        }
+        if (Input!.ProblemId.HasValue && !participant!.Contest.Problems.Any(item => item.Id == Input.ProblemId))
+        {
+            error = SiteResources.QuestionProblemUnavailable;
+            return;
+        }
+
+        var token = HttpContext.RequestAborted;
+        await using var context = await ContextFactory.CreateDbContextAsync(token);
+        var message = new Message
+        {
+            Contest = null!,
+            ContestId = Id,
+            UserId = participant!.Id,
+            ProblemId = Input.ProblemId,
+            UserText = Input.Text,
+            SendTime = DateTimeOffset.UtcNow
+        };
+        context.Messages.Add(message);
+        await context.SaveChangesAsync(token);
+        Navigation.NavigateTo($"{PageUrl}#question-{message.Id}");
+    }
+
+    private sealed class InputModel
+    {
+        [Display(Name = nameof(SiteResources.QuestionTopic), ResourceType = typeof(SiteResources))]
+        public int? ProblemId { get; set; }
+
+        [Required(ErrorMessageResourceType = typeof(SiteResources), ErrorMessageResourceName = nameof(SiteResources.QuestionRequired))]
+        [StringLength(4 * 1024, MinimumLength = 10,
+            ErrorMessageResourceType = typeof(SiteResources), ErrorMessageResourceName = nameof(SiteResources.QuestionLength))]
+        [Display(Name = nameof(SiteResources.Question), ResourceType = typeof(SiteResources))]
+        public string Text { get; set; } = "";
+    }
+}

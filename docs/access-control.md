@@ -420,9 +420,13 @@ participant accounts remain limited to their own submissions. All scopes use the
 same relationship-based permission checks; switching scopes cannot bypass result
 or source restrictions.
 
-The shared feed is implemented in the WebApp list component; coach progress views
-remain a later stage. The legacy general feed has different restrictions and is
-not the target policy.
+The shared feed is implemented in the WebApp list component. Problem navigation
+shows the signed-in author's own progress from non-hidden submissions to active
+problems, including later practice. This progress is independent of the history
+scope and is not restricted by the standings freeze. Linked participant accounts'
+results are not merged into personal progress. Coach progress views remain a
+later stage. The legacy general feed has different restrictions and is not the
+target policy.
 
 Sources: [standings calculation](../Olymp.Domain/Standing.cs),
 [legacy general feed](../Olymp.Site/Pages/Submissions/Index.cshtml.cs),
@@ -486,15 +490,53 @@ The participant page loads common clarifications and questions addressed to the
 signed-in user or their linked participant, for active problems or the contest as
 a whole. Private questions are not part of a general public feed.
 
-**Confirmed:** ordinary users and participants have no correspondence-history
-access after the contest ends. Coaching relationships do not grant access to
-private questions or replies. Shared correspondence views apply the same rules
-to staff accounts. Future staff read access and jury answers belong to the
-separate staff interface; mutations there require management access to the
-contest. These pages have not yet been migrated.
+**Confirmed, implemented in WebApp:** common jury announcements (`UserId == null`
+and `ProblemId == null`) appear below the navigation in the temporary participant's
+own contest header, including on the submissions page. They are hidden after the
+contest ends and are not displayed to permanent accounts, including in open
+training contests.
+
+Published problem clarifications (`UserId == null` and a matching `ProblemId`)
+appear after the statement and examples, before the submission form. They remain
+available after the contest ends to every signed-in viewer who can read that
+active problem in a visible, started contest. Messages for other or inactive
+problems are excluded. Both blocks display non-empty jury text in its existing
+HTML format, newest first; empty blocks are omitted. Messages addressed to a
+specific user are excluded from both blocks, including the viewer's own messages.
+Use the existing refresh/navigation behavior without adding another refresh
+button or automatic updates.
+
+**Confirmed, implemented in WebApp:** private questions and replies have a separate
+page linked from the temporary participant's own contest navigation during the
+scheduled contest interval. Only that contest's temporary participant account
+can read its own correspondence. Permanent accounts, including coaches and users
+in open training contests, cannot use this page. Before the start, after the end,
+and in hidden contests, it is unavailable and its navigation link is hidden.
+
+Sending requires participant approval and no disqualification. Disqualification
+or loss of approval does not remove access to existing correspondence during the
+tour, but prevents new questions. Both GET and POST load the current stored
+participant and contest; POST also checks the selected topic and current contest
+time. Questions are attributed to the signed-in participant, never a linked
+account. A question can concern the contest as a whole or an active problem in
+that contest. Preserve the legacy validation of 10–4096 characters.
+
+The page shows only messages addressed to that participant, for the contest as a
+whole or its active problems. Other participants' messages and public announcements
+are excluded from the private list. Questions are encoded text; jury replies
+retain their existing HTML format. Newest questions appear first, with pending
+replies explicitly marked. Refresh is manual; no unread tracking or automatic
+updates are introduced. No task-page question shortcut is needed.
+
+Coaching and membership relationships do not grant private correspondence access.
+Staff roles add no exceptions in this interface. Future staff read access and
+jury answers belong to the separate staff interface; mutations there require
+management access to the contest.
 
 Source: [legacy messaging](../Olymp.Site/Pages/Contests/Submits/SendMessage.cshtml.cs),
-[legacy participant page](../Olymp.Site/Pages/Contests/Submits/Index.cshtml.cs).
+[legacy participant page](../Olymp.Site/Pages/Contests/Submits/Index.cshtml.cs),
+[WebApp announcements](../Olymp.WebApp/Components/Contests/JuryAnnouncements.razor),
+[WebApp questions](../Olymp.WebApp/Components/Pages/Contests/Questions.razor).
 
 ## 10. Jury, administration, and service accounts
 
@@ -593,7 +635,7 @@ Sources: [contest management scope](../Olymp.Site/Services/Authorization/Contest
 | O4 | Confirmed | Submission coaching privileges follow the author's direct `User.CoachId`, for both `Competitor` and `OlympUser` authors; organization membership and coach claims do not grant this access. |
 | O5 | Confirmed | No jury/admin exceptions in the shared interface. A separate future staff interface will provide global jury read access, assigned-contest jury mutations, and global administrator management. |
 | O6 | Confirmed | Preserve standings freeze and manual unfreeze. In closed contests, linked members and coaches see full list results before the freeze and submission facts for frozen submissions. Unrelated permanent users see only accepted/not accepted before the freeze and submission facts for frozen submissions. Authors retain full own results. No verdict snapshot is required. |
-| O7 | Confirmed | No ordinary correspondence-history access after the end; no coach access to private correspondence. |
+| O7 | Confirmed | Common announcements are shown only to the contest's temporary participant accounts until its end. Published problem clarifications remain available with the statement after the end. No private correspondence-history access after the end; no coach access to private correspondence. |
 | R1 | Confirmed | Keep the existing participant/member/coach relationships; add no relationship-change or historical-snapshot mechanism. |
 | R2 | Confirmed | Coaches may view source, status, and compilation errors of any author with a matching `User.CoachId` only for visible problems in open contests (`IsOpen`). No coach claim is required. |
 | F1 | Confirmed | Open contests cannot have a freeze configured: `IsOpen` implies `FreezeTime == null`. Validate changes to either property. |

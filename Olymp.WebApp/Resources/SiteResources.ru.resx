@@ -14,16 +14,18 @@
   <data name="Reload" xml:space="preserve"><value>Перезагрузить</value></data>
   <data name="Dismiss" xml:space="preserve"><value>Закрыть</value></data>
   <data name="Language" xml:space="preserve"><value>Язык</value></data>
-  <data name="Theme" xml:space="preserve"><value>Тема</value></data>
   <data name="LightTheme" xml:space="preserve"><value>Светлая</value></data>
   <data name="DarkTheme" xml:space="preserve"><value>Тёмная</value></data>
   <data name="SystemTheme" xml:space="preserve"><value>Системная</value></data>
   <data name="CurrentAndUpcomingContests" xml:space="preserve"><value>Текущие и предстоящие</value></data>
   <data name="ContestArchive" xml:space="preserve"><value>Прошедшие соревнования</value></data>
   <data name="NoContests" xml:space="preserve"><value>Соревнования пока не опубликованы.</value></data>
-  <data name="ContestUpcoming" xml:space="preserve"><value>Предстоит</value></data>
-  <data name="ContestInProgress" xml:space="preserve"><value>Идёт соревнование</value></data>
-  <data name="ActionUnavailable" xml:space="preserve"><value>Это действие пока недоступно.</value></data>
+  <data name="TimeUntilStart" xml:space="preserve"><value>До начала {0}</value></data>
+  <data name="TimeUntilEnd" xml:space="preserve"><value>До конца {0}</value></data>
+  <data name="DurationDaysHours" xml:space="preserve"><value>{0} д {1} ч</value></data>
+  <data name="DurationHoursMinutes" xml:space="preserve"><value>{0} ч {1} мин</value></data>
+  <data name="DurationMinutes" xml:space="preserve"><value>{0} мин</value></data>
+  <data name="DurationSeconds" xml:space="preserve"><value>{0} с</value></data>
   <data name="ContestParticipants" xml:space="preserve"><value>Участники</value></data>
   <data name="ContestRegistration" xml:space="preserve"><value>Регистрация</value></data>
   <data name="ContestStandings" xml:space="preserve"><value>Результаты</value></data>
@@ -31,7 +33,6 @@
   <data name="ContestStatementsForPrinting" xml:space="preserve"><value>Скачать условия для печати (PDF)</value></data>
   <data name="ContestTests" xml:space="preserve"><value>Скачать тесты (ZIP)</value></data>
   <data name="ContestNavigation" xml:space="preserve"><value>Разделы и материалы соревнования</value></data>
-  <data name="ContestSubmitSolution" xml:space="preserve"><value>Отправить решение</value></data>
   <data name="ThemeSwitchHint" xml:space="preserve"><value>Тема: {0}. Следующая: {1}.</value></data>
   <data name="ParticipantsInContest" xml:space="preserve"><value>Участники – {0}</value></data>
   <data name="ResultsForContest" xml:space="preserve"><value>Результаты – {0}</value></data>
@@ -81,6 +82,7 @@
   <data name="AddTeam" xml:space="preserve"><value>Добавить команду</value></data>
   <data name="NoTeams" xml:space="preserve"><value>Команды пока не зарегистрированы.</value></data>
   <data name="TeamActions" xml:space="preserve"><value>Действия</value></data>
+  <data name="RegistrationDate" xml:space="preserve"><value>Дата регистрации</value></data>
   <data name="CreateTeamForContest" xml:space="preserve"><value>Регистрация команды – {0}</value></data>
   <data name="TeamName" xml:space="preserve"><value>Название команды</value></data>
   <data name="TeamPrefix" xml:space="preserve"><value>Вуз (префикс команды)</value></data>
@@ -150,6 +152,7 @@
   <data name="RulesForContest" xml:space="preserve"><value>Правила – {0}</value></data>
   <data name="JumpToSubmission" xml:space="preserve"><value>К отправке решения ↓</value></data>
   <data name="Submissions" xml:space="preserve"><value>Решения</value></data>
+  <data name="MySubmissions" xml:space="preserve"><value>Мои решения</value></data>
   <data name="Problem" xml:space="preserve"><value>Задача</value></data>
   <data name="SubmissionScope" xml:space="preserve"><value>Какие решения показывать</value></data>
   <data name="OwnSubmissions" xml:space="preserve"><value>Свои</value></data>
@@ -161,4 +164,22 @@
   <data name="NextPage" xml:space="preserve"><value>Далее</value></data>
   <data name="ParticipantAccountSignIn" xml:space="preserve"><value>Для участия в соревновании войдите под этим аккаунтом участника.</value></data>
   <data name="ParticipantAccountNotIssued" xml:space="preserve"><value>Логин и пароль участника ещё не выданы.</value></data>
+  <data name="Sponsors" xml:space="preserve"><value>Спонсоры</value></data>
+  <data name="JuryAnnouncements" xml:space="preserve"><value>Объявления жюри</value></data>
+  <data name="ProblemClarifications" xml:space="preserve"><value>Уточнения</value></data>
+  <data name="JuryQuestions" xml:space="preserve"><value>Вопросы жюри</value></data>
+  <data name="QuestionsForContest" xml:space="preserve"><value>Вопросы – {0}</value></data>
+  <data name="AskQuestion" xml:space="preserve"><value>Задать вопрос</value></data>
+  <data name="QuestionTopic" xml:space="preserve"><value>Тема</value></data>
+  <data name="GeneralQuestion" xml:space="preserve"><value>Общий вопрос</value></data>
+  <data name="Question" xml:space="preserve"><value>Вопрос</value></data>
+  <data name="SendQuestion" xml:space="preserve"><value>Отправить</value></data>
+  <data name="MyQuestions" xml:space="preserve"><value>Мои вопросы</value></data>
+  <data name="NoQuestions" xml:space="preserve"><value>Вы ещё не задавали вопросов.</value></data>
+  <data name="JuryReply" xml:space="preserve"><value>Ответ жюри</value></data>
+  <data name="AwaitingReply" xml:space="preserve"><value>Ожидает ответа</value></data>
+  <data name="QuestionNotAllowed" xml:space="preserve"><value>Отправка вопросов недоступна.</value></data>
+  <data name="QuestionProblemUnavailable" xml:space="preserve"><value>Выбранная задача недоступна. Выберите действующую задачу этого соревнования.</value></data>
+  <data name="QuestionRequired" xml:space="preserve"><value>Введите вопрос.</value></data>
+  <data name="QuestionLength" xml:space="preserve"><value>Вопрос должен содержать от 10 до 4096 символов.</value></data>
 </root>

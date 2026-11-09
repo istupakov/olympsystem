@@ -26,6 +26,7 @@ public class ContestPublicPagesTests(WebAppFactory factory) : IClassFixture<WebA
     {
         var contest = CreateContest();
         var team = AddCompetitor(contest, "Team <script>name</script>");
+        team.RegistrationDate = new DateTimeOffset(2026, 1, 17, 12, 30, 0, TimeSpan.Zero);
         team.MemberInfos = "Historical First;;Historical Second;;Historical Third;";
         team.Organization = new Organization { Name = "University", FullName = "Full university", Users = [] };
         team.Coach = new OlympUser
@@ -55,7 +56,10 @@ public class ContestPublicPagesTests(WebAppFactory factory) : IClassFixture<WebA
         Assert.Equal(team.Name, row.QuerySelector("td .fw-semibold")!.TextContent);
         Assert.Equal("University", row.QuerySelector("td abbr")!.TextContent);
         Assert.Equal("Full university", row.QuerySelector("td abbr")!.GetAttribute("title"));
-        Assert.Equal(4, row.QuerySelectorAll("td").Length);
+        Assert.Equal(5, row.QuerySelectorAll("td").Length);
+        Assert.Equal(culture == "ru" ? "Дата регистрации" : "Registration date", document.QuerySelector("main th:last-child")!.TextContent);
+        Assert.Equal(team.RegistrationDate.Value.ToLocalTime().ToString("d", CultureInfo.GetCultureInfo(culture)),
+            row.QuerySelector("td:last-child")!.TextContent);
         Assert.Equal(["Historical First", "Historical Second", "Historical Third"], row.QuerySelectorAll("li").Select(item => item.TextContent));
         Assert.Contains("Иванов Иван Иванович", row.TextContent);
         Assert.Empty(row.QuerySelectorAll(".badge"));
@@ -276,8 +280,7 @@ public class ContestPublicPagesTests(WebAppFactory factory) : IClassFixture<WebA
         Assert.Equal(text, document.QuerySelector("main tbody td")!.TextContent);
         Assert.NotNull(document.QuerySelector("main [data-saved-standing] table.result"));
         Assert.Equal([text, "-1", "+"], document.QuerySelectorAll("main tbody td").Select(cell => cell.TextContent));
-        string scriptUrl = document.QuerySelector("script[src*='saved-standings']")!.GetAttribute("src")!;
-        using var script = await client.GetAsync(scriptUrl, TestContext.Current.CancellationToken);
+        using var script = await client.GetAsync("/saved-standings.js", TestContext.Current.CancellationToken);
         script.EnsureSuccessStatusCode();
         Assert.DoesNotContain("Should not replace archive", document.QuerySelector("main")!.TextContent);
     }
@@ -356,6 +359,7 @@ public class ContestPublicPagesTests(WebAppFactory factory) : IClassFixture<WebA
         var formatting = CultureInfo.GetCultureInfo(culture);
         if (ended)
         {
+            Assert.Null(document.QuerySelector(".contest-header .fw-semibold"));
             Assert.Equal(spansDays ? 2 : 1, times.Length);
             Assert.Equal(contest.StartTime.ToString("d", formatting), times[0].TextContent);
             if (spansDays)
@@ -367,6 +371,32 @@ public class ContestPublicPagesTests(WebAppFactory factory) : IClassFixture<WebA
             Assert.Equal(contest.StartTime.ToString("g", formatting), times[0].TextContent);
             Assert.Equal(contest.EndTime.ToString("t", formatting), times[1].TextContent);
         }
+    }
+
+    [Theory]
+    [InlineData("ru", true, 275400, "До начала 3 д 4 ч")]
+    [InlineData("en", true, 275400, "Starts in 3 d 4 h")]
+    [InlineData("ru", true, 8130, "До начала 2 ч 15 мин")]
+    [InlineData("en", true, 8130, "Starts in 2 h 15 min")]
+    [InlineData("ru", false, 930, "До конца 15 мин")]
+    [InlineData("en", false, 930, "Ends in 15 min")]
+    [InlineData("ru", false, 45, "До конца [1-9][0-9]? с")]
+    [InlineData("en", false, 45, "Ends in [1-9][0-9]? s")]
+    public async Task ContestHeaderShowsLocalizedTimeUntilStartOrEnd(string culture, bool upcoming, int seconds, string expected)
+    {
+        var contest = CreateContest();
+        var target = DateTimeOffset.UtcNow.AddSeconds(seconds);
+        contest.StartTime = upcoming ? target : DateTimeOffset.UtcNow.AddHours(-1);
+        contest.EndTime = upcoming ? target.AddHours(5) : target;
+        contest.IsOpen = true;
+        await SaveAsync(contest);
+        using var client = factory.CreateSiteClient();
+        client.DefaultRequestHeaders.AcceptLanguage.ParseAdd(culture);
+        using var response = await client.GetAsync($"/contests/{contest.Id}/competitors", TestContext.Current.CancellationToken);
+        response.EnsureSuccessStatusCode();
+        using var document = await new HtmlParser().ParseDocumentAsync(
+            await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
+        Assert.Matches($"^{expected}$", document.QuerySelector(".contest-header .fw-semibold")!.TextContent);
     }
 
     [Theory]

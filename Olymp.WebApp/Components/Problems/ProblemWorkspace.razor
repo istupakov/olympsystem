@@ -1,3 +1,4 @@
+@using Olymp.Domain
 @using Olymp.Domain.Models
 
 <div class="problem-browser row g-4 align-items-start">
@@ -10,19 +11,28 @@
             <label for="workspace-problem" class="form-label">@SiteResources.Problems</label>
             <div class="d-flex gap-2">
                 <select id="workspace-problem" name="problemId" class="form-select">
-                    @foreach (var problem in Problems)
+                    @foreach (var result in Progress)
                     {
-                        <option value="@problem.Id" selected="@(Selected?.Id == problem.Id)">@problem.NameWithNumber</option>
+                        var problem = result.Problem;
+                        var text = ResultText(result);
+                        <option value="@problem.Id" selected="@(Selected?.Id == problem.Id)">@(text.Length == 0 ? problem.NameWithNumber : $"{problem.NameWithNumber} ({text})")</option>
                     }
                 </select>
                 <button type="submit" class="btn btn-outline-primary">@SiteResources.Show</button>
             </div>
         </form>
         <div class="list-group mt-2 d-none d-lg-flex">
-            @foreach (var problem in Problems)
+            @foreach (var result in Progress)
             {
-                <a class="list-group-item list-group-item-action @(Selected?.Id == problem.Id ? "active" : null)"
-                   href="@ProblemUrl(problem.Id)" aria-current="@(Selected?.Id == problem.Id ? "page" : null)">@problem.NameWithNumber</a>
+                var problem = result.Problem;
+                <a class="list-group-item list-group-item-action d-flex justify-content-between gap-2 @ResultClass(result) @(Selected?.Id == problem.Id ? "active" : null)"
+                   href="@ProblemUrl(problem.Id)" aria-current="@(Selected?.Id == problem.Id ? "page" : null)">
+                    <span>@problem.NameWithNumber</span>
+                    @if (result.CommitNumber > 0)
+                    {
+                        <span class="text-nowrap">@ResultText(result)</span>
+                    }
+                </a>
             }
         </div>
     </nav>
@@ -37,7 +47,7 @@
 
 @code {
     [Parameter, EditorRequired]
-    public IReadOnlyList<Problem> Problems { get; set; } = [];
+    public IReadOnlyList<Standing.UserProblemResult> Progress { get; set; } = [];
 
     [Parameter]
     public Problem? Selected { get; set; }
@@ -51,4 +61,22 @@
     [Parameter]
     public RenderFragment? ChildContent { get; set; }
 
+    private static string? ResultClass(Standing.UserProblemResult result)
+    {
+        if (result.CommitNumber == 0)
+            return null;
+        if (result.Problem.Contest.IsSchool)
+            return result.Score == result.MaxScore ? "list-group-item-success"
+                : result.Score > 0 ? "list-group-item-warning" : "list-group-item-danger";
+        return result.IsSuccess ? "list-group-item-success" : "list-group-item-danger";
+    }
+
+    private static string ResultText(Standing.UserProblemResult result)
+    {
+        if (result.CommitNumber == 0)
+            return "";
+        if (result.Problem.Contest.IsSchool)
+            return $"{result.Score}/{result.MaxScore}";
+        return result.IsSuccess ? result.CommitNumber == 1 ? "+" : $"+{result.CommitNumber - 1}" : $"-{result.CommitNumber}";
+    }
 }

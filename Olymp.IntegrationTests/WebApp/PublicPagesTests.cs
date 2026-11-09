@@ -84,7 +84,7 @@ public class PublicPagesTests(WebAppFactory factory) : IClassFixture<WebAppFacto
         Assert.Equal(news, document.Title);
         Assert.Equal(news, document.QuerySelector("main h1")!.TextContent);
         Assert.Equal("OlympSystem", document.QuerySelector("header .navbar-brand")!.TextContent.Trim());
-        Assert.Equal([news, contests, culture == "ru" ? "Решения" : "Submissions", culture == "ru" ? "Правила" : "Rules"],
+        Assert.Equal([news, contests, culture == "ru" ? "Решения" : "Submissions", culture == "ru" ? "Правила" : "Rules", culture == "ru" ? "Спонсоры" : "Sponsors"],
             document.QuerySelectorAll("header ul.nav a").Select(link => link.TextContent));
         Assert.Equal(news, Assert.Single(document.QuerySelectorAll("header ul.nav a.active")).TextContent);
         Assert.Equal("contests", document.QuerySelector("header ul.nav a[href='contests']")!.GetAttribute("href"));
@@ -213,6 +213,27 @@ public class PublicPagesTests(WebAppFactory factory) : IClassFixture<WebAppFacto
         var project = cards[1];
         Assert.NotNull(project.QuerySelector("a[href='mailto:istupakov@gmail.com']"));
         Assert.Equal(culture == "ru" ? "к.т.н., доцент каф. ПМт НГТУ" : "PhD, Associate Professor, Department of Applied Mathematics, NSTU", project.QuerySelector(".card-subtitle")!.TextContent);
+    }
+
+    [Theory]
+    [InlineData("ru", "Спонсоры", "Т-Технологии")]
+    [InlineData("en", "Sponsors", "T-Technologies")]
+    public async Task SponsorsArePublicAndLinkToExistingSponsor(string culture, string title, string sponsor)
+    {
+        using var client = factory.CreateSiteClient();
+        client.DefaultRequestHeaders.AcceptLanguage.ParseAdd(culture);
+        using var response = await client.GetAsync("/sponsors", TestContext.Current.CancellationToken);
+        response.EnsureSuccessStatusCode();
+        using var document = await new HtmlParser().ParseDocumentAsync(
+            await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
+        Assert.Equal(title, document.Title);
+        Assert.Equal(title, document.QuerySelector("main h1")!.TextContent);
+        Assert.Equal(title, document.QuerySelector("header a[href='sponsors']")!.TextContent);
+        var logo = document.QuerySelector("main a[href='https://t-technologies.ru/'] img")!;
+        Assert.Equal(sponsor, logo.GetAttribute("alt"));
+        using var image = await client.GetAsync("/" + logo.GetAttribute("src"), TestContext.Current.CancellationToken);
+        image.EnsureSuccessStatusCode();
+        Assert.Equal("image/svg+xml", image.Content.Headers.ContentType!.MediaType);
     }
 
     [Theory]

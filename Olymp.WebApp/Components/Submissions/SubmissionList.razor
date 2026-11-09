@@ -40,7 +40,10 @@
                     <thead>
                         <tr>
                             <th scope="col">@SiteResources.SubmissionTime</th>
-                            <th scope="col">@SiteResources.SubmissionAuthor</th>
+                            @if (!isParticipant)
+                            {
+                                <th scope="col">@SiteResources.SubmissionAuthor</th>
+                            }
                             @if (!ProblemId.HasValue)
                             {
                                 <th scope="col">@SiteResources.Problem</th>
@@ -62,13 +65,16 @@
                         {
                             <tr id="submission-@submission.Id">
                                 <td>@submission.CommitTime.ToLocalTime().ToString("g")</td>
-                                <td>
-                                    @submission.Author
-                                    @if (submission.IsParticipant)
-                                    {
-                                        <span class="badge text-bg-secondary ms-1">@SiteResources.Competitor</span>
-                                    }
-                                </td>
+                                @if (!isParticipant)
+                                {
+                                    <td>
+                                        @submission.Author
+                                        @if (submission.IsParticipant)
+                                        {
+                                            <span class="badge text-bg-secondary ms-1">@SiteResources.Competitor</span>
+                                        }
+                                    </td>
+                                }
                                 @if (!ProblemId.HasValue)
                                 {
                                     <td class="w-25">

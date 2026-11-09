@@ -2,6 +2,7 @@
 
 @using Microsoft.EntityFrameworkCore
 @using Olymp.Domain
+@using Olymp.Site
 @using Olymp.WebApp.Components.Contests
 
 @inject NavigationManager Navigation
@@ -25,7 +26,7 @@
         }
     </p>
 
-    @if (DateTimeOffset.Now < contest.EndTime)
+    @if (!isParticipant && DateTimeOffset.Now < contest.EndTime)
     {
         <h2 class="h4">@(isRussian ? "Вход для участия" : "Signing In to Participate")</h2>
 
@@ -293,10 +294,16 @@
     [Parameter]
     public int Id { get; set; }
 
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthenticationState { get; set; } = default!;
+
     private Contest? contest;
+    private bool isParticipant;
 
     protected override async Task OnParametersSetAsync()
     {
+        var state = await AuthenticationState;
+        isParticipant = state.User.HasClaim(claim => claim.Type == ClaimNames.CompetitorContest);
         await using var context = await ContextFactory.CreateDbContextAsync();
         contest = await context.Contests.AsNoTracking()
             .SingleOrDefaultAsync(item => item.Id == Id && !item.IsHidden);

@@ -1,0 +1,69 @@
+@using Microsoft.EntityFrameworkCore
+@using Olymp.Domain
+@using Olymp.Site
+@inject IDbContextFactory<OlympContext> ContextFactory
+
+@if (messages.Count > 0)
+{
+    <section class="jury-announcements alert alert-info mt-3" aria-label="@Title">
+        <h2 class="h6">@Title</h2>
+        @foreach (var message in messages)
+        {
+            <article class="mb-2">
+                @if (message.SendTime is DateTimeOffset sent)
+                {
+                    <div class="small text-body-secondary mb-1">
+                        <time datetime="@sent.ToString("O", CultureInfo.InvariantCulture)">@sent.ToLocalTime().ToString("g", CultureInfo.CurrentCulture)</time>
+                    </div>
+                }
+                <div class="text-break overflow-auto">@((MarkupString)message.JuryText!)</div>
+            </article>
+        }
+    </section>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public Contest Contest { get; set; } = default!;
+
+    [Parameter]
+    public int? ProblemId { get; set; }
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    private List<Message> messages = [];
+
+    private string Title => ProblemId.HasValue ? SiteResources.ProblemClarifications : SiteResources.JuryAnnouncements;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        messages = [];
+        var user = HttpContext.User;
+        if (user.Identity?.IsAuthenticated != true || Contest.IsHidden)
+            return;
+
+        if (ProblemId.HasValue)
+        {
+            if (!Contest.AllowShowProblems)
+                return;
+        }
+        else if (DateTimeOffset.Now > Contest.EndTime
+            || !int.TryParse(user.FindFirst(ClaimNames.CompetitorContest)?.Value, out int contestId)
+            || contestId != Contest.Id)
+        {
+            return;
+        }
+
+        var token = HttpContext.RequestAborted;
+        await using var context = await ContextFactory.CreateDbContextAsync(token);
+        var query = context.Messages.AsNoTracking()
+            .Where(item => item.ContestId == Contest.Id && item.UserId == null && item.ProblemId == ProblemId
+                && item.JuryText != null);
+        if (ProblemId.HasValue)
+            query = query.Where(item => item.Problem != null && item.Problem.IsActive && item.Problem.ContestId == Contest.Id);
+
+        messages = await query.OrderByDescending(item => item.SendTime).ThenByDescending(item => item.Id).ToListAsync(token);
+        messages.RemoveAll(item => string.IsNullOrWhiteSpace(item.JuryText));
+    }
+}

@@ -1,0 +1,33 @@
+<header class="contest-header mb-4">
+    <nav class="contest-navigation" aria-label="@SiteResources.ContestNavigation">
+        <ul class="nav nav-underline column-gap-3 row-gap-1">
+            @if (Contest.AllowShowProblems)
+            {
+                <li class="nav-item"><a class="@LinkClass("problems")" href="contests/@Contest.Id/problems" aria-current="@Current("problems")">@SiteResources.Problems</a></li>
+            }
+            <li class="nav-item"><a class="@LinkClass("submissions")" href="submissions" aria-current="@Current("submissions")">@SiteResources.MySubmissions</a></li>
+            @if (Contest.AllowShowStanding)
+            {
+                <li class="nav-item"><a class="@LinkClass("standing")" href="contests/@Contest.Id/standing" aria-current="@Current("standing")">@SiteResources.ContestStandings</a></li>
+            }
+            @if (Contest.AllowSendMessage)
+            {
+                <li class="nav-item"><a class="@LinkClass("questions")" href="contests/@Contest.Id/questions" aria-current="@Current("questions")">@SiteResources.JuryQuestions</a></li>
+            }
+            <li class="nav-item"><a class="@LinkClass("rules")" href="contests/@Contest.Id/rules" aria-current="@Current("rules")">@SiteResources.ContestRules</a></li>
+        </ul>
+    </nav>
+    <JuryAnnouncements Contest="Contest" />
+</header>
+
+@code {
+    [Parameter, EditorRequired]
+    public Contest Contest { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public string ActiveSection { get; set; } = "";
+
+    private string LinkClass(string section) => ActiveSection == section ? "nav-link active" : "nav-link";
+
+    private string? Current(string section) => ActiveSection == section ? "page" : null;
+}
