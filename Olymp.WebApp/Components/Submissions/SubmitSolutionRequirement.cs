@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 
 using Olymp.Domain.Models;
-using Olymp.Site;
 
 namespace Olymp.WebApp.Components.Submissions;
 

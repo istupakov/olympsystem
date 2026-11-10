@@ -441,4 +441,18 @@
   <data name="StaffRunnerRefresh" xml:space="preserve"><value>Состояние Runner обновляется каждые 10 секунд.</value></data>
   <data name="StaffNoCompilers" xml:space="preserve"><value>Компиляторы не найдены.</value></data>
   <data name="StaffWithoutFreeze" xml:space="preserve"><value>Просмотр жюри – результаты без заморозки.</value></data>
+  <data name="RegistrationNotAvailable" xml:space="preserve"><value>Регистрация на это соревнование недоступна.</value></data>
+  <data name="RegistrationInformationIncorrect" xml:space="preserve"><value>Регистрационная информация неверна.</value></data>
+  <data name="ParticipantsMustBeDifferent" xml:space="preserve"><value>Участники должны быть разными.</value></data>
+  <data name="InvalidParticipantValue" xml:space="preserve"><value>Недопустимое значение</value></data>
+  <data name="ParticipantsAlreadyRegistered" xml:space="preserve"><value>Один или несколько участников уже зарегистрированы в этом контесте.</value></data>
+  <data name="ParticipantDeletionHasHistory" xml:space="preserve"><value>Нельзя удалить участника: есть посылки или другие связанные записи.</value></data>
+  <data name="ParticipantCleanupAfterEndOnly" xml:space="preserve"><value>Удалять участников без отправок можно только после окончания соревнования.</value></data>
+  <data name="ParticipantFileEmpty" xml:space="preserve"><value>Файл не содержит имён участников.</value></data>
+  <data name="ParticipantFileDuplicateNames" xml:space="preserve"><value>В файле повторяются имена участников.</value></data>
+  <data name="ParticipantImportIndividualOnly" xml:space="preserve"><value>Импорт списка имён доступен только для личных контестов.</value></data>
+  <data name="ParticipantNameAmbiguous" xml:space="preserve"><value>В контесте несколько участников с именем «{0}».</value></data>
+  <data name="ParticipantLoginsDuplicate" xml:space="preserve"><value>В файле повторяются логины.</value></data>
+  <data name="ParticipantLoginsTooFew" xml:space="preserve"><value>В файле недостаточно логинов.</value></data>
+  <data name="ProfileGroupRequired" xml:space="preserve"><value>Поле Группа в профиле должно быть заполнено.</value></data>
 </root>

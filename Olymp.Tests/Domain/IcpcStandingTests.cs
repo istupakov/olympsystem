@@ -1,5 +1,3 @@
-using Olymp.Domain;
-
 using Xunit;
 
 #pragma warning disable xUnit1004 // Known ICPC deviations are retained as skipped regression tests.

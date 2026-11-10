@@ -4,7 +4,6 @@ using AngleSharp.Html.Parser;
 
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.TestHost;
-using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.DependencyInjection;
 
 using Olymp.Domain.Models;

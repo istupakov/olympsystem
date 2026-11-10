@@ -10,8 +10,8 @@ using Microsoft.Extensions.DependencyInjection;
 
 using Olymp.Domain;
 using Olymp.Domain.Models;
-using Olymp.Site;
 using Olymp.Tests.Shared;
+using Olymp.WebApp;
 
 using Xunit;
 
@@ -89,7 +89,7 @@ public class JuryQuestionsTests(WebAppFactory factory) : IClassFixture<WebAppFac
         using var client = await factory.LoginAsync(participant.UserName!);
         using var document = await GetAsync(client, Path(contest));
         Assert.Equal<string>([$"question-{tie.Id}", $"question-{task.Id}", $"question-{general.Id}"],
-            document.QuerySelectorAll("main article.card").Select(item => item.Id));
+            document.QuerySelectorAll("main article.card").Select(item => item.Id!));
         Assert.NotNull(document.QuerySelector($"#question-{task.Id} strong"));
         Assert.NotNull(document.QuerySelector($"#question-{task.Id} time[datetime]"));
         foreach (string secret in new[] { "OTHER PRIVATE", "PUBLIC QUESTION", "INACTIVE QUESTION", "OTHER CONTEST", "MISMATCHED PROBLEM" })

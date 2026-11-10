@@ -4,8 +4,7 @@ using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 
 using Olymp.Domain;
-using Olymp.Site;
-using Olymp.Site.Services.Authorization;
+using Olymp.WebApp.Services.Authorization;
 
 namespace Olymp.WebApp.Components.Staff;
 

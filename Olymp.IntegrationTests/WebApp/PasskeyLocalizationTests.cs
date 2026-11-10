@@ -1,5 +1,4 @@
 using System.Buffers.Text;
-using System.Globalization;
 using System.Net;
 
 using AngleSharp.Html.Parser;

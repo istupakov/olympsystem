@@ -32,7 +32,7 @@ COPY ./Olymp.Runner/*.csproj ./Olymp.Runner/
 RUN dotnet restore ./Olymp.Runner/Olymp.Runner.csproj --no-cache
 
 COPY ./Olymp.Runner ./Olymp.Runner/
-COPY ./Olymp.Site/Protos ./Olymp.Site/Protos/
+COPY ./Protos ./Protos/
 RUN dotnet publish ./Olymp.Runner/Olymp.Runner.csproj --no-restore -c Release -o ./app
 
 # Create final image

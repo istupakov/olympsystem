@@ -3,20 +3,17 @@ using System.Security.Claims;
 
 using AngleSharp.Html.Parser;
 
-using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
-using Olymp.Checker;
-
 using Olymp.Domain;
 using Olymp.Domain.Models;
-using Olymp.Site;
-using Olymp.Site.Services.Checker;
 using Olymp.Tests.Shared;
+using Olymp.WebApp;
 using Olymp.WebApp.Resources;
+using Olymp.WebApp.Services.Checker;
 
 using Xunit;
 
@@ -237,10 +234,10 @@ public partial class StaffListTests
     public async Task RunnerViewRetainsDiagnosticsAndTrialRunKeepsSource()
     {
         var author = await factory.AddUserAsync();
-        var runner = new Olymp.IntegrationTests.Site.Checkers.CheckerTestData.TestRunner { FailureTests = [1] };
-        var checker = await Olymp.IntegrationTests.Site.Checkers.CheckerTestData.CreateCheckerAsync(runner, "compiler-details");
+        var runner = new Olymp.IntegrationTests.Services.Checkers.CheckerTestData.TestRunner { FailureTests = [1] };
+        var checker = await Olymp.IntegrationTests.Services.Checkers.CheckerTestData.CreateCheckerAsync(runner, "compiler-details");
         await checker.RunSelfTests(TestContext.Current.CancellationToken);
-        var manager = new Olymp.IntegrationTests.Site.Checkers.CheckerTestData.PageManager(checker);
+        var manager = new Olymp.IntegrationTests.Services.Checkers.CheckerTestData.PageManager(checker);
         using var html = await new HtmlParser().ParseDocumentAsync(await RenderAsync<JuryRunners>(
             $"/jury/runners?Runner={runner.Id}", [], Staff(author.Id, RoleNames.Jury), async page =>
             {

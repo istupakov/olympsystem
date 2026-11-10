@@ -17,7 +17,7 @@
   <ItemGroup>
     <ProjectReference Include="../Olymp.Checker/Olymp.Checker.csproj" />
     <ProjectReference Include="../Olymp.Domain/Olymp.Domain.csproj" />
-    <ProjectReference Include="../Olymp.Site/Olymp.Site.csproj" />
+    <ProjectReference Include="../Olymp.WebApp/Olymp.WebApp.csproj" />
   </ItemGroup>
 
 </Project>

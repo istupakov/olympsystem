@@ -1,6 +1,7 @@
 # Contest problem ZIP format
 
-On the contest edit page, upload a ZIP with one folder per problem directly at the root:
+The preparation service accepts a ZIP with one folder per problem at the root.
+There is no web editor for this service.
 
 ```text
 A/

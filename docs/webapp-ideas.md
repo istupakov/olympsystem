@@ -3,15 +3,8 @@
 Remaining work and ideas for future discussion. Access decisions are maintained in
 [access-control.md](access-control.md).
 
-## Remaining migration
-
-- Contest materials: import problems from ZIP, upload/remove statements PDF,
-  and generate test archives.
-- Runner RPC with API-key authentication and production hosting: health checks,
-  persistent Data Protection keys, certificates, and Compose deployment.
-
-## Future ideas
-
+- Web contest preparation: import problems from ZIP, upload/remove the statement
+  PDF, and generate test archives. The service and tests are available.
 - Progress across contests, including coach views, with personal practice and team
   participation shown separately. Apply the existing result visibility rules.
 - Problem statistics: solvers, submissions, and acceptance rates, separating contest

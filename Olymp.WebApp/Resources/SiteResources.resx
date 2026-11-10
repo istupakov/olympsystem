@@ -441,4 +441,18 @@
   <data name="StaffRunnerRefresh" xml:space="preserve"><value>Runner status refreshes every 10 seconds.</value></data>
   <data name="StaffNoCompilers" xml:space="preserve"><value>No compilers found.</value></data>
   <data name="StaffWithoutFreeze" xml:space="preserve"><value>Jury view – freeze restrictions do not apply.</value></data>
+  <data name="RegistrationNotAvailable" xml:space="preserve"><value>Registration is not available for this contest.</value></data>
+  <data name="RegistrationInformationIncorrect" xml:space="preserve"><value>Registration information is incorrect.</value></data>
+  <data name="ParticipantsMustBeDifferent" xml:space="preserve"><value>Participants must be different.</value></data>
+  <data name="InvalidParticipantValue" xml:space="preserve"><value>Invalid value</value></data>
+  <data name="ParticipantsAlreadyRegistered" xml:space="preserve"><value>One or more participants are already registered for this contest.</value></data>
+  <data name="ParticipantDeletionHasHistory" xml:space="preserve"><value>The participant cannot be deleted because submissions or other related records exist.</value></data>
+  <data name="ParticipantCleanupAfterEndOnly" xml:space="preserve"><value>Participants without submissions can only be deleted after the contest has ended.</value></data>
+  <data name="ParticipantFileEmpty" xml:space="preserve"><value>The file contains no participant names.</value></data>
+  <data name="ParticipantFileDuplicateNames" xml:space="preserve"><value>The file contains duplicate participant names.</value></data>
+  <data name="ParticipantImportIndividualOnly" xml:space="preserve"><value>Participant names can only be imported into individual contests.</value></data>
+  <data name="ParticipantNameAmbiguous" xml:space="preserve"><value>The contest contains multiple participants named '{0}'.</value></data>
+  <data name="ParticipantLoginsDuplicate" xml:space="preserve"><value>The file contains duplicate logins.</value></data>
+  <data name="ParticipantLoginsTooFew" xml:space="preserve"><value>The file contains too few logins.</value></data>
+  <data name="ProfileGroupRequired" xml:space="preserve"><value>The Group field in the profile must be filled in.</value></data>
 </root>

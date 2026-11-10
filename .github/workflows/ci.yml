@@ -69,4 +69,4 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: Build site image
-        run: docker build -f Olymp.Site/Dockerfile .
+        run: docker build -f Olymp.WebApp/Dockerfile .

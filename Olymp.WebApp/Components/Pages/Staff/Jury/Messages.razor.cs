@@ -6,7 +6,6 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.JSInterop;
 
-using Olymp.Domain;
 using Olymp.Domain.Models;
 using Olymp.WebApp.Components.Staff;
 using Olymp.WebApp.Resources;

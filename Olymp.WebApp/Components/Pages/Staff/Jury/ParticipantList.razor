@@ -1,7 +1,7 @@
 @page "/jury/contests/{ContestId:int}/participants"
 @rendermode @(new InteractiveServerRenderMode(prerender: false))
-@using Olymp.Site.Services
-@using Olymp.Site.Services.Contests
+@using Olymp.WebApp.Services
+@using Olymp.WebApp.Services.Contests
 @inject IDbContextFactory<OlympContext> ContextFactory
 @inject IServiceScopeFactory ScopeFactory
 @inject ILogger<ParticipantList> Logger
