@@ -10,7 +10,7 @@ requests to a single HTTPS port on the application server.
 | Runner RPC | HTTPS :443 | HTTPS :5000, HTTP/2 |
 
 Kestrel accepts both HTTP/1.1 and HTTP/2 over TLS. Its protocol and certificate
-settings are in [appsettings.Production.json](../Olymp.Site/appsettings.Production.json).
+settings are in [appsettings.Production.json](../Olymp.WebApp/appsettings.Production.json).
 Compose selects HTTPS port 5000 in production and HTTP port 5000 in development.
 The production health check uses HTTPS and verifies the application certificate.
 

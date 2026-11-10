@@ -5,9 +5,9 @@
 - Communicate with the user in Russian, briefly and to the point.
 - Requests to inspect, discuss, or propose a plan mean working without changing files or data. Start implementation only after the user's instruction.
 - Once agreed, complete the task and necessary checks independently; do not ask again for permission to perform already authorized actions.
-- Do not expand the task with unrelated refactoring. Preserve existing uncommitted changes. Do not commit or push without an instruction.
-- Do not invent product requirements or access rules. Follow agreed decisions; discuss new, debatable decisions first.
-- Keep this file focused on persistent working rules, not discussion history.
+- Preserve existing uncommitted changes and stay within the agreed scope. Discuss new product requirements or access rules before implementing them.
+- Do not commit, rewrite Git history, or push without an explicit instruction.
+- Keep documentation focused on agreed rules and current usage. Update the relevant document when agreed rules change; do not add discussion history or work reports.
 - Access rules are documented in [access-control.md](docs/access-control.md).
 
 ## Interface
@@ -15,7 +15,6 @@
 - Use the existing Bootstrap and its standard components and utilities.
 - Do not add or modify JavaScript or CSS, including inline scripts and styles, without prior agreement with the user on the specific change. Adding a new styling library also requires prior agreement.
 - First look for suitable existing components and services. Extract shared components when there is actual repetition; do not create a universal framework in advance.
-- When porting behavior, compare it with the old site. Changing statement storage and moving to Markdown/LaTeX is a separate task.
 - Follow the project's localization conventions: add user-facing strings to the resources for the corresponding languages.
 - Use an en dash (`–`, U+2013) instead of an em dash (U+2014) in project-authored text, including UI strings, documentation, and comments.
 
@@ -37,10 +36,7 @@
 
 ## Verification and reporting
 
-- Follow [README](README.md), [.editorconfig](.editorconfig), and the SDK version in [global.json](global.json).
-- The new interface is in [Olymp.WebApp](Olymp.WebApp); the old site is in [Olymp.Site](Olymp.Site).
-- Choose checks appropriate to the change: build, existing targeted tests, and browser checks. Do not add tests that mirror the implementation for simple styling changes.
-- To build the new interface, run `dotnet build Olymp.WebApp --no-restore` after restoring dependencies.
-- Tests use Microsoft.Testing.Platform. Example targeted run: `dotnet test --project Olymp.IntegrationTests --filter-class 'Olymp.IntegrationTests.WebApp.ContestProblemTests' --no-restore`.
+- Follow [.editorconfig](.editorconfig) and the SDK version in [global.json](global.json). The website is in [Olymp.WebApp](Olymp.WebApp).
+- Use the build, test, and formatting commands in [README](README.md#checks). Verify formatting and choose build, targeted tests, and browser checks appropriate to the change. Do not add tests that mirror the implementation for simple styling changes.
 - Before finishing, check the diff for accidental changes and whitespace errors. Report what changed, which checks were actually performed, and any remaining limitations.
 - Do not claim that a test or visual check passed if you could not perform it.

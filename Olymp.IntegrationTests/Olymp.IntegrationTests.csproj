@@ -17,7 +17,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../Olymp.Site/Olymp.Site.csproj" Aliases="global,site" />
     <ProjectReference Include="../Olymp.Tests/Olymp.Tests.csproj" />
     <ProjectReference Include="../Olymp.WebApp/Olymp.WebApp.csproj" />
   </ItemGroup>

@@ -1,8 +1,12 @@
+using System.Net;
 using System.Text;
+using System.Text.Encodings.Web;
+using System.Text.Unicode;
 
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Authorization.Policy;
 using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.Rewrite;
@@ -12,22 +16,35 @@ using Olymp.Checker;
 using Olymp.Checker.AntiCheat;
 using Olymp.Domain;
 using Olymp.Domain.Models;
-using Olymp.Site;
-using Olymp.Site.IdentityUI;
-using Olymp.Site.Services.AntiCheat;
-using Olymp.Site.Services.Checker;
-using Olymp.Site.Services.Contests;
-using Olymp.Site.Services.Identity;
-using Olymp.Site.Services.Mail;
+using Olymp.WebApp;
 using Olymp.WebApp.Components;
 using Olymp.WebApp.Components.Account;
 using Olymp.WebApp.Components.Contests;
 using Olymp.WebApp.Components.Layout;
 using Olymp.WebApp.Components.Submissions;
+using Olymp.WebApp.Services.AntiCheat;
+using Olymp.WebApp.Services.Authentication;
+using Olymp.WebApp.Services.Checker;
+using Olymp.WebApp.Services.Contests;
+using Olymp.WebApp.Services.Identity;
+using Olymp.WebApp.Services.Mail;
 
 Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.WebHost.ConfigureKestrel(options =>
+    options.Limits.Http2.KeepAlivePingDelay = TimeSpan.FromSeconds(10));
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    foreach (string address in builder.Configuration.GetSection("ReverseProxy:KnownProxies").Get<string[]>() ?? [])
+        options.KnownProxies.Add(IPAddress.Parse(address));
+});
+
+var dataProtection = builder.Services.AddDataProtection();
+if (builder.Environment.IsProduction() && builder.Configuration["DataProtection:Path"] is string keyPath)
+    dataProtection.PersistKeysToFileSystem(new DirectoryInfo(keyPath));
 
 // Keep authorization and UI consistent for the lifetime of the application.
 var identityFeatures = builder.Configuration.GetSection(IdentityFeatures.SectionName)
@@ -52,6 +69,7 @@ var olympUserPolicy = new AuthorizationPolicyBuilder(defaultPolicy)
 
 builder.Services.AddAuthorizationBuilder()
     .SetDefaultPolicy(defaultPolicy)
+    .AddPolicy(PolicyNames.Runner, policy => policy.AddAuthenticationSchemes("ApiKey").RequireAuthenticatedUser())
     .AddPolicy("SignedIn", signedInPolicy)
     .AddPolicy(PolicyNames.PermanentAccount, permanentAccountPolicy)
     .AddPolicy(PolicyNames.OlympUser, olympUserPolicy)
@@ -69,7 +87,8 @@ builder.Services.AddAuthorizationBuilder()
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
-    .AddInteractiveServerComponents();
+    .AddInteractiveServerComponents()
+    .AddHubOptions(options => options.MaximumReceiveMessageSize = 256 * 1024);
 
 builder.Services.AddRouting(options => options.LowercaseUrls = true);
 
@@ -82,6 +101,8 @@ builder.Services.AddRequestLocalization(options =>
     options.ApplyCurrentCultureToResponseHeaders = true;
     options.RequestCultureProviders = [new CookieRequestCultureProvider(), new AcceptLanguageHeaderRequestCultureProvider()];
 });
+builder.Services.AddWebEncoders(options =>
+    options.TextEncoderSettings = new TextEncoderSettings(UnicodeRanges.BasicLatin, UnicodeRanges.Cyrillic));
 
 builder.Services.AddScoped<CompetitorManagementService>();
 builder.Services.AddSimpleCheckers();
@@ -101,11 +122,16 @@ builder.Services.AddScoped<IdentityRedirectManager>();
 builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuthenticationStateProvider>();
 
 builder.Services.AddAuthentication(options => options.DefaultScheme = IdentityConstants.ApplicationScheme)
+    .AddScheme<ApiKeyAuthenticationOptions, ApiKeyAuthenticationHandler>("ApiKey", options =>
+        options.ApiKeys = builder.Configuration.GetSection("ApiKeys").Get<string[]>() ?? [])
     .AddIdentityCookies();
+builder.Services.AddGrpc();
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
-builder.Services.AddDbContextFactory<OlympContext>(options => options.UseSqlServer(connectionString));
+builder.Services.AddDbContextFactory<OlympContext>(options => options.UseSqlServer(connectionString)
+    .EnableSensitiveDataLogging(builder.Environment.IsDevelopment()));
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
+builder.Services.AddHealthChecks().AddDbContextCheck<OlympContext>();
 
 if (builder.Environment.IsDevelopment() && !builder.Configuration.GetSection(nameof(MailService)).Exists())
     builder.Services.AddTransient<IEmailSender, DebugEmailSender>();
@@ -146,10 +172,13 @@ builder.Services.AddTransient<IEmailSender<User>, IdentityEmailSender>();
 
 var app = builder.Build();
 
+app.UseForwardedHeaders();
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseMigrationsEndPoint();
+    app.UseHttpsRedirection();
 }
 else
 {
@@ -159,13 +188,17 @@ else
 }
 
 app.UseRequestLocalization();
-app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
-app.UseHttpsRedirection();
+app.UseHealthChecks("/healthz");
 
 app.UseRewriter(new RewriteOptions()
-    .AddRedirectToNonWwwPermanent()
     // Legacy links point directly to the current standings route.
     .AddRedirect(@"^(?:olympiad|contests)/standing/(\d+)/?$", "contests/$1/standing", StatusCodes.Status301MovedPermanently));
+
+app.UseRouting();
+app.UseAuthentication();
+app.UseAuthorization();
+
+app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
@@ -177,5 +210,6 @@ app.MapAdditionalIdentityEndpoints();
 app.MapLanguageEndpoint();
 app.MapContestDownloads();
 app.MapSubmissionDownloads();
+app.MapGrpcService<RunnerService>().RequireAuthorization(PolicyNames.Runner);
 
 app.Run();

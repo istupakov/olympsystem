@@ -42,16 +42,6 @@ public class PublicPagesTests(WebAppFactory factory) : IClassFixture<WebAppFacto
         Assert.Null(response.Headers.Location);
     }
 
-    [Fact]
-    public async Task WwwRedirectPreservesPathQueryAndPort()
-    {
-        using var client = factory.CreateSiteClient();
-        using var response = await client.GetAsync("https://www.example.test:5001/contests?year=2026", TestContext.Current.CancellationToken);
-
-        Assert.Equal(HttpStatusCode.PermanentRedirect, response.StatusCode);
-        Assert.Equal("https://example.test:5001/contests?year=2026", response.Headers.Location!.AbsoluteUri);
-    }
-
     [Theory]
     [InlineData("ru", "Страница не найдена", "К сожалению, запрашиваемая страница не существует.")]
     [InlineData("en", "Not Found", "Sorry, the content you are looking for does not exist.")]

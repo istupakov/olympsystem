@@ -13,8 +13,8 @@ using Microsoft.Extensions.Options;
 
 using Olymp.Domain;
 using Olymp.Domain.Models;
-using Olymp.Site;
 using Olymp.Tests.Shared;
+using Olymp.WebApp;
 
 using Xunit;
 

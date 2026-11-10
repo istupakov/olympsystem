@@ -1,5 +1,3 @@
-using Olymp.Domain;
-
 using Xunit;
 
 namespace Olymp.Tests.Domain;

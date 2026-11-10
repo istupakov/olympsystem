@@ -5,7 +5,6 @@ using Microsoft.EntityFrameworkCore;
 
 using Olymp.Domain;
 using Olymp.Domain.Models;
-using Olymp.Site;
 
 namespace Olymp.WebApp.Components.Contests;
 

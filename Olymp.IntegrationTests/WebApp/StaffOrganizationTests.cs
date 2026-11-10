@@ -15,8 +15,8 @@ using Microsoft.Extensions.Logging;
 
 using Olymp.Domain;
 using Olymp.Domain.Models;
-using Olymp.Site;
 using Olymp.Tests.Shared;
+using Olymp.WebApp;
 using Olymp.WebApp.Components.Pages.Staff.Admin;
 using Olymp.WebApp.Resources;
 

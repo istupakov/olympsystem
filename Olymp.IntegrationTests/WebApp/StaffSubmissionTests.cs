@@ -11,10 +11,10 @@ using Microsoft.Extensions.DependencyInjection;
 using Olymp.Checker;
 using Olymp.Domain;
 using Olymp.Domain.Models;
-using Olymp.Site;
-using Olymp.Site.Services.AntiCheat;
 using Olymp.Tests.Shared;
+using Olymp.WebApp;
 using Olymp.WebApp.Components.Submissions;
+using Olymp.WebApp.Services.AntiCheat;
 
 using Xunit;
 

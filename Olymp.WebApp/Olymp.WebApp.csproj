@@ -9,10 +9,13 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Olymp.Domain\Olymp.Domain.csproj" />
-    <ProjectReference Include="..\Olymp.Site\Olymp.Site.csproj" />
+    <ProjectReference Include="..\Olymp.Checker\Olymp.Checker.csproj" />
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Grpc.AspNetCore" Version="2.85.0" />
+    <PackageReference Include="MailKit" Version="4.18.2" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="11.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="11.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="11.0.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="11.0.0" PrivateAssets="all" />
@@ -27,20 +30,12 @@
     </EmbeddedResource>
   </ItemGroup>
 
+  <ItemGroup>
+    <Protobuf Include="../Protos/runner.proto" GrpcServices="Server" Link="Protos/runner.proto" />
+    <InternalsVisibleTo Include="Olymp.IntegrationTests" />
+  </ItemGroup>
+
   <Target Name="GenerateDesignTimeResources" BeforeTargets="CoreCompile"
           DependsOnTargets="PrepareResources" Condition="'$(DesignTimeBuild)' == 'true'" />
-
-  <Target Name="ExcludeLegacySiteStaticWebAssets" AfterTargets="ResolveReferencedProjectsStaticWebAssetsConfiguration">
-    <ItemGroup>
-      <StaticWebAssetProjectConfiguration Remove="@(StaticWebAssetProjectConfiguration)"
-                                         Condition="'%(Source)' == 'Olymp.Site' Or '%(Source)' == 'Olymp.Site.IdentityUI'" />
-    </ItemGroup>
-  </Target>
-
-  <Target Name="ExcludeLegacySitePublishSettings" AfterTargets="ComputeResolvedFilesToPublishList">
-    <ItemGroup>
-      <ResolvedFileToPublish Remove="$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/../Olymp.Site'))/appsettings*.json" />
-    </ItemGroup>
-  </Target>
 
 </Project>

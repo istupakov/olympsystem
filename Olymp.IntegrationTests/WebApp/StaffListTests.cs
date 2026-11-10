@@ -15,12 +15,12 @@ using Microsoft.Extensions.Logging;
 
 using Olymp.Domain;
 using Olymp.Domain.Models;
-using Olymp.Site;
-using Olymp.Site.Services.AntiCheat;
 using Olymp.Tests.Shared;
+using Olymp.WebApp;
 using Olymp.WebApp.Components.Staff;
 using Olymp.WebApp.Components.Submissions;
 using Olymp.WebApp.Resources;
+using Olymp.WebApp.Services.AntiCheat;
 
 using Xunit;
 

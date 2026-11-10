@@ -4,12 +4,11 @@ using System.Net;
 using System.Security.Claims;
 
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 using Olymp.Domain;
 using Olymp.Domain.Models;
-using Olymp.Site;
+using Olymp.WebApp;
 using Olymp.WebApp.Components.Staff;
 
 using Xunit;

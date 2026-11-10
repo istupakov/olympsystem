@@ -18,8 +18,8 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 
 using Olymp.Domain;
 using Olymp.Domain.Models;
-using Olymp.Site.IdentityUI;
 using Olymp.WebApp.Components;
+using Olymp.WebApp.Services.Mail;
 
 using Xunit;
 

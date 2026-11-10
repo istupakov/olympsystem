@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.Worker">
+<Project Sdk="Microsoft.NET.Sdk.Worker">
 
   <PropertyGroup>
     <TargetFramework>net11.0</TargetFramework>
@@ -21,7 +21,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Protobuf Include="..\Olymp.Site\Protos\runner.proto" GrpcServices="Client">
+    <Protobuf Include="..\Protos\runner.proto" GrpcServices="Client">
       <Link>Protos\runner.proto</Link>
     </Protobuf>
   </ItemGroup>
@@ -32,7 +32,7 @@
     </Content>
     <Content Include="scripts\*.cmd">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>    
+    </Content>
   </ItemGroup>
 
 </Project>

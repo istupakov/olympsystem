@@ -3,8 +3,8 @@ using System.Globalization;
 using Microsoft.AspNetCore.Identity;
 
 using Olymp.Domain.Models;
-using Olymp.Site.IdentityUI;
 using Olymp.WebApp.Resources;
+using Olymp.WebApp.Services.Mail;
 
 namespace Olymp.WebApp.Components.Account;
 

@@ -2,17 +2,12 @@ using System.ComponentModel.DataAnnotations;
 
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
-using Microsoft.AspNetCore.Components.Forms;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 using Olymp.Checker;
 using Olymp.Domain;
-using Olymp.Domain.Models;
-using Olymp.Site;
-using Olymp.Site.Services.AntiCheat;
-using Olymp.WebApp.Components.Staff;
 using Olymp.WebApp.Resources;
+using Olymp.WebApp.Services.AntiCheat;
 
 namespace Olymp.WebApp.Components.Pages.Staff.Jury;
 

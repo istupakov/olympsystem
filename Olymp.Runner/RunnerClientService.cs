@@ -7,11 +7,11 @@ using Grpc.Core;
 
 using Microsoft.Extensions.Options;
 
-using Olymp.Site.Protos;
+using Olymp.RunnerProtocol;
 
 namespace Olymp.Runner;
 
-public class RunnerClientService(Site.Protos.Runner.RunnerClient runnerClient,
+public class RunnerClientService(RunnerProtocol.Runner.RunnerClient runnerClient,
     IOptions<RunnerClientConfig> options,
     ILogger<RunnerClientService> logger,
     IRestrictedProcessFactory processFactory) : BackgroundService

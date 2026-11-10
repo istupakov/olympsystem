@@ -11,10 +11,10 @@ using Microsoft.Extensions.DependencyInjection;
 
 using Olymp.Domain;
 using Olymp.Domain.Models;
-using Olymp.Site;
-using Olymp.Site.Services;
-using Olymp.Site.Services.Contests;
 using Olymp.Tests.Shared;
+using Olymp.WebApp;
+using Olymp.WebApp.Services;
+using Olymp.WebApp.Services.Contests;
 
 using Xunit;
 

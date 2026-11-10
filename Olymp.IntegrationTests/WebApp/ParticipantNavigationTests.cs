@@ -9,8 +9,8 @@ using Microsoft.Extensions.DependencyInjection;
 
 using Olymp.Domain;
 using Olymp.Domain.Models;
-using Olymp.Site;
 using Olymp.Tests.Shared;
+using Olymp.WebApp;
 
 using Xunit;
 
@@ -42,7 +42,7 @@ public class ParticipantNavigationTests(WebAppFactory factory) : IClassFixture<W
         }
         var participant = await AddParticipantAsync(contest);
 
-        using var client = await factory.LoginAsync(participant.UserName);
+        using var client = await factory.LoginAsync(participant.UserName!);
         client.DefaultRequestHeaders.AcceptLanguage.ParseAdd(culture);
         foreach (string section in state == "upcoming" ? new[] { "rules" } : ["problems", "standing", "rules"])
         {

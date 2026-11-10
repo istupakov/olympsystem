@@ -14,8 +14,8 @@ using Microsoft.Extensions.DependencyInjection;
 
 using Olymp.Domain;
 using Olymp.Domain.Models;
-using Olymp.Site;
 using Olymp.Tests.Shared;
+using Olymp.WebApp;
 using Olymp.WebApp.Components.Submissions;
 
 using Xunit;

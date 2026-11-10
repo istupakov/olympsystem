@@ -11,13 +11,13 @@
   "forwardPorts": [5000, 5001, 5002, 5003],
   "portsAttributes": {
     "5000": {
-      "label": "Olymp.Site (HTTP)",
+      "label": "Olymp.WebApp (HTTP)",
       "protocol": "http",
       "requireLocalPort": true,
       "onAutoForward": "silent"
     },
     "5001": {
-      "label": "Olymp.Site (HTTPS)",
+      "label": "Olymp.WebApp (HTTPS)",
       "protocol": "https",
       "requireLocalPort": true,
       "onAutoForward": "openBrowserOnce"

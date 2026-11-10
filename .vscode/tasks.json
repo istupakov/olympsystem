@@ -54,7 +54,7 @@
       "label": "Site: Watch",
       "type": "process",
       "command": "dotnet",
-      "args": ["watch", "--project", "Olymp.Site"],
+      "args": ["watch", "--project", "Olymp.WebApp"],
       "problemMatcher": "$msCompile"
     }
   ],

@@ -2,7 +2,7 @@ using Microsoft.Extensions.Options;
 
 using Olymp.Runner;
 using Olymp.Runner.Windows;
-using Olymp.Site.Protos;
+using Olymp.RunnerProtocol;
 
 var builder = Host.CreateApplicationBuilder(args);
 builder.Services.AddOptions<RunnerConnectionConfig>()

@@ -7,7 +7,6 @@ using Microsoft.EntityFrameworkCore;
 
 using Olymp.Checker;
 using Olymp.Domain.Models;
-using Olymp.Site;
 using Olymp.WebApp.Resources;
 
 namespace Olymp.WebApp.Components.Pages.Staff.Jury;
