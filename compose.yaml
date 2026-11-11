@@ -35,9 +35,3 @@ services:
       TZ: Asia/Novosibirsk
     ports:
       - "5000:5000"
-    healthcheck:
-      test: curl --fail http://localhost:5000/healthz || exit 1
-      interval: 10s
-      timeout: 3s
-      retries: 10
-      start_period: 10s

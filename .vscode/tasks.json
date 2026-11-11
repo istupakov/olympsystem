@@ -13,11 +13,18 @@
       "args": ["scripts/prepare-sql-directories.sh"]
     },
     {
+      "label": "Host: Prepare production",
+      "detail": "Prepare SQL directories, TLS certificate and Data Protection keys on the Linux/WSL Docker host.",
+      "type": "process",
+      "command": "bash",
+      "args": ["scripts/prepare-production.sh", "${input:applicationServerIp}"]
+    },
+    {
       "label": "Host: Trust HTTPS certificate",
       "detail": "Run on a Windows/WSL host after the Dev Container creates the certificate.",
       "type": "process",
       "command": "certutil.exe",
-      "args": ["-user", "-addstore", "Root", "tls\\Olymp.Site.crt"]
+      "args": ["-user", "-addstore", "Root", "tls\\Olymp.WebApp.crt"]
     },
     {
       "label": "Host: Database backup",
@@ -52,6 +59,11 @@
     }
   ],
   "inputs": [
+    {
+      "id": "applicationServerIp",
+      "type": "promptString",
+      "description": "Application server IP used by Caddy to connect to Kestrel"
+    },
     {
       "id": "databaseBackupFile",
       "type": "promptString",

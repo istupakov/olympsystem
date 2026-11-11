@@ -5,18 +5,20 @@ services:
   site:
     restart: unless-stopped
     environment:
-      ASPNETCORE_HTTPS_PORTS: "5001"
       ASPNETCORE_ENVIRONMENT: Production
-      ASPNETCORE_HTTPS_PORT: 443
+      ASPNETCORE_HTTP_PORTS: ""
+      ASPNETCORE_HTTPS_PORTS: "5000"
       DataProtection__Path: ./keys
-      LettuceEncrypt__Path: ./tls
-      LettuceEncrypt__Password:
-      LettuceEncrypt__UseStagingServer:
+      ReverseProxy__KnownProxies__0:
       MailService__UserName:
       MailService__Password:
       ApiKeys__0:
-    ports:
-      - "5001:5001"
     volumes:
-      - ./tls:/app/tls
       - ./keys:/app/keys
+      - ./tls:/app/tls:ro
+    healthcheck:
+      test: curl --fail --cacert /app/tls/Olymp.WebApp.crt https://localhost:5000/healthz || exit 1
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
