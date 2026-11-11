@@ -1,11 +1,11 @@
+using System.Net;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Unicode;
 
-using LettuceEncrypt;
-
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Razor;
 using Microsoft.AspNetCore.Rewrite;
@@ -31,6 +31,12 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.WebHost.ConfigureKestrel(options =>
     options.Limits.Http2.KeepAlivePingDelay = TimeSpan.FromSeconds(10));
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    foreach (string address in builder.Configuration.GetSection("ReverseProxy:KnownProxies").Get<string[]>() ?? [])
+        options.KnownProxies.Add(IPAddress.Parse(address));
+});
 
 // Add services to the container.
 
@@ -139,23 +145,18 @@ if (builder.Environment.IsProduction() && dataProtectionPath is not null)
         .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionPath));
 }
 
-var lettuceEncryptPath = builder.Configuration["LettuceEncrypt:Path"];
-if (builder.Environment.IsProduction() && lettuceEncryptPath is not null)
-{
-    var password = builder.Configuration.GetValue<string>("LettuceEncrypt:Password");
-    builder.Services.AddLettuceEncrypt()
-        .PersistDataToDirectory(new DirectoryInfo(lettuceEncryptPath), password);
-}
-
 builder.Services.AddHealthChecks()
     .AddDbContextCheck<OlympContext>();
 
 var app = builder.Build();
 
+app.UseForwardedHeaders();
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseMigrationsEndPoint();
+    app.UseHttpsRedirection();
 }
 else
 {
@@ -164,11 +165,9 @@ else
 }
 
 app.UseHealthChecks("/healthz");
-app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRewriter(new RewriteOptions()
-    .AddRedirectToNonWwwPermanent()
     // Legacy: for old links
     .AddRedirect(@"olympiad/standing/(\w+)", "contests/standing/$1", StatusCodes.Status301MovedPermanently));
 

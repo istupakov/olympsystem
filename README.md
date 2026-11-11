@@ -34,7 +34,7 @@ On the host, use the commands below or the corresponding VS Code tasks (**Tasks:
 3. On Windows/WSL, run `Host: Trust HTTPS certificate` or:
 
    ```bash
-   certutil.exe -user -addstore Root 'tls\Olymp.Site.crt'
+   certutil.exe -user -addstore Root 'tls\Olymp.WebApp.crt'
    ```
 
 ### Run

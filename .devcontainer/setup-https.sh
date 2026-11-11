@@ -7,12 +7,12 @@ mkdir -p tls
 
 certificate_password='local-development'
 
-if [ -f tls/Olymp.Site.pfx ]; then
-    dotnet dev-certs https --clean --import "$PWD/tls/Olymp.Site.pfx" \
+if [ -f tls/Olymp.WebApp.pfx ]; then
+    dotnet dev-certs https --clean --import "$PWD/tls/Olymp.WebApp.pfx" \
         --password "$certificate_password"
 else
-    dotnet dev-certs https --export-path "$PWD/tls/Olymp.Site.pfx" \
+    dotnet dev-certs https --export-path "$PWD/tls/Olymp.WebApp.pfx" \
         --password "$certificate_password"
 fi
 
-dotnet dev-certs https --trust --export-path "$PWD/tls/Olymp.Site.crt" --format PEM
+dotnet dev-certs https --trust --export-path "$PWD/tls/Olymp.WebApp.crt" --format PEM
