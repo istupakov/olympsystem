@@ -202,7 +202,7 @@
   <data name="EditContest" xml:space="preserve"><value>Редактирование соревнования</value></data>
   <data name="NoStaffContests" xml:space="preserve"><value>Соревнований пока нет.</value></data>
   <data name="Abbreviation" xml:space="preserve"><value>Сокращение</value></data>
-  <data name="AbbreviationHint" xml:space="preserve"><value>Начните с латинской буквы; используйте латинские буквы, цифры, подчёркивания и дефисы. Префикс acm задаёт командный режим, school – школьный.</value></data>
+  <data name="AbbreviationHint" xml:space="preserve"><value>Начните с латинской буквы; используйте латинские буквы, цифры, подчёркивания и дефисы. Префикс acm задаёт командный режим, icpc – командный режим с импортом ICPC и ручной регистрацией только вне конкурса, school – школьный.</value></data>
   <data name="AbbreviationFormat" xml:space="preserve"><value>Используйте латинскую букву, затем латинские буквы, цифры, подчёркивания или дефисы.</value></data>
   <data name="AbbreviationInUse" xml:space="preserve"><value>Это сокращение уже используется.</value></data>
   <data name="ContestStart" xml:space="preserve"><value>Дата и время начала</value></data>
@@ -455,4 +455,62 @@
   <data name="ParticipantLoginsDuplicate" xml:space="preserve"><value>В файле повторяются логины.</value></data>
   <data name="ParticipantLoginsTooFew" xml:space="preserve"><value>В файле недостаточно логинов.</value></data>
   <data name="ProfileGroupRequired" xml:space="preserve"><value>Поле Группа в профиле должно быть заполнено.</value></data>
+  <data name="IcpcImport" xml:space="preserve"><value>Импорт с icpc.global</value></data>
+  <data name="IcpcImportHint" xml:space="preserve"><value>Загрузите команды из ICPC, выберите нужные и проверьте привязку аккаунтов и вузов перед импортом.</value></data>
+  <data name="IcpcCredentialsHint" xml:space="preserve"><value>У аккаунта ICPC должен быть доступ к этому соревнованию. Пароль используется только для загрузки и не сохраняется.</value></data>
+  <data name="IcpcLoad" xml:space="preserve"><value>Загрузить команды</value></data>
+  <data name="IcpcUpdateHint" xml:space="preserve"><value>У выбранных существующих команд обновятся название, вуз, состав, тренер и подтверждение. Логины, пароли, решения и остальные флаги сохранятся. Отсутствующие команды не удаляются.</value></data>
+  <data name="IcpcShowCanceled" xml:space="preserve"><value>Показать отменённые команды</value></data>
+  <data name="IcpcNewTeam" xml:space="preserve"><value>Новая команда</value></data>
+  <data name="IcpcUpdateTeam" xml:space="preserve"><value>Обновление существующей команды</value></data>
+  <data name="IcpcCurrentData" xml:space="preserve"><value>Текущие данные</value></data>
+  <data name="IcpcSelectOrganization" xml:space="preserve"><value>Выберите существующую организацию.</value></data>
+  <data name="IcpcSelectCoach" xml:space="preserve"><value>Выберите найденного тренера.</value></data>
+  <data name="IcpcAccountLinked" xml:space="preserve"><value>Аккаунт найден</value></data>
+  <data name="IcpcConfirm" xml:space="preserve"><value>Импортировать выбранные команды ({0})? Перед подтверждением проверьте вузы, тренеров и предупреждения.</value></data>
+  <data name="IcpcImportSelected" xml:space="preserve"><value>Импортировать выбранные команды</value></data>
+  <data name="IcpcCredentialsRequired" xml:space="preserve"><value>Выберите соревнование ICPC и введите email и пароль.</value></data>
+  <data name="IcpcLoadFailed" xml:space="preserve"><value>Не удалось загрузить команды ICPC. Проверьте учётные данные и доступ к соревнованию. Сервис может быть недоступен или требовать дополнительную авторизацию.</value></data>
+  <data name="IcpcImported" xml:space="preserve"><value>Добавлено команд: {0}. Обновлено: {1}.</value></data>
+  <data name="IcpcOnly" xml:space="preserve"><value>Импорт ICPC доступен только для олимпиад с аббревиатурой, начинающейся с icpc.</value></data>
+  <data name="IcpcRegistrationUnofficialOnly" xml:space="preserve"><value>Команды в конкурсе импортируются жюри с icpc.global. Ручная регистрация команд доступна только вне конкурса.</value></data>
+  <data name="IcpcInvalidData" xml:space="preserve"><value>Некорректные данные ICPC: проверьте ID, название и состав команды (1–3 участника).</value></data>
+  <data name="IcpcDuplicateId" xml:space="preserve"><value>Найдены неоднозначные привязки ID ICPC. Устраните конфликт перед импортом.</value></data>
+  <data name="IcpcEmailAmbiguous" xml:space="preserve"><value>Email {0} соответствует нескольким аккаунтам.</value></data>
+  <data name="IcpcUnlinkedMembers" xml:space="preserve"><value>У некоторых участников нет существующего аккаунта. Их имена будут импортированы без привязки.</value></data>
+  <data name="IcpcNoCoach" xml:space="preserve"><value>Аккаунт тренера не найден: некому получить пароль команды. Импорт разрешён.</value></data>
+  <data name="IcpcSelectTeams" xml:space="preserve"><value>Выберите хотя бы одну команду.</value></data>
+  <data name="IcpcPreviewChanged" xml:space="preserve"><value>Данные изменились после предпросмотра. Загрузите команды заново и проверьте изменения.</value></data>
+  <data name="IcpcCoachNeedsAccess" xml:space="preserve"><value>Аккаунт тренера найден, но у него нет тренерского доступа к выбранной организации. Для получения пароля команды администратору нужно выдать соответствующие права.</value></data>
+  <data name="IcpcTeamSizeHint" xml:space="preserve"><value>Вне конкурса допускаются команды от одного до трёх человек.</value></data>
+  <data name="IcpcSeason" xml:space="preserve"><value>Сезон</value></data>
+  <data name="IcpcRegion" xml:space="preserve"><value>Регион</value></data>
+  <data name="IcpcSelectRegion" xml:space="preserve"><value>Выберите регион</value></data>
+  <data name="IcpcSearchContest" xml:space="preserve"><value>Поиск по названию соревнования</value></data>
+  <data name="IcpcContest" xml:space="preserve"><value>Соревнование</value></data>
+  <data name="IcpcSelectContest" xml:space="preserve"><value>Выберите соревнование</value></data>
+  <data name="IcpcCatalogHint" xml:space="preserve"><value>Это публичный каталог ICPC. Доступ к данным команд проверяется при загрузке команд.</value></data>
+  <data name="IcpcReloadCatalog" xml:space="preserve"><value>Обновить каталог</value></data>
+  <data name="IcpcCatalogFailed" xml:space="preserve"><value>Не удалось загрузить каталог ICPC. Попробуйте обновить каталог.</value></data>
+  <data name="IcpcSeasonInvalid" xml:space="preserve"><value>Введите сезон от 1 до 9999.</value></data>
+  <data name="IcpcNoMatchingContests" xml:space="preserve"><value>В этом регионе нет соревнований, соответствующих поиску.</value></data>
+  <data name="IcpcStageRegions" xml:space="preserve"><value>Загрузка регионов ICPC</value></data>
+  <data name="IcpcStageContests" xml:space="preserve"><value>Загрузка соревнований ICPC</value></data>
+  <data name="IcpcStageAuthentication" xml:space="preserve"><value>Вход в ICPC</value></data>
+  <data name="IcpcStageAccess" xml:space="preserve"><value>Проверка доступа к соревнованию ICPC</value></data>
+  <data name="IcpcErrorContestAccess" xml:space="preserve"><value>ICPC подтвердил, что у этого аккаунта нет доступа к выбранному соревнованию. Используйте аккаунт с доступом к управлению этим соревнованием на icpc.global.</value></data>
+  <data name="IcpcStageTeams" xml:space="preserve"><value>Загрузка команд ICPC</value></data>
+  <data name="IcpcStageMembers" xml:space="preserve"><value>Загрузка составов ICPC</value></data>
+  <data name="IcpcStageRoster" xml:space="preserve"><value>Обработка составов ICPC</value></data>
+  <data name="IcpcErrorAuthentication" xml:space="preserve"><value>ICPC отклонил авторизацию. Проверьте аккаунт или указанный код ошибки.</value></data>
+  <data name="IcpcErrorAdditionalAuthentication" xml:space="preserve"><value>ICPC требует дополнительный шаг входа, который этот импорт пока не поддерживает.</value></data>
+  <data name="IcpcErrorNetwork" xml:space="preserve"><value>Не удалось связаться с ICPC или соединение было прервано.</value></data>
+  <data name="IcpcErrorTimeout" xml:space="preserve"><value>Истекло время ожидания ответа ICPC.</value></data>
+  <data name="IcpcErrorResponse" xml:space="preserve"><value>ICPC вернул данные, которые импорт не смог обработать.</value></data>
+  <data name="IcpcErrorLimit" xml:space="preserve"><value>Ответ ICPC превышает поддерживаемый объём.</value></data>
+  <data name="IcpcErrorAccessDenied" xml:space="preserve"><value>ICPC запретил доступ к данным команд этого соревнования.</value></data>
+  <data name="IcpcErrorUnauthorized" xml:space="preserve"><value>ICPC отклонил токен авторизации. Попробуйте войти повторно.</value></data>
+  <data name="IcpcErrorServer" xml:space="preserve"><value>ICPC сообщил об ошибке сервера. Попробуйте позже.</value></data>
+  <data name="IcpcErrorRequest" xml:space="preserve"><value>ICPC отклонил запрос.</value></data>
+  <data name="IcpcErrorCode" xml:space="preserve"><value>Код</value></data>
 </root>

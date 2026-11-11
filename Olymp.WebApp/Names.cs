@@ -21,4 +21,5 @@ public static class ClaimNames
     public const string CoachOrg = "coach-org";
     public const string CompetitorContest = "competitor-contest";
     public const string ContestManage = "contest-manage";
+    public const string IcpcTeamId = "icpc-team-id";
 }

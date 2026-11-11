@@ -29,6 +29,10 @@ else
     {
         <fieldset disabled="@_busy" class="mb-4">
             <div class="d-flex flex-wrap gap-2 mb-3">
+                @if (_contest.IsIcpc)
+                {
+                    <a class="btn btn-primary" href="jury/contests/@ContestId/participants/icpc">@SiteResources.IcpcImport</a>
+                }
                 <button class="btn btn-outline-primary" @onclick="() => Ask(ParticipantAction.ApproveAll)">@SiteResources.StaffApproveAll</button>
                 <button class="btn btn-outline-primary" @onclick="() => Ask(ParticipantAction.GenerateLogins)">@SiteResources.StaffGenerateLogins</button>
                 <button class="btn btn-outline-danger" @onclick="() => Ask(ParticipantAction.RemoveLogins)">@SiteResources.StaffRemoveLogins</button>

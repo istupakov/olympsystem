@@ -61,7 +61,7 @@
         </div>
 
         <h2 class="h4">@SiteResources.Members</h2>
-        <p class="text-body-secondary">@SiteResources.TeamSizeHint</p>
+        <p class="text-body-secondary">@(contest.IsIcpc ? SiteResources.IcpcTeamSizeHint : SiteResources.TeamSizeHint)</p>
         @if (membersError is not null)
         {
             <div class="text-danger mb-3" role="alert">@membersError</div>
@@ -145,17 +145,28 @@
                 </div>
             </div>
         </fieldset>
-        <div class="form-check mb-3">
-            <InputCheckbox @bind-Value="Input.OutOfCompetition" id="Input.OutOfCompetition" class="form-check-input" disabled="@preview" />
-            <label for="Input.OutOfCompetition" class="form-check-label"><DisplayName For="() => Input.OutOfCompetition" /></label>
-        </div>
+        @if (contest.IsIcpc)
+        {
+            <p class="alert alert-info">@SiteResources.IcpcRegistrationUnofficialOnly</p>
+            <input type="hidden" name="Input.OutOfCompetition" value="true" />
+        }
+        else
+        {
+            <div class="form-check mb-3">
+                <InputCheckbox @bind-Value="Input.OutOfCompetition" id="Input.OutOfCompetition" class="form-check-input" disabled="@preview" />
+                <label for="Input.OutOfCompetition" class="form-check-label"><DisplayName For="() => Input.OutOfCompetition" /></label>
+            </div>
+        }
 
         @if (preview)
         {
             <input type="hidden" name="Input.Member1Id" value="@Input.Member1Id" />
             <input type="hidden" name="Input.Member2Id" value="@Input.Member2Id" />
             <input type="hidden" name="Input.Member3Id" value="@Input.Member3Id" />
-            <input type="hidden" name="Input.OutOfCompetition" value="@Input.OutOfCompetition.ToString().ToLowerInvariant()" />
+            @if (!contest.IsIcpc)
+            {
+                <input type="hidden" name="Input.OutOfCompetition" value="@Input.OutOfCompetition.ToString().ToLowerInvariant()" />
+            }
             <section class="card mb-3" aria-labelledby="team-preview">
                 <div class="card-body">
                     <h2 id="team-preview" class="h4 card-title">@SiteResources.TeamPreview</h2>
@@ -250,6 +261,8 @@
             .OrderBy(item => item.LastName).ThenBy(item => item.FirstName).ThenBy(item => item.Id)
             .ToListAsync(HttpContext.RequestAborted);
         Input ??= new() { TeamPrefix = organization.ACMName ?? "" };
+        if (contest.IsIcpc)
+            Input.OutOfCompetition = true;
         Input.Member1Name = Input.Member1Name?.Trim();
         Input.Member2Name = Input.Member2Name?.Trim();
         Input.Member3Name = Input.Member3Name?.Trim();

@@ -94,6 +94,8 @@ public sealed class CompetitorManagementService(OlympContext context, UserManage
 
         if (contest.IsHidden || !contest.IsAcm || DateTimeOffset.Now > contest.EndTime)
             throw new OperationValidationException(SiteResources.RegistrationNotAvailable);
+        if (contest.IsIcpc && !outOfCompetition)
+            throw new OperationValidationException(SiteResources.IcpcRegistrationUnofficialOnly);
         if (!await context.Organizations.AnyAsync(x => x.Id == organizationId, token)
             || !await context.OlympUsers.AnyAsync(x => x.Id == coachId, token))
             throw new EntityNotFoundException();

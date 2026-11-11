@@ -202,7 +202,7 @@
   <data name="EditContest" xml:space="preserve"><value>Edit contest</value></data>
   <data name="NoStaffContests" xml:space="preserve"><value>No contests yet.</value></data>
   <data name="Abbreviation" xml:space="preserve"><value>Abbreviation</value></data>
-  <data name="AbbreviationHint" xml:space="preserve"><value>Start with a Latin letter; use Latin letters, digits, underscores and hyphens. Prefix acm selects team mode, school selects school mode.</value></data>
+  <data name="AbbreviationHint" xml:space="preserve"><value>Start with a Latin letter; use Latin letters, digits, underscores and hyphens. Prefix acm selects team mode, icpc selects team mode with ICPC import and manual registration only out of competition, school selects school mode.</value></data>
   <data name="AbbreviationFormat" xml:space="preserve"><value>Use a Latin letter followed by Latin letters, digits, underscores or hyphens.</value></data>
   <data name="AbbreviationInUse" xml:space="preserve"><value>This abbreviation is already in use.</value></data>
   <data name="ContestStart" xml:space="preserve"><value>Start date and time</value></data>
@@ -455,4 +455,62 @@
   <data name="ParticipantLoginsDuplicate" xml:space="preserve"><value>The file contains duplicate logins.</value></data>
   <data name="ParticipantLoginsTooFew" xml:space="preserve"><value>The file contains too few logins.</value></data>
   <data name="ProfileGroupRequired" xml:space="preserve"><value>The Group field in the profile must be filled in.</value></data>
+  <data name="IcpcImport" xml:space="preserve"><value>Import from icpc.global</value></data>
+  <data name="IcpcImportHint" xml:space="preserve"><value>Load teams from ICPC, select teams and check account and organization matches before importing.</value></data>
+  <data name="IcpcCredentialsHint" xml:space="preserve"><value>Your ICPC account must have access to this contest. The password is used only for this request and is not saved.</value></data>
+  <data name="IcpcLoad" xml:space="preserve"><value>Load teams</value></data>
+  <data name="IcpcUpdateHint" xml:space="preserve"><value>Selected existing teams will have their name, organization, roster, coach and approval updated. Logins, passwords, submissions and other flags are retained. Missing teams are not deleted.</value></data>
+  <data name="IcpcShowCanceled" xml:space="preserve"><value>Show canceled teams</value></data>
+  <data name="IcpcNewTeam" xml:space="preserve"><value>New team</value></data>
+  <data name="IcpcUpdateTeam" xml:space="preserve"><value>Update existing team</value></data>
+  <data name="IcpcCurrentData" xml:space="preserve"><value>Current data</value></data>
+  <data name="IcpcSelectOrganization" xml:space="preserve"><value>Select an existing organization.</value></data>
+  <data name="IcpcSelectCoach" xml:space="preserve"><value>Select a matched coach.</value></data>
+  <data name="IcpcAccountLinked" xml:space="preserve"><value>Account matched</value></data>
+  <data name="IcpcConfirm" xml:space="preserve"><value>Import the selected teams ({0})? Check organizations, coaches and warnings before confirming.</value></data>
+  <data name="IcpcImportSelected" xml:space="preserve"><value>Import selected teams</value></data>
+  <data name="IcpcCredentialsRequired" xml:space="preserve"><value>Select an ICPC contest and enter your email and password.</value></data>
+  <data name="IcpcLoadFailed" xml:space="preserve"><value>Could not load ICPC teams. Check credentials and contest access. The service may be unavailable or require additional authentication.</value></data>
+  <data name="IcpcImported" xml:space="preserve"><value>Teams added: {0}. Updated: {1}.</value></data>
+  <data name="IcpcOnly" xml:space="preserve"><value>ICPC import is available only for contests whose abbreviation starts with icpc.</value></data>
+  <data name="IcpcRegistrationUnofficialOnly" xml:space="preserve"><value>Official teams are imported from icpc.global by the jury. Manual team registration is available only out of competition.</value></data>
+  <data name="IcpcInvalidData" xml:space="preserve"><value>Invalid ICPC data: check team ID, name and roster (1–3 contestants).</value></data>
+  <data name="IcpcDuplicateId" xml:space="preserve"><value>Multiple ICPC ID links found. Resolve the conflict before importing.</value></data>
+  <data name="IcpcEmailAmbiguous" xml:space="preserve"><value>More than one account matches email {0}.</value></data>
+  <data name="IcpcUnlinkedMembers" xml:space="preserve"><value>Some contestants have no existing account. Their names will be imported without account links.</value></data>
+  <data name="IcpcNoCoach" xml:space="preserve"><value>No existing coach account found: there is no linked coach to receive the team password. Import is still allowed.</value></data>
+  <data name="IcpcSelectTeams" xml:space="preserve"><value>Select at least one team.</value></data>
+  <data name="IcpcPreviewChanged" xml:space="preserve"><value>Data changed after the preview. Load the teams again and review the changes.</value></data>
+  <data name="IcpcCoachNeedsAccess" xml:space="preserve"><value>The coach account was matched but has no coach access to the selected organization. An administrator must grant access before the coach can receive the team password.</value></data>
+  <data name="IcpcTeamSizeHint" xml:space="preserve"><value>Out-of-competition teams may have one to three contestants.</value></data>
+  <data name="IcpcSeason" xml:space="preserve"><value>Season</value></data>
+  <data name="IcpcRegion" xml:space="preserve"><value>Region</value></data>
+  <data name="IcpcSelectRegion" xml:space="preserve"><value>Select a region</value></data>
+  <data name="IcpcSearchContest" xml:space="preserve"><value>Search by contest name</value></data>
+  <data name="IcpcContest" xml:space="preserve"><value>Contest</value></data>
+  <data name="IcpcSelectContest" xml:space="preserve"><value>Select a contest</value></data>
+  <data name="IcpcCatalogHint" xml:space="preserve"><value>This is the public ICPC catalog. Access to team data is checked when loading teams.</value></data>
+  <data name="IcpcReloadCatalog" xml:space="preserve"><value>Refresh catalog</value></data>
+  <data name="IcpcCatalogFailed" xml:space="preserve"><value>Could not load the ICPC catalog. Try refreshing the catalog.</value></data>
+  <data name="IcpcSeasonInvalid" xml:space="preserve"><value>Enter a season between 1 and 9999.</value></data>
+  <data name="IcpcNoMatchingContests" xml:space="preserve"><value>No contests match the search in this region.</value></data>
+  <data name="IcpcStageRegions" xml:space="preserve"><value>Loading ICPC regions</value></data>
+  <data name="IcpcStageContests" xml:space="preserve"><value>Loading ICPC contests</value></data>
+  <data name="IcpcStageAuthentication" xml:space="preserve"><value>Signing in to ICPC</value></data>
+  <data name="IcpcStageAccess" xml:space="preserve"><value>Checking ICPC contest access</value></data>
+  <data name="IcpcErrorContestAccess" xml:space="preserve"><value>ICPC confirmed that this account does not have access to the selected contest. Use an account with access to manage this contest on icpc.global.</value></data>
+  <data name="IcpcStageTeams" xml:space="preserve"><value>Loading ICPC teams</value></data>
+  <data name="IcpcStageMembers" xml:space="preserve"><value>Loading ICPC team members</value></data>
+  <data name="IcpcStageRoster" xml:space="preserve"><value>Processing ICPC rosters</value></data>
+  <data name="IcpcErrorAuthentication" xml:space="preserve"><value>ICPC rejected authentication. Check your account or the error code.</value></data>
+  <data name="IcpcErrorAdditionalAuthentication" xml:space="preserve"><value>ICPC requires an additional sign-in step that this importer does not yet support.</value></data>
+  <data name="IcpcErrorNetwork" xml:space="preserve"><value>Could not connect to ICPC or the connection was interrupted.</value></data>
+  <data name="IcpcErrorTimeout" xml:space="preserve"><value>The ICPC request timed out.</value></data>
+  <data name="IcpcErrorResponse" xml:space="preserve"><value>ICPC returned data that the importer could not process.</value></data>
+  <data name="IcpcErrorLimit" xml:space="preserve"><value>The ICPC response exceeds the supported size.</value></data>
+  <data name="IcpcErrorAccessDenied" xml:space="preserve"><value>ICPC denied access to this contest's team data.</value></data>
+  <data name="IcpcErrorUnauthorized" xml:space="preserve"><value>ICPC rejected the authorization token. Try signing in again.</value></data>
+  <data name="IcpcErrorServer" xml:space="preserve"><value>ICPC returned a server error. Try again later.</value></data>
+  <data name="IcpcErrorRequest" xml:space="preserve"><value>ICPC rejected the request.</value></data>
+  <data name="IcpcErrorCode" xml:space="preserve"><value>Code</value></data>
 </root>

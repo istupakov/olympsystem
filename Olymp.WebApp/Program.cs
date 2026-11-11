@@ -105,6 +105,9 @@ builder.Services.AddWebEncoders(options =>
     options.TextEncoderSettings = new TextEncoderSettings(UnicodeRanges.BasicLatin, UnicodeRanges.Cyrillic));
 
 builder.Services.AddScoped<CompetitorManagementService>();
+builder.Services.AddScoped<IcpcImportService>();
+builder.Services.AddHttpClient<Olymp.Icpc.IcpcClient>(client => client.Timeout = TimeSpan.FromSeconds(30))
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
 builder.Services.AddSimpleCheckers();
 builder.Services.AddCheckerTests();
 builder.Services.AddCompilators();

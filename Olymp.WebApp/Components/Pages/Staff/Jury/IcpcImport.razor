@@ -1,0 +1,379 @@
+@page "/jury/contests/{ContestId:int}/participants/icpc"
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@using Olymp.Icpc
+@using Olymp.WebApp.Services
+@using Olymp.WebApp.Services.Contests
+@implements IDisposable
+@inject IDbContextFactory<OlympContext> ContextFactory
+@inject IServiceScopeFactory ScopeFactory
+@inject IcpcClient Client
+@inject NavigationManager Navigation
+@inject ILogger<IcpcImport> Logger
+
+<PageTitle>@SiteResources.IcpcImport</PageTitle>
+@if (_contest is not null && _allowed)
+{
+    <StaffContestNavigation ContestId="ContestId" ContestName="@_contest.Name" />
+    <h1 class="h3">@SiteResources.IcpcImport</h1>
+    <p>@SiteResources.IcpcImportHint</p>
+    @if (_error is not null) { <div class="alert alert-danger" role="alert">@_error</div> }
+    @if (_status is not null) { <div class="alert alert-success" role="status">@_status</div> }
+    <EditForm Model="_credentials" OnValidSubmit="LoadTeamsAsync">
+        <fieldset disabled="@(_busy || _catalogBusy)" class="mb-4">
+            <div class="row g-3 mb-3">
+                <div class="col-md-3">
+                    <label class="form-label" for="icpc-season">@SiteResources.IcpcSeason</label>
+                    <InputNumber id="icpc-season" class="form-control" min="1" max="9999" @bind-Value="_season" @bind-Value:after="SeasonChangedAsync" />
+                </div>
+                <div class="col-md-9">
+                    <label class="form-label" for="icpc-region">@SiteResources.IcpcRegion</label>
+                    <InputSelect id="icpc-region" class="form-select" @bind-Value="_regionId" @bind-Value:after="RegionChangedAsync">
+                        <option value="">@SiteResources.IcpcSelectRegion</option>
+                        @foreach (var region in _regions) { <option value="@region.Id">@region.Label</option> }
+                    </InputSelect>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="icpc-search">@SiteResources.IcpcSearchContest</label>
+                    <input id="icpc-search" type="search" class="form-control" @bind="_filter" @bind:event="oninput" />
+                </div>
+                <div class="col-md-8">
+                    <label class="form-label" for="icpc-contest">@SiteResources.IcpcContest</label>
+                    <InputSelect id="icpc-contest" class="form-select" @bind-Value="_credentials.ContestId" @bind-Value:after="ContestChanged">
+                        <option value="0">@SiteResources.IcpcSelectContest</option>
+                        @foreach (var contest in _contests.Where(contest => contest.Id == _credentials.ContestId || contest.Name.Contains(_filter.Trim(), StringComparison.OrdinalIgnoreCase)))
+                        {
+                            <option value="@contest.Id">@contest.Name @contest.Date</option>
+                        }
+                    </InputSelect>
+                    @if (!_catalogBusy && _regionId is not null && !_contests.Any(contest => contest.Id == _credentials.ContestId || contest.Name.Contains(_filter.Trim(), StringComparison.OrdinalIgnoreCase)))
+                    {
+                        <p class="form-text" role="status">@SiteResources.IcpcNoMatchingContests</p>
+                    }
+                </div>
+            </div>
+            <p class="form-text">@SiteResources.IcpcCatalogHint</p>
+            <button type="button" class="btn btn-outline-secondary btn-sm mb-3" @onclick="() => LoadRegionsAsync(true)">@SiteResources.IcpcReloadCatalog</button>
+            @if (_catalogBusy) { <p role="status">@SiteResources.StaffLoading</p> }
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label" for="icpc-email">@AccountResources.Email</label>
+                    <InputText id="icpc-email" class="form-control" type="email" autocomplete="username" @bind-Value="_credentials.Email" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="icpc-password">@AccountResources.Password</label>
+                    <InputText id="icpc-password" class="form-control" type="password" autocomplete="off" @bind-Value="_credentials.Password" />
+                </div>
+            </div>
+            <p class="form-text">@SiteResources.IcpcCredentialsHint</p>
+            <button class="btn btn-primary" type="submit">@(_busy ? SiteResources.StaffLoading : SiteResources.IcpcLoad)</button>
+        </fieldset>
+    </EditForm>
+    @if (_preview is { } preview)
+    {
+        <h2 class="h4">@SiteResources.StaffPreview</h2>
+        <p>@SiteResources.IcpcUpdateHint</p>
+        <div class="form-check mb-3">
+            <InputCheckbox id="icpc-canceled" class="form-check-input" @bind-Value="_showCanceled" disabled="@_busy" />
+            <label class="form-check-label" for="icpc-canceled">@SiteResources.IcpcShowCanceled</label>
+        </div>
+        <fieldset disabled="@_busy">
+            @foreach (var row in preview.Rows.Where(row => _showCanceled || row.Source.Status != "CANCELED"))
+            {
+                <section class="card mb-3" @key="row.Source.Id">
+                    <div class="card-body">
+                        <div class="form-check">
+                            <InputCheckbox id="@($"icpc-team-{row.Source.Id}")" class="form-check-input" @bind-Value="row.Selected" disabled="@(row.Errors.Count != 0)" />
+                            <label class="form-check-label fw-semibold" for="@($"icpc-team-{row.Source.Id}")">@row.Source.Name (#@row.Source.Id)</label>
+                        </div>
+                        <p class="small text-body-secondary">@(row.ExistingId is null ? SiteResources.IcpcNewTeam : SiteResources.IcpcUpdateTeam)</p>
+                        @if (row.ExistingDescription is not null)
+                        {
+                            <p><strong>@SiteResources.IcpcCurrentData:</strong> @row.ExistingDescription</p>
+                        }
+                        <p>
+                            <strong>@SiteResources.StaffStatus:</strong> @row.Source.Status → @(row.IsApproved ? SiteResources.StaffApproved : SiteResources.StaffUnapproved)
+                            <br />@row.Source.EligibilityStatus @row.Source.EligibilityIssue
+                        </p>
+                        @foreach (var error in row.Errors) { <p class="text-danger" role="alert">@error</p> }
+                        @foreach (var warning in row.Warnings) { <p class="text-warning-emphasis" role="status">@warning</p> }
+                        @if (row.CoachNeedsAccess)
+                        {
+                            <p class="text-warning-emphasis" role="status">@SiteResources.IcpcCoachNeedsAccess</p>
+                        }
+                        <div class="row g-3">
+                            <div class="col-lg-6">
+                                <label class="form-label" for="@($"icpc-org-{row.Source.Id}")">@SiteResources.StaffOrganization: @row.Source.InstName</label>
+                                <InputSelect id="@($"icpc-org-{row.Source.Id}")" class="form-select" @bind-Value="row.OrganizationId">
+                                    <option value="">@SiteResources.IcpcSelectOrganization</option>
+                                    @foreach (var org in preview.Organizations) { <option value="@org.Id">@org.Name</option> }
+                                </InputSelect>
+                            </div>
+                            <div class="col-lg-6">
+                                <label class="form-label" for="@($"icpc-coach-{row.Source.Id}")">@SiteResources.StaffCoach</label>
+                                <InputSelect id="@($"icpc-coach-{row.Source.Id}")" class="form-select" @bind-Value="row.CoachId">
+                                    <option value="">@SiteResources.IcpcSelectCoach</option>
+                                    @foreach (var coach in row.Coaches.Where(coach => coach.UserId.HasValue).DistinctBy(coach => coach.UserId))
+                                    {
+                                        <option value="@coach.UserId">@coach.Name (@coach.Email)</option>
+                                    }
+                                </InputSelect>
+                                @foreach (var coach in row.Coaches.Where(coach => coach.UserId is null))
+                                {
+                                    <div class="form-text">@coach.Name (@coach.Email) – @SiteResources.AccountNotLinked</div>
+                                }
+                            </div>
+                        </div>
+                        <h3 class="h6 mt-3">@SiteResources.StaffMembers</h3>
+                        <ul class="mb-0">
+                            @foreach (var member in row.Members)
+                            {
+                                <li>@member.Name (@member.Email) – @(member.UserId is null ? SiteResources.AccountNotLinked : SiteResources.IcpcAccountLinked)</li>
+                            }
+                        </ul>
+                    </div>
+                </section>
+            }
+            @if (preview.Rows.Count == 0) { <p>@SiteResources.StaffNoParticipants</p> }
+            @if (_confirm)
+            {
+                <div class="alert alert-warning" role="alert">
+                    <p>@string.Format(SiteResources.IcpcConfirm, SelectedRows.Count)</p>
+                    <button type="button" class="btn btn-danger me-2" @onclick="ImportAsync">@SiteResources.StaffConfirm</button>
+                    <button type="button" class="btn btn-outline-secondary" @onclick="() => _confirm = false">@SiteResources.StaffCancel</button>
+                </div>
+            }
+            else
+            {
+                <button type="button" class="btn btn-primary" disabled="@(SelectedRows.Count == 0)" @onclick="() => _confirm = true">@SiteResources.IcpcImportSelected</button>
+            }
+        </fieldset>
+    }
+    <a class="btn btn-outline-secondary mt-3" href="jury/contests/@ContestId/participants">@SiteResources.ContestParticipants</a>
+}
+else
+{
+    <p role="status">@(_error ?? SiteResources.StaffLoading)</p>
+}
+
+@code {
+    [Parameter] public int ContestId { get; set; }
+    [SupplyParameterFromQuery(Name = "season")] public int? Season { get; set; }
+    [SupplyParameterFromQuery(Name = "region")] public long? Region { get; set; }
+    [SupplyParameterFromQuery(Name = "source")] public long? Source { get; set; }
+    [CascadingParameter] private Task<AuthenticationState> AuthenticationState { get; set; } = default!;
+    private readonly Credentials _credentials = new();
+    private readonly CancellationTokenSource _lifetime = new();
+    private Contest? _contest;
+    private IcpcImportPreview? _preview;
+    private bool _allowed;
+    private bool _busy;
+    private bool _showCanceled;
+    private bool _confirm;
+    private int _version;
+    private int _catalogVersion;
+    private bool _catalogBusy;
+    private int _season;
+    private long? _regionId;
+    private string _filter = "";
+    private IReadOnlyList<IcpcRegion> _regions = [];
+    private IReadOnlyList<IcpcContest> _contests = [];
+    private string? _error;
+    private string? _status;
+    private IReadOnlyList<IcpcImportRow> SelectedRows => _preview is null ? []
+        : [.. _preview.Rows.Where(row => row.Selected && (_showCanceled || row.Source.Status != "CANCELED"))];
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_contest?.Id == ContestId && _allowed) return;
+        int version = ++_version;
+        int contestId = ContestId;
+        _allowed = false;
+        _credentials.Password = "";
+        _preview = null;
+        _confirm = false;
+        _error = _status = null;
+        await using var db = await ContextFactory.CreateDbContextAsync(_lifetime.Token);
+        var contest = await db.Contests.SingleOrDefaultAsync(contest => contest.Id == contestId, _lifetime.Token);
+        bool allowed = contest?.IsIcpc == true && await StaffContestAccess.CanManageAsync((await AuthenticationState).User, contestId, db);
+        if (version != _version) return;
+        _contest = contest;
+        _allowed = allowed;
+        if (!_allowed) _error = SiteResources.StaffAccessDenied;
+        else
+        {
+            _season = Season ?? DateTime.Today.Year + 1;
+            _regionId = Region;
+            _credentials.ContestId = Source ?? 0;
+            await LoadRegionsAsync(true);
+        }
+    }
+
+    private Task SeasonChangedAsync() => LoadRegionsAsync(false);
+
+    private async Task LoadRegionsAsync(bool restore)
+    {
+        int version = _version;
+        int catalogVersion = ++_catalogVersion;
+        _catalogBusy = true;
+        _error = _status = null;
+        _preview = null;
+        _confirm = false;
+        _regions = [];
+        _contests = [];
+        _filter = "";
+        if (!restore)
+        {
+            _regionId = null;
+            _credentials.ContestId = 0;
+        }
+        try
+        {
+            if (_season is < 1 or > 9999)
+                throw new OperationValidationException(SiteResources.IcpcSeasonInvalid);
+            var regions = await Client.LoadRegionsAsync(_season, _lifetime.Token);
+            if (version != _version || catalogVersion != _catalogVersion) return;
+            _regions = regions;
+            if (_regionId is long id && regions.Any(region => region.Id == id))
+            {
+                var contests = await Client.LoadContestsAsync(id, _lifetime.Token);
+                if (version != _version || catalogVersion != _catalogVersion) return;
+                _contests = contests;
+            }
+            else _regionId = null;
+            if (!_contests.Any(contest => contest.Id == _credentials.ContestId)) _credentials.ContestId = 0;
+            RememberSelection();
+        }
+        catch (IcpcException exception) { ShowIcpcError(version, exception); }
+        catch (OperationValidationException exception) { SetError(version, exception.Message); }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested) { }
+        finally { if (catalogVersion == _catalogVersion) _catalogBusy = false; }
+    }
+
+    private async Task RegionChangedAsync()
+    {
+        int version = _version;
+        int catalogVersion = ++_catalogVersion;
+        _catalogBusy = true;
+        _error = _status = null;
+        _preview = null;
+        _confirm = false;
+        _contests = [];
+        _credentials.ContestId = 0;
+        _filter = "";
+        RememberSelection();
+        try
+        {
+            if (_regionId is long id && _regions.Any(region => region.Id == id))
+            {
+                var contests = await Client.LoadContestsAsync(id, _lifetime.Token);
+                if (version == _version && catalogVersion == _catalogVersion) _contests = contests;
+            }
+        }
+        catch (IcpcException exception) { ShowIcpcError(version, exception); }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested) { }
+        finally { if (catalogVersion == _catalogVersion) _catalogBusy = false; }
+    }
+
+    private void ContestChanged()
+    {
+        _preview = null;
+        _confirm = false;
+        _error = _status = null;
+        RememberSelection();
+    }
+
+    private void RememberSelection()
+    {
+        string uri = Navigation.GetUriWithQueryParameters(new Dictionary<string, object?>
+        {
+            ["season"] = _season,
+            ["region"] = _regionId,
+            ["source"] = _credentials.ContestId > 0 ? _credentials.ContestId : null
+        });
+        if (uri != Navigation.Uri) Navigation.NavigateTo(uri, replace: true);
+    }
+
+    private async Task LoadTeamsAsync()
+    {
+        if (_busy || _catalogBusy || !_allowed) return;
+        int version = _version;
+        int contestId = ContestId;
+        _busy = true;
+        _error = _status = null;
+        _preview = null;
+        _confirm = false;
+        try
+        {
+            if (!_contests.Any(contest => contest.Id == _credentials.ContestId)
+                || string.IsNullOrWhiteSpace(_credentials.Email) || string.IsNullOrEmpty(_credentials.Password))
+                throw new OperationValidationException(SiteResources.IcpcCredentialsRequired);
+            await using var scope = ScopeFactory.CreateAsyncScope();
+            var service = scope.ServiceProvider.GetRequiredService<IcpcImportService>();
+            var actor = (await AuthenticationState).User;
+            await service.PreviewAsync(actor, contestId, [], _lifetime.Token);
+            var teams = await Client.LoadTeamsAsync(_credentials.ContestId, _credentials.Email, _credentials.Password, _lifetime.Token);
+            _credentials.Password = "";
+            var preview = await service.PreviewAsync(actor, contestId, teams, _lifetime.Token);
+            if (version == _version) _preview = preview;
+        }
+        catch (IcpcException exception) { ShowIcpcError(version, exception); }
+        catch (Microsoft.Data.SqlClient.SqlException) { SetError(version, SiteResources.StaffSaveFailed); }
+        catch (DbUpdateException) { SetError(version, SiteResources.StaffSaveFailed); }
+        catch (OperationValidationException exception) { SetError(version, exception.Message); }
+        catch (EntityNotFoundException) { SetError(version, SiteResources.PageNotFoundMessage); }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested) { }
+        finally { _credentials.Password = ""; _busy = false; }
+    }
+
+    private async Task ImportAsync()
+    {
+        if (_busy || !_confirm || _preview is null) return;
+        int version = _version;
+        int contestId = ContestId;
+        var rows = SelectedRows;
+        _busy = true;
+        _error = _status = null;
+        try
+        {
+            await using var scope = ScopeFactory.CreateAsyncScope();
+            var service = scope.ServiceProvider.GetRequiredService<IcpcImportService>();
+            var result = await service.ImportAsync((await AuthenticationState).User, contestId, rows, _lifetime.Token);
+            if (version != _version) return;
+            _status = string.Format(SiteResources.IcpcImported, result.Added, result.Updated);
+            _preview = null;
+        }
+        catch (OperationValidationException exception) { SetError(version, exception.Message); }
+        catch (EntityNotFoundException) { SetError(version, SiteResources.PageNotFoundMessage); }
+        catch (IdentityOperationException) { SetError(version, SiteResources.StaffSaveFailed); }
+        catch (DbUpdateException) { SetError(version, SiteResources.StaffSaveFailed); }
+        catch (Microsoft.Data.SqlClient.SqlException) { SetError(version, SiteResources.StaffSaveFailed); }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested) { }
+        finally { _confirm = false; _busy = false; }
+    }
+
+    private void SetError(int version, string message)
+    {
+        if (version == _version) _error = message;
+    }
+
+    private void ShowIcpcError(int version, IcpcException exception)
+    {
+        Logger.LogWarning("ICPC request failed: stage={Stage}, failure={Failure}, HTTP={HttpStatus}, code={Code}",
+            exception.Stage, exception.Failure, exception.HttpStatus, exception.Code);
+        SetError(version, IcpcErrorMessages.Describe(exception));
+    }
+
+    public void Dispose()
+    {
+        _credentials.Password = "";
+        _lifetime.Cancel();
+        _lifetime.Dispose();
+    }
+
+    private sealed class Credentials
+    {
+        public long ContestId { get; set; }
+        public string Email { get; set; } = "";
+        public string Password { get; set; } = "";
+    }
+}
