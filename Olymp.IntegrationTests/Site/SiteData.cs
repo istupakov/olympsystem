@@ -94,6 +94,7 @@ public sealed class SiteData
         {
             Name = name,
             UserName = name,
+            Email = $"{name}@example.test",
             EmailConfirmed = true,
             Memberships = [],
             Teams = [],
