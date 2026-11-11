@@ -3,13 +3,13 @@ using System.Globalization;
 using System.Net;
 using System.Security.Claims;
 
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
 
 using Olymp.Domain;
 using Olymp.Domain.Models;
 using Olymp.WebApp;
-using Olymp.WebApp.Components.Staff;
 
 using Xunit;
 
@@ -67,7 +67,8 @@ public class StaffEditingTests(WebAppFactory factory) : IClassFixture<WebAppFact
         context.Contests.Add(contest);
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
         var principal = Principal(user.Id, RoleNames.Jury);
-        Assert.False(await StaffContestAccess.CanManageAsync(principal, contest.Id, context));
+        var authorization = scope.ServiceProvider.GetRequiredService<IAuthorizationService>();
+        Assert.False((await authorization.AuthorizeAsync(principal, contest.Id, PolicyNames.ManageContest)).Succeeded);
         var claim = new IdentityUserClaim<int>
         {
             UserId = user.Id,
@@ -76,13 +77,33 @@ public class StaffEditingTests(WebAppFactory factory) : IClassFixture<WebAppFact
         };
         context.UserClaims.Add(claim);
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        Assert.True(await StaffContestAccess.CanManageAsync(principal, contest.Id, context));
-        Assert.False(await StaffContestAccess.CanManageAsync(Principal(other.Id, RoleNames.Jury), contest.Id, context));
-        Assert.False(await StaffContestAccess.CanManageAsync(Principal(user.Id, null), contest.Id, context));
-        Assert.True(await StaffContestAccess.CanManageAsync(Principal(other.Id, RoleNames.Admin), contest.Id, context));
+        Assert.True((await authorization.AuthorizeAsync(principal, contest.Id, PolicyNames.ManageContest)).Succeeded);
+        Assert.False((await authorization.AuthorizeAsync(Principal(other.Id, RoleNames.Jury), contest.Id, PolicyNames.ManageContest)).Succeeded);
+        Assert.False((await authorization.AuthorizeAsync(Principal(user.Id, null), contest.Id, PolicyNames.ManageContest)).Succeeded);
+        Assert.True((await authorization.AuthorizeAsync(Principal(other.Id, RoleNames.Admin), contest.Id, PolicyNames.ManageContest)).Succeeded);
+        principal.Identities.Single().AddClaim(new Claim(ClaimNames.ContestManage, claim.ClaimValue!));
         context.UserClaims.Remove(claim);
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        Assert.False(await StaffContestAccess.CanManageAsync(principal, contest.Id, context));
+        Assert.False((await authorization.AuthorizeAsync(principal, contest.Id, PolicyNames.ManageContest)).Succeeded);
+    }
+
+    [Theory]
+    [InlineData(RoleNames.Admin)]
+    [InlineData(RoleNames.Jury)]
+    public async Task ContestManagementRequiresCompletedEmailMigration(string role)
+    {
+        var user = await factory.AddUserAsync(legacyLogin: true);
+        await using var scope = factory.Services.CreateAsyncScope();
+        var users = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
+        Assert.True((await users.AddClaimAsync((await users.FindByIdAsync(user.Id.ToString()))!,
+            new Claim(ClaimNames.ContestManage, "1"))).Succeeded);
+        var authorization = scope.ServiceProvider.GetRequiredService<IAuthorizationService>();
+        var principal = Principal(user.Id, role);
+
+        Assert.False((await authorization.AuthorizeAsync(principal, 1, PolicyNames.ManageContest)).Succeeded);
+        Assert.False((await authorization.AuthorizeAsync(principal, PolicyNames.JuryOrAdmin)).Succeeded);
+        if (role == RoleNames.Admin)
+            Assert.False((await authorization.AuthorizeAsync(principal, PolicyNames.Admin)).Succeeded);
     }
 
     [Fact]

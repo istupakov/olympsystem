@@ -14,6 +14,7 @@
 
 @inject OlympContext Context
 @inject CompetitorManagementService Competitors
+@inject TimeProvider Clock
 @inject NavigationManager Navigation
 @inject ILogger<CreateTeam> Logger
 @inject UserManager<User> Users
@@ -238,7 +239,7 @@
     {
         contest = await Context.Contests.AsNoTracking()
             .SingleOrDefaultAsync(item => item.Id == Id && !item.IsHidden, HttpContext.RequestAborted);
-        if (contest is null || !contest.IsAcm || DateTimeOffset.Now >= contest.EndTime)
+        if (contest is null || !contest.IsAcm || Clock.GetUtcNow() >= contest.EndTime)
         {
             contest = null;
             Navigation.NotFound();
@@ -291,7 +292,7 @@
             messages.Add(new FieldIdentifier(Input, field), message);
             editContext.NotifyValidationStateChanged();
         }
-        if (DateTimeOffset.Now > contest.EndTime)
+        if (Clock.GetUtcNow() > contest.EndTime)
         {
             error = SiteResources.RegistrationClosed;
             return;

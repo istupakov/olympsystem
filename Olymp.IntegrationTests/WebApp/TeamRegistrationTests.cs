@@ -861,6 +861,41 @@ public class TeamRegistrationTests(WebAppFactory factory) : IClassFixture<WebApp
         return fields;
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task PreviouslyOpenedCancellationFormRechecksCoachAndApproval(bool changeCoach)
+    {
+        var token = TestContext.Current.CancellationToken;
+        var (contest, organization, coach) = await SetupAsync();
+        using (var setup = factory.Services.CreateScope())
+            await setup.ServiceProvider.GetRequiredService<CompetitorManagementService>().RegisterTeamAsync(
+                contest.Id, organization.Id, coach.Id, "Own team", ["One", "Two", "Three"], token);
+        using var client = await factory.LoginAsync(coach.UserName!);
+        using var page = await client.GetAsync(ListPath(contest.Id), token);
+        using var document = await new HtmlParser().ParseDocumentAsync(await page.Content.ReadAsStringAsync(token), token);
+        var form = document.QuerySelector("form:has(button[name='CancelTeamId'])")!;
+        Assert.NotNull(form);
+        var fields = ReadFormFields(form);
+        string teamId = form.QuerySelector("button[name='CancelTeamId']")!.GetAttribute("value")!;
+        fields["CancelTeamId"] = teamId;
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<OlympContext>();
+            var team = await db.Competitors.SingleAsync(item => item.Id == int.Parse(teamId), token);
+            if (changeCoach)
+                team.CoachId = null;
+            else
+                team.IsApproved = true;
+            await db.SaveChangesAsync(token);
+        }
+
+        using var response = await client.PostAsync(ListPath(contest.Id), new FormUrlEncodedContent(fields), token);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        using var verification = factory.Services.CreateScope();
+        Assert.True(await verification.ServiceProvider.GetRequiredService<OlympContext>().Competitors.AnyAsync(item => item.Id == int.Parse(teamId), token));
+    }
+
     private static string ListPath(int id) => $"/contests/{id}/registration/teams";
     private static string CreatePath(int id, int orgId) => $"/contests/{id}/registration/teams/create?orgId={orgId}";
 

@@ -128,7 +128,10 @@ public class StaffOrganizationTests(WebAppFactory factory) : IClassFixture<WebAp
 
     private async Task WithEditorAsync(int? id, string? role, Func<EditOrganization, Func<string>, Task> action)
     {
-        var user = new ClaimsPrincipal(new ClaimsIdentity(role is null ? [] : [new Claim(ClaimTypes.Role, role)], role is null ? null : "Test"));
+        var account = role is null ? null : await factory.AddUserAsync();
+        var user = new ClaimsPrincipal(new ClaimsIdentity(account is null ? [] :
+            [new Claim(ClaimTypes.NameIdentifier, account.Id.ToString()), new Claim(ClaimTypes.Role, role!)],
+            account is null ? null : "Test"));
         using var host = factory.WithWebHostBuilder(builder => builder.ConfigureTestServices(services =>
         {
             services.RemoveAll<NavigationManager>();

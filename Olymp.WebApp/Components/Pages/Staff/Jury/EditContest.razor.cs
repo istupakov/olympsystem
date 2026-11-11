@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Globalization;
 using System.Security.Claims;
 
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Forms;
@@ -10,9 +11,7 @@ using Microsoft.EntityFrameworkCore;
 
 using Olymp.Domain;
 using Olymp.Domain.Models;
-using Olymp.WebApp.Components.Staff;
 using Olymp.WebApp.Resources;
-using Olymp.WebApp.Services.Authorization;
 
 namespace Olymp.WebApp.Components.Pages.Staff.Jury;
 
@@ -47,7 +46,7 @@ public partial class EditContest
         {
             await using var context = await ContextFactory.CreateDbContextAsync();
             var user = (await AuthenticationState).User;
-            if (!await StaffContestAccess.CanManageAsync(user, id, context))
+            if (!(await Authorization.AuthorizeAsync(user, id, PolicyNames.ManageContest)).Succeeded)
             {
                 _unavailable = SiteResources.StaffAccessDenied;
                 return;
@@ -85,7 +84,7 @@ public partial class EditContest
             var user = (await AuthenticationState).User;
             if (Id is null)
             {
-                if (!ContestAccess.CanCreate(user))
+                if (!(await Authorization.AuthorizeAsync(user, PolicyNames.JuryOrAdmin)).Succeeded)
                 {
                     _error = SiteResources.StaffAccessDenied;
                     return;
@@ -95,7 +94,7 @@ public partial class EditContest
             else
             {
                 await using var context = await ContextFactory.CreateDbContextAsync();
-                if (!await StaffContestAccess.CanManageAsync(user, Id.Value, context))
+                if (!(await Authorization.AuthorizeAsync(user, Id.Value, PolicyNames.ManageContest)).Succeeded)
                 {
                     _error = SiteResources.StaffAccessDenied;
                     return;

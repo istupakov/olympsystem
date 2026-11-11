@@ -24,6 +24,7 @@ using Olymp.WebApp.Components.Layout;
 using Olymp.WebApp.Components.Submissions;
 using Olymp.WebApp.Services.AntiCheat;
 using Olymp.WebApp.Services.Authentication;
+using Olymp.WebApp.Services.Authorization;
 using Olymp.WebApp.Services.Checker;
 using Olymp.WebApp.Services.Contests;
 using Olymp.WebApp.Services.Identity;
@@ -66,6 +67,9 @@ var defaultPolicy = new AuthorizationPolicyBuilder(signedInPolicy)
 var olympUserPolicy = new AuthorizationPolicyBuilder(defaultPolicy)
     .Combine(permanentAccountPolicy)
     .Build();
+var juryOrAdminPolicy = new AuthorizationPolicyBuilder(defaultPolicy)
+    .RequireRole(RoleNames.Jury, RoleNames.Admin)
+    .Build();
 
 builder.Services.AddAuthorizationBuilder()
     .SetDefaultPolicy(defaultPolicy)
@@ -73,9 +77,13 @@ builder.Services.AddAuthorizationBuilder()
     .AddPolicy("SignedIn", signedInPolicy)
     .AddPolicy(PolicyNames.PermanentAccount, permanentAccountPolicy)
     .AddPolicy(PolicyNames.OlympUser, olympUserPolicy)
-    .AddPolicy(PolicyNames.JuryOrAdmin, policy => policy
-        .Combine(defaultPolicy)
-        .RequireRole(RoleNames.Jury, RoleNames.Admin))
+    .AddPolicy(PolicyNames.CancelRegistration, policy => policy
+        .Combine(olympUserPolicy)
+        .AddRequirements(new CancelRegistrationRequirement()))
+    .AddPolicy(PolicyNames.JuryOrAdmin, juryOrAdminPolicy)
+    .AddPolicy(PolicyNames.ManageContest, policy => policy
+        .Combine(juryOrAdminPolicy)
+        .AddRequirements(new ManageContestRequirement()))
     .AddPolicy(PolicyNames.Admin, policy => policy
         .Combine(defaultPolicy)
         .RequireRole(RoleNames.Admin))
@@ -105,6 +113,7 @@ builder.Services.AddWebEncoders(options =>
     options.TextEncoderSettings = new TextEncoderSettings(UnicodeRanges.BasicLatin, UnicodeRanges.Cyrillic));
 
 builder.Services.AddScoped<CompetitorManagementService>();
+builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<IcpcImportService>();
 builder.Services.AddHttpClient<Olymp.Icpc.IcpcClient>(client => client.Timeout = TimeSpan.FromSeconds(30))
     .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
@@ -119,6 +128,8 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IAuthorizationHandler, SubmitSolutionHandler>();
 builder.Services.AddScoped<SubmissionService>();
 builder.Services.AddScoped<IAuthorizationHandler, ViewSolutionHandler>();
+builder.Services.AddScoped<IAuthorizationHandler, ManageContestHandler>();
+builder.Services.AddScoped<IAuthorizationHandler, CancelRegistrationHandler>();
 
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddScoped<IdentityRedirectManager>();

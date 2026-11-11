@@ -14,6 +14,8 @@
 
 @inject OlympContext Context
 @inject CompetitorManagementService Competitors
+@inject TimeProvider Clock
+@inject IAuthorizationService Authorization
 @inject NavigationManager Navigation
 @inject UserManager<User> Users
 
@@ -62,7 +64,7 @@
                 <p class="text-body-secondary">@SiteResources.ParticipantAccountNotIssued</p>
             }
         }
-        @if (DateTimeOffset.Now < contest.StartTime)
+        @if (canCancel)
         {
             <form method="post" @formname="cancel-registration" @onsubmit="CancelAsync">
                 <AntiforgeryToken />
@@ -124,6 +126,7 @@
     private Contest? contest;
     private OlympUser? user;
     private Competitor? participant;
+    private bool canCancel;
     private readonly List<string> missingFields = [];
     private string? error;
 
@@ -133,7 +136,7 @@
     {
         contest = await Context.Contests.AsNoTracking()
             .SingleOrDefaultAsync(item => item.Id == Id && !item.IsHidden, HttpContext.RequestAborted);
-        if (contest is null || contest.IsAcm || DateTimeOffset.Now >= contest.EndTime)
+        if (contest is null || contest.IsAcm || Clock.GetUtcNow() >= contest.EndTime)
         {
             contest = null;
             Navigation.NotFound();
@@ -143,8 +146,10 @@
         int userId = int.Parse(Users.GetUserId(HttpContext.User)!);
         user = await Context.OlympUsers.AsNoTracking().Include(item => item.Organization)
             .SingleAsync(item => item.Id == userId, HttpContext.RequestAborted);
-        participant = await Context.Competitors.AsNoTracking()
+        participant = await Context.Competitors.AsNoTracking().Include(item => item.Contest).Include(item => item.Members)
             .SingleOrDefaultAsync(item => item.ContestId == Id && item.Members.Any(member => member.Id == userId), HttpContext.RequestAborted);
+        canCancel = participant is not null
+            && (await Authorization.AuthorizeAsync(HttpContext.User, participant, PolicyNames.CancelRegistration)).Succeeded;
 
         missingFields.Clear();
         if (string.IsNullOrWhiteSpace(user.FirstName))
@@ -191,15 +196,9 @@
     {
         if (contest is null || participant is null)
             return;
-        if (DateTimeOffset.Now >= contest.StartTime)
-        {
-            error = SiteResources.RegistrationUpdateFailed;
-            return;
-        }
-
         try
         {
-            await Competitors.DeleteAsync(Id, participant.Id, HttpContext.RequestAborted);
+            await Competitors.CancelRegistrationAsync(HttpContext.User, Id, participant.Id, HttpContext.RequestAborted);
         }
         catch (OperationValidationException)
         {

@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Security.Claims;
 
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -62,7 +63,7 @@ public partial class EditUser
         int id = Id;
         try
         {
-            if (!(await AuthenticationState).User.IsInRole(RoleNames.Admin)) { _error = SiteResources.StaffAccessDenied; return; }
+            if (!(await Authorization.AuthorizeAsync((await AuthenticationState).User, PolicyNames.Admin)).Succeeded) { _error = SiteResources.StaffAccessDenied; return; }
             await using var scope = ScopeFactory.CreateAsyncScope();
             var db = scope.ServiceProvider.GetRequiredService<OlympContext>();
             var users = scope.ServiceProvider.GetRequiredService<UserManager<User>>();

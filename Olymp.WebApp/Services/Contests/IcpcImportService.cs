@@ -3,13 +3,13 @@ using System.Globalization;
 using System.Security.Claims;
 using System.Text.Json;
 
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 using Olymp.Domain;
 using Olymp.Domain.Models;
 using Olymp.Icpc;
-using Olymp.WebApp.Components.Staff;
 using Olymp.WebApp.Resources;
 
 namespace Olymp.WebApp.Services.Contests;
@@ -40,7 +40,7 @@ public sealed record IcpcImportPreview(IReadOnlyList<IcpcImportRow> Rows, IReadO
 public sealed record IcpcImportSummary(int Added, int Updated);
 
 /// <summary>Authorizes imports and revalidates the preview before any writes.</summary>
-public sealed class IcpcImportService(OlympContext context, UserManager<User> users)
+public sealed class IcpcImportService(OlympContext context, UserManager<User> users, IAuthorizationService authorization)
 {
     public async Task<IcpcImportPreview> PreviewAsync(ClaimsPrincipal actor, int contestId,
         IReadOnlyList<IcpcTeam> teams, CancellationToken token = default)
@@ -51,7 +51,7 @@ public sealed class IcpcImportService(OlympContext context, UserManager<User> us
 
     private async Task AuthorizeAsync(ClaimsPrincipal actor, int contestId, CancellationToken token)
     {
-        if (!await StaffContestAccess.CanManageAsync(actor, contestId, context))
+        if (!(await authorization.AuthorizeAsync(actor, contestId, PolicyNames.ManageContest)).Succeeded)
             throw new OperationValidationException(SiteResources.StaffAccessDenied);
         var contest = await context.Contests.SingleOrDefaultAsync(item => item.Id == contestId, token)
             ?? throw new EntityNotFoundException();

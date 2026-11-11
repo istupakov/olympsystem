@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.EntityFrameworkCore;
@@ -27,7 +28,7 @@ public partial class AntiCheatTools
     {
         if (_cancellation is not null) return;
         var user = (await AuthenticationState).User;
-        if (!user.IsInRole(RoleNames.Jury) && !user.IsInRole(RoleNames.Admin)) { _error = SiteResources.StaffAccessDenied; return; }
+        if (!(await Authorization.AuthorizeAsync(user, PolicyNames.JuryOrAdmin)).Succeeded) { _error = SiteResources.StaffAccessDenied; return; }
         using var cancellation = new CancellationTokenSource();
         _cancellation = cancellation;
         _similarity = []; _ai = []; _error = null; _finished = false;

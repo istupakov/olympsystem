@@ -1,13 +1,13 @@
 using System.ComponentModel.DataAnnotations;
 using System.Data.Common;
 
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.JSInterop;
 
 using Olymp.Domain.Models;
-using Olymp.WebApp.Components.Staff;
 using Olymp.WebApp.Resources;
 
 namespace Olymp.WebApp.Components.Pages.Staff.Jury;
@@ -128,7 +128,7 @@ public partial class Messages
         try
         {
             await using var db = await ContextFactory.CreateDbContextAsync(_stop.Token);
-            _canManage = await StaffContestAccess.CanManageAsync((await AuthenticationState).User, ContestId, db);
+            _canManage = (await Authorization.AuthorizeAsync((await AuthenticationState).User, ContestId, PolicyNames.ManageContest)).Succeeded;
             var questions = await db.Messages.Where(item => item.ContestId == ContestId && item.UserId != null)
                 .Select(item => item.Id).ToHashSetAsync(_stop.Token);
             bool notify = _knownQuestions is not null && questions.Except(_knownQuestions).Any();
@@ -197,7 +197,7 @@ public partial class Messages
         try
         {
             await using var db = await ContextFactory.CreateDbContextAsync(_stop.Token);
-            if (!await StaffContestAccess.CanManageAsync((await AuthenticationState).User, ContestId, db))
+            if (!(await Authorization.AuthorizeAsync((await AuthenticationState).User, ContestId, PolicyNames.ManageContest)).Succeeded)
             {
                 _error = SiteResources.StaffAccessDenied;
                 return;
@@ -254,7 +254,7 @@ public partial class Messages
         try
         {
             await using var db = await ContextFactory.CreateDbContextAsync(_stop.Token);
-            if (!await StaffContestAccess.CanManageAsync((await AuthenticationState).User, ContestId, db))
+            if (!(await Authorization.AuthorizeAsync((await AuthenticationState).User, ContestId, PolicyNames.ManageContest)).Succeeded)
             {
                 _error = SiteResources.StaffAccessDenied;
                 return;
