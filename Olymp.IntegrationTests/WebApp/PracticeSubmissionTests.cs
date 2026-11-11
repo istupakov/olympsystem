@@ -23,7 +23,7 @@ using Xunit;
 namespace Olymp.IntegrationTests.WebApp;
 
 [Trait("Category", "Integration")]
-public class PracticeSubmissionTests(WebAppFactory factory) : IClassFixture<WebAppFactory>
+public partial class PracticeSubmissionTests(WebAppFactory factory) : IClassFixture<WebAppFactory>
 {
     private const string Source = "// Привет\nclass Program { static void Main() {} }\n";
 

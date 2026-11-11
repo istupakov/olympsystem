@@ -513,4 +513,5 @@
   <data name="IcpcErrorServer" xml:space="preserve"><value>ICPC returned a server error. Try again later.</value></data>
   <data name="IcpcErrorRequest" xml:space="preserve"><value>ICPC rejected the request.</value></data>
   <data name="IcpcErrorCode" xml:space="preserve"><value>Code</value></data>
+  <data name="IpAddress" xml:space="preserve"><value>IP address</value></data>
 </root>

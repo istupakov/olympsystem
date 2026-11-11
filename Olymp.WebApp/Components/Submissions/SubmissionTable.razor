@@ -22,6 +22,10 @@
                 {
                     <th scope="col">@SiteResources.SourceCode</th>
                 }
+                @if (ShowIpAddress)
+                {
+                    <th scope="col">@SiteResources.IpAddress</th>
+                }
             </tr>
         </thead>
         <tbody>
@@ -89,6 +93,10 @@
                             }
                         </td>
                     }
+                    @if (ShowIpAddress)
+                    {
+                        <td class="text-nowrap">@(string.IsNullOrWhiteSpace(submission.IpAddress) ? "–" : submission.IpAddress)</td>
+                    }
                 </tr>
             }
         </tbody>
@@ -116,6 +124,9 @@
 
     [Parameter]
     public bool ShowSource { get; set; } = true;
+
+    [Parameter]
+    public bool ShowIpAddress { get; set; }
 
     [Parameter]
     public Func<SubmissionListItem, string> SourceUrl { get; set; } = item => $"submissions/{item.Id}";
