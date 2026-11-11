@@ -120,7 +120,7 @@ else
     {
         <p class="alert alert-info" role="status">@_notice</p>
     }
-    <SubmissionTable Items="_rows" ShowContest="@(ContestId is null)" ShowId="true" ShowSource="false" SourceUrl="@(item => DetailsUrl(item.Id))"
+    <SubmissionTable Items="_rows" ShowContest="@(ContestId is null)" ShowId="true" ShowSource="false" ShowIpAddress="true" SourceUrl="@(item => DetailsUrl(item.Id))"
                      ProblemUrl="@(item => $"jury/contests/{item.ContestId}/problems?problemId={item.ProblemId}")" />
     @if (_rows.Count == 0 && _error is null) { <p>@SiteResources.NoSubmissions</p> }
     <Pagination Page="CurrentPage" HasNextPage="_hasNext" PageUrl="PageUrl" Label="@SiteResources.SubmissionPages" />

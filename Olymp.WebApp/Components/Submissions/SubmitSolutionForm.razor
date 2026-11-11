@@ -58,7 +58,8 @@
     private async Task SubmitAsync()
     {
         var token = HttpContext.RequestAborted;
-        var result = await Submissions.SubmitPublicAsync(HttpContext.User, Problem.ContestId, Problem.Id, Input!, token);
+        var result = await Submissions.SubmitPublicAsync(HttpContext.User, Problem.ContestId, Problem.Id, Input!,
+            HttpContext.Connection.RemoteIpAddress?.ToString(), token);
         if (result.NotFound)
         {
             Navigation.NotFound();

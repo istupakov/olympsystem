@@ -17,13 +17,13 @@ public sealed class SubmissionService(IDbContextFactory<OlympContext> factory, I
         EncoderFallback.ExceptionFallback, DecoderFallback.ExceptionFallback);
 
     public Task<Result> SubmitPublicAsync(ClaimsPrincipal user, int contestId, int problemId, SubmissionInput input,
-        CancellationToken token = default) => SubmitAsync(user, contestId, problemId, input, jury: false, token);
+        string? remoteIpAddress, CancellationToken token = default) => SubmitAsync(user, contestId, problemId, input, remoteIpAddress, jury: false, token);
 
     public Task<Result> SubmitJuryAsync(ClaimsPrincipal user, int contestId, int problemId, SubmissionInput input,
-        CancellationToken token = default) => SubmitAsync(user, contestId, problemId, input, jury: true, token);
+        CancellationToken token = default) => SubmitAsync(user, contestId, problemId, input, null, jury: true, token);
 
     private async Task<Result> SubmitAsync(ClaimsPrincipal user, int contestId, int problemId, SubmissionInput input,
-        bool jury, CancellationToken token)
+        string? remoteIpAddress, bool jury, CancellationToken token)
     {
         if (!int.TryParse(user.FindFirstValue(ClaimTypes.NameIdentifier), out int userId))
             return new(null, SiteResources.SubmissionNotAllowed);
@@ -64,6 +64,7 @@ public sealed class SubmissionService(IDbContextFactory<OlympContext> factory, I
             SourceCode = source,
             StatusCode = 0,
             CommitTime = now,
+            CommiterInfo = remoteIpAddress,
             LastModification = now,
             CheckResults = []
         };

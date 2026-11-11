@@ -55,8 +55,9 @@ public class StaffSubmissionTests(WebAppFactory factory) : IClassFixture<WebAppF
         Assert.Equal(submission.CommitTime, submission.LastModification);
         Assert.False(submission.IsReference);
         Assert.False(submission.IsHidden);
+        Assert.Null(submission.CommiterInfo);
         Assert.Empty(await db.UserClaims.Where(item => item.UserId == author.Id).ToListAsync(TestContext.Current.CancellationToken));
-        var publicResult = await service.SubmitPublicAsync(actor, contest.Id, problem.Id, input, TestContext.Current.CancellationToken);
+        var publicResult = await service.SubmitPublicAsync(actor, contest.Id, problem.Id, input, null, TestContext.Current.CancellationToken);
         Assert.False(publicResult.NotFound);
         Assert.Null(publicResult.Id);
         Assert.NotNull(publicResult.Error);
@@ -90,7 +91,7 @@ public class StaffSubmissionTests(WebAppFactory factory) : IClassFixture<WebAppF
         var input = new SubmissionInput { CompilatorId = compiler.Id, Code = "// Valid source code" };
         var result = jury
             ? await service.SubmitJuryAsync(actor, contest.Id, problem.Id, input, TestContext.Current.CancellationToken)
-            : await service.SubmitPublicAsync(actor, contest.Id, problem.Id, input, TestContext.Current.CancellationToken);
+            : await service.SubmitPublicAsync(actor, contest.Id, problem.Id, input, null, TestContext.Current.CancellationToken);
 
         Assert.Equal(jury, gate.ForJury);
         Assert.False(result.NotFound);

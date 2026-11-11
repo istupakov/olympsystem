@@ -22,5 +22,8 @@ public static class StaffSubmissionQuery
             item.Compilator.Description ?? item.Compilator.Name, item.Problem.ContestId, item.Problem.Contest.Name,
             item.ProblemId, item.Problem.Number.ToString() + ". " + item.Problem.Name, item.Problem.Contest.Abbr.StartsWith("school"),
             item.StatusCode, null, item.Score, true)
-        { IsTeam = item.Problem.Contest.Abbr.StartsWith("acm") || item.Problem.Contest.Abbr.StartsWith("icpc") });
+        {
+            IsTeam = item.Problem.Contest.Abbr.StartsWith("acm") || item.Problem.Contest.Abbr.StartsWith("icpc"),
+            IpAddress = item.CommiterInfo
+        });
 }

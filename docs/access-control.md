@@ -376,6 +376,8 @@ Source: [messaging](../Olymp.WebApp/Components/Pages/Contests/Questions.razor),
 
 Staff permissions apply only in the separate jury/administration interface.
 Shared user-facing pages and downloads retain their ordinary rules.
+Saved submission IP addresses are visible only in staff submission lists and
+details, including to jury members without a contest management assignment.
 
 | Operation | Required access |
 | --- | --- |

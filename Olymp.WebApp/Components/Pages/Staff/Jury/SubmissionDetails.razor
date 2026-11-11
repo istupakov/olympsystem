@@ -16,6 +16,7 @@ else
         <p><a href="@BackUrl">@(BackToProblem ? SiteResources.BackToProblem : SiteResources.StaffBackToSubmissions)</a></p>
     }
     <p>@SiteResources.SubmissionAuthor: @_submission.User.Name · <a href="jury/contests/@_submission.Problem.ContestId/submissions?AuthorId=@_submission.UserId">@SiteResources.StaffAuthorSubmissions</a></p>
+    <p class="text-break">@SiteResources.IpAddress: @(string.IsNullOrWhiteSpace(_submission.CommiterInfo) ? "–" : _submission.CommiterInfo)</p>
     <SubmissionView Submission="_submission" DownloadUrl="@($"jury/submissions/{Id}/download")" />
     <h2 class="h4 mt-4">@SiteResources.StaffCheckHistory</h2>
     @foreach (var check in _checks)
