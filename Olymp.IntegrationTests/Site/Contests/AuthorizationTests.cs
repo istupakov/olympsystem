@@ -147,8 +147,12 @@ public class AuthorizationTests(SiteFixture site) : IClassFixture<SiteFixture>
         var second = await site.AddUserAsync();
         using (var scope = site.Services.CreateScope())
         {
-            var users = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
-            Assert.True((await users.SetEmailAsync(second, first.Email)).Succeeded);
+            // Model legacy duplicates that predate application-level validation.
+            var db = scope.ServiceProvider.GetRequiredService<OlympContext>();
+            Assert.Equal(1, await db.OlympUsers.Where(x => x.Id == second.Id)
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(x => x.Email, first.Email)
+                    .SetProperty(x => x.NormalizedEmail, first.NormalizedEmail), TestContext.Current.CancellationToken));
         }
         var admin = await site.AddUserAsync(RoleNames.Admin);
         using var client = await site.LoginAsync(admin);

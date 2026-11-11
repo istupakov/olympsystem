@@ -63,8 +63,8 @@ builder.Services.AddIdentity<User, IdentityRole<int>>()
 
 builder.Services.Configure<IdentityOptions>(options =>
 {
-    // Legacy: for old users 
-    options.User.RequireUniqueEmail = false;
+    options.User.RequireUniqueEmail = true;
+    // Legacy: for old users
     options.User.AllowedUserNameCharacters = string.Empty;
 
     options.SignIn.RequireConfirmedAccount = true;
