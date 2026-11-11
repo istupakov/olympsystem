@@ -15,6 +15,7 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
 
 using Olymp.Domain;
 using Olymp.Domain.Models;
@@ -47,6 +48,7 @@ public sealed class WebAppFactory : WebApplicationFactory<App>, IAsyncLifetime
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Development");
+        builder.ConfigureLogging(logging => logging.ClearProviders());
         builder.ConfigureAppConfiguration((_, configuration) => configuration.AddInMemoryCollection(
             new Dictionary<string, string?>
             {
@@ -144,7 +146,9 @@ public sealed class WebAppFactory : WebApplicationFactory<App>, IAsyncLifetime
         Dictionary<string, string> fields)
     {
         using var page = await client.GetAsync(path, TestContext.Current.CancellationToken);
-        page.EnsureSuccessStatusCode();
+        if (!page.IsSuccessStatusCode)
+            Assert.Fail($"GET {path} returned {(int)page.StatusCode} ({page.StatusCode}).\n"
+                + await page.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
         using var document = await new HtmlParser().ParseDocumentAsync(
             await page.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
         var form = Assert.Single(document.QuerySelectorAll("form"),

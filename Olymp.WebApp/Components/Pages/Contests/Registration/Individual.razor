@@ -134,6 +134,7 @@
 
     protected override async Task OnParametersSetAsync()
     {
+        Input ??= new();
         contest = await Context.Contests.AsNoTracking()
             .SingleOrDefaultAsync(item => item.Id == Id && !item.IsHidden, HttpContext.RequestAborted);
         if (contest is null || contest.IsAcm || Clock.GetUtcNow() >= contest.EndTime)
@@ -159,7 +160,6 @@
         if (string.IsNullOrWhiteSpace(user.Organization?.Name))
             missingFields.Add(AccountResources.University);
 
-        Input ??= new();
         if (!HasGroup)
             Input.OutOfCompetition = true;
     }

@@ -25,8 +25,13 @@ else
             <summary class="card-header">@check.CheckTime.LocalDateTime.ToString("g") · <SubmissionStatus StatusCode="check.StatusCode" />
             </summary>
             <div class="card-body">
-                <p>@SiteResources.Points: @check.Score</p>
-                <p class="text-break">@check.TestResults</p>
+                @if (_submission.Problem.Contest.IsSchool)
+                {
+                    <div class="border-bottom pb-2 mb-3">
+                        <p>@SiteResources.Points: @check.Score</p>
+                        <p class="text-break mb-0">@check.TestResults</p>
+                    </div>
+                }
                 <pre class="overflow-auto">@check.Log</pre>
             </div>
         </details>

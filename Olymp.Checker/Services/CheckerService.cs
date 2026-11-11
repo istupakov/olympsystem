@@ -176,13 +176,12 @@ public sealed class CheckerService : ICheckerService
             var compileResult = await Compile(name, configuration, request.Source, true, token);
             log.AppendLine($"""
                 Compilation:
-                user time: {compileResult.ResourceConsumption.UserTime}
-                total time: {compileResult.ResourceConsumption.TotalTime}
+                {GetCommandLog(configuration.GetCompileCommand(name), compileResult)}
                 """);
             if (compileResult.Status is not RunnerStatus.Completed)
             {
                 return new(CheckerResultStatus.CompilationError.MakeStatusCode(),
-                    log.AppendLine(GetTruncatedString(compileResult.Stderr, 1024)).ToString());
+                    log.AppendLine("compilator:").AppendLine(GetTruncatedString(compileResult.Stderr, 1024)).ToString());
             }
 
             if (!_simpleCheckers.TryGetValue(request.CheckerId, out var checker))

@@ -319,6 +319,51 @@ public partial class PracticeSubmissionTests(WebAppFactory factory) : IClassFixt
         Assert.Equal(2, students.QuerySelectorAll("#submissions tbody tr").Length);
     }
 
+    [Theory]
+    [InlineData("legacy")]
+    [InlineData("legacy-crlf")]
+    [InlineData("current")]
+    [InlineData("current-crlf")]
+    [InlineData("historic")]
+    [InlineData("plain")]
+    public async Task CompilationDiagnosticsSupportSavedLogFormats(string format)
+    {
+        var data = await SeedAsync();
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<OlympContext>();
+        const string diagnostics = "Compiler error <script>diagnostics</script>\nerror: second line";
+        string log = format switch
+        {
+            "legacy" or "legacy-crlf" => "Runner: private runner\nCompilation:\nuser time: 1\ntotal time: 2\n" + diagnostics,
+            "current" or "current-crlf" => "Runner: private runner\nCompilation:\ncommand: private command\nstatus: Error\nuser time: 1\ntotal time: 2\npeak memory: 5 MB\nexit code: 1\ncompilator:\n" + diagnostics,
+            "historic" => "private runner metadata\nStandartOutput\n" + diagnostics,
+            _ => diagnostics
+        };
+        if (format.EndsWith("-crlf", StringComparison.Ordinal))
+            log = log.Replace("\n", "\r\n");
+        var submission = TestEntities.CreateSubmission(data.User, data.Problem, data.Compiler, DateTimeOffset.UtcNow);
+        submission.User = null!;
+        submission.Problem = null!;
+        submission.Compilator = null!;
+        submission.StatusCode = -1;
+        submission.CheckResults.Add(new CheckResult
+        {
+            Submission = submission,
+            StatusCode = -1,
+            CheckTime = format == "historic" ? new DateTimeOffset(2023, 2, 1, 0, 0, 0, TimeSpan.Zero) : DateTimeOffset.UtcNow,
+            Log = log
+        });
+        db.Submissions.Add(submission);
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        using var client = await factory.LoginAsync(data.User.UserName!);
+        using var page = await GetAsync(client, $"/submissions/{submission.Id}");
+        var output = page.QuerySelector("#compilation-errors pre")!;
+        Assert.Equal((format == "historic" ? "StandartOutput\n" : "") + diagnostics, output.TextContent);
+        Assert.Null(output.QuerySelector("script"));
+        Assert.DoesNotContain("private runner", page.DocumentElement.OuterHtml);
+        Assert.DoesNotContain("private command", page.DocumentElement.OuterHtml);
+    }
+
     [Fact]
     public async Task DirectCoachRelationshipAllowsPersonalSourceWithoutCoachClaimInOpenContest()
     {

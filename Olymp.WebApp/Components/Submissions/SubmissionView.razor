@@ -72,8 +72,16 @@
         if (log.StartsWith("Runner:", StringComparison.Ordinal) || log.StartsWith("Compilation:", StringComparison.Ordinal))
         {
             int compilation = log.IndexOf("Compilation:", StringComparison.Ordinal);
-            return compilation >= 0 ? string.Join('\n', log[compilation..].Split('\n').Skip(3))
-                : SiteResources.SubmissionDiagnosticsUnavailable;
+            if (compilation < 0)
+                return SiteResources.SubmissionDiagnosticsUnavailable;
+            var lines = log[compilation..].ReplaceLineEndings("\n").Split('\n');
+            if (lines.Length > 1 && lines[1].StartsWith("command:", StringComparison.Ordinal))
+            {
+                int output = Array.IndexOf(lines, "compilator:");
+                return output >= 0 ? string.Join('\n', lines.Skip(output + 1))
+                    : SiteResources.SubmissionDiagnosticsUnavailable;
+            }
+            return string.Join('\n', lines.Skip(3));
         }
         return log;
     }

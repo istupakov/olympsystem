@@ -79,6 +79,10 @@ public class CheckerServiceTests
         Assert.Null(result.TestResults);
         Assert.Contains("Compilation:", result.Log);
         Assert.Contains("user time:", result.Log);
+        Assert.Contains("total time:", result.Log);
+        Assert.Contains("peak memory:", result.Log);
+        Assert.Contains("exit code: 1", result.Log);
+        Assert.Contains("compilator:", result.Log);
         Assert.Contains(diagnostic, result.Log);
         Assert.DoesNotContain("Discarded output", result.Log);
     }
@@ -233,7 +237,7 @@ public class CheckerServiceTests
     }
 
     [Fact]
-    public async Task SuccessfulChecksLogCompilationTimeWithoutCompilerOutput()
+    public async Task SuccessfulChecksLogCompilationResourcesWithoutCompilerOutput()
     {
         var runner = new TestRunner { CompilerOutput = "Successful compilation diagnostics" };
 
@@ -241,6 +245,10 @@ public class CheckerServiceTests
 
         Assert.Contains("Compilation:", result.Log);
         Assert.Contains("user time:", result.Log);
+        string compilation = result.Log[..result.Log.IndexOf("--------------", StringComparison.Ordinal)];
+        Assert.Contains("total time:", compilation);
+        Assert.Contains("peak memory:", compilation);
+        Assert.Contains("exit code: 0", compilation);
         Assert.DoesNotContain(runner.CompilerOutput, result.Log);
     }
 

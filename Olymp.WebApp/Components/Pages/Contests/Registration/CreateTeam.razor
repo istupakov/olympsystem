@@ -19,7 +19,7 @@
 @inject ILogger<CreateTeam> Logger
 @inject UserManager<User> Users
 
-@if (contest is not null && organization is not null)
+@if (contest is not null && organization is not null && Input is not null)
 {
     <PageTitle>@string.Format(SiteResources.CreateTeamForContest, contest.Name)</PageTitle>
     <ContestHeader Contest="contest" ActiveSection="registration" />
