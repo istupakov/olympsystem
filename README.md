@@ -10,6 +10,7 @@ Programming contest system with automated judging and standings. Used at [olymp.
 
 - `Olymp.WebApp` – Blazor website, account management, jury/admin tools and Runner RPC.
 - `Olymp.Domain` – data model and SQL Server migrations.
+- `Olymp.Icpc` – icpc.global registration API client and Cognito authentication.
 - `Olymp.Checker` – compiler configurations, output checkers and judging self-tests.
 - `Olymp.Runner` – compilation and execution of submissions.
 - `Olymp.Tests` and `Olymp.IntegrationTests` – unit and SQL Server integration tests.

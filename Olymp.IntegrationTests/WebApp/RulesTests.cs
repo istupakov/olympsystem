@@ -17,6 +17,8 @@ public class RulesTests(WebAppFactory factory) : IClassFixture<WebAppFactory>
     [Theory]
     [InlineData("ru", "acm", true, true, false)]
     [InlineData("en", "acm", true, true, false)]
+    [InlineData("ru", "icpc", true, true, false)]
+    [InlineData("en", "icpc", true, true, false)]
     [InlineData("ru", "nstu", false, true, false)]
     [InlineData("en", "nstu", false, true, false)]
     [InlineData("ru", "school", false, false, false)]

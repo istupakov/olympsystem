@@ -20,6 +20,10 @@
 {
     <PageTitle>@string.Format(SiteResources.TeamsInContest, contest.Name)</PageTitle>
     <ContestHeader Contest="contest" ActiveSection="registration" />
+    @if (contest.IsIcpc)
+    {
+        <p class="alert alert-info">@SiteResources.IcpcRegistrationUnofficialOnly</p>
+    }
     @if (error is not null)
     {
         <div class="alert alert-danger" role="alert">@error</div>

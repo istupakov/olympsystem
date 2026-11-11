@@ -134,7 +134,8 @@ public partial class Contest
     public bool AllowSubmitSolution => !IsHidden && DateTimeOffset.Now >= StartTime && (DateTimeOffset.Now <= EndTime || IsOpen);
     public bool AllowSendMessage => !IsHidden && DateTimeOffset.Now >= StartTime && DateTimeOffset.Now <= EndTime;
 
-    public bool IsAcm => Abbr.StartsWith("acm");
+    public bool IsIcpc => Abbr.StartsWith("icpc", StringComparison.Ordinal);
+    public bool IsAcm => Abbr.StartsWith("acm", StringComparison.Ordinal) || IsIcpc;
     public bool IsSchool => Abbr.StartsWith("school");
 }
 

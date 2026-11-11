@@ -151,6 +151,57 @@ Sources: [downloads](../Olymp.WebApp/Components/Contests/ContestDownloads.cs),
 
 ## 4. Registration and participant credentials
 
+Contest abbreviations starting with `icpc` use the ACM team format, scoring and
+standings. Manual team registration in these contests is available only out of
+competition; the service rejects official manual registration as well as the UI.
+Official teams can be imported from icpc.global in the staff participant interface
+by an administrator or a jury member with the stored `contest-manage` permission
+for the target contest. The same permission and the `icpc` prefix are rechecked
+when saving. Other team contest abbreviations retain their existing behavior.
+
+The import form uses the public ICPC catalog: select a season, a region and a
+contest, with a name filter for the contest list. The default season is the
+current server-local calendar year plus one. Catalog requests do not use ICPC
+credentials and do not imply permission to import the selected contest's teams.
+After authentication, the client checks `/contest/access/contest/{id}` before
+loading teams; a `false` response reports missing ICPC contest access and sends
+no team or roster requests. The selected season,
+region and contest are retained in the page URL for back navigation and reloads.
+Changing the season or region clears the previous contest and team preview.
+
+The import matches only existing permanent accounts by normalized email and never
+creates permanent accounts or grants organization/coach claims. Missing contestant
+accounts retain roster names without links; a missing coach produces a warning
+that nobody is linked to receive the team password. Multiple matched coaches
+require an explicit choice. A matched coach without a `coach-org` claim for the
+selected organization gets a warning that an administrator must grant access
+before the coach can receive the password through the existing team page.
+Organizations are selected from existing records. Only the ICPC registration
+status `ACCEPTED` sets `IsApproved`; all other statuses leave it false.
+Eligibility status and issues are displayed separately and do not override this
+registration-status mapping.
+
+Each imported participant stores its ICPC team ID in an `icpc-team-id` Identity
+claim. Reimports find this claim within the target contest, show the existing data
+and update only selected teams' name, organization, roster, coach and approval.
+They retain local credentials, submissions, history and other flags, and do not
+delete teams missing from ICPC. Canceled teams are hidden and unselected by
+default. Before saving, the importer rechecks the preview against current local
+data and rejects stale matches, ambiguous links and duplicate memberships. Writes
+are transactional. ICPC credentials and tokens are used only for the load request
+and are not stored in the database or logged.
+
+ICPC failures report a localized operation stage, failure category, HTTP status
+when available, and a recognized Cognito error/challenge code.
+An explicit `false` access response or HTTP 403 on access/team/roster requests
+is reported as denial of access. Authentication failures, invalid responses,
+timeouts and transport failures have separate messages. Unexpected responses,
+including HTML or malformed JSON, use a single response error category and are
+not assumed to prove a permission failure. Warning logs retain only these
+safe diagnostic fields.
+Upstream response bodies, exception messages, inner exceptions, credentials,
+tokens and Cognito sessions are not retained in diagnostic exceptions or logs.
+
 - Individual registration requires a permanent account and a visible, individual
   contest before its end. First name, last name, and organization are required.
   Registration in competition additionally requires a group/profile detail.

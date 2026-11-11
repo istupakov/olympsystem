@@ -24,6 +24,31 @@ namespace Olymp.IntegrationTests.WebApp;
 public class TeamRegistrationTests(WebAppFactory factory) : IClassFixture<WebAppFactory>
 {
     [Theory]
+    [InlineData("ru")]
+    [InlineData("en")]
+    public async Task IcpcRegistrationHasNoOfficialOptionAndIgnoresForgedOfficialFlag(string culture)
+    {
+        var token = TestContext.Current.CancellationToken;
+        var (contest, organization, coach) = await SetupAsync();
+        using (var scope = factory.Services.CreateScope())
+            await scope.ServiceProvider.GetRequiredService<OlympContext>().Contests.Where(item => item.Id == contest.Id)
+                .ExecuteUpdateAsync(update => update.SetProperty(item => item.Abbr, "icpc" + contest.Abbr), token);
+        using var client = await factory.LoginAsync(coach.UserName!);
+        client.DefaultRequestHeaders.AcceptLanguage.ParseAdd(culture);
+        using var response = await client.GetAsync(CreatePath(contest.Id, organization.Id), token);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        using var document = await new HtmlParser().ParseDocumentAsync(await response.Content.ReadAsStringAsync(token), token);
+        Assert.Null(document.QuerySelector("input[type='checkbox'][name='Input.OutOfCompetition']"));
+        Assert.Equal("true", document.QuerySelector("input[type='hidden'][name='Input.OutOfCompetition']")!.GetAttribute("value"));
+        Assert.Contains("icpc.global", document.QuerySelector("main")!.TextContent);
+        using var created = await WebAppFactory.PostFormAsync(client, CreatePath(contest.Id, organization.Id), "create-team", TeamFields(outOfCompetition: false));
+        Assert.Equal(HttpStatusCode.Redirect, created.StatusCode);
+        using var check = factory.Services.CreateScope();
+        var team = await check.ServiceProvider.GetRequiredService<OlympContext>().Competitors.SingleAsync(item => item.ContestId == contest.Id, token);
+        Assert.True(team.IsOutOfCompetition);
+    }
+
+    [Theory]
     [InlineData("ru", 3, false)]
     [InlineData("en", 3, false)]
     [InlineData("ru", 1, true)]

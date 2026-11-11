@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Olymp.Domain\Olymp.Domain.csproj" />
+    <ProjectReference Include="..\Olymp.Icpc\Olymp.Icpc.csproj" />
     <ProjectReference Include="..\Olymp.Checker\Olymp.Checker.csproj" />
   </ItemGroup>
 

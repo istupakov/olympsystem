@@ -15,6 +15,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Olymp.IntegrationTests", "O
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Olymp.WebApp", "Olymp.WebApp\Olymp.WebApp.csproj", "{FF7920DE-F4F3-4E7A-8E3F-AFCE50FF998C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Olymp.Icpc", "Olymp.Icpc\Olymp.Icpc.csproj", "{0DF22AC2-F3BA-42CA-BF96-B8A9F641CED6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -97,6 +99,18 @@ Global
 		{FF7920DE-F4F3-4E7A-8E3F-AFCE50FF998C}.Release|x64.Build.0 = Release|Any CPU
 		{FF7920DE-F4F3-4E7A-8E3F-AFCE50FF998C}.Release|x86.ActiveCfg = Release|Any CPU
 		{FF7920DE-F4F3-4E7A-8E3F-AFCE50FF998C}.Release|x86.Build.0 = Release|Any CPU
+		{0DF22AC2-F3BA-42CA-BF96-B8A9F641CED6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0DF22AC2-F3BA-42CA-BF96-B8A9F641CED6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0DF22AC2-F3BA-42CA-BF96-B8A9F641CED6}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{0DF22AC2-F3BA-42CA-BF96-B8A9F641CED6}.Debug|x64.Build.0 = Debug|Any CPU
+		{0DF22AC2-F3BA-42CA-BF96-B8A9F641CED6}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{0DF22AC2-F3BA-42CA-BF96-B8A9F641CED6}.Debug|x86.Build.0 = Debug|Any CPU
+		{0DF22AC2-F3BA-42CA-BF96-B8A9F641CED6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0DF22AC2-F3BA-42CA-BF96-B8A9F641CED6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0DF22AC2-F3BA-42CA-BF96-B8A9F641CED6}.Release|x64.ActiveCfg = Release|Any CPU
+		{0DF22AC2-F3BA-42CA-BF96-B8A9F641CED6}.Release|x64.Build.0 = Release|Any CPU
+		{0DF22AC2-F3BA-42CA-BF96-B8A9F641CED6}.Release|x86.ActiveCfg = Release|Any CPU
+		{0DF22AC2-F3BA-42CA-BF96-B8A9F641CED6}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
