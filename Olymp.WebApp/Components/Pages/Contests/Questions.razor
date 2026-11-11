@@ -108,6 +108,7 @@
 
     protected override async Task OnParametersSetAsync()
     {
+        Input ??= new();
         var token = HttpContext.RequestAborted;
         int userId = int.Parse(Users.GetUserId(HttpContext.User)!);
         await using var context = await ContextFactory.CreateDbContextAsync(token);
@@ -126,7 +127,6 @@
             .Where(item => item.ContestId == Id && item.UserId == userId
                 && (item.ProblemId == null || item.Problem != null && item.Problem.IsActive && item.Problem.ContestId == Id))
             .OrderByDescending(item => item.SendTime).ThenByDescending(item => item.Id).ToListAsync(token);
-        Input ??= new();
     }
 
     private async Task SendAsync()

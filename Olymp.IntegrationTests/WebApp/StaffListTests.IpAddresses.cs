@@ -37,7 +37,7 @@ public partial class StaffListTests
             string expected = string.IsNullOrWhiteSpace(address) ? "–" : address;
             foreach (int? contestId in new int?[] { null, submission.Problem.ContestId })
             {
-                string path = contestId is int id ? $"/jury/contests/{id}/submissions" : "/jury/submissions";
+                string path = (contestId is int id ? $"/jury/contests/{id}/submissions" : "/jury/submissions") + $"?AuthorId={author.Id}";
                 using var list = await new HtmlParser().ParseDocumentAsync(await RenderAsync<JurySubmissions>(path,
                     new() { [nameof(JurySubmissions.ContestId)] = contestId }, actor));
                 var headers = list.QuerySelectorAll("thead th").Select(item => item.TextContent.Trim()).ToArray();

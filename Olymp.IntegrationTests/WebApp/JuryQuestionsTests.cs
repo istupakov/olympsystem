@@ -5,11 +5,13 @@ using AngleSharp.Dom;
 using AngleSharp.Html.Parser;
 
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 using Olymp.Domain;
 using Olymp.Domain.Models;
+using Olymp.IntegrationTests.Shared;
 using Olymp.Tests.Shared;
 using Olymp.WebApp;
 
@@ -20,6 +22,30 @@ namespace Olymp.IntegrationTests.WebApp;
 [Trait("Category", "Integration")]
 public class JuryQuestionsTests(WebAppFactory factory) : IClassFixture<WebAppFactory>
 {
+    [Fact]
+    public async Task FormCanRenderWhileMessageHistoryIsStillLoading()
+    {
+        var contest = await AddContestAsync();
+        var participant = await AddParticipantAsync(contest);
+        var loading = new AsyncQueryInterceptor("[Messages]");
+        using var host = factory.WithWebHostBuilder(builder => builder.ConfigureTestServices(services =>
+            services.ConfigureDbContext<OlympContext>(options => options.AddInterceptors(loading))));
+        using var client = host.CreateClient(new() { BaseAddress = new("https://localhost"), AllowAutoRedirect = false });
+        using var login = await WebAppFactory.PostFormAsync(client, "/Account/Login", "login", new()
+        {
+            ["Input.Login"] = participant.UserName!,
+            ["Input.Password"] = WebAppFactory.Password
+        });
+        Assert.Equal(HttpStatusCode.Redirect, login.StatusCode);
+        using var response = await WebAppFactory.PostFormAsync(client, Path(contest), "jury-question", new()
+        {
+            ["Input.Text"] = "A question after asynchronous loading",
+            ["Input.ProblemId"] = ""
+        });
+        Assert.True(loading.WasDelayed);
+        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+    }
+
     [Theory]
     [InlineData("ru", false)]
     [InlineData("en", true)]

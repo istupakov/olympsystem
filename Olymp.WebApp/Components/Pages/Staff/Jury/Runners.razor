@@ -54,7 +54,7 @@ else
                     {
                         <tr @key="compiler.Id">
                             <td>@compiler.Id</td>
-                            <td><div>@(compiler.Description ?? compiler.Name)</div><div class="small text-body-secondary">@compiler.Name · @compiler.Language · @compiler.SourceExtension</div><details class="mt-1"><summary>@SiteResources.StaffConfiguration</summary><pre class="text-wrap text-break">@compiler.CommandLine</pre></details></td>
+                            <td><div>@(compiler.Description ?? compiler.Name)</div><div class="small text-body-secondary">@compiler.Name · @compiler.Language · @compiler.SourceExtension</div><code class="text-break">@compiler.CommandLine</code></td>
                             <td>@compiler.ConfigName</td>
                             <td><span class="badge @(compiler.IsActive ? "text-bg-success" : "text-bg-secondary")">@(compiler.IsActive ? SiteResources.StaffEnabled : SiteResources.StaffDisabled)</span></td>
                             <td>@foreach (var runner in AvailableRunners(compiler)) { <div><a href="@RunnerUrl(runner.Id)">@runner.Name</a></div> }</td>
@@ -105,11 +105,11 @@ else
                         <summary class="p-3"><span class="fw-semibold">@info.DisplayName</span> <span class="badge @(failed ? "text-bg-danger" : "text-bg-secondary")">@Summary(tests)</span></summary>
                         <div class="border-top p-3">
                             <p class="text-break">@SiteResources.StaffConfiguration: @info.Configuration.Name (@info.Configuration.ConfigName)</p>
-                            @if (!string.IsNullOrWhiteSpace(info.Description)) { <pre class="text-wrap text-break">@info.Description</pre> }
+                            @if (!string.IsNullOrWhiteSpace(info.Description)) { <pre class="overflow-auto">@info.Description</pre> }
                             @if (info.Error is not null)
                             {
                                 <p class="text-danger">@SiteResources.StaffVersionError</p>
-                                <pre class="text-wrap text-break text-danger">@info.Error</pre>
+                                <pre class="overflow-auto text-danger">@info.Error</pre>
                             }
                             <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
                                 <a class="btn btn-sm btn-outline-primary" href="@RunUrl(selected.Id, info.Configuration.Name)">@SiteResources.StaffRunCode</a>
@@ -134,7 +134,7 @@ else
                                         @foreach (var test in tests)
                                         {
                                             <tr class="@(test.Result is not null && test.Result != test.ExpectedResult ? "table-danger" : null)"><td>@test.Name</td><td>@test.ExpectedResult</td><td>@test.Result</td></tr>
-                                            @if (!string.IsNullOrEmpty(test.Output)) { <tr><td colspan="3"><details><summary>@SiteResources.StaffLog</summary><pre class="text-wrap text-break">@test.Output</pre></details></td></tr> }
+                                            @if (!string.IsNullOrEmpty(test.Output)) { <tr><td colspan="3"><details><summary>@SiteResources.StaffLog</summary><pre class="overflow-auto">@test.Output</pre></details></td></tr> }
                                         }
                                     </tbody></table>
                                 </div>
@@ -176,7 +176,7 @@ else
                 @if (_output is not null)
                 {
                     <h3 class="h5 mt-3">@SiteResources.StaffRunOutput</h3>
-                    <pre class="border rounded p-3 text-wrap text-break"><samp>@_output</samp></pre>
+                    <pre class="border rounded p-3 overflow-auto"><samp>@_output</samp></pre>
                 }
             </div>
         </section>

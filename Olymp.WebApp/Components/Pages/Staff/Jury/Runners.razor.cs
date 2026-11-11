@@ -74,7 +74,7 @@ public partial class Runners
             _admin = (await AuthenticationState).User.IsInRole(RoleNames.Admin);
             _runners = [.. Checkers.Checkers.Values.OrderBy(item => item.Name)];
             await using var db = await ContextFactory.CreateDbContextAsync(_stop.Token);
-            _compilers = await db.Compilators.AsNoTracking().OrderBy(item => item.Description).ThenBy(item => item.Id).ToListAsync(_stop.Token);
+            _compilers = await db.Compilators.AsNoTracking().OrderByDescending(item => item.IsActive).ThenByDescending(item => item.Id).ToListAsync(_stop.Token);
             _loaded = true;
         }
         catch (DbException exception)

@@ -6,11 +6,13 @@ using AngleSharp.Dom;
 using AngleSharp.Html.Parser;
 
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 using Olymp.Domain;
 using Olymp.Domain.Models;
+using Olymp.IntegrationTests.Shared;
 using Olymp.Tests.Shared;
 using Olymp.WebApp;
 using Olymp.WebApp.Services;
@@ -23,6 +25,25 @@ namespace Olymp.IntegrationTests.WebApp;
 [Trait("Category", "Integration")]
 public class TeamRegistrationTests(WebAppFactory factory) : IClassFixture<WebAppFactory>
 {
+    [Fact]
+    public async Task TeamFormCanRenderWhileMembersAreStillLoading()
+    {
+        var (contest, organization, coach) = await SetupAsync();
+        var loading = new AsyncQueryInterceptor("[AspNetUsers]");
+        using var host = factory.WithWebHostBuilder(builder => builder.ConfigureTestServices(services =>
+            services.ConfigureDbContext<OlympContext>(options => options.AddInterceptors(loading))));
+        using var client = host.CreateClient(new() { BaseAddress = new("https://localhost"), AllowAutoRedirect = false });
+        using var login = await WebAppFactory.PostFormAsync(client, "/Account/Login", "login", new()
+        {
+            ["Input.Login"] = coach.UserName!,
+            ["Input.Password"] = WebAppFactory.Password
+        });
+        Assert.Equal(HttpStatusCode.Redirect, login.StatusCode);
+        using var response = await WebAppFactory.PostFormAsync(client, CreatePath(contest.Id, organization.Id), "create-team", TeamFields());
+        Assert.True(loading.WasDelayed);
+        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+    }
+
     [Theory]
     [InlineData("ru")]
     [InlineData("en")]

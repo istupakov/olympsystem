@@ -4,6 +4,7 @@ using System.Security.Claims;
 using AngleSharp.Html.Parser;
 
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -372,7 +373,12 @@ public class ContestRegistrationTests(WebAppFactory factory) : IClassFixture<Web
         var contest = await AddContestAsync();
         var user = await AddProfileAsync();
         var clock = new ManualTimeProvider(contest.StartTime.AddMinutes(-1));
-        using var host = factory.WithWebHostBuilder(builder => builder.ConfigureServices(services => services.AddSingleton<TimeProvider>(clock)));
+        var loading = new AsyncQueryInterceptor("N'Competitor'");
+        using var host = factory.WithWebHostBuilder(builder => builder.ConfigureTestServices(services =>
+        {
+            services.AddSingleton<TimeProvider>(clock);
+            services.ConfigureDbContext<OlympContext>(options => options.AddInterceptors(loading));
+        }));
         using var client = host.CreateClient(new() { BaseAddress = new Uri("https://localhost"), AllowAutoRedirect = false });
         using var login = await WebAppFactory.PostFormAsync(client, "/Account/Login", "login", new()
         {
@@ -391,10 +397,13 @@ public class ContestRegistrationTests(WebAppFactory factory) : IClassFixture<Web
         clock.UtcNow = contest.StartTime.AddTicks(ticksFromStart);
 
         using var response = await client.PostAsync(Path(contest.Id), new FormUrlEncodedContent(fields), token);
+        Assert.True((int)response.StatusCode < 500,
+            $"POST returned {(int)response.StatusCode}: {await response.Content.ReadAsStringAsync(token)}");
         if (allowed)
             Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
         else
             Assert.True(response.StatusCode is HttpStatusCode.OK or HttpStatusCode.BadRequest);
+        Assert.True(loading.WasDelayed);
         using var verification = factory.Services.CreateScope();
         Assert.Equal(!allowed, await verification.ServiceProvider.GetRequiredService<OlympContext>().Competitors.AnyAsync(item => item.ContestId == contest.Id, token));
     }
@@ -405,7 +414,9 @@ public class ContestRegistrationTests(WebAppFactory factory) : IClassFixture<Web
         bool acceptRules = true, string handler = "contest-registration")
     {
         using var page = await client.GetAsync(Path(id), TestContext.Current.CancellationToken);
-        page.EnsureSuccessStatusCode();
+        if (!page.IsSuccessStatusCode)
+            Assert.Fail($"GET {Path(id)} returned {(int)page.StatusCode}:\n"
+                + await page.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
         using var document = await new HtmlParser().ParseDocumentAsync(
             await page.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
         var fields = new Dictionary<string, string>
