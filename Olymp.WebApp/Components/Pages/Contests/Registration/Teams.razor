@@ -13,6 +13,8 @@
 
 @inject OlympContext Context
 @inject CompetitorManagementService Competitors
+@inject TimeProvider Clock
+@inject IAuthorizationService Authorization
 @inject NavigationManager Navigation
 @inject UserManager<User> Users
 
@@ -97,7 +99,7 @@
                                 <td>@(team.CoachId == userId ? team.PasswordHash : null)</td>
                                 <td class="text-nowrap">@team.RegistrationDate?.ToLocalTime().ToString("d", CultureInfo.CurrentCulture)</td>
                                 <td>
-                                    @if (CanCancel(team))
+                                    @if (cancellableTeams.Contains(team.Id))
                                     {
                                         <button type="submit" name="CancelTeamId" value="@team.Id" class="btn btn-sm btn-outline-danger">@SiteResources.CancelRegistration</button>
                                     }
@@ -126,15 +128,13 @@
     private List<Competitor> teams = [];
     private int userId;
     private string? error;
-
-    private bool CanCancel(Competitor team) => contest is not null && DateTimeOffset.Now < contest.StartTime
-        && team.CoachId == userId && (!team.IsApproved || team.IsOutOfCompetition);
+    private readonly HashSet<int> cancellableTeams = [];
 
     protected override async Task OnParametersSetAsync()
     {
         contest = await Context.Contests.AsNoTracking()
             .SingleOrDefaultAsync(item => item.Id == Id && !item.IsHidden, HttpContext.RequestAborted);
-        if (contest is null || !contest.IsAcm || DateTimeOffset.Now >= contest.EndTime)
+        if (contest is null || !contest.IsAcm || Clock.GetUtcNow() >= contest.EndTime)
         {
             contest = null;
             Navigation.NotFound();
@@ -147,15 +147,21 @@
             .OrderBy(item => item.Name).ToListAsync(HttpContext.RequestAborted);
         teams = await Context.Competitors.AsNoTracking()
             .Where(item => item.ContestId == Id && orgIds.Contains(item.OrganizationId!.Value))
-            .Include(item => item.Coach).Include(item => item.Organization).Include(item => item.Members)
+            .Include(item => item.Contest).Include(item => item.Coach).Include(item => item.Organization).Include(item => item.Members)
             .OrderBy(item => item.RegistrationDate).ThenBy(item => item.Id)
             .AsSplitQuery().ToListAsync(HttpContext.RequestAborted);
+        cancellableTeams.Clear();
+        foreach (var team in teams)
+        {
+            if ((await Authorization.AuthorizeAsync(HttpContext.User, team, PolicyNames.CancelRegistration)).Succeeded)
+                cancellableTeams.Add(team.Id);
+        }
     }
 
     private async Task CancelAsync()
     {
         var team = teams.SingleOrDefault(item => item.Id == CancelTeamId);
-        if (team is null || !CanCancel(team))
+        if (team is null)
         {
             error = SiteResources.RegistrationUpdateFailed;
             return;
@@ -163,7 +169,7 @@
 
         try
         {
-            await Competitors.DeleteAsync(Id, team.Id, HttpContext.RequestAborted);
+            await Competitors.CancelRegistrationAsync(HttpContext.User, Id, team.Id, HttpContext.RequestAborted);
         }
         catch (OperationValidationException)
         {

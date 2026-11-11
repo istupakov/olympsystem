@@ -71,7 +71,7 @@ public class IcpcImportTests(ContestServiceFixture site) : IClassFixture<Contest
             Assert.True(team.IsApproved);
             Assert.Equal(setup.Coach.Id, team.CoachId);
             Assert.True(await db.UserClaims.AnyAsync(claim => claim.UserId == id && claim.ClaimType == ClaimNames.IcpcTeamId && claim.ClaimValue == "12345", token));
-            await scope.ServiceProvider.GetRequiredService<CompetitorManagementService>().GenerateLoginsAsync(setup.Contest.Id, token);
+            await scope.ServiceProvider.GetRequiredService<CompetitorManagementService>().GenerateLoginsAsync(setup.Actor, setup.Contest.Id, token);
             await db.Competitors.Where(item => item.Id == id).ExecuteUpdateAsync(update => update
                 .SetProperty(item => item.IsOutOfCompetition, true).SetProperty(item => item.IsDisqualified, true), token);
         }

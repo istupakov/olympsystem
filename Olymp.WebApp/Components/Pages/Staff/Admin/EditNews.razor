@@ -134,7 +134,7 @@ else
         _error = null;
         _saved = false;
         var user = (await AuthenticationState).User;
-        if (user.Identity?.IsAuthenticated != true || !user.IsInRole(RoleNames.Admin))
+        if (!(await Authorization.AuthorizeAsync(user, PolicyNames.Admin)).Succeeded)
         {
             _error = SiteResources.StaffAccessDenied;
             return;
@@ -179,7 +179,7 @@ else
         _error = null;
         _saved = false;
         var user = (await AuthenticationState).User;
-        if (user.Identity?.IsAuthenticated != true || !user.IsInRole(RoleNames.Admin))
+        if (!(await Authorization.AuthorizeAsync(user, PolicyNames.Admin)).Succeeded)
         {
             _error = SiteResources.StaffAccessDenied;
             return;

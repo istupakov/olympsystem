@@ -275,7 +275,7 @@ else
 
     private async Task PrepareRetestAsync()
     {
-        if (!(await AuthenticationState).User.IsInRole(RoleNames.Admin) || _busy)
+        if (_busy || !(await Authorization.AuthorizeAsync((await AuthenticationState).User, PolicyNames.Admin)).Succeeded)
             return;
         _busy = true;
         _notice = null;
@@ -298,7 +298,7 @@ else
 
     private async Task RetestAsync()
     {
-        if (!(await AuthenticationState).User.IsInRole(RoleNames.Admin) || _retestTotal is null || _busy)
+        if (_retestTotal is null || _busy || !(await Authorization.AuthorizeAsync((await AuthenticationState).User, PolicyNames.Admin)).Succeeded)
             return;
         _busy = true;
         try

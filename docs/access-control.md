@@ -1,8 +1,7 @@
 # Access control rules
 
-Account types, publication rules, registration, submissions, results, coaching,
-and staff permissions in Olymp.WebApp. This document describes application
-behavior; it does not authorize changes to access rules.
+Agreed access rules for Olymp.WebApp. Changes to these rules require a separate
+agreement.
 
 ## 1. Actors and account restrictions
 
@@ -35,7 +34,7 @@ to permanent users who still need to complete that transition. Temporary account
 are exempt from this transition but are excluded by the `OlympUser` policy.
 Passkey endpoints additionally depend on the configured feature flag.
 
-WebApp policies include all requirements needed for their operation:
+Protected operations use the following account policies:
 
 | Policy | Requirements | Usage |
 | --- | --- | --- |
@@ -45,10 +44,7 @@ WebApp policies include all requirements needed for their operation:
 | `Coach` | `OlympUser` plus the coach claim. | Team registration and the protected PDF printing endpoint. |
 | `SignedIn` | Authentication only. | Signed-in navigation, including before email migration. |
 
-Pages and downloads specify only the applicable complete policy, without also
-adding the default policy or its prerequisites. The passkey feature policy is
-separate: it checks feature availability and does not require authentication by
-itself, since passkey sign-in must remain available to guests.
+Passkey sign-in remains available to guests when the feature is enabled.
 
 Signing in requires account confirmation. For a
 temporary participant, confirmation means approval and absence of disqualification.
@@ -78,27 +74,18 @@ Time-based availability and actor authorization are separate checks.
 | `AllowSendMessage` | The contest is not hidden and the current time is within its scheduled duration. |
 | `IsOpen` | Allows permanent users to submit without contest registration, including after the scheduled end. It does not by itself mean that the contest has ended. |
 
-An open contest cannot have a freeze configured:
-`IsOpen` implies `FreezeTime == null`. Reject changes that would violate this
-invariant, whether changing `IsOpen` or `FreezeTime`. This also prevents a future
-scheduled freeze from taking effect in an open contest. Opening a contest
-requires clearing its freeze first or as part of the same change. The WebApp
-contest editor enforces this validation; the Domain properties above do not.
-Submission lists apply freeze restrictions only to closed contests, including
-records that combine `IsOpen` with a non-null `FreezeTime`.
+An open contest cannot have a freeze configured: `IsOpen` requires
+`FreezeTime == null`. Opening a contest requires clearing its freeze.
+Submission lists ignore freeze restrictions in open contests even if an
+inconsistent record retains a non-null `FreezeTime`.
 
 `ProblemShowTime` exists to allow PDF printing before the contest
 starts. It does not publish HTML statements early.
 
-Use `AllowShowProblems` for the problem navigation link, contest
-problem list, and individual HTML statements. Include only active problems. This
-allows reading started, non-hidden contests even when they are closed for new
-submissions. Keep the sign-in requirement for the problem workspace.
-
-Permanent users can read visible problems independently of submission rights.
-Temporary participant accounts can also read other contests' visible problems,
-public pages, and published statement PDFs. They have the same general navigation.
-Submission ownership and permission to send a solution are checked separately.
+The problem workspace requires sign-in and shows only active problems in visible,
+started contests (`AllowShowProblems`). Closing submissions does not remove read
+access. Temporary accounts can also read other contests' published materials.
+Submission ownership and permission to submit are separate decisions.
 
 Source: [Domain availability properties](../Olymp.Domain/DomainObjects.cs),
 [problem workspace](../Olymp.WebApp/Components/Pages/Contests/Problems.razor),
@@ -119,31 +106,14 @@ on these routes, including staff accounts.
 | HTML statements and examples | Signed-in account and a visible, active problem, including temporary accounts viewing another contest. Examples contain only active, open tests. |
 | Test ZIP | Permanent account passing `OlympUser`, linked as a member or coach to a participant in this contest; visible, open contest strictly after its end and an existing file. Participant approval is not required. |
 
-Early printing must be authorized on the download endpoint itself.
-The public `/contests/{id}/downloadproblems` endpoint is available only after the
-start. Early printing uses the separate `/contests/{id}/printproblems` endpoint,
-protected by the complete `Coach` policy. Before the start,
-it additionally requires a participant in this contest whose `CoachId` matches
-the signed-in account. A coach claim alone or a relationship in another contest
-is insufficient. Participant approval isn't checked.
-From `ProblemShowTime` until the start, navigation shows "Download statements for
-printing (PDF)" to all viewers. Guests are asked to sign in when following the
-link; signed-in accounts without permission follow the access-denied flow.
-After the start, navigation shows the ordinary public PDF link. Both endpoints
-serve the same file. The protected printing endpoint remains available to accounts
-passing the coach policy after the start, without the additional relationship
-check because the PDF is already public.
-Hiding a link does not restrict a direct download request. A coach claim does not
-override contest visibility. Jury and administrator roles do not bypass these
-download rules in the shared interface; early printing there requires ordinary
-coach authorization.
+Early printing uses the protected `/contests/{id}/printproblems` endpoint;
+the public `/contests/{id}/downloadproblems` endpoint is available only after
+the start. From `ProblemShowTime` until the start, navigation offers the printing
+link; guests must sign in and unauthorized accounts are denied. After the start,
+the PDF is public. A coach claim does not override contest visibility.
 
-Test archives require a permanent user linked through
-`Competitor.Members` or `Competitor.CoachId` to a participant of the requested
-contest. A coach claim alone, a relationship in another contest, or a jury/admin
-role is insufficient. Temporary participant accounts are excluded. A signed-in
-account without the required relationship follows the ordinary access-denied
-flow. These restrictions do not change public page or statement access.
+Test archives require the member or coach relationship in the requested contest.
+Organization membership, a coach claim alone, and staff roles are insufficient.
 
 Sources: [downloads](../Olymp.WebApp/Components/Contests/ContestDownloads.cs),
 [participants](../Olymp.WebApp/Components/Pages/Contests/Participants.razor),
@@ -157,50 +127,18 @@ competition; the service rejects official manual registration as well as the UI.
 Official teams can be imported from icpc.global in the staff participant interface
 by an administrator or a jury member with the stored `contest-manage` permission
 for the target contest. The same permission and the `icpc` prefix are rechecked
-when saving. Other team contest abbreviations retain their existing behavior.
+when saving.
 
-The import form uses the public ICPC catalog: select a season, a region and a
-contest, with a name filter for the contest list. The default season is the
-current server-local calendar year plus one. Catalog requests do not use ICPC
-credentials and do not imply permission to import the selected contest's teams.
-After authentication, the client checks `/contest/access/contest/{id}` before
-loading teams; a `false` response reports missing ICPC contest access and sends
-no team or roster requests. The selected season,
-region and contest are retained in the page URL for back navigation and reloads.
-Changing the season or region clears the previous contest and team preview.
-
-The import matches only existing permanent accounts by normalized email and never
-creates permanent accounts or grants organization/coach claims. Missing contestant
-accounts retain roster names without links; a missing coach produces a warning
-that nobody is linked to receive the team password. Multiple matched coaches
-require an explicit choice. A matched coach without a `coach-org` claim for the
-selected organization gets a warning that an administrator must grant access
-before the coach can receive the password through the existing team page.
-Organizations are selected from existing records. Only the ICPC registration
-status `ACCEPTED` sets `IsApproved`; all other statuses leave it false.
-Eligibility status and issues are displayed separately and do not override this
-registration-status mapping.
-
-Each imported participant stores its ICPC team ID in an `icpc-team-id` Identity
-claim. Reimports find this claim within the target contest, show the existing data
-and update only selected teams' name, organization, roster, coach and approval.
-They retain local credentials, submissions, history and other flags, and do not
-delete teams missing from ICPC. Canceled teams are hidden and unselected by
-default. Before saving, the importer rechecks the preview against current local
-data and rejects stale matches, ambiguous links and duplicate memberships. Writes
-are transactional. ICPC credentials and tokens are used only for the load request
-and are not stored in the database or logged.
-
-ICPC failures report a localized operation stage, failure category, HTTP status
-when available, and a recognized Cognito error/challenge code.
-An explicit `false` access response or HTTP 403 on access/team/roster requests
-is reported as denial of access. Authentication failures, invalid responses,
-timeouts and transport failures have separate messages. Unexpected responses,
-including HTML or malformed JSON, use a single response error category and are
-not assumed to prove a permission failure. Warning logs retain only these
-safe diagnostic fields.
-Upstream response bodies, exception messages, inner exceptions, credentials,
-tokens and Cognito sessions are not retained in diagnostic exceptions or logs.
+ICPC import requires access to the selected contest in icpc.global. It links only
+existing permanent accounts by normalized email, never creates permanent accounts
+or grants coach claims, and requires an explicit choice for ambiguous coaches.
+Unmatched roster names remain unlinked. Organizations use existing local records.
+Only ICPC registration status `ACCEPTED` sets approval; eligibility does not
+override it. Reimports update selected teams' names, organization, roster, coach,
+and approval while retaining credentials, submissions, history, and other flags.
+They do not delete absent teams. Stale or ambiguous matches and duplicate
+memberships are rejected. Import is transactional. ICPC credentials, tokens,
+sessions, and upstream response bodies are not retained or logged.
 
 - Individual registration requires a permanent account and a visible, individual
   contest before its end. First name, last name, and organization are required.
@@ -218,9 +156,14 @@ tokens and Cognito sessions are not retained in diagnostic exceptions or logs.
   participants continue to receive credentials from the organizer. Account
   issuance and approval are separate; registration does not generate logins
   or passwords. Missing credentials are shown as not yet issued.
-- An individual can cancel their registration before the contest starts.
-- A coach can cancel their own team before the start if the team is unapproved
-  or participates out of competition. They cannot cancel another coach's team.
+- An individual permanent user can cancel their own registration before the
+  contest starts, while the contest is visible and has not ended.
+- A permanent coach with the matching organization claim can cancel their own
+  team before the start, while the contest is visible and has not ended, if the
+  team is unapproved or participates out of competition. They cannot cancel
+  another coach's team. Membership alone does not grant team cancellation.
+- Cancellation has no staff-role override. Participant deletion, including
+  cancellation, is forbidden when submissions or messages exist.
 - Contest managers control approval, disqualification, and competition status.
   Registration alone does not imply approval or permission to submit.
 
@@ -252,32 +195,18 @@ account (`Submission.UserId`). Never substitute a linked participant ID. To subm
 as a participant or team, sign in with that account. Permanent accounts may submit
 only when `IsOpen` is true, both during the contest and after its end.
 
-The problem page decides whether to render `SubmitSolutionForm`. The component
-owns form binding, compiler selection, validation, and saving, and rechecks access
-in its POST handler. Its parameters are the selected problem and the form action
-URL; the page retains the submission shortcut and unavailable-access message.
-They recheck the stored account, participant approval, disqualification, contest
-availability, and contest binding. Membership relationships do not grant permission
-to submit as another account. The form and submit shortcut are shown when
-submission is allowed. Unsent drafts are not stored or recovered when access is
-revoked. An unavailable problem returns not found on GET. A POST to a form that is no longer available is rejected by Blazor with
-400 Bad Request. Ordinary form validation still displays the submitted values
-in the current response.
+Submission requests recheck the stored account, approval, disqualification,
+contest availability, and contest binding. Membership does not authorize
+submitting as another account. Unsent drafts are not recovered after access is
+lost. An unavailable problem returns not found; a POST to an unavailable form
+may be rejected with 400 Bad Request.
 
 Only active compilers may be selected. Validation of source length, encoding,
 problem membership, and compiler selection is additional to authorization.
 
-The authorization resource is the problem with its contest loaded.
-`SubmitSolutionRequirement` has no author parameter. The handler checks problem
-availability and the signed-in account's permission to submit. POST always uses
-the signed-in account ID as `Submission.UserId`.
-
-The contest rules explain participant sign-in separately for team and individual
-contests, without describing `IsOpen`. Show the entire sign-in section, including
-its heading, only while `now < EndTime`. Team credentials come from the coach or
-organizer; coaches can view their teams' assigned credentials on the team
-registration page. Individual out-of-competition participants use their own
-registration page; official participants receive credentials from the organizer.
+Contest rules show participant sign-in instructions only before the contest end.
+Team credentials come from the coach or organizer; individual out-of-competition
+participants can obtain assigned credentials on their registration page.
 
 Sources: [WebApp submission authorization](../Olymp.WebApp/Components/Submissions/SubmitSolutionRequirement.cs),
 [attribution](../Olymp.WebApp/Components/Pages/Contests/Problems.razor),
@@ -313,24 +242,14 @@ overlap. Choosing "All" does not reduce owner/member/coach permissions or grant
 additional access to another author's private data. Temporary accounts cannot
 select broader scopes through a direct URL or request parameter.
 
-All scopes use 20 submissions per page, ordered by
-commit time descending and then ID descending. The "All" scope is limited to
-10 pages (the latest 200 submissions after applying problem/contest filters),
-including direct URL requests. Other scopes have no depth limit. Detect the next
-page without counting the entire history; do not offer a next page after page 10
-in "All". The default scope is "Own". Scope and page are stored in the URL.
+Submission scopes and pagination are preserved in the URL. Lists use 20 rows per
+page, newest first, with ID descending as the tie-breaker. The default scope is
+"Own"; "All" is limited to the latest 200 matching submissions, including direct
+URL requests.
 
-A submission's author (`Submission.UserId`) can view its
-source, status, and compilation errors whenever the problem is visible,
-independently of `Contest.IsOpen` and permission to submit. This includes a
-temporary account viewing submissions attributed to that participant account.
-Linked members can view their participant's submission details only when
-`Contest.IsOpen` is true. A coach can view any author's submission details under
-the same condition when that author's `User.CoachId` matches the viewer's ID.
-The stored member/coach relationship is sufficient; no coach claim is required.
-The submission page and source download use the same `ViewSolutionRequirement`;
-source downloads contain code only.
-There are no staff-role overrides.
+Submission details and source require an active problem in a visible, started
+contest (`AllowShowProblems`) and the following relationship. The details page
+and source download use the same permission; downloads contain code only.
 
 | Viewer relationship | Submission page and source download |
 | --- | --- |
@@ -344,29 +263,16 @@ contests. Listing a submission does not grant access to its source or compilatio
 errors through the submission page and download endpoint. List result visibility
 is specified separately in section 7.
 
-The problem workspace and `/submissions` reuse the same
-list component for scopes, per-row results, links, and pagination. The details page
-and download handler check direct `User.CoachId` relationships for both author
-types. After a successful submission, the workspace opens page 1 of "Own".
+After a successful submission, the workspace opens page 1 of "Own".
 
-Owner access to history, source, and compilation diagnostics is
-limited to visible problems. Here, a visible problem is active and belongs to a
-non-hidden contest whose start time has been reached (`AllowShowProblems`).
-Closing the contest for new submissions does not revoke the author's access while
-the problem remains visible. For a linked member or coach, viewing another
-account's submission details additionally requires `IsOpen`. Hidden contests and
-inactive problems do not expose submissions through the shared lists, details
-pages, or downloads, including when the viewer also has a jury or administrator
-role. Expanded read access is reserved for the separate staff interface
-in section 10.
+Hidden contests and inactive problems expose no shared submission lists, details,
+or downloads, including to staff accounts. Expanded staff access belongs only to
+the interface in section 10. Closing submissions does not remove author access
+while the problem remains visible.
 
 Permission to submit and permission to read are separate. Disqualification blocks
 new submissions under section 5; it does not by itself make a problem invisible.
 Existing authentication and account-lockout restrictions still apply.
-
-Use the stored participant, member, and coach relationships.
-Do not introduce relationship changes, historical snapshots, or reassignment
-workflows as part of these access rules.
 
 Sources: [WebApp submission authorization](../Olymp.WebApp/Components/Submissions/ViewSolutionRequirement.cs),
 [shared list](../Olymp.WebApp/Components/Submissions/SubmissionList.razor),
@@ -410,18 +316,8 @@ Submission-fact visibility exposes identifying metadata without any result,
 verdict, score, or test outcome. Unrelated viewers never receive code,
 compilation logs, individual test details, or internal diagnostics.
 
-Own submission access is a separate permission: the author retains access
-regardless of `IsOpen`; linked team members and coaches require `IsOpen` to view
-another account's submission details. A jury or administrator role alone
-adds no live-result access to the shared views. The shared-feed freeze does not
-restrict an authorized submission details view under section 6. Expanded staff visibility belongs to the staff
-interface.
-
-All signed-in permanent users may select the "All" scope,
-subject to the publication rules and per-row information limits above. Temporary
-participant accounts remain limited to their own submissions. All scopes use the
-same relationship-based permission checks; switching scopes cannot bypass result
-or source restrictions.
+The feed freeze does not restrict an independently authorized submission details
+view under section 6. Staff roles add no exception in shared views.
 
 Problem navigation
 shows the signed-in author's own progress from non-hidden submissions to active
@@ -433,297 +329,133 @@ Sources: [standings calculation](../Olymp.Domain/Standing.cs),
 [general feed](../Olymp.WebApp/Components/Pages/Submissions/Index.razor),
 [standings access](../Olymp.WebApp/Components/Pages/Contests/Standing.razor).
 
-## 8. Coach relationships and access to submissions
+## 8. Coach relationships
 
-A coach's extended access is limited to authors whose `User.CoachId`
-equals the coach's account ID. This includes both `Competitor` and `OlympUser`
-authors. A `coach-org` claim does not grant access to other authors' private data
-from the same organization and is not required for this stored-relationship
-permission. Being a member of a coached team does not by itself grant the coach
-access to submissions attributed to that member's personal account; the personal
-account must have its own matching `CoachId`.
+Submission access uses the author's stored `User.CoachId`, for both permanent and
+participant accounts. A coach claim or organization membership alone does not
+grant private submission access. Coaching a team does not grant access to its
+members' personal submissions unless those accounts also have a matching coach.
+Name-only roster entries establish no account relationship.
 
-A coach may view their coached authors' submissions, including
-source code, status, and compilation errors, only when `Contest.IsOpen` is true.
-The stored `CoachId` relationship is sufficient; no `coach-org` claim is required
-for this access. The problem must also satisfy the ordinary publication rules.
-The rule uses the open flag, not merely whether the contest has ended, and
-introduces no additional end-time condition. The submission page
-and source download use the same permission as for owners and linked members;
-no separate diagnostics permission is required.
+The same publication, open-contest, source, and result restrictions in sections 6
+and 7 apply. Registration, printing, test archives, credentials, and private
+correspondence have their own rules; coach access to submissions does not broaden
+them.
 
-| Submission | Coach access to submission details and source |
-| --- | --- |
-| Coached participant or permanent account's submission in an open contest | Allowed for a visible problem. |
-| Coached participant or permanent account's submission in a closed contest | Denied by the coach permission; limited list results remain available under section 7. |
-| Author without a matching `User.CoachId` | Denied by the coach permission; the "All" scope can expose restricted list information. |
-
-Independent author and participant-member permissions still apply. Staff roles
-add no submission access in the shared interface. Registration, early PDF printing,
-test archives, credentials, and correspondence retain their separately specified
-rules; extending the coached-author submission scope does not broaden those
-permissions.
-
-Restricted feed access during a contest does not grant submission details access.
-Early PDF printing and coached-author submission access are separate permissions.
-
-Name-only team members cannot establish access to a personal account without an
-explicit account link. The existing organization-wide registration list is a
-registration feature; it does not authorize organization-wide source access.
-
-The application uses stored relationships. No relationship-editing feature
-or historical relationship model is required by this document.
-
-Sources: [author/coach relationship](../Olymp.Domain/Models/User.cs),
-[team relationships](../Olymp.Domain/Models/Competitor.cs),
-[team registration](../Olymp.WebApp/Components/Pages/Contests/Registration/Teams.razor).
+Sources: [author relationship](../Olymp.Domain/Models/User.cs),
+[team relationships](../Olymp.Domain/Models/Competitor.cs).
 
 ## 9. Questions and jury clarifications
 
-Common jury announcements (`UserId == null`
-and `ProblemId == null`) appear below the navigation in the temporary participant's
-own contest header, including on the submissions page. They are hidden after the
-contest ends and are not displayed to permanent accounts, including in open
-training contests.
+Common jury announcements (no user or problem association) are visible only to
+temporary participant accounts in their own contest before its end.
 
-Published problem clarifications (`UserId == null` and a matching `ProblemId`)
-appear after the statement and examples, before the submission form. They remain
-available after the contest ends to every signed-in viewer who can read that
-active problem in a visible, started contest. Messages for other or inactive
-problems are excluded. Both blocks display non-empty jury text as HTML, newest first; empty blocks are omitted. Messages addressed to a
-specific user are excluded from both blocks, including the viewer's own messages.
-Use the existing refresh/navigation behavior without adding another refresh
-button or automatic updates.
+Problem clarifications (no user association) are visible to every signed-in
+viewer who can read the corresponding active problem, including after the contest
+ends. Private messages never appear in announcements or clarifications.
 
-Private questions and replies have a separate
-page linked from the temporary participant's own contest navigation during the
-scheduled contest interval. Only that contest's temporary participant account
-can read its own correspondence. Permanent accounts, including coaches and users
-in open training contests, cannot use this page. Before the start, after the end,
-and in hidden contests, it is unavailable and its navigation link is hidden.
+Private correspondence is available only to the temporary participant account
+for its own visible contest during the scheduled interval. Permanent accounts,
+coaches, linked members, and staff roles have no additional access in this
+interface. The list contains only the participant's messages about the contest
+or its active problems.
 
-Sending requires participant approval and no disqualification. Disqualification
-or loss of approval does not remove access to existing correspondence during the
-tour, but prevents new questions. Both GET and POST load the current stored
-participant and contest; POST also checks the selected topic and current contest
-time. Questions are attributed to the signed-in participant, never a linked
-account. A question can concern the contest as a whole or an active problem in
-that contest. Questions must contain 10–4096 characters.
+Sending additionally requires current approval and no disqualification. Losing
+approval or being disqualified does not remove read access during the contest.
+Questions belong to the signed-in participant, concern the contest or one of its
+active problems, and contain 10–4096 characters. Questions are encoded text; jury
+replies and public clarifications use HTML.
 
-The page shows only messages addressed to that participant, for the contest as a
-whole or its active problems. Other participants' messages and public announcements
-are excluded from the private list. Questions are encoded text; jury replies use
-HTML. Newest questions appear first, with pending replies explicitly marked.
-Refresh is manual, without unread tracking or automatic updates.
-
-Coaching and membership relationships do not grant private correspondence access.
-Staff roles add no exceptions in this interface. Staff read access and jury
-answers use the separate staff interface; mutations require management access
-to the contest.
+Staff reads and replies use the separate staff interface; mutations require
+contest management permission.
 
 Source: [messaging](../Olymp.WebApp/Components/Pages/Contests/Questions.razor),
 [WebApp announcements](../Olymp.WebApp/Components/Contests/JuryAnnouncements.razor).
 
 ## 10. Jury, administration, and service accounts
 
-Staff tools use separate protected pages from the shared user interface. Their
-permissions are not overrides on the shared pages or download routes.
+Staff permissions apply only in the separate jury/administration interface.
+Shared user-facing pages and downloads retain their ordinary rules.
 
-`/jury/contests` lists all contests, including hidden ones.
-Jury members and administrators can create contests; creation assigns
-`contest-manage` to the creator in the same transaction. Editing the basic fields
-requires an administrator or a jury member with that stored assignment. The
-assignment is read from the database when opening and saving the editor, so a
-creator can continue editing without refreshing their sign-in claims. Roles use
-the current authentication state. New contests are hidden by default.
+| Operation | Required access |
+| --- | --- |
+| Read contest information, participants and assigned credentials, statements, submissions, source, diagnostics, standings, and messages | Jury or administrator; includes hidden contests/accounts, unpublished and inactive problems, and results without freeze restrictions. |
+| Create a contest | Jury or administrator; the creator receives management permission. New contests are hidden. |
+| Edit contest settings, manage participants and credentials, import ICPC teams, answer questions, manage announcements and clarifications | Administrator or jury member with the stored `contest-manage` assignment for this contest. |
+| Submit solutions from the staff task page | Jury or administrator, without a contest assignment or public publication, activity, time, or open-contest restrictions. Solutions belong to the signed-in account. |
+| Run anti-cheat analysis and Runner trials | Jury or administrator. Analysis applies no participant penalties automatically. |
+| Manage news, users, roles, coach claims, organizations, and compiler records; rejudge submissions | Administrator only. |
+| Runner RPC | Separate API-key authentication. |
 
-The Interactive Server editor accepts a start date/time in the server time zone,
-a duration, optional PDF printing advance before the start, and optional freeze
-advance before the end. Moving the start preserves these intervals and shifts
-all calculated dates. Dates are stored as absolute timestamps. Problem creation
-and uploads are not available in the web editor.
+Staff operations require the complete account policy, including email migration.
+Contest management uses `ManageContest`; stored assignments are rechecked for each
+operation. The participant service authorizes staff mutations and registration
+cancellation before writing. Cancellation uses `CancelRegistration` with the
+participant as its resource and the rules in section 4. Page controls use the
+same policy. Staff deletion does not bypass the history restriction.
 
-`/admin/news` allows administrators to create, edit, and
-delete news. Deletion requires confirmation in the editor and an administrator
-check in its handler. News editing includes titles, HTML text, and publication
-dates in the server time zone. News appears
-immediately after saving, including with a future publication date. Editing does
-not automatically change that date. Both editors support HTML previews and check
-operation permissions again on save.
+Jury alone grants no global contest editing rights. The staff submission exception
+does not expand permission to edit contests or registrations. Public and staff
+submissions share compiler, source validation, and persistence rules.
 
-Contest staff navigation links settings, tasks, participants, submissions,
-standings, messages, and anti-cheat reports. Jury and administrators can view
-all contests' participants, including hidden accounts and assigned logins/passwords. Participant
-mutations require an administrator or the current stored `contest-manage` assignment.
-They use the participant service for import, credential issuance,
-approval, competition status, disqualification, and deletion restrictions. Imports,
-bulk operations, and deletion require confirmation.
+Additional restrictions:
 
-The staff submission list includes every submission to the selected contest's
-problems, including hidden accounts, hidden submissions, inactive problems, and
-practice submissions. Author, problem, compiler, status, date filters, and pagination
-are stored in the URL. `/jury/submissions/{id}` and its `/download` endpoint grant
-jury and administrators source access independently of shared-page publication or
-relationship rules. The staff details page additionally shows full check history
-and logs. Source presentation and compilation diagnostics are shared with the
-ordinary submission page; each interface applies its own authorization.
-The shared table receives already filtered result/source visibility from each
-interface. Staff author links filter by exact account ID within the same contest.
-The staff list supports All, Own, Participants, and Jury author scopes,
-combined with the other URL filters. Jury means the author's `IsHidden` flag,
-including hidden participant accounts; it does not depend on assigned roles.
-The task workspace includes paginated Own/Jury submission lists using
-the same author filtering and row projection. Successful submission stays on the
-selected task, clears the source while retaining the compiler, and refreshes Own
-on its first page. Source links preserve the task, scope, and list page on return.
-Report source links open a new tab; a return-to-list link appears only when the
-source was opened with a valid list return URL, preserving that list's filters.
+- Participant imports, bulk operations, and deletions require confirmation.
+- Only completed submissions to active problems may be rejudged. Confirmation
+  covers the filtered selection across pages and explicitly identifies accepted
+  submissions. Submissions created after the preview are excluded; newly accepted
+  submissions require renewed confirmation. Rejudging retains source, authorship,
+  and check history.
+- Anti-cheat selection and comparison history exclude hidden authors. A
+  submission's own hidden flag does not exclude it. Similarity compares different
+  authors on the same problem.
+- Admin/Jury roles and coach claims are managed for permanent accounts. Lockout
+  also applies to participant accounts. Granting a staff role hides the account.
+  Removing roles or coach claims and blocking accounts invalidates sessions
+  through the security stamp.
+- Organization deletion requires confirmation and is forbidden while any account
+  references it or any `coach-org` claim identifies it. These references are
+  rechecked when deleting; linked accounts and claims are retained.
+- Compiler records may be imported only from a connected Runner that passed
+  self-testing. New records start disabled; repeated imports retain availability.
+  Disabling requires confirmation and preserves existing submissions.
+- Message edits reject concurrent changes to the original text or problem
+  association rather than silently overwriting them.
 
-`/jury/contests/{id}/problems` shows all tasks, including inactive tasks in hidden
-or unpublished contests, their existing HTML statements, open active examples,
-and common problem clarifications. PDF download is not provided in this view.
-Clarification presentation is shared with the ordinary problem statement; private
-messages are excluded. Each interface loads its own authorized statement data.
+Sources: [policies](../Olymp.WebApp/Program.cs),
+[contest management](../Olymp.WebApp/Services/Authorization/ManageContestRequirement.cs),
+[registration cancellation](../Olymp.WebApp/Services/Authorization/CancelRegistrationRequirement.cs),
+[participant operations](../Olymp.WebApp/Services/Contests/CompetitorManagementService.cs),
+[submission permission](../Olymp.WebApp/Components/Submissions/SubmitSolutionRequirement.cs).
 
-Any jury member or administrator can submit solutions from the staff task page, without a `contest-manage` assignment or
-publication, activity, start/end, or open-participation restrictions on the task
-and contest. This exception applies to submitting solutions; editing public
-contest data and registrations still requires the existing management permission.
-Solutions belong to the signed-in account and use the existing Runner queue.
-The queue also accepts inactive problems for authors with a current Jury/Admin
-role; ordinary authors still require an active problem.
-Staff and public submission handlers share compiler availability, source length
-and encoding validation, and persistence. Both submission operations use `SubmitSolutionHandler`; the staff
-operation explicitly sets `SubmitSolutionRequirement.ForJury`, which checks the
-current Jury/Admin role instead of public contest availability rules.
+### Known limitation: revocation in an open staff page
 
-Contest anti-cheat examines submissions to that contest's problems from both
-permanent and temporary accounts. Hidden **authors** are excluded; a submission's
-own hidden flag does not exclude it. Similarity compares different authors on the
-same problem. Additional jury tools support analysis by author, by period against
-problem history, direct comparison of two submissions, and AI indicators for a
-single submission. Hidden authors are excluded from selection and comparison
-history in these tools as well. Analysis supports cancellation and does not apply
-participant penalties automatically.
+The two-minute security-stamp validation interval is acceptable; immediate
+revocation is not required. An already open interactive staff page may continue
+reading protected data after authentication is invalidated, including message and
+Runner polling and list reloads. Participant lists include assigned credentials.
+Initial route access is protected; mutation handlers recheck operation access.
+Role-based operations retain the session validation delay.
 
-`/admin/users` and `/admin/users/{id}/edit` are administrator-only. They provide
-search and filters, account details, Admin/Jury roles, coach organization claims,
-visibility, login/email synchronization, and account lockout controls through
-Identity. Role and coach controls apply to permanent accounts; lockout controls
-also apply to participant accounts. Granting Admin/Jury hides the account. Removing roles/coach claims and blocking accounts
-updates the security stamp through the existing session invalidation mechanism.
+Fixing continued read access is deferred. When addressed, loss of access must stop
+further protected loads and polling and close the protected view. Operation-level
+checks must remain in place.
 
-`/admin/organizations` and its new/edit pages are administrator-only Interactive
-Server pages. Administrators can search, create, and edit short/full organization
-names and the existing team-name prefix. Deletion requires explicit confirmation
-showing the stored organization name and is allowed only when no user/participant
-has that `OrganizationId` and no `coach-org` claim references the organization.
-The UI shows linked-account and distinct coach counts. Both references are checked
-again in the delete statement, so connections added after opening the editor also
-prevent deletion. Linked accounts and coach claims are retained.
+## 11. Enforcement
 
-`/jury/contests/{id}/standing` provides full and official
-standings for hidden contests without freeze restrictions, reusing the existing
-standings calculation and table. Saved final/official tables remain available.
-The public standings retain their existing publication and freeze rules.
-
-`/jury/submissions` provides the same staff submission list across contests,
-including a contest filter. All author, compiler, verdict, problem, and date
-filters apply before pagination. Source links preserve global or contest list
-context on return.
-
-Administrators can rejudge the applied filtered selection across all pages.
-Confirmation shows the eligible count and a separate warning listing the count of
-accepted submissions. Only completed submissions to active problems are eligible;
-queued and checking submissions are excluded. The selection excludes submissions
-created after the preview. Newly accepted submissions require renewed confirmation
-and cannot be silently included without it. Queueing clears current scores and
-updates the status and modification time, retaining source, authorship, and check
-history. The final notice reports the actual number queued. Jury alone cannot
-invoke this action. This is separate from the deferred contest preparation tools.
-
-`/jury/contests/{id}/messages` shows questions, replies, announcements, and problem
-clarifications, with problem/author/answer-state filters and pagination. Any jury
-member or administrator can read; mutations use the current stored contest
-management permission. Replies can be edited or cleared without deleting the
-question. Announcements and clarifications can be created, edited, or deleted
-with confirmation. Existing HTML is retained and previews are available. Updates
-check the original text and problem association to prevent silent overwrites of
-another editor's changes. Auto-refresh every ten seconds preserves drafts.
-Sound is explicitly enabled by a browser click and applies only while this page
-is open. New question IDs trigger one signal per refresh; initial history and
-filter changes do not trigger sound. The page owns and disposes its polling and
-collocated audio module; suspended/disconnected browser pages may delay alerts.
-
-`/jury/runners` has Runner and compiler views. It retains IDs, names, connection
-times, configurations, compiler/version descriptions and errors, self-test state,
-all test outcomes and logs, and trial code execution. Trials are available to
-jury and administrators with 1-second/128-MB limits; input is retained on errors.
-Runner information refreshes every ten seconds. Compiler availability
-in the database is shown separately from availability on connected Runner.
-Only administrators may add or enable/disable compiler records. New records are
-imported from a connected Runner that passed self-testing and start disabled;
-repeated imports retain the existing record and its availability. Disabling a
-compiler requires confirmation and retains existing submissions. Runner RPC uses
-a separate API-key policy. Deployment and trusted forwarded-header configuration
-are described in [deployment.md](deployment.md). Only public HTTP solution
-submissions record their server-resolved IP in `CommiterInfo`; jury submissions
-leave it empty. Contest preparation has no web editor.
-
-Jury members have global read-only access to contest information, including hidden contests, unpublished
-materials, submissions, source, diagnostics, and results without public freeze
-restrictions. Editing and other contest mutations require assignment to that
-contest through `contest-manage`, except for the explicitly allowed staff solution
-submissions described above. The jury role alone does not grant global editing
-privileges. Administrators retain global management access in their dedicated
-interface. These expanded permissions apply only to the staff interface.
-
-Sources: [stored management permission](../Olymp.WebApp/Components/Staff/StaffContestAccess.cs),
-[staff submission permission](../Olymp.WebApp/Components/Submissions/SubmitSolutionRequirement.cs),
-[service policies and RPC](../Olymp.WebApp/Program.cs),
-[Runner tools](../Olymp.WebApp/Components/Pages/Staff/Jury/Runners.razor).
-
-## 11. Implementation requirements
-
-- Leave HTTP caching at framework defaults for now. Any future custom caching
-  policy should be configured centrally instead of setting headers in individual
-  pages and download handlers.
-- Evaluate resource publication, actor permission, and operation permission
-  separately. Shared pages and endpoints must not grant exceptions based on
-  `Jury` or `Admin`. Keep expanded staff authorization scoped to the
-  separate staff entry points, with server-side checks on those entry points.
-- Enforce the same decisions in SSR pages, POST handlers, file downloads, and any
-  interactive/API endpoints. Recheck authorization when accepting a mutation.
-- Keep statement access, new submissions, list metadata/results, and submission
-  details as separate decisions. The details page and source download share the
-  submission viewing permission; list results use the visibility matrix in
-  section 7. A disabled submit button must not remove an otherwise authorized
-  history view. Do not return hidden verdicts, scores, or diagnostics in list
-  data merely because the UI omits them.
-- Enforce scope restrictions on the server. Temporary participants have only
-  their own scope. Broader permanent-user scopes do not expand per-row
-  permissions. Check coached authors through `User.CoachId` for both account
-  types, without introducing an additional coach-claim requirement.
-- Reject contest changes that combine `IsOpen` with a non-null `FreezeTime`,
-  including a scheduled future freeze. Preserve the existing standings algorithm
-  and manual unfreeze behavior. The contest editor enforces this validation.
-- Domain availability properties are calculated C# properties. EF queries must
-  express equivalent translatable predicates or evaluate the property after
-  loading the required resource; do not assume `.Where(x => x.AllowShowProblems)`
-  can be translated to SQL.
-- Preserve login return URLs. Protected routes challenge guests;
-  email-migration failures redirect to account email management. Missing and
-  unpublished public resources generally return the localized not-found page.
-  Early PDF requests challenge guests and deny signed-in non-coaches through the
-  existing access-denied flow. Unauthorized source requests return not found;
-  SSR may reject an unavailable POST form handler with a bad-request
-  response before the component's not-found response is rendered.
-- Define start/end/freeze boundary comparisons consistently. Existing properties
-  use inclusive end boundaries for submissions and strict end boundaries for test
-  downloads; registration currently has the discrepancy noted in section 4.
-- Recheck the applicable stored relationships and resource availability when
-  serving protected data. Account restrictions and claim changes follow the
-  Identity/session mechanisms.
-- Test direct access as well as links, and cover ownership, temporary accounts'
-  public read access and participation restrictions, early PDF downloads,
-  out-of-competition attribution, and freeze visibility rules.
+- Enforce the same access decisions on pages, POST handlers, downloads, and
+  interactive/API endpoints. Hidden controls do not authorize direct requests.
+  Recheck operation permissions before mutations and applicable stored
+  relationships and resource availability before serving protected data.
+- Keep publication, submission permission, list results, and submission details
+  as separate decisions. Apply scope and result restrictions on the server;
+  protected data must not be returned merely because the UI hides it.
+- Protected routes challenge guests and preserve login return URLs. Incomplete
+  email migration redirects to account email management. Missing or unpublished
+  public resources and unauthorized source requests return not found. Protected
+  PDF printing denies signed-in accounts without permission. An unavailable SSR
+  form handler may reject a POST with 400 Bad Request.
+- Submissions include the contest end boundary; test archives require strictly
+  later than the end. The registration boundary discrepancy is noted in section 4.
+- HTTP caching remains at framework defaults. Any future custom caching policy
+  belongs in central configuration.

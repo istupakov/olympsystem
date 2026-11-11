@@ -1,3 +1,5 @@
+using System.Security.Claims;
+
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -6,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Olymp.Domain;
 using Olymp.Domain.Models;
 using Olymp.WebApp;
+using Olymp.WebApp.Resources;
 using Olymp.WebApp.Services;
 using Olymp.WebApp.Services.Contests;
 
@@ -16,17 +19,140 @@ namespace Olymp.IntegrationTests.Services.Contests;
 [Collection("Contest management")]
 public class CompetitorManagementServiceTests(ContestServiceFixture site) : IClassFixture<ContestServiceFixture>
 {
+    public enum StaffOperation { Approval, OutOfCompetition, Disqualification, ApproveAll, Import, AssignLogins, GenerateLogins, RemoveLogins, Delete, Cleanup }
+
+    public static TheoryData<string?, bool, bool, StaffOperation> StaffAccessCases
+    {
+        get
+        {
+            var data = new TheoryData<string?, bool, bool, StaffOperation>();
+            foreach (var (role, assigned, allowed) in new (string?, bool, bool)[]
+            {
+                (null, false, false), ("user", true, false), (RoleNames.Jury, false, false),
+                (RoleNames.Jury, true, true), (RoleNames.Admin, false, true)
+            })
+            {
+                foreach (var operation in Enum.GetValues<StaffOperation>())
+                    data.Add(role, assigned, allowed, operation);
+            }
+            return data;
+        }
+    }
+
+    [Theory]
+    [MemberData(nameof(StaffAccessCases))]
+    public async Task StaffOperationsAuthorizeDirectCalls(string? role, bool assigned, bool allowed, StaffOperation operation)
+    {
+        var token = TestContext.Current.CancellationToken;
+        var user = role is null ? null : await site.AddUserAsync(role == "user" ? null : role);
+        var actor = user is null ? new ClaimsPrincipal(new ClaimsIdentity()) : Actor(user, role!);
+        var contest = await site.AddContestAsync(assigned ? user : null);
+        var participant = await AddParticipantAsync(contest.Id);
+        using var scope = site.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<OlympContext>();
+        await db.Contests.Where(item => item.Id == contest.Id)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(item => item.EndTime, DateTimeOffset.Now.AddHours(-1)), token);
+        var service = scope.ServiceProvider.GetRequiredService<CompetitorManagementService>();
+        string login = Guid.NewGuid().ToString("N");
+        var logins = new Dictionary<string, string> { [login] = "FirstPassword123" };
+        if (operation == StaffOperation.RemoveLogins)
+            await service.AssignLoginsAsync(await AdminAsync(), contest.Id, logins, token);
+        Task RunAsync() => operation switch
+        {
+            StaffOperation.Approval => service.SetApprovalAsync(actor, contest.Id, participant.Id, true, token),
+            StaffOperation.OutOfCompetition => service.SetOutOfCompetitionAsync(actor, contest.Id, participant.Id, true, token),
+            StaffOperation.Disqualification => service.SetDisqualificationAsync(actor, contest.Id, participant.Id, true, token),
+            StaffOperation.ApproveAll => service.ApproveAllAsync(actor, contest.Id, token),
+            StaffOperation.Import => service.ImportAsync(actor, contest.Id, ["Imported"], token),
+            StaffOperation.AssignLogins => service.AssignLoginsAsync(actor, contest.Id, logins, token),
+            StaffOperation.GenerateLogins => service.GenerateLoginsAsync(actor, contest.Id, token),
+            StaffOperation.RemoveLogins => service.RemoveLoginsAsync(actor, contest.Id, token),
+            StaffOperation.Delete => service.DeleteAsync(actor, contest.Id, participant.Id, token),
+            StaffOperation.Cleanup => service.DeleteWithoutSubmissionsAsync(actor, contest.Id, token),
+            _ => throw new ArgumentOutOfRangeException(nameof(operation))
+        };
+        if (allowed)
+            await RunAsync();
+        else
+            Assert.Equal(SiteResources.StaffAccessDenied, (await Assert.ThrowsAsync<OperationValidationException>(RunAsync)).Message);
+
+        var saved = await db.Competitors.AsNoTracking().SingleOrDefaultAsync(item => item.Id == participant.Id, token);
+        if (allowed && operation is StaffOperation.Delete or StaffOperation.Cleanup)
+            Assert.Null(saved);
+        else
+        {
+            Assert.NotNull(saved);
+            Assert.Equal(allowed && (operation is StaffOperation.Approval or StaffOperation.ApproveAll), saved.IsApproved);
+            Assert.Equal(allowed && operation == StaffOperation.OutOfCompetition, saved.IsOutOfCompetition);
+            Assert.Equal(allowed && operation == StaffOperation.Disqualification, saved.IsDisqualified);
+            bool hasLogin = operation == StaffOperation.RemoveLogins ? !allowed
+                : allowed && (operation is StaffOperation.AssignLogins or StaffOperation.GenerateLogins);
+            Assert.Equal(hasLogin, saved.UserName is not null);
+            if (hasLogin)
+                Assert.Equal(operation == StaffOperation.GenerateLogins ? "olymp001" : login, saved.UserName);
+            Assert.Equal(saved.UserName is not null, saved.PasswordHash is not null);
+        }
+        Assert.Equal(allowed && operation == StaffOperation.Import ? 1 : 0,
+            await db.Competitors.CountAsync(item => item.ContestId == contest.Id && item.Name == "Imported", token));
+        // Generated logins are global; release this test's login before the next case.
+        if (allowed && operation == StaffOperation.GenerateLogins)
+            await service.RemoveLoginsAsync(actor, contest.Id, token);
+    }
+
+    [Fact]
+    public async Task StoredAssignmentIsRecheckedForEachOperationDespiteStaleClaim()
+    {
+        var token = TestContext.Current.CancellationToken;
+        var user = await site.AddUserAsync(RoleNames.Jury);
+        var contest = await site.AddContestAsync(user);
+        var participant = await AddParticipantAsync(contest.Id);
+        var actor = Actor(user, RoleNames.Jury);
+        actor.Identities.Single().AddClaim(new Claim(ClaimNames.ContestManage, contest.Id.ToString()));
+        using var scope = site.Services.CreateScope();
+        var service = scope.ServiceProvider.GetRequiredService<CompetitorManagementService>();
+        await service.SetApprovalAsync(actor, contest.Id, participant.Id, true, token);
+        var db = scope.ServiceProvider.GetRequiredService<OlympContext>();
+        await db.UserClaims.Where(item => item.UserId == user.Id && item.ClaimType == ClaimNames.ContestManage)
+            .ExecuteDeleteAsync(token);
+
+        await Assert.ThrowsAsync<OperationValidationException>(() => service.SetApprovalAsync(actor, contest.Id, participant.Id, false, token));
+        Assert.True(await db.Competitors.Where(item => item.Id == participant.Id).Select(item => item.IsApproved).SingleAsync(token));
+    }
+
+    [Fact]
+    public async Task AdministratorCannotUseRegistrationCancellationForAnotherUser()
+    {
+        var token = TestContext.Current.CancellationToken;
+        var actor = await AdminAsync();
+        var contest = await site.AddContestAsync();
+        var participant = await AddParticipantAsync(contest.Id);
+        using var scope = site.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<OlympContext>();
+        await db.Contests.Where(item => item.Id == contest.Id).ExecuteUpdateAsync(setters => setters
+            .SetProperty(item => item.IsHidden, false).SetProperty(item => item.StartTime, DateTimeOffset.Now.AddHours(1)), token);
+        var service = scope.ServiceProvider.GetRequiredService<CompetitorManagementService>();
+
+        await Assert.ThrowsAsync<OperationValidationException>(() => service.CancelRegistrationAsync(actor, contest.Id, participant.Id, token));
+        Assert.True(await db.Competitors.AnyAsync(item => item.Id == participant.Id, token));
+    }
+
+    private static ClaimsPrincipal Actor(OlympUser user, string role) => new(new ClaimsIdentity(
+        [new(ClaimTypes.NameIdentifier, user.Id.ToString()), new(ClaimTypes.Role, role)], "Test"));
+
+    private async Task<ClaimsPrincipal> AdminAsync() => Actor(await site.AddUserAsync(RoleNames.Admin), RoleNames.Admin);
+
     [Fact]
     public async Task ParticipantFlagsCanBeChangedAndParticipantDeleted()
     {
+        var actor = await AdminAsync();
         var token = TestContext.Current.CancellationToken;
         var contest = await site.AddContestAsync();
         var participant = await AddParticipantAsync(contest.Id);
         using var scope = site.Services.CreateScope();
         var service = scope.ServiceProvider.GetRequiredService<CompetitorManagementService>();
-        await service.SetApprovalAsync(contest.Id, participant.Id, true, token);
-        await service.SetOutOfCompetitionAsync(contest.Id, participant.Id, true, token);
-        await service.SetDisqualificationAsync(contest.Id, participant.Id, true, token);
+        await service.SetApprovalAsync(actor, contest.Id, participant.Id, true, token);
+        await service.SetOutOfCompetitionAsync(actor, contest.Id, participant.Id, true, token);
+        await service.SetDisqualificationAsync(actor, contest.Id, participant.Id, true, token);
         using (var verification = site.Services.CreateScope())
         {
             var saved = await verification.ServiceProvider.GetRequiredService<OlympContext>().Competitors
@@ -35,9 +161,9 @@ public class CompetitorManagementServiceTests(ContestServiceFixture site) : ICla
             Assert.True(saved.IsOutOfCompetition);
             Assert.True(saved.IsDisqualified);
         }
-        await service.SetApprovalAsync(contest.Id, participant.Id, false, token);
-        await service.SetOutOfCompetitionAsync(contest.Id, participant.Id, false, token);
-        await service.SetDisqualificationAsync(contest.Id, participant.Id, false, token);
+        await service.SetApprovalAsync(actor, contest.Id, participant.Id, false, token);
+        await service.SetOutOfCompetitionAsync(actor, contest.Id, participant.Id, false, token);
+        await service.SetDisqualificationAsync(actor, contest.Id, participant.Id, false, token);
         using (var verification = site.Services.CreateScope())
         {
             var saved = await verification.ServiceProvider.GetRequiredService<OlympContext>().Competitors
@@ -46,7 +172,7 @@ public class CompetitorManagementServiceTests(ContestServiceFixture site) : ICla
             Assert.False(saved.IsOutOfCompetition);
             Assert.False(saved.IsDisqualified);
         }
-        await service.DeleteAsync(contest.Id, participant.Id, token);
+        await service.DeleteAsync(actor, contest.Id, participant.Id, token);
         using var final = site.Services.CreateScope();
         Assert.False(await final.ServiceProvider.GetRequiredService<OlympContext>().Competitors
             .AnyAsync(x => x.Id == participant.Id, token));
@@ -55,6 +181,7 @@ public class CompetitorManagementServiceTests(ContestServiceFixture site) : ICla
     [Fact]
     public async Task DeletingParticipantPreservesMemberAndTheirOtherRegistration()
     {
+        var actor = await AdminAsync();
         var token = TestContext.Current.CancellationToken;
         var member = await site.AddUserAsync();
         var contest = await site.AddContestAsync();
@@ -73,7 +200,7 @@ public class CompetitorManagementServiceTests(ContestServiceFixture site) : ICla
         }
 
         using (var scope = site.Services.CreateScope())
-            await scope.ServiceProvider.GetRequiredService<CompetitorManagementService>().DeleteAsync(contest.Id, participant.Id, token);
+            await scope.ServiceProvider.GetRequiredService<CompetitorManagementService>().DeleteAsync(actor, contest.Id, participant.Id, token);
 
         using var final = site.Services.CreateScope();
         var saved = final.ServiceProvider.GetRequiredService<OlympContext>();
@@ -88,6 +215,7 @@ public class CompetitorManagementServiceTests(ContestServiceFixture site) : ICla
     [InlineData("cancel")]
     public async Task DeletingWithoutSubmissionsRollsBackEarlierDeletions(string failure)
     {
+        var actor = await AdminAsync();
         var token = TestContext.Current.CancellationToken;
         var contest = await site.AddContestAsync();
         var first = await AddParticipantAsync(contest.Id);
@@ -115,11 +243,11 @@ public class CompetitorManagementServiceTests(ContestServiceFixture site) : ICla
         {
             var service = scope.ServiceProvider.GetRequiredService<CompetitorManagementService>();
             if (failure == "cancel")
-                await Assert.ThrowsAnyAsync<OperationCanceledException>(() => service.DeleteWithoutSubmissionsAsync(contest.Id, cancellation.Token));
+                await Assert.ThrowsAnyAsync<OperationCanceledException>(() => service.DeleteWithoutSubmissionsAsync(actor, contest.Id, cancellation.Token));
             else if (failure == "exception")
-                await Assert.ThrowsAsync<DbUpdateException>(() => service.DeleteWithoutSubmissionsAsync(contest.Id, cancellation.Token));
+                await Assert.ThrowsAsync<DbUpdateException>(() => service.DeleteWithoutSubmissionsAsync(actor, contest.Id, cancellation.Token));
             else
-                await Assert.ThrowsAsync<IdentityOperationException>(() => service.DeleteWithoutSubmissionsAsync(contest.Id, cancellation.Token));
+                await Assert.ThrowsAsync<IdentityOperationException>(() => service.DeleteWithoutSubmissionsAsync(actor, contest.Id, cancellation.Token));
         }
 
         using (var verification = site.Services.CreateScope())
@@ -132,12 +260,13 @@ public class CompetitorManagementServiceTests(ContestServiceFixture site) : ICla
 
         using var retry = site.Services.CreateScope();
         Assert.Equal(2, await retry.ServiceProvider.GetRequiredService<CompetitorManagementService>()
-            .DeleteWithoutSubmissionsAsync(contest.Id, token));
+            .DeleteWithoutSubmissionsAsync(actor, contest.Id, token));
     }
 
     [Fact]
     public async Task ApproveAllPreservesAlreadyApprovedParticipantsAndDoesNotRepeatWrites()
     {
+        var actor = await AdminAsync();
         var token = TestContext.Current.CancellationToken;
         var contest = await site.AddContestAsync();
         var approved = await AddParticipantAsync(contest.Id);
@@ -152,13 +281,13 @@ public class CompetitorManagementServiceTests(ContestServiceFixture site) : ICla
         var service = scope.ServiceProvider.GetRequiredService<CompetitorManagementService>();
         await scope.ServiceProvider.GetRequiredService<OlympContext>().Competitors.AsTracking()
             .SingleAsync(x => x.Id == approved.Id, token);
-        await service.ApproveAllAsync(contest.Id, token);
+        await service.ApproveAllAsync(actor, contest.Id, token);
         var afterFirst = await scope.ServiceProvider.GetRequiredService<OlympContext>().Competitors
             .Where(x => x.ContestId == contest.Id).ToDictionaryAsync(x => x.Id, token);
         Assert.All(afterFirst.Values, participant => Assert.True(participant.IsApproved));
         Assert.Equal(approved.ConcurrencyStamp, afterFirst[approved.Id].ConcurrencyStamp);
 
-        await service.ApproveAllAsync(contest.Id, token);
+        await service.ApproveAllAsync(actor, contest.Id, token);
         using var final = site.Services.CreateScope();
         var saved = await final.ServiceProvider.GetRequiredService<OlympContext>().Competitors
             .Where(x => x.ContestId == contest.Id).ToDictionaryAsync(x => x.Id, token);
@@ -175,6 +304,7 @@ public class CompetitorManagementServiceTests(ContestServiceFixture site) : ICla
     [InlineData("Import", "cancel")]
     public async Task BulkOperationsRollBackEarlierWritesAndCanBeRetriedInNewScope(string operation, string failure)
     {
+        var actor = await AdminAsync();
         var contest = await site.AddContestAsync();
         if (operation == "ApproveAll")
         {
@@ -185,8 +315,8 @@ public class CompetitorManagementServiceTests(ContestServiceFixture site) : ICla
         using var factory = site.WithWebHostBuilder(builder => builder.ConfigureServices(services =>
             services.AddScoped<IUserValidator<User>>(_ => new FailSecondParticipantValidator(failure, cancellation))));
         Task RunAsync(CompetitorManagementService service, CancellationToken token) => operation == "ApproveAll"
-            ? service.ApproveAllAsync(contest.Id, token)
-            : service.ImportAsync(contest.Id, ["First", "Second"], token);
+            ? service.ApproveAllAsync(actor, contest.Id, token)
+            : service.ImportAsync(actor, contest.Id, ["First", "Second"], token);
 
         using (var scope = factory.Services.CreateScope())
         {
@@ -230,6 +360,7 @@ public class CompetitorManagementServiceTests(ContestServiceFixture site) : ICla
     [Fact]
     public async Task ServiceRejectsParticipantsFromOtherContests()
     {
+        var actor = await AdminAsync();
         var token = TestContext.Current.CancellationToken;
         var contest = await site.AddContestAsync();
         var foreign = await site.AddContestAsync();
@@ -238,10 +369,10 @@ public class CompetitorManagementServiceTests(ContestServiceFixture site) : ICla
         var service = scope.ServiceProvider.GetRequiredService<CompetitorManagementService>();
         foreach (var operation in new Func<Task>[]
         {
-            () => service.SetApprovalAsync(contest.Id, participant.Id, true, token),
-            () => service.SetOutOfCompetitionAsync(contest.Id, participant.Id, true, token),
-            () => service.SetDisqualificationAsync(contest.Id, participant.Id, true, token),
-            () => service.DeleteAsync(contest.Id, participant.Id, token)
+            () => service.SetApprovalAsync(actor, contest.Id, participant.Id, true, token),
+            () => service.SetOutOfCompetitionAsync(actor, contest.Id, participant.Id, true, token),
+            () => service.SetDisqualificationAsync(actor, contest.Id, participant.Id, true, token),
+            () => service.DeleteAsync(actor, contest.Id, participant.Id, token)
         })
             await Assert.ThrowsAsync<EntityNotFoundException>(operation);
         using var final = site.Services.CreateScope();
@@ -256,16 +387,17 @@ public class CompetitorManagementServiceTests(ContestServiceFixture site) : ICla
     [Fact]
     public async Task ImportReturnsCountsWithoutDuplicatingParticipants()
     {
+        var actor = await AdminAsync();
         var token = TestContext.Current.CancellationToken;
         var contest = await site.AddContestAsync();
         using var scope = site.Services.CreateScope();
         var service = scope.ServiceProvider.GetRequiredService<CompetitorManagementService>();
-        var first = await service.ImportAsync(contest.Id, ["First", "Second"], token);
+        var first = await service.ImportAsync(actor, contest.Id, ["First", "Second"], token);
         Assert.Equal(new ParticipantImportSummary(2, 0), first);
-        var repeated = await service.ImportAsync(contest.Id, ["first", "Second", "Third"], token);
+        var repeated = await service.ImportAsync(actor, contest.Id, ["first", "Second", "Third"], token);
         Assert.Equal(new ParticipantImportSummary(1, 2), repeated);
         await Assert.ThrowsAsync<OperationValidationException>(() =>
-            service.ImportAsync(contest.Id, ["Fourth", "fourth"], token));
+            service.ImportAsync(actor, contest.Id, ["Fourth", "fourth"], token));
         using var final = site.Services.CreateScope();
         var names = await final.ServiceProvider.GetRequiredService<OlympContext>().Competitors
             .Where(x => x.ContestId == contest.Id).Select(x => x.Name).OrderBy(x => x)
@@ -276,6 +408,7 @@ public class CompetitorManagementServiceTests(ContestServiceFixture site) : ICla
     [Fact]
     public async Task AssigningLoginsPreservesExistingAccountsAndDoesNotConsumeInput()
     {
+        var actor = await AdminAsync();
         var token = TestContext.Current.CancellationToken;
         var contest = await site.AddContestAsync();
         var first = await AddParticipantAsync(contest.Id);
@@ -299,7 +432,7 @@ public class CompetitorManagementServiceTests(ContestServiceFixture site) : ICla
         for (int attempt = 0; attempt < 2; attempt++)
         {
             using var scope = site.Services.CreateScope();
-            await scope.ServiceProvider.GetRequiredService<CompetitorManagementService>().AssignLoginsAsync(contest.Id, logins, token);
+            await scope.ServiceProvider.GetRequiredService<CompetitorManagementService>().AssignLoginsAsync(actor, contest.Id, logins, token);
         }
 
         Assert.Equal(3, logins.Count);
@@ -324,6 +457,7 @@ public class CompetitorManagementServiceTests(ContestServiceFixture site) : ICla
     [Fact]
     public async Task ImportApprovalAndLoginOperationsCanBeCombinedInOneScope()
     {
+        var actor = await AdminAsync();
         var token = TestContext.Current.CancellationToken;
         var contest = await site.AddContestAsync();
         var prefix = Guid.NewGuid().ToString("N");
@@ -337,19 +471,19 @@ public class CompetitorManagementServiceTests(ContestServiceFixture site) : ICla
         var db = scope.ServiceProvider.GetRequiredService<OlympContext>();
         var service = scope.ServiceProvider.GetRequiredService<CompetitorManagementService>();
 
-        await service.ImportAsync(contest.Id, ["First", "Second"], token);
+        await service.ImportAsync(actor, contest.Id, ["First", "Second"], token);
         var firstId = await db.Competitors.Where(x => x.ContestId == contest.Id && x.Name == "First")
             .Select(x => x.Id).SingleAsync(token);
         var first = await db.Competitors.AsTracking().SingleAsync(x => x.Id == firstId, token);
         Assert.True((await scope.ServiceProvider.GetRequiredService<UserManager<User>>()
             .AddClaimAsync(first, new("Unrelated", "keep"))).Succeeded);
-        await service.SetApprovalAsync(contest.Id, firstId, false, token);
-        await service.ApproveAllAsync(contest.Id, token);
-        Assert.Equal(new ParticipantImportSummary(1, 1), await service.ImportAsync(contest.Id, ["First", "Third"], token));
+        await service.SetApprovalAsync(actor, contest.Id, firstId, false, token);
+        await service.ApproveAllAsync(actor, contest.Id, token);
+        Assert.Equal(new ParticipantImportSummary(1, 1), await service.ImportAsync(actor, contest.Id, ["First", "Third"], token));
 
-        await service.AssignLoginsAsync(contest.Id, logins, token);
+        await service.AssignLoginsAsync(actor, contest.Id, logins, token);
         var trackingBehavior = db.ChangeTracker.QueryTrackingBehavior;
-        await service.RemoveLoginsAsync(contest.Id, token);
+        await service.RemoveLoginsAsync(actor, contest.Id, token);
         Assert.Equal(trackingBehavior, db.ChangeTracker.QueryTrackingBehavior);
         var removed = await db.Competitors.Where(x => x.ContestId == contest.Id).ToListAsync(token);
         Assert.All(removed, participant =>
@@ -362,7 +496,7 @@ public class CompetitorManagementServiceTests(ContestServiceFixture site) : ICla
             && x.ClaimType == ClaimNames.CompetitorContest && x.ClaimValue == contest.Id.ToString(), token));
         Assert.True(await db.UserClaims.AnyAsync(x => x.UserId == firstId && x.ClaimType == "Unrelated" && x.ClaimValue == "keep", token));
 
-        await service.AssignLoginsAsync(contest.Id, logins, token);
+        await service.AssignLoginsAsync(actor, contest.Id, logins, token);
         using var final = site.Services.CreateScope();
         var savedContext = final.ServiceProvider.GetRequiredService<OlympContext>();
         var saved = await savedContext.Competitors.Where(x => x.ContestId == contest.Id)
@@ -381,6 +515,7 @@ public class CompetitorManagementServiceTests(ContestServiceFixture site) : ICla
     [Fact]
     public async Task AssignLoginsOrdersPreviouslyTrackedParticipantsByRegistrationDateAndId()
     {
+        var actor = await AdminAsync();
         var token = TestContext.Current.CancellationToken;
         var contest = await site.AddContestAsync();
         var late = await AddParticipantAsync(contest.Id);
@@ -398,10 +533,10 @@ public class CompetitorManagementServiceTests(ContestServiceFixture site) : ICla
 
         using var scope = site.Services.CreateScope();
         var service = scope.ServiceProvider.GetRequiredService<CompetitorManagementService>();
-        await service.SetOutOfCompetitionAsync(contest.Id, late.Id, true, token);
-        await service.SetApprovalAsync(contest.Id, earlyTie.Id, false, token);
+        await service.SetOutOfCompetitionAsync(actor, contest.Id, late.Id, true, token);
+        await service.SetApprovalAsync(actor, contest.Id, earlyTie.Id, false, token);
         var prefix = Guid.NewGuid().ToString("N");
-        await service.AssignLoginsAsync(contest.Id, new Dictionary<string, string>
+        await service.AssignLoginsAsync(actor, contest.Id, new Dictionary<string, string>
         {
             [prefix + "-first"] = "FirstPassword123",
             [prefix + "-second"] = "SecondPassword123",
@@ -425,6 +560,7 @@ public class CompetitorManagementServiceTests(ContestServiceFixture site) : ICla
     [InlineData(true, "cancel")]
     public async Task LoginChangesRollBackUsernamesPasswordsAndClaimsAndCanBeRetried(bool removing, string failure)
     {
+        var actor = await AdminAsync();
         var token = TestContext.Current.CancellationToken;
         var contest = await site.AddContestAsync();
         await AddParticipantAsync(contest.Id);
@@ -436,13 +572,13 @@ public class CompetitorManagementServiceTests(ContestServiceFixture site) : ICla
             [prefix + "-second"] = "SecondPassword123"
         };
         Task RunAsync(CompetitorManagementService service, CancellationToken cancellationToken) => removing
-            ? service.RemoveLoginsAsync(contest.Id, cancellationToken)
-            : service.AssignLoginsAsync(contest.Id, logins, cancellationToken);
+            ? service.RemoveLoginsAsync(actor, contest.Id, cancellationToken)
+            : service.AssignLoginsAsync(actor, contest.Id, logins, cancellationToken);
 
         if (removing)
         {
             using var setup = site.Services.CreateScope();
-            await setup.ServiceProvider.GetRequiredService<CompetitorManagementService>().AssignLoginsAsync(contest.Id, logins, token);
+            await setup.ServiceProvider.GetRequiredService<CompetitorManagementService>().AssignLoginsAsync(actor, contest.Id, logins, token);
         }
 
         using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(token);

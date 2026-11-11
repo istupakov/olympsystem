@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Forms;
@@ -5,7 +6,6 @@ using Microsoft.EntityFrameworkCore;
 
 using Olymp.Domain;
 using Olymp.Domain.Models;
-using Olymp.WebApp.Components.Staff;
 using Olymp.WebApp.Resources;
 using Olymp.WebApp.Services;
 using Olymp.WebApp.Services.Contests;
@@ -45,7 +45,7 @@ public partial class ParticipantList
         _contest = await db.Contests.AsNoTracking().SingleOrDefaultAsync(item => item.Id == ContestId);
         var user = (await AuthenticationState).User;
         _admin = user.IsInRole(RoleNames.Admin);
-        _canManage = await StaffContestAccess.CanManageAsync(user, ContestId, db);
+        _canManage = (await Authorization.AuthorizeAsync(user, ContestId, PolicyNames.ManageContest)).Succeeded;
         _participants = _contest is null ? [] : await db.Competitors.AsNoTracking().Where(item => item.ContestId == ContestId)
             .Include(item => item.Organization).Include(item => item.Coach).Include(item => item.Members).AsSplitQuery()
             .OrderBy(item => item.RegistrationDate).ThenBy(item => item.Id).ToListAsync();
@@ -117,31 +117,26 @@ public partial class ParticipantList
         try
         {
             await using var scope = ScopeFactory.CreateAsyncScope();
-            var db = scope.ServiceProvider.GetRequiredService<OlympContext>();
-            if (!await StaffContestAccess.CanManageAsync((await AuthenticationState).User, contestId, db))
-            {
-                _error = SiteResources.StaffAccessDenied;
-                return;
-            }
+            var actor = (await AuthenticationState).User;
             var service = scope.ServiceProvider.GetRequiredService<CompetitorManagementService>();
             switch (pending.Action)
             {
-                case ParticipantAction.Approve: await service.SetApprovalAsync(contestId, pending.Id!.Value, true); break;
-                case ParticipantAction.Disapprove: await service.SetApprovalAsync(contestId, pending.Id!.Value, false); break;
-                case ParticipantAction.Official: await service.SetOutOfCompetitionAsync(contestId, pending.Id!.Value, false); break;
-                case ParticipantAction.Unofficial: await service.SetOutOfCompetitionAsync(contestId, pending.Id!.Value, true); break;
-                case ParticipantAction.Disqualify: await service.SetDisqualificationAsync(contestId, pending.Id!.Value, true); break;
-                case ParticipantAction.Restore: await service.SetDisqualificationAsync(contestId, pending.Id!.Value, false); break;
-                case ParticipantAction.Delete: await service.DeleteAsync(contestId, pending.Id!.Value); break;
-                case ParticipantAction.ApproveAll: await service.ApproveAllAsync(contestId); break;
-                case ParticipantAction.GenerateLogins: await service.GenerateLoginsAsync(contestId); break;
-                case ParticipantAction.RemoveLogins: await service.RemoveLoginsAsync(contestId); break;
+                case ParticipantAction.Approve: await service.SetApprovalAsync(actor, contestId, pending.Id!.Value, true); break;
+                case ParticipantAction.Disapprove: await service.SetApprovalAsync(actor, contestId, pending.Id!.Value, false); break;
+                case ParticipantAction.Official: await service.SetOutOfCompetitionAsync(actor, contestId, pending.Id!.Value, false); break;
+                case ParticipantAction.Unofficial: await service.SetOutOfCompetitionAsync(actor, contestId, pending.Id!.Value, true); break;
+                case ParticipantAction.Disqualify: await service.SetDisqualificationAsync(actor, contestId, pending.Id!.Value, true); break;
+                case ParticipantAction.Restore: await service.SetDisqualificationAsync(actor, contestId, pending.Id!.Value, false); break;
+                case ParticipantAction.Delete: await service.DeleteAsync(actor, contestId, pending.Id!.Value); break;
+                case ParticipantAction.ApproveAll: await service.ApproveAllAsync(actor, contestId); break;
+                case ParticipantAction.GenerateLogins: await service.GenerateLoginsAsync(actor, contestId); break;
+                case ParticipantAction.RemoveLogins: await service.RemoveLoginsAsync(actor, contestId); break;
                 case ParticipantAction.DeleteEmpty:
-                    _status = string.Format(SiteResources.StaffDeletedCount, await service.DeleteWithoutSubmissionsAsync(contestId)); break;
+                    _status = string.Format(SiteResources.StaffDeletedCount, await service.DeleteWithoutSubmissionsAsync(actor, contestId)); break;
                 case ParticipantAction.ImportParticipants:
-                    var summary = await service.ImportAsync(contestId, _names);
+                    var summary = await service.ImportAsync(actor, contestId, _names);
                     _status = string.Format(SiteResources.StaffImportedCount, summary.Added, summary.Existing); break;
-                case ParticipantAction.ImportLogins: await service.AssignLoginsAsync(contestId, _logins); break;
+                case ParticipantAction.ImportLogins: await service.AssignLoginsAsync(actor, contestId, _logins); break;
             }
             _status ??= SiteResources.StaffSaved;
         }

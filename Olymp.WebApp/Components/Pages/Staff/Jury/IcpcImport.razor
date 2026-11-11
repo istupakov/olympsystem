@@ -194,7 +194,7 @@ else
         _error = _status = null;
         await using var db = await ContextFactory.CreateDbContextAsync(_lifetime.Token);
         var contest = await db.Contests.SingleOrDefaultAsync(contest => contest.Id == contestId, _lifetime.Token);
-        bool allowed = contest?.IsIcpc == true && await StaffContestAccess.CanManageAsync((await AuthenticationState).User, contestId, db);
+        bool allowed = contest?.IsIcpc == true && (await Authorization.AuthorizeAsync((await AuthenticationState).User, contestId, PolicyNames.ManageContest)).Succeeded;
         if (version != _version) return;
         _contest = contest;
         _allowed = allowed;

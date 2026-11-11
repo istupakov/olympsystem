@@ -9,6 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 using Olymp.Domain;
 using Olymp.Domain.Models;
+using Olymp.IntegrationTests.Shared;
 using Olymp.Tests.Shared;
 using Olymp.WebApp;
 
@@ -328,6 +329,74 @@ public class ContestRegistrationTests(WebAppFactory factory) : IClassFixture<Web
         contest.StartTime = start;
         contest.EndTime = end;
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+    }
+
+    [Fact]
+    public async Task PreviouslyOpenedCancellationFormCannotCancelAfterMembershipRemoval()
+    {
+        var token = TestContext.Current.CancellationToken;
+        var contest = await AddContestAsync();
+        var user = await AddProfileAsync();
+        using var client = await factory.LoginAsync(user.UserName!);
+        using var registered = await PostAsync(client, contest.Id, false);
+        Assert.Equal(HttpStatusCode.Redirect, registered.StatusCode);
+        using var page = await client.GetAsync(Path(contest.Id), token);
+        using var document = await new HtmlParser().ParseDocumentAsync(await page.Content.ReadAsStringAsync(token), token);
+        var form = document.QuerySelector("form:has(button.btn-outline-danger)")!;
+        Assert.NotNull(form);
+        var fields = form.QuerySelectorAll("input[type='hidden'][name]").ToDictionary(
+            item => item.GetAttribute("name")!, item => item.GetAttribute("value") ?? "");
+        int participantId;
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<OlympContext>();
+            var participant = await db.Competitors.Include(item => item.Members).SingleAsync(item => item.ContestId == contest.Id, token);
+            participantId = participant.Id;
+            participant.Members.Clear();
+            await db.SaveChangesAsync(token);
+        }
+
+        using var response = await client.PostAsync(Path(contest.Id), new FormUrlEncodedContent(fields), token);
+        Assert.True(response.StatusCode is HttpStatusCode.OK or HttpStatusCode.BadRequest);
+        using var verification = factory.Services.CreateScope();
+        Assert.True(await verification.ServiceProvider.GetRequiredService<OlympContext>().Competitors.AnyAsync(item => item.Id == participantId, token));
+    }
+
+    [Theory]
+    [InlineData(-1, true)]
+    [InlineData(0, false)]
+    [InlineData(1, false)]
+    public async Task PreviouslyOpenedCancellationFormRespectsExactStart(int ticksFromStart, bool allowed)
+    {
+        var token = TestContext.Current.CancellationToken;
+        var contest = await AddContestAsync();
+        var user = await AddProfileAsync();
+        var clock = new ManualTimeProvider(contest.StartTime.AddMinutes(-1));
+        using var host = factory.WithWebHostBuilder(builder => builder.ConfigureServices(services => services.AddSingleton<TimeProvider>(clock)));
+        using var client = host.CreateClient(new() { BaseAddress = new Uri("https://localhost"), AllowAutoRedirect = false });
+        using var login = await WebAppFactory.PostFormAsync(client, "/Account/Login", "login", new()
+        {
+            ["Input.Login"] = user.UserName!,
+            ["Input.Password"] = WebAppFactory.Password
+        });
+        Assert.Equal(HttpStatusCode.Redirect, login.StatusCode);
+        using var registered = await PostAsync(client, contest.Id, false);
+        Assert.Equal(HttpStatusCode.Redirect, registered.StatusCode);
+        using var page = await client.GetAsync(Path(contest.Id), token);
+        using var document = await new HtmlParser().ParseDocumentAsync(await page.Content.ReadAsStringAsync(token), token);
+        var form = document.QuerySelector("form:has(button.btn-outline-danger)")!;
+        Assert.NotNull(form);
+        var fields = form.QuerySelectorAll("input[type='hidden'][name]").ToDictionary(
+            item => item.GetAttribute("name")!, item => item.GetAttribute("value") ?? "");
+        clock.UtcNow = contest.StartTime.AddTicks(ticksFromStart);
+
+        using var response = await client.PostAsync(Path(contest.Id), new FormUrlEncodedContent(fields), token);
+        if (allowed)
+            Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+        else
+            Assert.True(response.StatusCode is HttpStatusCode.OK or HttpStatusCode.BadRequest);
+        using var verification = factory.Services.CreateScope();
+        Assert.Equal(!allowed, await verification.ServiceProvider.GetRequiredService<OlympContext>().Competitors.AnyAsync(item => item.ContestId == contest.Id, token));
     }
 
     private static string Path(int id) => $"/contests/{id}/registration";

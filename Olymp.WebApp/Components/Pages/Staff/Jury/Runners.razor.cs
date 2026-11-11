@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.Data.Common;
 
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.EntityFrameworkCore;
@@ -151,7 +152,7 @@ public partial class Runners
 
     private async Task SetActiveAsync(int id, bool active)
     {
-        if (!(await AuthenticationState).User.IsInRole(RoleNames.Admin) || _busy)
+        if (_busy || !(await Authorization.AuthorizeAsync((await AuthenticationState).User, PolicyNames.Admin)).Succeeded)
             return;
         _busy = true;
         _error = _notice = null;
@@ -174,7 +175,7 @@ public partial class Runners
 
     private async Task AddCompilerAsync(Guid id, CompilatorInfo info)
     {
-        if (!(await AuthenticationState).User.IsInRole(RoleNames.Admin) || _busy)
+        if (_busy || !(await Authorization.AuthorizeAsync((await AuthenticationState).User, PolicyNames.Admin)).Succeeded)
             return;
         _busy = true;
         _error = _notice = null;
@@ -197,7 +198,7 @@ public partial class Runners
 
     private async Task RunAsync()
     {
-        if (_running || (!(await AuthenticationState).User.IsInRole(RoleNames.Jury) && !(await AuthenticationState).User.IsInRole(RoleNames.Admin)))
+        if (_running || !(await Authorization.AuthorizeAsync((await AuthenticationState).User, PolicyNames.JuryOrAdmin)).Succeeded)
             return;
         _error = _output = null;
         if (_selectedId is not Guid id || !Checkers.Checkers.TryGetValue(id, out var runner)

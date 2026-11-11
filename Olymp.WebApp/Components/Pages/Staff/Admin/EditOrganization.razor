@@ -108,7 +108,7 @@ else
 
     private async Task<bool> IsAdminAsync()
     {
-        if ((await AuthenticationState).User.IsInRole(RoleNames.Admin)) return true;
+        if ((await Authorization.AuthorizeAsync((await AuthenticationState).User, PolicyNames.Admin)).Succeeded) return true;
         _error = SiteResources.StaffAccessDenied;
         return false;
     }

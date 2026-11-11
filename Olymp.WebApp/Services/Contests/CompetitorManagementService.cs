@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Security.Claims;
 using System.Security.Cryptography;
 
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -16,10 +17,17 @@ public sealed record ParticipantImportSummary(int Added, int Existing);
 
 public sealed record TeamMember(int? UserId, string? Name);
 
-/// <summary>Callers must authorize each participant operation before invoking it.</summary>
+/// <summary>Authorizes staff operations and registration cancellation. Callers authorize new registrations.</summary>
 /// <remarks>Use a new scope when retrying a failed operation.</remarks>
-public sealed class CompetitorManagementService(OlympContext context, UserManager<User> users)
+public sealed class CompetitorManagementService(OlympContext context, UserManager<User> users,
+    IAuthorizationService authorization, TimeProvider timeProvider)
 {
+    private async Task AuthorizeAsync(ClaimsPrincipal actor, int contestId)
+    {
+        if (!(await authorization.AuthorizeAsync(actor, contestId, PolicyNames.ManageContest)).Succeeded)
+            throw new OperationValidationException(SiteResources.StaffAccessDenied);
+    }
+
     public static string GetParticipantName(OlympUser user) =>
         $"{user.FirstName} {user.LastName}, {user.Organization?.Name}" + (user.Details is null ? "" : $", {user.Details}");
 
@@ -30,7 +38,7 @@ public sealed class CompetitorManagementService(OlympContext context, UserManage
         var contest = await context.Contests.SingleOrDefaultAsync(x => x.Id == contestId, token)
             ?? throw new EntityNotFoundException();
 
-        if (contest.IsHidden || contest.IsAcm || DateTimeOffset.Now > contest.EndTime)
+        if (contest.IsHidden || contest.IsAcm || timeProvider.GetLocalNow() > contest.EndTime)
             throw new OperationValidationException(SiteResources.RegistrationNotAvailable);
 
         var user = await context.OlympUsers.AsTracking().Include(x => x.Organization)
@@ -51,7 +59,7 @@ public sealed class CompetitorManagementService(OlympContext context, UserManage
             IsHidden = user.IsHidden,
             IsOutOfCompetition = outOfCompetition,
             OrganizationId = user.OrganizationId,
-            RegistrationDate = DateTimeOffset.Now,
+            RegistrationDate = timeProvider.GetLocalNow(),
             Members = [user],
             Messages = [],
             Submissions = []
@@ -92,7 +100,7 @@ public sealed class CompetitorManagementService(OlympContext context, UserManage
         var contest = await context.Contests.SingleOrDefaultAsync(x => x.Id == contestId, token)
             ?? throw new EntityNotFoundException();
 
-        if (contest.IsHidden || !contest.IsAcm || DateTimeOffset.Now > contest.EndTime)
+        if (contest.IsHidden || !contest.IsAcm || timeProvider.GetLocalNow() > contest.EndTime)
             throw new OperationValidationException(SiteResources.RegistrationNotAvailable);
         if (contest.IsIcpc && !outOfCompetition)
             throw new OperationValidationException(SiteResources.IcpcRegistrationUnofficialOnly);
@@ -129,7 +137,7 @@ public sealed class CompetitorManagementService(OlympContext context, UserManage
             CoachId = coachId,
             IsOutOfCompetition = outOfCompetition,
             MemberInfos = memberInfos,
-            RegistrationDate = DateTimeOffset.Now,
+            RegistrationDate = timeProvider.GetLocalNow(),
             Members = [.. membersById.Values],
             Messages = [],
             Submissions = []
@@ -142,21 +150,22 @@ public sealed class CompetitorManagementService(OlympContext context, UserManage
         await transaction.CommitAsync(token);
     }
 
-    public Task SetApprovalAsync(int contestId, int participantId, bool approved,
+    public Task SetApprovalAsync(ClaimsPrincipal actor, int contestId, int participantId, bool approved,
         CancellationToken token = default) =>
-        UpdateAsync(contestId, participantId, participant => participant.IsApproved = approved, token);
+        UpdateAsync(actor, contestId, participantId, participant => participant.IsApproved = approved, token);
 
-    public Task SetOutOfCompetitionAsync(int contestId, int participantId, bool outOfCompetition,
+    public Task SetOutOfCompetitionAsync(ClaimsPrincipal actor, int contestId, int participantId, bool outOfCompetition,
         CancellationToken token = default) =>
-        UpdateAsync(contestId, participantId, participant => participant.IsOutOfCompetition = outOfCompetition, token);
+        UpdateAsync(actor, contestId, participantId, participant => participant.IsOutOfCompetition = outOfCompetition, token);
 
-    public Task SetDisqualificationAsync(int contestId, int participantId, bool disqualified,
+    public Task SetDisqualificationAsync(ClaimsPrincipal actor, int contestId, int participantId, bool disqualified,
         CancellationToken token = default) =>
-        UpdateAsync(contestId, participantId, participant => participant.IsDisqualified = disqualified, token);
+        UpdateAsync(actor, contestId, participantId, participant => participant.IsDisqualified = disqualified, token);
 
-    private async Task UpdateAsync(int contestId, int participantId,
+    private async Task UpdateAsync(ClaimsPrincipal actor, int contestId, int participantId,
         Action<Competitor> update, CancellationToken token)
     {
+        await AuthorizeAsync(actor, contestId);
         var participant = await context.Competitors.AsTracking()
             .SingleOrDefaultAsync(x => x.Id == participantId && x.ContestId == contestId, token)
             ?? throw new EntityNotFoundException();
@@ -168,7 +177,26 @@ public sealed class CompetitorManagementService(OlympContext context, UserManage
             throw new IdentityOperationException(result.Errors);
     }
 
-    public async Task DeleteAsync(int contestId, int participantId,
+    public async Task DeleteAsync(ClaimsPrincipal actor, int contestId, int participantId,
+        CancellationToken token = default)
+    {
+        await AuthorizeAsync(actor, contestId);
+        await DeleteCoreAsync(contestId, participantId, token);
+    }
+
+    public async Task CancelRegistrationAsync(ClaimsPrincipal actor, int contestId, int participantId,
+        CancellationToken token = default)
+    {
+        var participant = await context.Competitors.AsNoTracking().Include(item => item.Contest).Include(item => item.Members)
+            .SingleOrDefaultAsync(item => item.Id == participantId && item.ContestId == contestId, token);
+        if (participant is null
+            || !(await authorization.AuthorizeAsync(actor, participant, PolicyNames.CancelRegistration)).Succeeded)
+            throw new OperationValidationException(SiteResources.RegistrationUpdateFailed);
+
+        await DeleteCoreAsync(contestId, participantId, token);
+    }
+
+    private async Task DeleteCoreAsync(int contestId, int participantId,
         CancellationToken token = default)
     {
         var participant = await context.Competitors.AsTracking().Include(x => x.Members)
@@ -186,14 +214,15 @@ public sealed class CompetitorManagementService(OlympContext context, UserManage
             throw new IdentityOperationException(result.Errors);
     }
 
-    public async Task<int> DeleteWithoutSubmissionsAsync(int contestId, CancellationToken token = default)
+    public async Task<int> DeleteWithoutSubmissionsAsync(ClaimsPrincipal actor, int contestId, CancellationToken token = default)
     {
+        await AuthorizeAsync(actor, contestId);
         await using var transaction = await context.Database.BeginTransactionAsync(IsolationLevel.Serializable, token);
 
         var contest = await context.Contests.SingleOrDefaultAsync(x => x.Id == contestId, token)
             ?? throw new EntityNotFoundException();
 
-        if (DateTimeOffset.Now <= contest.EndTime)
+        if (timeProvider.GetLocalNow() <= contest.EndTime)
             throw new OperationValidationException(SiteResources.ParticipantCleanupAfterEndOnly);
 
         var participantIds = await context.Competitors
@@ -206,7 +235,7 @@ public sealed class CompetitorManagementService(OlympContext context, UserManage
         {
             token.ThrowIfCancellationRequested();
 
-            await DeleteAsync(contestId, participantId, token);
+            await DeleteCoreAsync(contestId, participantId, token);
         }
 
         await transaction.CommitAsync(token);
@@ -214,8 +243,9 @@ public sealed class CompetitorManagementService(OlympContext context, UserManage
         return participantIds.Count;
     }
 
-    public async Task ApproveAllAsync(int contestId, CancellationToken token = default)
+    public async Task ApproveAllAsync(ClaimsPrincipal actor, int contestId, CancellationToken token = default)
     {
+        await AuthorizeAsync(actor, contestId);
         await using var transaction = await context.Database.BeginTransactionAsync(IsolationLevel.Serializable, token);
 
         var contest = await context.Contests.AsTracking().Include(x => x.Competitors)
@@ -234,9 +264,10 @@ public sealed class CompetitorManagementService(OlympContext context, UserManage
         await transaction.CommitAsync(token);
     }
 
-    public async Task<ParticipantImportSummary> ImportAsync(int contestId,
+    public async Task<ParticipantImportSummary> ImportAsync(ClaimsPrincipal actor, int contestId,
         IReadOnlyCollection<string> names, CancellationToken token = default)
     {
+        await AuthorizeAsync(actor, contestId);
         if (names.Count == 0)
             throw new OperationValidationException(SiteResources.ParticipantFileEmpty);
         if (names.Distinct(StringComparer.OrdinalIgnoreCase).Count() != names.Count)
@@ -269,7 +300,7 @@ public sealed class CompetitorManagementService(OlympContext context, UserManage
                 Contest = null!,
                 Name = name,
                 IsApproved = true,
-                RegistrationDate = DateTimeOffset.Now,
+                RegistrationDate = timeProvider.GetLocalNow(),
                 Members = [],
                 Messages = [],
                 Submissions = []
@@ -287,7 +318,14 @@ public sealed class CompetitorManagementService(OlympContext context, UserManage
         return new ParticipantImportSummary(added, names.Count - added);
     }
 
-    public async Task AssignLoginsAsync(int contestId, IReadOnlyDictionary<string, string> logins,
+    public async Task AssignLoginsAsync(ClaimsPrincipal actor, int contestId, IReadOnlyDictionary<string, string> logins,
+        CancellationToken token = default)
+    {
+        await AuthorizeAsync(actor, contestId);
+        await AssignLoginsCoreAsync(contestId, logins, token);
+    }
+
+    private async Task AssignLoginsCoreAsync(int contestId, IReadOnlyDictionary<string, string> logins,
         CancellationToken token = default)
     {
         var available = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -333,18 +371,20 @@ public sealed class CompetitorManagementService(OlympContext context, UserManage
         await transaction.CommitAsync(token);
     }
 
-    public async Task GenerateLoginsAsync(int contestId, CancellationToken token = default)
+    public async Task GenerateLoginsAsync(ClaimsPrincipal actor, int contestId, CancellationToken token = default)
     {
+        await AuthorizeAsync(actor, contestId);
         int count = await context.Competitors.CountAsync(x => x.ContestId == contestId, token);
         var logins = new Dictionary<string, string>();
         for (int i = 1; i <= count; ++i)
             logins.Add($"olymp{i:000}", RandomNumberGenerator.GetString("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ", 10));
 
-        await AssignLoginsAsync(contestId, logins, token);
+        await AssignLoginsCoreAsync(contestId, logins, token);
     }
 
-    public async Task RemoveLoginsAsync(int contestId, CancellationToken token = default)
+    public async Task RemoveLoginsAsync(ClaimsPrincipal actor, int contestId, CancellationToken token = default)
     {
+        await AuthorizeAsync(actor, contestId);
         await using var transaction = await context.Database.BeginTransactionAsync(IsolationLevel.Serializable, token);
 
         var contest = await context.Contests.AsTracking().Include(x => x.Competitors)
