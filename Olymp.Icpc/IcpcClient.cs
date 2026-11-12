@@ -111,7 +111,7 @@ public sealed class IcpcClient(HttpClient http)
             throw new IcpcException(IcpcStage.Access, IcpcFailure.AccessDenied, 200);
         var teams = await LoadAsync<IcpcTeam>(contestId, "team", "id,name,status,instName,eligibilityStatus,eligibilityIssue,teamMembers",
             idToken, IcpcStage.Teams, requestToken, callerToken);
-        var members = await LoadAsync<IcpcMember>(contestId, "teammember", "role,username,firstName,lastName,teamName",
+        var members = await LoadAsync<IcpcMember>(contestId, "teammember", "teamId,role,username,firstName,lastName,teamName",
             idToken, IcpcStage.Members, requestToken, callerToken);
         if (teams.Any(team => team is null) || members.Any(member => member is null))
             throw new IcpcException(IcpcStage.Roster, IcpcFailure.InvalidData);

@@ -19,6 +19,30 @@ namespace Olymp.IntegrationTests.Services.Contests;
 [Collection("Contest management")]
 public class IcpcImportTests(ContestServiceFixture site) : IClassFixture<ContestServiceFixture>
 {
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task DefaultsToCoachOrganizationBeforeMatchingIcpcName(bool matchesIcpcName)
+    {
+        var token = TestContext.Current.CancellationToken;
+        var setup = await SetupAsync();
+        using var scope = site.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<OlympContext>();
+        var coachOrganization = new Organization { Name = "Coach organization", Users = [] };
+        db.Organizations.Add(coachOrganization);
+        await db.SaveChangesAsync(token);
+        await db.OlympUsers.Where(user => user.Id == setup.Coach.Id)
+            .ExecuteUpdateAsync(update => update.SetProperty(user => user.OrganizationId, coachOrganization.Id), token);
+        var source = matchesIcpcName ? setup.Source : setup.Source with { InstName = "Unknown ICPC institution" };
+        var service = scope.ServiceProvider.GetRequiredService<IcpcImportService>();
+
+        var row = Assert.Single((await service.PreviewAsync(setup.Actor, setup.Contest.Id, [source], token)).Rows);
+
+        Assert.Equal(coachOrganization.Id, row.OrganizationId);
+        Assert.DoesNotContain(Olymp.WebApp.Resources.SiteResources.IcpcSelectOrganization, row.Warnings);
+        Assert.True(row.CoachNeedsAccess);
+    }
+
     [Fact]
     public async Task FailureWhileSavingSecondTeamRollsBackFirstTeamAndItsClaim()
     {

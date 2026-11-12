@@ -76,6 +76,8 @@ public class IcpcClientTests
             string projection = Uri.UnescapeDataString(request.RequestUri.Query.Split('&')[0]);
             Assert.StartsWith("?q=proj:", projection);
             Assert.EndsWith(";", projection);
+            if (request.RequestUri.AbsolutePath.EndsWith("/teammember", StringComparison.Ordinal))
+                Assert.Contains("teamId", projection["?q=proj:".Length..^1].Split(','));
             string json = request.RequestUri.AbsolutePath.EndsWith("/teammember", StringComparison.Ordinal)
                 ? "[{\"teamId\":17,\"role\":\"CONTESTANT_COACH\",\"firstName\":\"Alex\",\"lastName\":\"Smith\"}]"
                 : request.RequestUri.Query.Contains("page=2", StringComparison.Ordinal) ? secondPage! : teams;
