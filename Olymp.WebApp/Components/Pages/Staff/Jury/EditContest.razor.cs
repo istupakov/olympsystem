@@ -33,6 +33,7 @@ public partial class EditContest
     private bool _preview;
     private bool _saving;
     private bool _saved;
+    private bool _isHidden = true;
     private string Title => Id is null ? SiteResources.CreateContest : SiteResources.EditContest;
 
     protected override async Task OnParametersSetAsync()
@@ -42,6 +43,7 @@ public partial class EditContest
         _saved = ShowSaved;
         _preview = false;
         _input = new();
+        _isHidden = true;
         if (Id is { } id)
         {
             await using var context = await ContextFactory.CreateDbContextAsync();
@@ -58,6 +60,7 @@ public partial class EditContest
                 return;
             }
             _input = InputModel.From(contest);
+            _isHidden = contest.IsHidden;
         }
         _editContext = new(_input);
         _messages = new(_editContext);
@@ -109,6 +112,7 @@ public partial class EditContest
                     return;
                 _input.ApplyTo(contest);
                 await context.SaveChangesAsync();
+                _isHidden = contest.IsHidden;
                 _saved = true;
             }
         }

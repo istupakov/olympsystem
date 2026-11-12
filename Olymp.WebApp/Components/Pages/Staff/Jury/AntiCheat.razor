@@ -13,7 +13,7 @@
 }
 else
 {
-    <StaffContestNavigation ContestId="ContestId" ContestName="@_contest.Name" />
+    <StaffContestNavigation ContestId="ContestId" ContestName="@_contest.Name" IsHidden="_contest.IsHidden" />
     <h1 class="h3">@SiteResources.StaffAntiCheat</h1>
     <p>@SiteResources.StaffAntiCheatScope</p>
     <EditForm Model="_input" OnValidSubmit="RunAsync" class="mb-4">

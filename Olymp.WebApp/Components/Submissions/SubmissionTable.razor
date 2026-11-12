@@ -57,7 +57,7 @@
                             </div>
                         </td>
                     }
-                    <td>@submission.Compiler</td>
+                    <td title="@(string.IsNullOrWhiteSpace(submission.CompilerDescription) ? null : submission.CompilerDescription)">@submission.Compiler</td>
                     <td>
                         @if (submission.StatusCode is int status)
                         {

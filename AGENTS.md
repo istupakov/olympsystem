@@ -22,7 +22,8 @@
 
 - Check the interface using the built-in browser and the tab shared by the user.
 - Use the standard application addresses: `https://localhost:5001` and `http://localhost:5000`. See [launchSettings.json](Olymp.WebApp/Properties/launchSettings.json) for launch settings.
-- First use an already running application. Do not start additional instances on other ports or stop processes unnecessarily. Briefly explain the reason before a necessary restart.
+- First check whether the application responds at the standard addresses. Reuse a running instance; otherwise start it using the README instructions and wait until it responds. A shared browser tab does not imply that the application is running. Diagnose browser-tool failures separately from application availability.
+- Do not start additional instances on other ports or stop processes unnecessarily. Briefly explain the reason before a necessary restart.
 - Do not install Playwright, browsers, system libraries, or alternative automation tools for UI checks.
 - If the built-in browser is unavailable, report the limitation and ask for access; continue independent checks without installing workarounds.
 - Check the affected scenario on narrow and wide screens, including back navigation and preserving selection when relevant to the change.

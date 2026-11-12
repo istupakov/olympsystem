@@ -4,8 +4,6 @@
 @inject IDbContextFactory<OlympContext> ContextFactory
 @inject IJSRuntime JavaScript
 
-<h1>@SiteResources.SubmissionSource #@Submission.Id</h1>
-<p>@Submission.Problem.NameWithNumber · @(Submission.Compilator.Description ?? Submission.Compilator.Name) · @Submission.CommitTime.ToLocalTime().ToString("g")</p>
 <p>
     <SubmissionStatus StatusCode="Submission.StatusCode" />
 </p>
@@ -61,6 +59,16 @@
     }
 
     private static string CompilationErrors(string? log, DateTimeOffset? checkTime)
+    {
+        var lines = CompilationOutput(log, checkTime).ReplaceLineEndings("\n").Split('\n');
+        int start = 0;
+        int end = lines.Length;
+        while (start < end && string.IsNullOrWhiteSpace(lines[start])) start++;
+        while (end > start && string.IsNullOrWhiteSpace(lines[end - 1])) end--;
+        return start == end ? SiteResources.SubmissionDiagnosticsUnavailable : string.Join('\n', lines[start..end]);
+    }
+
+    private static string CompilationOutput(string? log, DateTimeOffset? checkTime)
     {
         if (log is null)
             return SiteResources.SubmissionDiagnosticsUnavailable;

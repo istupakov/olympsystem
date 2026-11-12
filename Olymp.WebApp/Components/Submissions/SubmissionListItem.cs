@@ -4,6 +4,7 @@ public sealed record SubmissionListItem(int Id, DateTimeOffset CommitTime, strin
     string Compiler, int ContestId, string Contest, int ProblemId, string Problem,
     bool IsSchool, int? StatusCode, bool? IsAccepted, int? Score, bool CanViewSource)
 {
+    public string? CompilerDescription { get; init; }
     public bool IsTeam { get; init; }
     public string? IpAddress { get; init; }
 }

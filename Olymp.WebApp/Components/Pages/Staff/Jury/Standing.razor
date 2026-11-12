@@ -14,7 +14,7 @@ else if (_contest is null)
 }
 else
 {
-    <StaffContestNavigation ContestId="ContestId" ContestName="@_contest.Name" />
+    <StaffContestNavigation ContestId="ContestId" ContestName="@_contest.Name" IsHidden="_contest.IsHidden" />
     <h1 class="h3">@SiteResources.ContestStandings</h1>
     <p class="text-body-secondary">@SiteResources.StaffWithoutFreeze</p>
     <nav class="d-flex flex-wrap gap-2 mb-3" aria-label="@SiteResources.StandingView">

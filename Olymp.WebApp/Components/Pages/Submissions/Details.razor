@@ -14,7 +14,19 @@
 
 @if (submission is not null)
 {
-    <p><a href="contests/@submission.Problem.ContestId/problems?problemId=@submission.ProblemId#submissions">@SiteResources.BackToProblem</a></p>
+    <h1>@SiteResources.SubmissionSource #@submission.Id</h1>
+    <dl class="row">
+        <dt class="col-sm-3">@SiteResources.SubmissionAuthor</dt>
+        <dd class="col-sm-9 text-break">@submission.User.Name</dd>
+        <dt class="col-sm-3">@SiteResources.SubmissionContest</dt>
+        <dd class="col-sm-9 text-break">@submission.Problem.Contest.Name</dd>
+        <dt class="col-sm-3">@SiteResources.Problem</dt>
+        <dd class="col-sm-9 text-break"><a href="contests/@submission.Problem.ContestId/problems?problemId=@submission.ProblemId#submissions">@submission.Problem.NameWithNumber</a></dd>
+        <dt class="col-sm-3">@SiteResources.Compiler</dt>
+        <dd class="col-sm-9 text-break">@(string.IsNullOrWhiteSpace(submission.Compilator.Description) ? submission.Compilator.Name : submission.Compilator.Description)</dd>
+        <dt class="col-sm-3">@SiteResources.SubmissionTime</dt>
+        <dd class="col-sm-9">@submission.CommitTime.ToLocalTime().ToString("g")</dd>
+    </dl>
     <SubmissionView Submission="submission" DownloadUrl="@($"submissions/{submission.Id}/download")" />
 }
 
@@ -34,6 +46,7 @@
         submission = await context.Submissions.AsNoTracking()
             .Include(item => item.Problem).ThenInclude(item => item.Contest)
             .Include(item => item.Compilator)
+            .Include(item => item.User)
             .SingleOrDefaultAsync(item => item.Id == Id, token);
         if (submission is null || !(await Authorization.AuthorizeAsync(HttpContext.User, submission,
             new ViewSolutionRequirement())).Succeeded)

@@ -10,7 +10,7 @@
 <PageTitle>@Title</PageTitle>
 @if (Id is { } contestId)
 {
-    <StaffContestNavigation ContestId="contestId" ContestName="@_input.Name" />
+    <StaffContestNavigation ContestId="contestId" ContestName="@_input.Name" IsHidden="_isHidden" />
 }
 <h1 class="mb-4">@Title</h1>
 
