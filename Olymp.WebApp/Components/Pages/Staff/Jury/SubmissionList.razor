@@ -17,7 +17,7 @@ else
 {
     @if (_contest is not null)
     {
-        <StaffContestNavigation ContestId="_contest.Id" ContestName="@_contest.Name" />
+        <StaffContestNavigation ContestId="_contest.Id" ContestName="@_contest.Name" IsHidden="_contest.IsHidden" />
     }
     <h1 class="h3">@SiteResources.Submissions</h1>
     @if (_authorName is not null) { <p>@SiteResources.SubmissionAuthor: @_authorName</p> }

@@ -144,7 +144,7 @@ public partial class PracticeSubmissionTests(WebAppFactory factory) : IClassFixt
         Assert.Equal(personal.Text, source.QuerySelector("main pre code")!.TextContent);
         Assert.Null(source.QuerySelector("main pre script"));
         Assert.Equal(ProblemPath(data.Contest.Id, problem.Id).TrimStart('/') + "#submissions",
-            source.QuerySelector("main p a")!.GetAttribute("href"));
+            source.QuerySelector("main dl a")!.GetAttribute("href"));
         using var download = await client.GetAsync($"/submissions/{teamSubmission.Id}/download", TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.OK, download.StatusCode);
         Assert.Equal("utf-8", download.Content.Headers.ContentType!.CharSet);
@@ -215,7 +215,7 @@ public partial class PracticeSubmissionTests(WebAppFactory factory) : IClassFixt
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task AllScopeExcludesHiddenAuthorsExceptViewerBeforePagination(bool participant)
+    public async Task PublicScopeExcludesHiddenAuthorsIncludingViewerBeforePagination(bool participant)
     {
         var data = await SeedAsync();
         using var scope = factory.Services.CreateScope();
@@ -239,7 +239,13 @@ public partial class PracticeSubmissionTests(WebAppFactory factory) : IClassFixt
             hidden.Compilator = null!;
             db.Submissions.Add(hidden);
         }
-        var visible = TestEntities.CreateSubmission(data.User, data.Problem, data.Compiler, data.Contest.StartTime);
+        var visibleAuthor = await factory.AddUserAsync();
+        var hiddenOwn = TestEntities.CreateSubmission(data.User, data.Problem, data.Compiler, DateTimeOffset.UtcNow);
+        hiddenOwn.User = null!;
+        hiddenOwn.Problem = null!;
+        hiddenOwn.Compilator = null!;
+        db.Submissions.Add(hiddenOwn);
+        var visible = TestEntities.CreateSubmission(visibleAuthor, data.Problem, data.Compiler, data.Contest.StartTime);
         visible.User = null!;
         visible.Problem = null!;
         visible.Compilator = null!;
@@ -257,7 +263,7 @@ public partial class PracticeSubmissionTests(WebAppFactory factory) : IClassFixt
     }
 
     [Fact]
-    public async Task ListAppliesRelationshipsAndFreezeIndependentlyOfSelectedScope()
+    public async Task PublicScopeRestrictsRelatedResultsWhilePersonalScopesKeepTheirPermissions()
     {
         var data = await SeedAsync();
         var coached = await factory.AddUserAsync();
@@ -296,27 +302,34 @@ public partial class PracticeSubmissionTests(WebAppFactory factory) : IClassFixt
         using var client = await factory.LoginAsync(data.User.UserName!);
         string path = ProblemPath(contest.Id, data.Problem.Id);
         using var page = await GetAsync(client, path + "&scope=all");
-        foreach (var submission in new[] { own, memberBefore, coachedBefore })
+        foreach (var submission in new[] { memberBefore, coachedBefore, otherBefore })
         {
             var cells = page.QuerySelector($"#submission-{submission.Id}")!.QuerySelectorAll("td");
-            Assert.Equal("Wrong answer on test 3", cells[3].TextContent.Trim());
-            Assert.Equal("37", cells[4].TextContent);
+            Assert.Equal("Not accepted", cells[3].TextContent.Trim());
+            Assert.Equal(4, cells.Length);
         }
-        foreach (var submission in new[] { memberAfter, coachedAfter, otherAfter })
+        foreach (var submission in new[] { own, memberAfter, coachedAfter, otherAfter })
         {
             var cells = page.QuerySelector($"#submission-{submission.Id}")!.QuerySelectorAll("td");
             Assert.Equal("Submitted", cells[3].TextContent.Trim());
-            Assert.Equal("", cells[4].TextContent);
+            Assert.Equal(4, cells.Length);
         }
-        var otherCells = page.QuerySelector($"#submission-{otherBefore.Id}")!.QuerySelectorAll("td");
-        Assert.Equal("Not accepted", otherCells[3].TextContent.Trim());
-        Assert.Equal("", otherCells[4].TextContent);
-        Assert.Single(page.QuerySelectorAll("#submissions a[href$='/download']"));
+        Assert.Empty(page.QuerySelectorAll("#submissions a[href$='/download']"));
         Assert.DoesNotContain("PRIVATE_SOURCE", page.DocumentElement.OuterHtml);
+        using var strangerClient = await factory.LoginAsync(stranger.UserName!);
+        using var strangerPage = await GetAsync(strangerClient, path + "&scope=all");
+        Assert.Equal(page.QuerySelector("#submissions table")!.OuterHtml, strangerPage.QuerySelector("#submissions table")!.OuterHtml);
         using var participants = await GetAsync(client, path + "&scope=participant");
         Assert.Equal(2, participants.QuerySelectorAll("#submissions tbody tr").Length);
+        Assert.Contains("Wrong answer on test 3", participants.QuerySelector($"#submission-{memberBefore.Id}")!.TextContent);
+        Assert.Contains("37", participants.QuerySelector($"#submission-{memberBefore.Id}")!.TextContent);
+        Assert.Contains("Submitted", participants.QuerySelector($"#submission-{memberAfter.Id}")!.TextContent);
         using var students = await GetAsync(client, path + "&scope=coached");
         Assert.Equal(2, students.QuerySelectorAll("#submissions tbody tr").Length);
+        Assert.Contains("Wrong answer on test 3", students.QuerySelector($"#submission-{coachedBefore.Id}")!.TextContent);
+        using var personal = await GetAsync(client, path);
+        Assert.Contains("Wrong answer on test 3", personal.QuerySelector($"#submission-{own.Id}")!.TextContent);
+        Assert.Single(personal.QuerySelectorAll("#submissions a[href$='/download']"));
     }
 
     [Theory]
@@ -326,19 +339,29 @@ public partial class PracticeSubmissionTests(WebAppFactory factory) : IClassFixt
     [InlineData("current-crlf")]
     [InlineData("historic")]
     [InlineData("plain")]
+    [InlineData("legacy-blank-lines")]
+    [InlineData("current-blank-lines")]
+    [InlineData("historic-blank-lines")]
+    [InlineData("plain-blank-lines")]
     public async Task CompilationDiagnosticsSupportSavedLogFormats(string format)
     {
         var data = await SeedAsync();
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<OlympContext>();
-        const string diagnostics = "Compiler error <script>diagnostics</script>\nerror: second line";
-        string log = format switch
+        const string diagnostics = "  Compiler error <script>diagnostics</script>\n\n    error: second line  ";
+        string logFormat = format.Replace("-blank-lines", "");
+        string log = logFormat switch
         {
             "legacy" or "legacy-crlf" => "Runner: private runner\nCompilation:\nuser time: 1\ntotal time: 2\n" + diagnostics,
             "current" or "current-crlf" => "Runner: private runner\nCompilation:\ncommand: private command\nstatus: Error\nuser time: 1\ntotal time: 2\npeak memory: 5 MB\nexit code: 1\ncompilator:\n" + diagnostics,
             "historic" => "private runner metadata\nStandartOutput\n" + diagnostics,
             _ => diagnostics
         };
+        if (format.EndsWith("-blank-lines", StringComparison.Ordinal))
+        {
+            log += "\n \n\r\n";
+            if (logFormat == "plain") log = "\n \n" + log;
+        }
         if (format.EndsWith("-crlf", StringComparison.Ordinal))
             log = log.Replace("\n", "\r\n");
         var submission = TestEntities.CreateSubmission(data.User, data.Problem, data.Compiler, DateTimeOffset.UtcNow);
@@ -350,7 +373,7 @@ public partial class PracticeSubmissionTests(WebAppFactory factory) : IClassFixt
         {
             Submission = submission,
             StatusCode = -1,
-            CheckTime = format == "historic" ? new DateTimeOffset(2023, 2, 1, 0, 0, 0, TimeSpan.Zero) : DateTimeOffset.UtcNow,
+            CheckTime = logFormat == "historic" ? new DateTimeOffset(2023, 2, 1, 0, 0, 0, TimeSpan.Zero) : DateTimeOffset.UtcNow,
             Log = log
         });
         db.Submissions.Add(submission);
@@ -358,7 +381,7 @@ public partial class PracticeSubmissionTests(WebAppFactory factory) : IClassFixt
         using var client = await factory.LoginAsync(data.User.UserName!);
         using var page = await GetAsync(client, $"/submissions/{submission.Id}");
         var output = page.QuerySelector("#compilation-errors pre")!;
-        Assert.Equal((format == "historic" ? "StandartOutput\n" : "") + diagnostics, output.TextContent);
+        Assert.Equal((logFormat == "historic" ? "StandartOutput\n" : "") + diagnostics, output.TextContent);
         Assert.Null(output.QuerySelector("script"));
         Assert.DoesNotContain("private runner", page.DocumentElement.OuterHtml);
         Assert.DoesNotContain("private command", page.DocumentElement.OuterHtml);

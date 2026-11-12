@@ -72,7 +72,7 @@
     private bool hasCoachedSubmissions;
     private bool hasNextPage;
 
-    private bool ShowScores => submissions.Any(item => item.IsSchool);
+    private bool ShowScores => selectedScope != SubmissionScope.All && submissions.Any(item => item.IsSchool);
     private bool ShowSource => submissions.Any(item => item.CanViewSource);
 
     private IEnumerable<SubmissionScope> AvailableScopes
@@ -133,7 +133,10 @@
             SubmissionScope.Own => query.Where(item => item.UserId == userId),
             SubmissionScope.Participant => participantQuery,
             SubmissionScope.Coached => coachedQuery,
-            _ => query.Where(item => !item.User.IsHidden || item.UserId == userId)
+            _ => query.Where(item => !item.User.IsHidden && !item.IsHidden
+                && (item.StatusCode != -1 || (!item.Problem.Contest.IsOpen
+                    && item.Problem.Contest.FreezeTime != null && item.Problem.Contest.FreezeTime < now
+                    && item.CommitTime >= item.Problem.Contest.FreezeTime)))
         };
 
         bool lastAllPage = selectedScope == SubmissionScope.All && Page == AllPageLimit;
@@ -144,14 +147,19 @@
                              let frozen = !item.Problem.Contest.IsOpen
                                  && item.Problem.Contest.FreezeTime != null && item.Problem.Contest.FreezeTime < now
                                  && item.CommitTime >= item.Problem.Contest.FreezeTime
-                             let full = own || (related && !frozen)
+                             let full = selectedScope != SubmissionScope.All && (own || (related && !frozen))
                              let school = item.Problem.Contest.Abbr.StartsWith("school")
                              orderby item.CommitTime descending, item.Id descending
                              select new SubmissionListItem(item.Id, item.CommitTime, item.User.Name, item.User is Competitor,
-                                 item.Compilator.Description ?? item.Compilator.Name, item.Problem.ContestId, item.Problem.Contest.Name,
+                                 item.Compilator.Name, item.Problem.ContestId, item.Problem.Contest.Name,
                                  item.ProblemId, item.Problem.Number.ToString() + ". " + item.Problem.Name, school,
-                                 full ? item.StatusCode : null, !full && !frozen ? item.StatusCode == 2 : null,
-                                 full && school ? item.Score : null, own || (related && item.Problem.Contest.IsOpen)))
+                                 full ? item.StatusCode : null,
+                                 !full && !frozen && item.StatusCode != 0 && item.StatusCode != 1 ? item.StatusCode == 2 : null,
+                                 full && school ? item.Score : null,
+                                 selectedScope != SubmissionScope.All && (own || (related && item.Problem.Contest.IsOpen)))
+                             {
+                                 CompilerDescription = item.Compilator.Description
+                             })
             .Skip((Page - 1) * PageSize).Take(PageSize + (lastAllPage ? 0 : 1)).ToListAsync(token);
 
         hasNextPage = submissions.Count > PageSize;

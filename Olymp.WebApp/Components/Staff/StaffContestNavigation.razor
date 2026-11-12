@@ -1,6 +1,15 @@
 <nav aria-label="@SiteResources.StaffContestSections" class="mb-4">
-    <a href="jury/contests">@SiteResources.Contests</a>
-    <p class="h4 mt-2">@ContestName</p>
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+        <p class="h4 mb-0 text-break">@ContestName</p>
+        @if (IsHidden)
+        {
+            <span class="small text-body-secondary">@SiteResources.StaffPublicPagesHidden</span>
+        }
+        else
+        {
+            <a href="contests/@ContestId/rules">@SiteResources.StaffPublicPages</a>
+        }
+    </div>
     <ul class="nav nav-underline">
         <li class="nav-item"><NavLink class="nav-link" href="@($"jury/contests/{ContestId}/edit")">@SiteResources.StaffSettings</NavLink></li>
         <li class="nav-item"><NavLink class="nav-link" href="@($"jury/contests/{ContestId}/problems")">@SiteResources.Problems</NavLink></li>
@@ -18,4 +27,7 @@
 
     [Parameter, EditorRequired]
     public string ContestName { get; set; } = "";
+
+    [Parameter, EditorRequired]
+    public bool IsHidden { get; set; } = true;
 }

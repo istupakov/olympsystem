@@ -224,27 +224,31 @@ Show the linked-participant and coached-author scope switches only when those
 scopes contain visible submissions after applying the current problem/contest
 filters. An empty scope can still be requested directly and displays an empty
 first page; temporary accounts remain restricted to their own submissions.
-The "All" scope excludes submissions whose author has `User.IsHidden` set,
-including both permanent accounts and participant/team accounts, except for
-the signed-in author's own submissions. Apply this filter before pagination.
+The "Public" scope (`scope=all`) excludes hidden submissions and submissions
+whose author has `User.IsHidden` set, including the signed-in author's submissions.
+It also excludes compilation errors unless the result is hidden by freeze; frozen
+submissions retain their submission fact regardless of verdict. Apply these filters
+before pagination. Public rows and result visibility are identical for all viewers
+who can select this scope.
 
 | Account | Available scopes |
 | --- | --- |
-| Temporary `Competitor` | Own submissions only, without scope switches. |
-| Permanent `OlympUser` | Own submissions; linked `Competitor` submissions when a relationship exists; all visible submissions with restricted information for unrelated authors. |
+| Temporary `Competitor` | My submissions only, without scope switches. |
+| Permanent `OlympUser` | My submissions; My contests (linked `Competitor` submissions); Public submissions with uniformly restricted information. |
 | Permanent user with coached authors | The permanent-user scopes plus submissions of authors whose `User.CoachId` equals the viewer's ID. Coached authors may be `Competitor` or `OlympUser`; no coach claim is required for this scope. |
 
-"Own" means `Submission.UserId` equals the signed-in account ID. Linked
+"My submissions" means `Submission.UserId` equals the signed-in account ID. Linked
 participants are identified by `Competitor.Members`. The coached-author scope
 uses the submission author's own `User.CoachId`; organization membership or a
 relationship inferred through another account is insufficient. Scopes may
-overlap. Choosing "All" does not reduce owner/member/coach permissions or grant
-additional access to another author's private data. Temporary accounts cannot
+overlap. Choosing "Public" restricts the list to accepted/not accepted results,
+without detailed verdicts, scores, or source links, even for owners, members, and
+coaches. Independent details/download permissions remain unchanged. Temporary accounts cannot
 select broader scopes through a direct URL or request parameter.
 
 Submission scopes and pagination are preserved in the URL. Lists use 20 rows per
 page, newest first, with ID descending as the tie-breaker. The default scope is
-"Own"; "All" is limited to the latest 200 matching submissions, including direct
+"My submissions"; "Public" is limited to the latest 200 matching submissions, including direct
 URL requests.
 
 Submission details and source require an active problem in a visible, started
@@ -256,14 +260,14 @@ and source download use the same permission; downloads contain code only.
 | Author | Allowed for a visible problem, regardless of `IsOpen`. |
 | Linked participant member | Allowed for a visible problem only when `IsOpen` is true. |
 | Author's coach, matching `User.CoachId` | Allowed for a visible problem only when `IsOpen` is true, for both participant and permanent-account authors. |
-| Unrelated viewer | Denied, including in the "All" scope and open contests. |
+| Unrelated viewer | Denied, including in the "Public" scope and open contests. |
 
 The linked-participant and coached-author lists remain available in closed
 contests. Listing a submission does not grant access to its source or compilation
 errors through the submission page and download endpoint. List result visibility
 is specified separately in section 7.
 
-After a successful submission, the workspace opens page 1 of "Own".
+After a successful submission, the workspace opens page 1 of "My submissions".
 
 Hidden contests and inactive problems expose no shared submission lists, details,
 or downloads, including to staff accounts. Expanded staff access belongs only to
@@ -296,9 +300,11 @@ affect the table when its verdict arrives after the freeze. The freeze is not au
 view bypasses freeze; the shared interface applies the ordinary visibility rules.
 Shared standings apply the same freeze to all viewers, including staff accounts.
 
-Compute information visibility per row,
-based on the viewer's relationship to its author, independently of the selected
-list scope. Open contests cannot be frozen, as specified in section 2.
+In personal, linked-participant, and coached-author scopes, compute information
+visibility per row based on the viewer's relationship to its author. The Public
+scope shows accepted/not accepted only for completed checks, or the submission fact
+while queued, running, or frozen, without source links or scores. Open contests
+cannot be frozen, as specified in section 2.
 
 | Viewer relationship | Closed contest, submission not hidden by freeze | Closed contest, submission hidden by freeze | Open contest |
 | --- | --- | --- | --- |

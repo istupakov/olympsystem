@@ -19,7 +19,7 @@ else if (_contest is null)
 }
 else
 {
-    <StaffContestNavigation ContestId="ContestId" ContestName="@_contest.Name" />
+    <StaffContestNavigation ContestId="ContestId" ContestName="@_contest.Name" IsHidden="_contest.IsHidden" />
     <h1 class="h3">@SiteResources.Problems</h1>
     @if (_selected is null)
     {

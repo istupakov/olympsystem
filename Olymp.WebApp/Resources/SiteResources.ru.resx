@@ -156,10 +156,10 @@
   <data name="MySubmissions" xml:space="preserve"><value>Мои решения</value></data>
   <data name="Problem" xml:space="preserve"><value>Задача</value></data>
   <data name="SubmissionScope" xml:space="preserve"><value>Какие решения показывать</value></data>
-  <data name="OwnSubmissions" xml:space="preserve"><value>Свои</value></data>
-  <data name="ParticipantSubmissions" xml:space="preserve"><value>Мои участия</value></data>
+  <data name="OwnSubmissions" xml:space="preserve"><value>Мои решения</value></data>
+  <data name="ParticipantSubmissions" xml:space="preserve"><value>Мои соревнования</value></data>
   <data name="CoachedSubmissions" xml:space="preserve"><value>Подопечные</value></data>
-  <data name="AllSubmissions" xml:space="preserve"><value>Все</value></data>
+  <data name="AllSubmissions" xml:space="preserve"><value>Публичные</value></data>
   <data name="SubmissionRecorded" xml:space="preserve"><value>Отправлено</value></data>
   <data name="SubmissionPages" xml:space="preserve"><value>Страницы решений</value></data>
   <data name="NextPage" xml:space="preserve"><value>Далее</value></data>
@@ -490,7 +490,12 @@
   <data name="IcpcContest" xml:space="preserve"><value>Соревнование</value></data>
   <data name="IcpcSelectContest" xml:space="preserve"><value>Выберите соревнование</value></data>
   <data name="IcpcCatalogHint" xml:space="preserve"><value>Это публичный каталог ICPC. Доступ к данным команд проверяется при загрузке команд.</value></data>
-  <data name="IcpcReloadCatalog" xml:space="preserve"><value>Обновить каталог</value></data>
+  <data name="IcpcReloadCatalog" xml:space="preserve"><value>Повторить загрузку каталога</value></data>
+  <data name="IcpcSelectAll" xml:space="preserve"><value>Выбрать всех</value></data>
+  <data name="IcpcSelectWithoutRemarks" xml:space="preserve"><value>Выбрать без замечаний</value></data>
+  <data name="IcpcClearSelection" xml:space="preserve"><value>Снять выбор</value></data>
+  <data name="IcpcSelectedCount" xml:space="preserve"><value>Выбрано: {0} из {1}</value></data>
+  <data name="IcpcCorrectFields" xml:space="preserve"><value>Исправьте отмеченные поля у выбранных команд.</value></data>
   <data name="IcpcCatalogFailed" xml:space="preserve"><value>Не удалось загрузить каталог ICPC. Попробуйте обновить каталог.</value></data>
   <data name="IcpcSeasonInvalid" xml:space="preserve"><value>Введите сезон от 1 до 9999.</value></data>
   <data name="IcpcNoMatchingContests" xml:space="preserve"><value>В этом регионе нет соревнований, соответствующих поиску.</value></data>
@@ -514,4 +519,7 @@
   <data name="IcpcErrorRequest" xml:space="preserve"><value>ICPC отклонил запрос.</value></data>
   <data name="IcpcErrorCode" xml:space="preserve"><value>Код</value></data>
   <data name="IpAddress" xml:space="preserve"><value>IP-адрес</value></data>
+  <data name="StaffPublicPages" xml:space="preserve"><value>Публичные страницы</value></data>
+  <data name="StaffPublicPagesHidden" xml:space="preserve"><value>Публичные страницы недоступны: соревнование скрыто.</value></data>
+  <data name="SubmissionContest" xml:space="preserve"><value>Соревнование</value></data>
 </root>

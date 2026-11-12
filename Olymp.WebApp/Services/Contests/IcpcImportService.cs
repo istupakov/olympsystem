@@ -21,6 +21,7 @@ public sealed class IcpcImportRow
 {
     public required IcpcTeam Source { get; init; }
     public int? ExistingId { get; init; }
+    public Competitor? ExistingTeam { get; init; }
     public string? ExistingDescription { get; init; }
     public required string Snapshot { get; init; }
     public required IReadOnlyList<IcpcAccountMatch> Members { get; init; }
@@ -34,6 +35,12 @@ public sealed class IcpcImportRow
     public bool IsApproved => Source.Status == "ACCEPTED";
     public bool CoachNeedsAccess => CoachId is int coach && OrganizationId is int org
         && (!CoachOrganizations.TryGetValue(coach, out var organizations) || !organizations.Contains(org));
+    public bool NeedsOrganization => OrganizationId is null;
+    public bool NeedsCoach => CoachId is null && Coaches.Any(coach => coach.UserId.HasValue);
+    public bool HasNoRemarks => IsApproved && Errors.Count == 0 && Warnings.Count == 0
+        && !NeedsOrganization && !NeedsCoach && !CoachNeedsAccess
+        && (string.IsNullOrWhiteSpace(Source.EligibilityStatus) || Source.EligibilityStatus == "NO_ISSUES_FOUND")
+        && string.IsNullOrWhiteSpace(Source.EligibilityIssue);
 }
 
 public sealed record IcpcImportPreview(IReadOnlyList<IcpcImportRow> Rows, IReadOnlyList<IcpcOrganizationOption> Organizations);
@@ -118,8 +125,6 @@ public sealed class IcpcImportService(OlympContext context, UserManager<User> us
             int? coachId = coachIds.Length == 1 ? coachIds[0] : null;
             int? organizationId = accounts.SingleOrDefault(account => account.Id == coachId)?.OrganizationId
                 ?? (orgs.Length == 1 ? orgs[0].Id : (int?)null);
-            if (organizationId is null)
-                warnings.Add(SiteResources.IcpcSelectOrganization);
             string snapshot = JsonSerializer.Serialize(new
             {
                 Current = current is null ? null : new
@@ -139,9 +144,9 @@ public sealed class IcpcImportService(OlympContext context, UserManager<User> us
             {
                 Source = team,
                 ExistingId = current?.Id,
+                ExistingTeam = current,
                 ExistingDescription = current is null ? null : $"{current.Name}; {current.Organization?.Name}; "
-                    + string.Join(", ", current.MemberNames ?? []) + $"; {current.Coach?.Name}; "
-                    + (current.IsApproved ? SiteResources.StaffApproved : SiteResources.StaffUnapproved),
+                    + string.Join(", ", current.MemberNames ?? []) + $"; {current.Coach?.Name}",
                 Snapshot = snapshot,
                 Members = members,
                 Coaches = coaches,

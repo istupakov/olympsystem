@@ -18,7 +18,7 @@ else if (_contest is null)
 }
 else
 {
-    <StaffContestNavigation ContestId="ContestId" ContestName="@_contest.Name" />
+    <StaffContestNavigation ContestId="ContestId" ContestName="@_contest.Name" IsHidden="_contest.IsHidden" />
     <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
         <h1 class="h3 mb-0">@SiteResources.StaffMessages</h1>
         <button type="button" class="btn btn-outline-secondary" @ref="_soundButton"

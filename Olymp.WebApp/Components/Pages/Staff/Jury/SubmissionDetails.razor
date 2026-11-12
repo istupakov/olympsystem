@@ -10,13 +10,15 @@
 }
 else
 {
-    <StaffContestNavigation ContestId="_submission.Problem.ContestId" ContestName="@_submission.Problem.Contest.Name" />
+    <StaffContestNavigation ContestId="_submission.Problem.ContestId" ContestName="@_submission.Problem.Contest.Name" IsHidden="_submission.Problem.Contest.IsHidden" />
     @if (BackUrl is not null)
     {
         <p><a href="@BackUrl">@(BackToProblem ? SiteResources.BackToProblem : SiteResources.StaffBackToSubmissions)</a></p>
     }
+    <h1>@SiteResources.SubmissionSource #@_submission.Id</h1>
     <p>@SiteResources.SubmissionAuthor: @_submission.User.Name · <a href="jury/contests/@_submission.Problem.ContestId/submissions?AuthorId=@_submission.UserId">@SiteResources.StaffAuthorSubmissions</a></p>
     <p class="text-break">@SiteResources.IpAddress: @(string.IsNullOrWhiteSpace(_submission.CommiterInfo) ? "–" : _submission.CommiterInfo)</p>
+    <p><a href="jury/contests/@_submission.Problem.ContestId/submissions?Problem=@_submission.ProblemId">@_submission.Problem.NameWithNumber</a> · @(string.IsNullOrWhiteSpace(_submission.Compilator.Description) ? _submission.Compilator.Name : _submission.Compilator.Description) · @_submission.CommitTime.ToLocalTime().ToString("g")</p>
     <SubmissionView Submission="_submission" DownloadUrl="@($"jury/submissions/{Id}/download")" />
     <h2 class="h4 mt-4">@SiteResources.StaffCheckHistory</h2>
     @foreach (var check in _checks)
