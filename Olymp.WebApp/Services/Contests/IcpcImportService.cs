@@ -115,7 +115,10 @@ public sealed class IcpcImportService(OlympContext context, UserManager<User> us
                 errors.Add(SiteResources.ParticipantsMustBeDifferent);
             var orgs = organizations.Where(org => !string.IsNullOrWhiteSpace(team.InstName)
                 && new[] { org.Name, org.FullName, org.ACMName }.Any(name => string.Equals(name?.Trim(), team.InstName.Trim(), StringComparison.OrdinalIgnoreCase))).ToArray();
-            if (orgs.Length != 1)
+            int? coachId = coachIds.Length == 1 ? coachIds[0] : null;
+            int? organizationId = accounts.SingleOrDefault(account => account.Id == coachId)?.OrganizationId
+                ?? (orgs.Length == 1 ? orgs[0].Id : (int?)null);
+            if (organizationId is null)
                 warnings.Add(SiteResources.IcpcSelectOrganization);
             string snapshot = JsonSerializer.Serialize(new
             {
@@ -142,8 +145,8 @@ public sealed class IcpcImportService(OlympContext context, UserManager<User> us
                 Snapshot = snapshot,
                 Members = members,
                 Coaches = coaches,
-                OrganizationId = orgs.Length == 1 ? orgs[0].Id : null,
-                CoachId = coachIds.Length == 1 ? coachIds[0] : null,
+                OrganizationId = organizationId,
+                CoachId = coachId,
                 CoachOrganizations = coachOrganizations,
                 Selected = team.Status != "CANCELED" && errors.Count == 0,
                 Errors = errors,
