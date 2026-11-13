@@ -26,6 +26,36 @@ namespace Olymp.IntegrationTests.WebApp.Staff.Jury;
 public partial class ParticipantExportTests(WebAppFactory factory) : StaffComponentTests(factory)
 {
     [Fact]
+    public async Task ParticipantCsvRespectsCoachAndLinkedAccountFilters()
+    {
+        var staff = await _factory.AddUserAsync();
+        var member = await _factory.AddUserAsync();
+        await GrantRoleAsync(staff.Id, RoleNames.Jury);
+        await using var scope = _factory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<OlympContext>();
+        var contest = TestEntities.CreateContest("Filtered CSV", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddHours(1));
+        var matching = TestEntities.CreateCompetitor(contest, "Matching participant");
+        matching.CoachId = staff.Id;
+        matching.UserName = $"export-{Guid.NewGuid():N}";
+        matching.PasswordHash = "assigned";
+        matching.Members.Add((await db.OlympUsers.FindAsync([member.Id], TestContext.Current.CancellationToken))!);
+        var other = TestEntities.CreateCompetitor(contest, "Other participant");
+        other.UserName = $"export-{Guid.NewGuid():N}";
+        db.Competitors.AddRange(matching, other);
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        using var client = await _factory.LoginAsync(staff.UserName!);
+        string url = $"/jury/contests/{contest.Id}/participants/export?coach={staff.Id}&member={member.Id}";
+        using var response = await client.GetAsync(url, TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        string csv = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+        Assert.Contains(matching.Name, csv);
+        Assert.DoesNotContain(other.Name, csv);
+        using var empty = await client.GetAsync(url + "&coachSearch=missing", TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.OK, empty.StatusCode);
+        Assert.DoesNotContain(matching.Name, await empty.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
     public async Task ParticipantCsvUsesFilteredSelectionSortAndWarnsAboutMissingLogins()
     {
         var staff = await _factory.AddUserAsync();
@@ -54,8 +84,11 @@ public partial class ParticipantExportTests(WebAppFactory factory) : StaffCompon
         Assert.DoesNotContain("Filtered", csv);
         Assert.Contains("credential", csv);
         Assert.True(response.Headers.CacheControl!.NoStore);
+        string path = $"/jury/contests/{contest.Id}/participants?Approved=true";
+        string initial = await RenderAsync<ParticipantList>(path, new() { ["ContestId"] = contest.Id }, Staff(staff.Id, RoleNames.Jury));
+        Assert.DoesNotContain(string.Format(SiteResources.StaffMissingLogins, 1), System.Net.WebUtility.HtmlDecode(initial));
         using var page = await new HtmlParser().ParseDocumentAsync(await RenderAsync<ParticipantList>(
-            $"/jury/contests/{contest.Id}/participants?Approved=true", new() { ["ContestId"] = contest.Id }, Staff(staff.Id, RoleNames.Jury)));
+            path, new() { ["ContestId"] = contest.Id }, Staff(staff.Id, RoleNames.Jury), component => ActAsync(component, "PrepareExportAsync")));
         Assert.Contains(string.Format(SiteResources.StaffMissingLogins, 1), page.Body!.TextContent);
         Assert.DoesNotContain(page.QuerySelectorAll("a"), item => item.GetAttribute("href")?.StartsWith("admin/", StringComparison.Ordinal) == true);
     }

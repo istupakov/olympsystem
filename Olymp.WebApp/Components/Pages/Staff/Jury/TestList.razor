@@ -45,15 +45,13 @@ else
             <a href="@DetailsUrl(item.Id)">@item.Number</a>
         </TemplateColumn>
         <TemplateColumn Title="@SiteResources.StaffTestActive" Context="item">
-            <span class="badge @(item.IsActive ? "text-bg-success" : "text-bg-secondary")">@(item.IsActive ? SiteResources.StaffYes : SiteResources.StaffNo)</span>
-            <QuickFilter Url="@StaffFilterUrl.Set(Navigation.Uri, nameof(Active), item.IsActive)" Label="@SiteResources.StaffTestActive" Value="@(item.IsActive ? SiteResources.StaffYes : SiteResources.StaffNo)" />
+            <QuickFilter Url="@StaffFilterUrl.Set(Navigation.Uri, nameof(Active), item.IsActive)" Label="@SiteResources.StaffTestActive" Value="@(item.IsActive ? SiteResources.StaffYes : SiteResources.StaffNo)"><span class="badge @(item.IsActive ? "text-bg-success" : "text-bg-secondary")">@(item.IsActive ? SiteResources.StaffYes : SiteResources.StaffNo)</span></QuickFilter>
         </TemplateColumn>
         <TemplateColumn Title="@SiteResources.StaffTestOpen" Context="item">
-            <span class="badge @(item.IsOpen ? "text-bg-info" : "text-bg-secondary")">@(item.IsOpen ? SiteResources.StaffYes : SiteResources.StaffNo)</span>
-            <QuickFilter Url="@StaffFilterUrl.Set(Navigation.Uri, nameof(Open), item.IsOpen)" Label="@SiteResources.StaffTestOpen" Value="@(item.IsOpen ? SiteResources.StaffYes : SiteResources.StaffNo)" />
+            <QuickFilter Url="@StaffFilterUrl.Set(Navigation.Uri, nameof(Open), item.IsOpen)" Label="@SiteResources.StaffTestOpen" Value="@(item.IsOpen ? SiteResources.StaffYes : SiteResources.StaffNo)"><span class="badge @(item.IsOpen ? "text-bg-info" : "text-bg-secondary")">@(item.IsOpen ? SiteResources.StaffYes : SiteResources.StaffNo)</span></QuickFilter>
         </TemplateColumn>
         <PropertyColumn Property="@(item => item.Score)" Title="@SiteResources.Points" Sortable="true" />
-        <PropertyColumn Property="@(item => item.Comment)" Title="@SiteResources.StaffTestComment" />
+        <PropertyColumn Property="@(item => item.Comment)" Title="@SiteResources.StaffTestComment" Class="text-wrap" />
         <TemplateColumn Title="@SiteResources.StaffTestInput" SortBy="_inputSort" Sortable="true" Context="item">
             <a class="text-nowrap" href="jury/problems/@ProblemId/tests/@item.Id/input" title="@($"{SiteResources.StaffDownloadInput} · {item.InputSize} B")" data-enhance-nav="false">↓ @ByteSize.Format(item.InputSize)</a>
         </TemplateColumn>

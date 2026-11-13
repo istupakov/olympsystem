@@ -48,9 +48,7 @@ public partial class MessageTests(WebAppFactory factory) : StaffComponentTests(f
             path, new() { ["ContestId"] = contest.Id }, Staff(author.Id)));
         var field = selected.QuerySelector("#message-author")!;
         Assert.True(field.HasAttribute("readonly"));
-        Assert.Contains(author.Name, field.GetAttribute("value"));
-        Assert.Contains(author.UserName!, field.GetAttribute("value"));
-        Assert.Contains($"ID {author.Id}", field.GetAttribute("value"));
+        Assert.Equal($"{author.Name} · ID {author.Id}", field.GetAttribute("value"));
         Assert.Contains("Selected question", selected.Body!.TextContent);
         Assert.DoesNotContain("Other question", selected.Body.TextContent);
         string reset = Assert.Single(selected.QuerySelectorAll("a[data-clear-filter]"), item => item.GetAttribute("aria-label") == string.Format(SiteResources.StaffRemoveFilter, SiteResources.SubmissionAuthor)).GetAttribute("href")!;

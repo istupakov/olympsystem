@@ -387,7 +387,7 @@ details, including to jury members without a contest management assignment.
 
 | Operation | Required access |
 | --- | --- |
-| Read contest information, participants and assigned credentials, statements, submissions, source, diagnostics, standings, and messages | Jury or administrator; includes hidden contests/accounts, unpublished and inactive problems, and results without freeze restrictions. |
+| Read contest information, the global and contest participant lists, participant cards and assigned credentials, statements, submissions, source, diagnostics, standings, and messages | Jury or administrator; includes hidden contests/accounts, unpublished and inactive problems, and results without freeze restrictions. |
 | Read test metadata and bounded file previews; download individual input/output files, all tests of a problem as ZIP, and stored contest attachments | Jury or administrator; includes closed and inactive tests and hidden contests. Public download rules are unchanged. |
 | Export assigned participant credentials | Jury or administrator. |
 | Create a contest | Jury or administrator; the creator receives management permission. New contests are hidden. |
@@ -426,6 +426,13 @@ Additional restrictions:
 - Organization deletion requires confirmation and is forbidden while any account
   references it or any `coach-org` claim identifies it. These references are
   rechecked when deleting; linked accounts and claims are retained.
+- Administrators may delete permanent accounts with unconfirmed email registered
+  strictly more than one calendar month ago. Accounts without a registration date,
+  with submissions, messages, team memberships, coached accounts or participants,
+  roles, or coach/contest-management claims are excluded. Cleanup covers all
+  accounts regardless of list filters and requires a candidate preview and
+  confirmation. Deletion is limited to the previewed IDs; eligibility is rechecked
+  transactionally, and accounts that no longer qualify are skipped.
 - Administrators may rename a participant, link or unlink permanent member
   accounts, and assign, replace, or remove its coach from the participant account
   card. These operations are allowed after the contest starts or ends and across

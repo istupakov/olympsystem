@@ -116,6 +116,7 @@ builder.Services.AddWebEncoders(options =>
 builder.Services.AddScoped<CompetitorManagementService>();
 builder.Services.AddScoped<ContestProblemService>();
 builder.Services.AddScoped<AdminParticipantService>();
+builder.Services.AddScoped<UnconfirmedUserCleanupService>();
 builder.Services.AddScoped<StaffGridState>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<IcpcImportService>();

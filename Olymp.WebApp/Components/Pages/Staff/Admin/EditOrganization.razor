@@ -53,13 +53,14 @@ else
             <h2 class="h5">@SiteResources.StaffRelatedData</h2>
             <div class="d-flex flex-wrap gap-3">
                 <a href="admin/users?Organization=@Id">@SiteResources.StaffUsers · @_users</a>
+                <a href="jury/participants?Organization=@Id">@SiteResources.ContestParticipants · @_participants</a>
                 <a href="admin/users?CoachOrganization=@Id">@SiteResources.StaffOrganizationCoaches · @_coaches</a>
             </div>
         </section>
     }
     @if (HasReferences)
     {
-        <p class="alert alert-info mt-3">@string.Format(SiteResources.StaffOrganizationInUse, _users, _coaches)</p>
+        <p class="alert alert-info mt-3">@string.Format(SiteResources.StaffOrganizationInUse, _users + _participants, _coaches)</p>
     }
     @if (_confirmDelete)
     {
@@ -91,8 +92,9 @@ else
     private string? _error;
     private string? _storedName;
     private int _users;
+    private int _participants;
     private int _coaches;
-    private bool HasReferences => _users > 0 || _coaches > 0;
+    private bool HasReferences => _users > 0 || _participants > 0 || _coaches > 0;
     private string Title => Id.HasValue ? SiteResources.StaffEditOrganization : SiteResources.StaffCreateOrganization;
 
     protected override async Task OnParametersSetAsync()
@@ -100,7 +102,7 @@ else
         _loaded = false;
         _unavailable = _saved = _confirmDelete = false;
         _error = null;
-        _users = _coaches = 0;
+        _users = _participants = _coaches = 0;
         _input = new();
         if (Id is int id)
         {
@@ -163,7 +165,8 @@ else
     private async Task LoadReferencesAsync(OlympContext db, int id)
     {
         string value = id.ToString(CultureInfo.InvariantCulture);
-        _users = await db.Users.CountAsync(item => item.OrganizationId == id);
+        _users = await db.OlympUsers.CountAsync(item => item.OrganizationId == id);
+        _participants = await db.Competitors.CountAsync(item => item.OrganizationId == id);
         _coaches = await db.UserClaims.Where(item => item.ClaimType == ClaimNames.CoachOrg && item.ClaimValue == value)
             .Select(item => item.UserId).Distinct().CountAsync();
     }

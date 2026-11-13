@@ -32,6 +32,7 @@ public static class StaffSubmissionQuery
             IsTeam = item.Problem.Contest.Abbr.StartsWith("acm") || item.Problem.Contest.Abbr.StartsWith("icpc"),
             IpAddress = item.CommiterInfo,
             AuthorId = item.UserId,
+            AuthorContestId = item.User is Competitor ? ((Competitor)item.User).ContestId : null,
             CompilerId = item.CompilatorId,
             Language = item.Compilator.Language,
             IsHidden = item.IsHidden,

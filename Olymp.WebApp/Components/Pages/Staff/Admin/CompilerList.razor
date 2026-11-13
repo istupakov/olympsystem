@@ -47,15 +47,14 @@
     </TemplateColumn>
     <TemplateColumn Title="@SiteResources.Compiler" SortBy="_nameSort" Sortable="true" Context="item">
         <a href="@GridState.DetailUrl(Navigation.Uri, $"admin/compilers/{item.Id}", item.Id)">@(item.Description ?? item.Name)</a>
-        <div class="small text-body-secondary">@item.Name</div>
+        <span class="small text-body-secondary">(@item.Name)</span>
     </TemplateColumn>
     <TemplateColumn Title="@SiteResources.StaffLanguage" SortBy="_languageSort" Sortable="true" Context="item">
-        @item.Language <QuickFilter Url="@StaffFilterUrl.Set(Navigation.Uri, nameof(Language), item.Language)" Label="@SiteResources.StaffLanguage" Value="@item.Language" />
+        <QuickFilter Url="@StaffFilterUrl.Set(Navigation.Uri, nameof(Language), item.Language)" Label="@SiteResources.StaffLanguage" Value="@item.Language">@item.Language</QuickFilter>
     </TemplateColumn>
     <PropertyColumn Property="@(item => item.ConfigName)" Title="@SiteResources.StaffConfiguration" Sortable="true" />
     <TemplateColumn Title="@SiteResources.StaffEnabledOnSite" SortBy="_activeSort" Sortable="true" Context="item">
-        <span class="badge @(item.IsActive ? "text-bg-success" : "text-bg-secondary")">@(item.IsActive ? SiteResources.StaffEnabled : SiteResources.StaffDisabled)</span>
-        <QuickFilter Url="@StaffFilterUrl.Set(Navigation.Uri, nameof(Active), item.IsActive)" Label="@SiteResources.StaffEnabledOnSite" Value="@(item.IsActive ? SiteResources.StaffYes : SiteResources.StaffNo)" />
+        <QuickFilter Url="@StaffFilterUrl.Set(Navigation.Uri, nameof(Active), item.IsActive)" Label="@SiteResources.StaffEnabledOnSite" Value="@(item.IsActive ? SiteResources.StaffYes : SiteResources.StaffNo)"><span class="badge @(item.IsActive ? "text-bg-success" : "text-bg-secondary")">@(item.IsActive ? SiteResources.StaffEnabled : SiteResources.StaffDisabled)</span></QuickFilter>
     </TemplateColumn>
     <TemplateColumn Title="@SiteResources.StaffRunnerAvailable" Context="item">
         @(Checkers.Checkers.Values.Any(runner => runner.SupportsCompiler(item)) ? SiteResources.StaffYes : SiteResources.StaffNo)

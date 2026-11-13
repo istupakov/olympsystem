@@ -36,7 +36,7 @@ public class ContestOperationsPageTests(WebAppFactory factory) : StaffComponentT
         await db.SaveChangesAsync(token);
         using var page = await new HtmlParser().ParseDocumentAsync(await RenderAsync<EditContest>(
             $"/jury/contests/{contest.Id}/edit", new() { ["Id"] = contest.Id }, Staff(actor.Id)));
-        var section = page.QuerySelector($"section[aria-label='{SiteResources.StaffContestOperations}']")!;
+        var section = page.QuerySelector($"details[aria-label='{SiteResources.StaffContestOperations}']")!;
         Assert.Contains(section.QuerySelectorAll("a"), link => link.GetAttribute("href") == $"jury/contests/{contest.Id}/submissions?Retest=true");
         var buttons = section.QuerySelectorAll("button").Select(button => button.TextContent.Trim()).ToArray();
         Assert.Equal(ended, buttons.Contains(archive ? SiteResources.StaffRebuildTests : SiteResources.StaffPublishTests));

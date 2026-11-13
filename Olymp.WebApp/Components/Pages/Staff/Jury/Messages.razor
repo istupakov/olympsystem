@@ -3,6 +3,7 @@
 @using Microsoft.JSInterop
 @inject IDbContextFactory<OlympContext> ContextFactory
 @inject NavigationManager Navigation
+@inject StaffGridState GridState
 @inject IJSRuntime JavaScript
 @inject ILogger<Messages> Logger
 @implements IAsyncDisposable
@@ -36,11 +37,12 @@ else
     <EditForm Model="_filters" OnValidSubmit="ApplyFilters" class="row g-3 mb-3">
         <div class="col-md-4">
             <label for="message-problem" class="form-label">@SiteResources.Problem</label>
-            <InputSelect id="message-problem" class="form-select" @bind-Value="_filters.Problem">
+            <InputSelect @key="_problems" id="message-problem" class="form-select" @bind-Value="_filters.Problem">
                 <option value="">@SiteResources.StaffAll</option>
+                @if (Problem is int missingProblem && !_problems.Any(item => item.Id == missingProblem)) { <option value="@missingProblem">@_selectedProblem</option> }
                 @foreach (var problem in _problems)
                 {
-                    <option value="@problem.Id">@problem.NameWithNumber</option>
+                    <option value="@problem.Id">@StaffEntityLabel.Format(problem.Id, problem.NameWithNumber)</option>
                 }
             </InputSelect>
         </div>
@@ -68,6 +70,7 @@ else
         }
         <div class="col-12 d-flex flex-wrap gap-2">
             <button class="btn btn-primary">@SiteResources.StaffFind</button>
+            <a class="btn btn-outline-secondary" href="@TabUrl(Announcements)">@SiteResources.StaffReset</a>
             <button type="button" class="btn btn-outline-secondary" @onclick="RefreshAsync">@SiteResources.Refresh</button>
             @if (Announcements && _canManage)
             {
@@ -76,7 +79,7 @@ else
         </div>
     </EditForm>
     <div class="d-flex flex-wrap gap-2 mb-3">
-        <ActiveFilter Name="Problem" Label="@SiteResources.Problem" Value="@(Problem is int problemId ? _problems.SingleOrDefault(item => item.Id == problemId)?.NameWithNumber ?? $"ID {problemId}" : null)" />
+        <ActiveFilter Name="Problem" Label="@SiteResources.Problem" Value="@_selectedProblem" />
         @if (!Announcements)
         {
             <ActiveFilter Name="AuthorId" Label="@SiteResources.SubmissionAuthor" Value="@_selectedAuthor" Clear="@(new[] { nameof(Author) })" />
@@ -150,7 +153,9 @@ else
                     @if (message.ProblemId is int messageProblem) { <QuickFilter Url="@StaffFilterUrl.Set(Navigation.Uri, nameof(Problem), messageProblem)" Label="@SiteResources.Problem" Value="@message.Problem!.NameWithNumber" /> }
                 </span>
                 <span>
-                    @message.User?.Name
+                    @if (message.User is Competitor participant) { <a href="@GridState.DetailUrl(Navigation.Uri, $"jury/contests/{participant.ContestId}/participants/{participant.Id}")">@participant.Name</a> }
+                    else if (_admin && message.User is { } account) { <a href="@GridState.DetailUrl(Navigation.Uri, $"admin/users/{account.Id}/edit")">@account.Name</a> }
+                    else { @message.User?.Name }
                     @if (!Announcements && message.UserId is int userId) { <QuickFilter Url="@StaffFilterUrl.Set(Navigation.Uri, nameof(AuthorId), userId, nameof(Author))" Label="@SiteResources.SubmissionAuthor" Value="@message.User!.Name" /> }
                     @message.SendTime?.ToLocalTime().ToString("g")
                 </span>

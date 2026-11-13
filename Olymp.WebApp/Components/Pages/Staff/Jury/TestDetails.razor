@@ -40,7 +40,7 @@ else
         <dt class="col-sm-4">@SiteResources.StaffTestActive</dt><dd class="col-sm-8">@(_test.IsActive ? SiteResources.StaffYes : SiteResources.StaffNo)</dd>
         <dt class="col-sm-4">@SiteResources.StaffTestOpen</dt><dd class="col-sm-8">@(_test.IsOpen ? SiteResources.StaffYes : SiteResources.StaffNo)</dd>
         <dt class="col-sm-4">@SiteResources.Points</dt><dd class="col-sm-8">@_test.Score</dd>
-        <dt class="col-sm-4">@SiteResources.StaffTestComment</dt><dd class="col-sm-8 text-break">@_test.Comment</dd>
+        <dt class="col-sm-4">@SiteResources.StaffTestComment</dt><dd class="col-sm-8 text-break">@(string.IsNullOrWhiteSpace(_test.Comment) ? "–" : _test.Comment)</dd>
     </dl>
     @foreach (bool output in new[] { false, true })
     {
