@@ -1,11 +1,16 @@
 @inject StaffGridState GridState
 @inject NavigationManager Navigation
 
-<p><a href="@StaffGridState.BackUrl(ReturnTo, Fallback)">@SiteResources.StaffBackToList</a></p>
+<div class="d-flex flex-wrap align-items-center gap-3 mb-3">
+    <a href="@StaffGridState.BackUrl(ReturnTo, Fallback)">@(Label ?? SiteResources.StaffBackToList)</a>
+    @ChildContent
+</div>
 
 @code {
     [Parameter] public string? ReturnTo { get; set; }
     [Parameter, EditorRequired] public string Fallback { get; set; } = "";
+    [Parameter] public string? Label { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
 
     protected override void OnParametersSet() => GridState.RememberReturnTo(Navigation.Uri, ReturnTo);
 }

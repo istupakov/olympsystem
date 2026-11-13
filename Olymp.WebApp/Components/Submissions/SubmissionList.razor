@@ -150,13 +150,21 @@
                              let full = selectedScope != SubmissionScope.All && (own || (related && !frozen))
                              let school = item.Problem.Contest.Abbr.StartsWith("school")
                              orderby item.CommitTime descending, item.Id descending
-                             select new SubmissionListItem(item.Id, item.CommitTime, item.User.Name, item.User is Competitor,
-                                 item.Compilator.Name, item.Problem.ContestId, item.Problem.Contest.Name,
-                                 item.ProblemId, item.Problem.Number.ToString() + ". " + item.Problem.Name, school,
-                                 full ? item.StatusCode : null,
-                                 !full && !frozen && item.StatusCode != 0 && item.StatusCode != 1 ? item.StatusCode == 2 : null,
-                                 full && school ? item.Score : null,
-                                 selectedScope != SubmissionScope.All && (own || (related && item.Problem.Contest.IsOpen)))
+                             select new SubmissionListItem(
+                                 Id: item.Id,
+                                 CommitTime: item.CommitTime,
+                                 Author: item.User.Name,
+                                 IsParticipant: item.User is Competitor,
+                                 Compiler: item.Compilator.Name,
+                                 ContestId: item.Problem.ContestId,
+                                 Contest: item.Problem.Contest.Name,
+                                 ProblemId: item.ProblemId,
+                                 Problem: item.Problem.Number.ToString() + ". " + item.Problem.Name,
+                                 IsSchool: school,
+                                 StatusCode: full ? item.StatusCode : null,
+                                 IsAccepted: !full && !frozen && item.StatusCode != 0 && item.StatusCode != 1 ? item.StatusCode == 2 : null,
+                                 Score: full && school ? item.Score : null,
+                                 CanViewSource: selectedScope != SubmissionScope.All && (own || (related && item.Problem.Contest.IsOpen)))
                              {
                                  CompilerDescription = item.Compilator.Description
                              })

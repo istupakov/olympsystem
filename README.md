@@ -100,7 +100,7 @@ dotnet test --no-restore
 Run one integration test class:
 
 ```bash
-dotnet test --project Olymp.IntegrationTests --filter-class 'Olymp.IntegrationTests.WebApp.ContestProblemTests' --no-restore
+dotnet test --project Olymp.IntegrationTests --filter-class 'Olymp.IntegrationTests.WebApp.Public.ContestProblemTests' --no-restore
 ```
 
 Integration tests use the connection supplied by Compose and create temporary

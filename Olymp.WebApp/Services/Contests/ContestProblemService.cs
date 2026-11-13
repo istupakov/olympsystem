@@ -1,18 +1,48 @@
 using System.IO.Compression;
+using System.Security.Claims;
 
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
 using Olymp.Checker;
 using Olymp.Domain;
 using Olymp.Domain.Models;
+using Olymp.WebApp.Resources;
 using Olymp.WebApp.Services.Checker;
 
 namespace Olymp.WebApp.Services.Contests;
 
 public sealed class ContestProblemService(OlympContext context, ICheckerManager checkerManager,
-    IEnumerable<ISimpleChecker> checkers, IOptions<ContestImportOptions> options)
+    IEnumerable<ISimpleChecker> checkers, IOptions<ContestImportOptions> options, IAuthorizationService authorization, TimeProvider timeProvider)
 {
+    private async Task AuthorizeAsync(ClaimsPrincipal actor, int contestId)
+    {
+        if (!(await authorization.AuthorizeAsync(actor, contestId, PolicyNames.ManageContest)).Succeeded)
+            throw new OperationValidationException(SiteResources.StaffAccessDenied);
+    }
+
+    public async Task SetProblemActiveAsync(ClaimsPrincipal actor, int contestId, int problemId, bool active, CancellationToken token = default)
+    {
+        await AuthorizeAsync(actor, contestId);
+        using var gate = await checkerManager.EnterAsync(token);
+        int changed = await context.Problems.Where(item => item.Id == problemId && item.ContestId == contestId)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(item => item.IsActive, active), token);
+        if (changed == 0) throw new EntityNotFoundException();
+    }
+
+    public async Task SetTestActiveAsync(ClaimsPrincipal actor, int problemId, int testId, bool active, CancellationToken token = default)
+    {
+        var contestId = await context.Problems.Where(item => item.Id == problemId).Select(item => (int?)item.ContestId).SingleOrDefaultAsync(token)
+            ?? throw new EntityNotFoundException();
+        await AuthorizeAsync(actor, contestId);
+        using var gate = await checkerManager.EnterAsync(token);
+        int changed = await context.Tests.Where(item => item.Id == testId && item.ProblemId == problemId)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(item => item.IsActive, active), token);
+        if (changed == 0)
+            throw new EntityNotFoundException();
+    }
+
     public const string BusyMessage = "A related submission is still being checked. Please try again after checking finishes.";
 
     public async Task UploadPdfAsync(int contestId, byte[] data, CancellationToken token = default)
@@ -151,7 +181,33 @@ public sealed class ContestProblemService(OlympContext context, ICheckerManager 
             throw new InvalidDataException(BusyMessage);
     }
 
-    public async Task GenerateTestZipAsync(int contestId, CancellationToken token = default)
+    public async Task PublishTestZipAsync(ClaimsPrincipal actor, int contestId, CancellationToken token = default)
+    {
+        await AuthorizeAsync(actor, contestId);
+        await using var transaction = await context.Database.BeginTransactionAsync(token);
+        var end = await context.Contests.Where(item => item.Id == contestId).Select(item => (DateTimeOffset?)item.EndTime).SingleOrDefaultAsync(token)
+            ?? throw new EntityNotFoundException();
+        if (end >= timeProvider.GetUtcNow()) throw new OperationValidationException(SiteResources.StaffContestMustEnd);
+        await GenerateTestZipAsync(contestId, token);
+        await transaction.CommitAsync(token);
+    }
+
+    public async Task RemoveTestZipAsync(ClaimsPrincipal actor, int contestId, CancellationToken token = default)
+    {
+        await AuthorizeAsync(actor, contestId);
+        await using var transaction = await context.Database.BeginTransactionAsync(token);
+        var contest = await context.Contests.AsTracking().Include(item => item.TestZip).SingleOrDefaultAsync(item => item.Id == contestId, token)
+            ?? throw new EntityNotFoundException();
+        if (contest.TestZip is { } blob)
+        {
+            contest.TestZip = null;
+            context.Blobs.Remove(blob);
+            await context.SaveChangesAsync(token);
+        }
+        await transaction.CommitAsync(token);
+    }
+
+    internal async Task GenerateTestZipAsync(int contestId, CancellationToken token = default)
     {
         using var gate = await checkerManager.EnterAsync(token);
         var contest = await context.Contests.Include(x => x.TestZip).AsTracking().SingleAsync(x => x.Id == contestId, token);

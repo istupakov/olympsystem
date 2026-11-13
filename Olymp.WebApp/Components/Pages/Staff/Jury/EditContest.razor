@@ -6,6 +6,7 @@
 @inject IServiceScopeFactory ScopeFactory
 @inject NavigationManager Navigation
 @inject ILogger<EditContest> Logger
+@inject TimeProvider TimeProvider
 
 <PageTitle>@Title</PageTitle>
 @if (Id is { } contestId)
@@ -131,4 +132,37 @@ else
             </div>
         </fieldset>
     </EditForm>
+    @if (Id is not null)
+    {
+        <StaffActions Title="@SiteResources.StaffContestOperations" Class="mt-4">
+            @if (_operationCompleted) { <p class="alert alert-success" role="status">@SiteResources.StaffOperationCompleted</p> }
+            <div class="d-flex flex-wrap gap-2">
+                @if (_canRetest)
+                {
+                    <a class="btn btn-outline-secondary" href="jury/contests/@Id/submissions?Retest=true">@SiteResources.StaffRetestFiltered</a>
+                }
+                @if (CanPublishTests)
+                {
+                    <button class="btn btn-outline-secondary" disabled="@_saving" @onclick="() => _pendingOperation = ContestOperation.PublishTests">@OperationLabel(ContestOperation.PublishTests)</button>
+                }
+                @if (_hasTestZip)
+                {
+                    <button class="btn btn-outline-danger" disabled="@_saving" @onclick="() => _pendingOperation = ContestOperation.RemoveTests">@SiteResources.StaffRemoveTests</button>
+                }
+                @if (_canFinish)
+                {
+                    <button class="btn btn-outline-warning" disabled="@_saving" @onclick="() => _pendingOperation = ContestOperation.Finish">@SiteResources.StaffFinishContest</button>
+                }
+            </div>
+            @if (!_canRetest && !CanPublishTests && !_hasTestZip && !_canFinish) { <p class="text-body-secondary mb-0">@SiteResources.StaffNoContestOperations</p> }
+            @if (_pendingOperation is { } operation)
+            {
+                <div class="alert alert-warning mt-3 mb-0" role="alert">
+                    <p>@OperationConfirmation(operation)</p>
+                    <button class="btn btn-warning" disabled="@_saving" @onclick="RunOperationAsync">@SiteResources.StaffConfirm</button>
+                    <button class="btn btn-outline-secondary ms-2" disabled="@_saving" @onclick="() => _pendingOperation = null">@SiteResources.StaffCancel</button>
+                </div>
+            }
+        </StaffActions>
+    }
 }

@@ -18,6 +18,7 @@
         <a class="btn btn-outline-secondary" href="admin/organizations">@SiteResources.StaffReset</a>
     </div>
 </EditForm>
+<div class="d-flex flex-wrap gap-2 mb-3"><ActiveFilter Name="Search" Label="@SiteResources.StaffOrganization" Value="@Search" /></div>
 <StaffGrid @key="Search" TGridItem="Organization" Query="Query" ItemKey="@(item => item.Id)" OrderKey="@(item => item.Id)" EmptyText="@SiteResources.StaffNoOrganizations">
     <TemplateColumn Title="ID" SortBy="_idSort" Sortable="true" Context="item">
         <a href="@DetailUrl($"admin/organizations/{item.Id}/edit", item.Id)">@item.Id</a>

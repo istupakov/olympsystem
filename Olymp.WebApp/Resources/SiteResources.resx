@@ -551,4 +551,70 @@
   <data name="StaffBackToList" xml:space="preserve"><value>Back to list</value></data>
   <data name="StaffProfileYear" xml:space="preserve"><value>Year</value></data>
   <data name="StaffTeamRoster" xml:space="preserve"><value>Team roster</value></data>
+  <data name="StaffCurrentContests" xml:space="preserve"><value>Current</value></data>
+  <data name="StaffArchive" xml:space="preserve"><value>Archive</value></data>
+  <data name="StaffContestDetails" xml:space="preserve"><value>Contest details</value></data>
+  <data name="StaffServiceInfo" xml:space="preserve"><value>Service information</value></data>
+  <data name="StaffTests" xml:space="preserve"><value>Tests</value></data>
+  <data name="StaffChecker" xml:space="preserve"><value>Checker</value></data>
+  <data name="StaffTotalTests" xml:space="preserve"><value>Total tests</value></data>
+  <data name="StaffActiveTests" xml:space="preserve"><value>Active tests</value></data>
+  <data name="StaffOpenTests" xml:space="preserve"><value>Open tests</value></data>
+  <data name="StaffSlowTimeLimit" xml:space="preserve"><value>Extended time limit</value></data>
+  <data name="StaffTestNumber" xml:space="preserve"><value>Number</value></data>
+  <data name="StaffTestOpen" xml:space="preserve"><value>Open</value></data>
+  <data name="StaffTestActive" xml:space="preserve"><value>Active</value></data>
+  <data name="StaffTestComment" xml:space="preserve"><value>Comment</value></data>
+  <data name="StaffInputSize" xml:space="preserve"><value>Input size (bytes)</value></data>
+  <data name="StaffOutputSize" xml:space="preserve"><value>Output size (bytes)</value></data>
+  <data name="StaffDownloadInput" xml:space="preserve"><value>Download input</value></data>
+  <data name="StaffDownloadOutput" xml:space="preserve"><value>Download output</value></data>
+  <data name="StaffDownloadAllTests" xml:space="preserve"><value>Download all tests (ZIP)</value></data>
+  <data name="StaffToProblem" xml:space="preserve"><value>Back to problem</value></data>
+  <data name="StaffPreviousTest" xml:space="preserve"><value>Previous</value></data>
+  <data name="StaffNext" xml:space="preserve"><value>Next</value></data>
+  <data name="StaffPreviewTruncated" xml:space="preserve"><value>Preview is limited to 16 KiB and 200 lines. Download the file to see all data.</value></data>
+  <data name="StaffPreviewBinary" xml:space="preserve"><value>Binary data or unrecognized text encoding. Download the file to view it.</value></data>
+  <data name="StaffNoTests" xml:space="preserve"><value>No tests found.</value></data>
+  <data name="StaffExportLogins" xml:space="preserve"><value>Export logins (CSV)</value></data>
+  <data name="StaffMissingLogins" xml:space="preserve"><value>{0} of the matching participants have no login and will be omitted from the CSV.</value></data>
+  <data name="StaffLastModification" xml:space="preserve"><value>Last modification</value></data>
+  <data name="StaffReferenceSubmission" xml:space="preserve"><value>Reference solution</value></data>
+  <data name="StaffScoresByTest" xml:space="preserve"><value>Scores by test</value></data>
+  <data name="StaffStatusCode" xml:space="preserve"><value>Status code</value></data>
+  <data name="StaffSourceSize" xml:space="preserve"><value>Source size (bytes)</value></data>
+  <data name="StaffCheckResults" xml:space="preserve"><value>Check results</value></data>
+  <data name="StaffTestResults" xml:space="preserve"><value>Results by test</value></data>
+  <data name="StaffTestInput" xml:space="preserve"><value>Input</value></data>
+  <data name="StaffTestOutput" xml:space="preserve"><value>Output</value></data>
+  <data name="StaffInactive" xml:space="preserve"><value>Inactive</value></data>
+  <data name="StaffClosedTests" xml:space="preserve"><value>Closed</value></data>
+  <data name="StaffActive" xml:space="preserve"><value>Active</value></data>
+  <data name="StaffFinalTable" xml:space="preserve"><value>Final table</value></data>
+  <data name="StaffOfficialTable" xml:space="preserve"><value>Official table</value></data>
+  <data name="StaffHiddenSubmission" xml:space="preserve"><value>Hidden submission</value></data>
+  <data name="StaffQuickFilter" xml:space="preserve"><value>Filter: {0} – {1}</value></data>
+  <data name="StaffRemoveFilter" xml:space="preserve"><value>Remove filter: {0}</value></data>
+  <data name="StaffProblemSearch" xml:space="preserve"><value>Problem name</value></data>
+  <data name="StaffFailedTest" xml:space="preserve"><value>Failed test</value></data>
+  <data name="StaffSubmissionOverview" xml:space="preserve"><value>Submission details</value></data>
+  <data name="StaffContestMustEnd" xml:space="preserve"><value>This action is available after the contest ends.</value></data>
+  <data name="StaffPublishTests" xml:space="preserve"><value>Publish tests</value></data>
+  <data name="StaffRebuildTests" xml:space="preserve"><value>Rebuild test archive</value></data>
+  <data name="StaffRemoveTests" xml:space="preserve"><value>Remove published tests</value></data>
+  <data name="StaffFinishContest" xml:space="preserve"><value>Finish contest</value></data>
+  <data name="StaffContestOperations" xml:space="preserve"><value>Contest actions</value></data>
+  <data name="StaffNoContestOperations" xml:space="preserve"><value>No actions are currently available.</value></data>
+  <data name="StaffOperationCompleted" xml:space="preserve"><value>Action completed.</value></data>
+  <data name="StaffPublishTestsConfirm" xml:space="preserve"><value>Publish a ZIP of active tests from active problems? An existing published archive will be replaced.</value></data>
+  <data name="StaffRemoveTestsConfirm" xml:space="preserve"><value>Remove the published test archive? The problems and their tests will be retained.</value></data>
+  <data name="StaffFinishContestConfirm" xml:space="preserve"><value>Finish the contest: unfreeze standings, open practice participation, and remove participant logins and passwords? Participant accounts, submissions and messages will be retained.</value></data>
+  <data name="StaffArchiveFailed" xml:space="preserve"><value>Could not build the test archive. Check the active tests, file names and archive size limits.</value></data>
+  <data name="StaffDisableProblemConfirm" xml:space="preserve"><value>Disable this problem? New participant submissions will be unavailable, queued participant submissions will wait, and running checks will finish. Staff submissions can still be checked. Tests and previous results will be retained.</value></data>
+  <data name="StaffEnableProblemConfirm" xml:space="preserve"><value>Enable this problem with its current set of active tests? Existing results will remain unchanged.</value></data>
+  <data name="StaffDisableTestConfirm" xml:space="preserve"><value>Disable this test for future checks? Existing results will remain unchanged until rejudged.</value></data>
+  <data name="StaffEnableTestConfirm" xml:space="preserve"><value>Enable this test for future checks? Existing results will remain unchanged until rejudged.</value></data>
+  <data name="StaffProblemOperations" xml:space="preserve"><value>Problem actions</value></data>
+  <data name="StaffTestOperations" xml:space="preserve"><value>Test actions</value></data>
+  <data name="StaffHideRetest" xml:space="preserve"><value>Hide rejudging</value></data>
 </root>

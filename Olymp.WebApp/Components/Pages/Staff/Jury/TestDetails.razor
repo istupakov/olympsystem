@@ -1,0 +1,132 @@
+@page "/jury/problems/{ProblemId:int}/tests/{Id:int}"
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@using Microsoft.AspNetCore.WebUtilities
+@using Olymp.WebApp.Services
+@using Olymp.WebApp.Services.Contests
+@inject IDbContextFactory<OlympContext> ContextFactory
+@inject NavigationManager Navigation
+@inject IServiceScopeFactory ScopeFactory
+
+<PageTitle>@SiteResources.StaffTest</PageTitle>
+@if (!_loaded) { <p role="status">@SiteResources.StaffLoading</p> }
+else if (_test is null || _problem is null) { <p>@SiteResources.PageNotFoundMessage</p> }
+else
+{
+    <StaffContestNavigation ContestId="_problem.ContestId" ContestName="@_problem.Contest.Name" IsHidden="_problem.Contest.IsHidden" />
+    <BackToList ReturnTo="@SafeReturnTo" Fallback="@($"jury/problems/{ProblemId}/tests")">
+        @if (_previous is int previous) { <a href="@TestUrl(previous)">@SiteResources.StaffPreviousTest</a> }
+        @if (_next is int next) { <a href="@TestUrl(next)">@SiteResources.StaffNext</a> }
+        <a href="jury/contests/@_problem.ContestId/problems?problemId=@ProblemId">@SiteResources.StaffToProblem</a>
+    </BackToList>
+    <h1 class="h3">@_problem.NameWithNumber – @SiteResources.StaffTest @_test.Number</h1>
+    @if (_error is not null) { <p class="alert alert-danger" role="alert">@_error</p> }
+    @if (_canManage)
+    {
+        <StaffActions Title="@SiteResources.StaffTestOperations">
+            <button class="btn btn-outline-secondary" disabled="@_busy" @onclick="() => _confirm = !_confirm">@(_test.IsActive ? SiteResources.StaffDisable : SiteResources.StaffEnable)</button>
+            @if (_confirm)
+            {
+                <div class="alert alert-warning mt-3 mb-0" role="alert">
+                    <p>@(_test.IsActive ? SiteResources.StaffDisableTestConfirm : SiteResources.StaffEnableTestConfirm)</p>
+                    <button class="btn btn-warning" disabled="@_busy" @onclick="ToggleActiveAsync">@SiteResources.StaffConfirm</button>
+                    <button class="btn btn-outline-secondary ms-2" disabled="@_busy" @onclick="() => _confirm = false">@SiteResources.StaffCancel</button>
+                </div>
+            }
+        </StaffActions>
+    }
+    <dl class="row">
+        <dt class="col-sm-4">ID</dt><dd class="col-sm-8">@Id</dd>
+        <dt class="col-sm-4">@SiteResources.StaffTestNumber</dt><dd class="col-sm-8">@_test.Number</dd>
+        <dt class="col-sm-4">@SiteResources.StaffTestActive</dt><dd class="col-sm-8">@(_test.IsActive ? SiteResources.StaffYes : SiteResources.StaffNo)</dd>
+        <dt class="col-sm-4">@SiteResources.StaffTestOpen</dt><dd class="col-sm-8">@(_test.IsOpen ? SiteResources.StaffYes : SiteResources.StaffNo)</dd>
+        <dt class="col-sm-4">@SiteResources.Points</dt><dd class="col-sm-8">@_test.Score</dd>
+        <dt class="col-sm-4">@SiteResources.StaffTestComment</dt><dd class="col-sm-8 text-break">@_test.Comment</dd>
+    </dl>
+    @foreach (bool output in new[] { false, true })
+    {
+        var preview = output ? _output : _input;
+        <section class="card mb-3">
+            <div class="card-header d-flex flex-wrap justify-content-between gap-2">
+                <h2 class="h5 mb-0">@(output ? SiteResources.StaffTestOutput : SiteResources.StaffTestInput) · @(output ? _test.OutputSize : _test.InputSize) B</h2>
+                <a href="jury/problems/@ProblemId/tests/@Id/@(output ? "output" : "input")" data-enhance-nav="false">@(output ? SiteResources.StaffDownloadOutput : SiteResources.StaffDownloadInput)</a>
+            </div>
+            <div class="card-body">
+                @if (preview.Text is null) { <p class="mb-0">@SiteResources.StaffPreviewBinary</p> }
+                else
+                {
+                    @if (preview.Truncated) { <p class="text-body-secondary">@SiteResources.StaffPreviewTruncated</p> }
+                    <pre class="overflow-auto mb-0">@preview.Text</pre>
+                }
+            </div>
+        </section>
+    }
+}
+
+@code {
+    [Parameter] public int ProblemId { get; set; }
+    [Parameter] public int Id { get; set; }
+    [SupplyParameterFromQuery] public string? ReturnTo { get; set; }
+    [CascadingParameter] private Task<AuthenticationState> AuthenticationState { get; set; } = default!;
+    private Problem? _problem;
+    private TestRow? _test;
+    private TestPreview _input = new(null, false), _output = new(null, false);
+    private int? _previous, _next;
+    private bool _loaded;
+    private bool _canManage, _busy, _confirm;
+    private string? _error;
+    private string SafeReturnTo => ReturnTo is { } url && url.Split('?')[0] == $"/jury/problems/{ProblemId}/tests"
+        ? StaffGridState.BackUrl(url, $"/jury/problems/{ProblemId}/tests") : $"/jury/problems/{ProblemId}/tests";
+    private string TestUrl(int id) => $"jury/problems/{ProblemId}/tests/{id}?returnTo={Uri.EscapeDataString(SafeReturnTo)}";
+    protected override async Task OnParametersSetAsync()
+    {
+        _loaded = false;
+        _confirm = false;
+        _error = null;
+        await using var db = await ContextFactory.CreateDbContextAsync();
+        _problem = await db.Problems.AsNoTracking().Include(item => item.Contest).SingleOrDefaultAsync(item => item.Id == ProblemId);
+        _canManage = _problem is not null && (await Authorization.AuthorizeAsync((await AuthenticationState).User, _problem.ContestId, PolicyNames.ManageContest)).Succeeded;
+        _test = await TestQuery.Rows(TestQuery.Filter(db, ProblemId, null, null)).SingleOrDefaultAsync(item => item.Id == Id);
+        if (_test is not null)
+        {
+            var prefix = await db.Database.SqlQuery<ContentPrefix>($"""
+                SELECT SUBSTRING([Input], 1, {TestPreview.ByteLimit}) AS [Input],
+                       SUBSTRING([Output], 1, {TestPreview.ByteLimit}) AS [Output]
+                FROM [Tests] WHERE [Id] = {Id} AND [ProblemId] = {ProblemId}
+                """).SingleAsync();
+            _input = TestPreview.Create(prefix.Input, _test.InputSize);
+            _output = TestPreview.Create(prefix.Output, _test.OutputSize);
+            var query = QueryHelpers.ParseQuery(new Uri(new Uri(Navigation.Uri), SafeReturnTo).Query);
+            query.TryGetValue("Active", out var activeFilter);
+            query.TryGetValue("Open", out var openFilter);
+            bool? active = bool.TryParse(activeFilter, out bool activeValue) ? activeValue : null;
+            bool? open = bool.TryParse(openFilter, out bool openValue) ? openValue : null;
+            var tests = TestQuery.Filter(db, ProblemId, active, open);
+            _previous = await tests.Where(item => item.Number < _test.Number || (item.Number == _test.Number && item.Id < Id))
+                .OrderByDescending(item => item.Number).ThenByDescending(item => item.Id).Select(item => (int?)item.Id).FirstOrDefaultAsync();
+            _next = await tests.Where(item => item.Number > _test.Number || (item.Number == _test.Number && item.Id > Id))
+                .OrderBy(item => item.Number).ThenBy(item => item.Id).Select(item => (int?)item.Id).FirstOrDefaultAsync();
+        }
+        _loaded = true;
+    }
+    private async Task ToggleActiveAsync()
+    {
+        if (_busy || !_confirm || _test is null) return;
+        _busy = true;
+        try
+        {
+            await using var scope = ScopeFactory.CreateAsyncScope();
+            await scope.ServiceProvider.GetRequiredService<ContestProblemService>()
+                .SetTestActiveAsync((await AuthenticationState).User, ProblemId, Id, !_test.IsActive);
+            await OnParametersSetAsync();
+        }
+        catch (OperationValidationException exception) { _error = exception.Message; }
+        catch (EntityNotFoundException) { _error = SiteResources.PageNotFoundMessage; }
+        catch (System.Data.Common.DbException) { _error = SiteResources.StaffSaveFailed; }
+        finally { _busy = false; }
+    }
+    private sealed class ContentPrefix
+    {
+        public byte[] Input { get; set; } = [];
+        public byte[] Output { get; set; } = [];
+    }
+}

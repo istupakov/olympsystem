@@ -551,4 +551,70 @@
   <data name="StaffBackToList" xml:space="preserve"><value>К списку</value></data>
   <data name="StaffProfileYear" xml:space="preserve"><value>Год</value></data>
   <data name="StaffTeamRoster" xml:space="preserve"><value>Состав команды</value></data>
+  <data name="StaffCurrentContests" xml:space="preserve"><value>Текущие</value></data>
+  <data name="StaffArchive" xml:space="preserve"><value>Архив</value></data>
+  <data name="StaffContestDetails" xml:space="preserve"><value>О соревновании</value></data>
+  <data name="StaffServiceInfo" xml:space="preserve"><value>Служебная информация</value></data>
+  <data name="StaffTests" xml:space="preserve"><value>Тесты</value></data>
+  <data name="StaffChecker" xml:space="preserve"><value>Чекер</value></data>
+  <data name="StaffTotalTests" xml:space="preserve"><value>Всего тестов</value></data>
+  <data name="StaffActiveTests" xml:space="preserve"><value>Активных тестов</value></data>
+  <data name="StaffOpenTests" xml:space="preserve"><value>Открытых тестов</value></data>
+  <data name="StaffSlowTimeLimit" xml:space="preserve"><value>Увеличенный лимит времени</value></data>
+  <data name="StaffTestNumber" xml:space="preserve"><value>Номер</value></data>
+  <data name="StaffTestOpen" xml:space="preserve"><value>Открытый</value></data>
+  <data name="StaffTestActive" xml:space="preserve"><value>Активный</value></data>
+  <data name="StaffTestComment" xml:space="preserve"><value>Комментарий</value></data>
+  <data name="StaffInputSize" xml:space="preserve"><value>Размер input (байт)</value></data>
+  <data name="StaffOutputSize" xml:space="preserve"><value>Размер output (байт)</value></data>
+  <data name="StaffDownloadInput" xml:space="preserve"><value>Скачать input</value></data>
+  <data name="StaffDownloadOutput" xml:space="preserve"><value>Скачать output</value></data>
+  <data name="StaffDownloadAllTests" xml:space="preserve"><value>Скачать все тесты ZIP</value></data>
+  <data name="StaffToProblem" xml:space="preserve"><value>К задаче</value></data>
+  <data name="StaffPreviousTest" xml:space="preserve"><value>Предыдущий</value></data>
+  <data name="StaffNext" xml:space="preserve"><value>Следующий</value></data>
+  <data name="StaffPreviewTruncated" xml:space="preserve"><value>Показано начало файла: не более 16 КиБ и 200 строк. Полные данные доступны для скачивания.</value></data>
+  <data name="StaffPreviewBinary" xml:space="preserve"><value>Бинарные данные или нераспознанная кодировка текста. Файл доступен для скачивания.</value></data>
+  <data name="StaffNoTests" xml:space="preserve"><value>Тестов не найдено.</value></data>
+  <data name="StaffExportLogins" xml:space="preserve"><value>Выгрузить логины CSV</value></data>
+  <data name="StaffMissingLogins" xml:space="preserve"><value>У {0} участников из найденных не назначены логины. Они не попадут в CSV.</value></data>
+  <data name="StaffLastModification" xml:space="preserve"><value>Последнее изменение</value></data>
+  <data name="StaffReferenceSubmission" xml:space="preserve"><value>Эталонное решение</value></data>
+  <data name="StaffScoresByTest" xml:space="preserve"><value>Баллы по тестам</value></data>
+  <data name="StaffStatusCode" xml:space="preserve"><value>Код статуса</value></data>
+  <data name="StaffSourceSize" xml:space="preserve"><value>Размер исходника (байт)</value></data>
+  <data name="StaffCheckResults" xml:space="preserve"><value>Результаты проверки</value></data>
+  <data name="StaffTestResults" xml:space="preserve"><value>Результаты по тестам</value></data>
+  <data name="StaffTestInput" xml:space="preserve"><value>Input</value></data>
+  <data name="StaffTestOutput" xml:space="preserve"><value>Output</value></data>
+  <data name="StaffInactive" xml:space="preserve"><value>Неактивные</value></data>
+  <data name="StaffClosedTests" xml:space="preserve"><value>Закрытые</value></data>
+  <data name="StaffActive" xml:space="preserve"><value>Активные</value></data>
+  <data name="StaffFinalTable" xml:space="preserve"><value>Итоговая таблица</value></data>
+  <data name="StaffOfficialTable" xml:space="preserve"><value>Официальная таблица</value></data>
+  <data name="StaffHiddenSubmission" xml:space="preserve"><value>Скрытое решение</value></data>
+  <data name="StaffQuickFilter" xml:space="preserve"><value>Фильтр: {0} – {1}</value></data>
+  <data name="StaffRemoveFilter" xml:space="preserve"><value>Снять фильтр: {0}</value></data>
+  <data name="StaffProblemSearch" xml:space="preserve"><value>Название задачи</value></data>
+  <data name="StaffFailedTest" xml:space="preserve"><value>Тест с ошибкой</value></data>
+  <data name="StaffSubmissionOverview" xml:space="preserve"><value>Сведения о решении</value></data>
+  <data name="StaffContestMustEnd" xml:space="preserve"><value>Действие доступно после окончания соревнования.</value></data>
+  <data name="StaffPublishTests" xml:space="preserve"><value>Выложить тесты</value></data>
+  <data name="StaffRebuildTests" xml:space="preserve"><value>Пересобрать архив тестов</value></data>
+  <data name="StaffRemoveTests" xml:space="preserve"><value>Убрать тесты</value></data>
+  <data name="StaffFinishContest" xml:space="preserve"><value>Завершить соревнование</value></data>
+  <data name="StaffContestOperations" xml:space="preserve"><value>Действия с соревнованием</value></data>
+  <data name="StaffNoContestOperations" xml:space="preserve"><value>Сейчас нет доступных действий.</value></data>
+  <data name="StaffOperationCompleted" xml:space="preserve"><value>Действие выполнено.</value></data>
+  <data name="StaffPublishTestsConfirm" xml:space="preserve"><value>Выложить ZIP с активными тестами активных задач? Если архив уже опубликован, он будет заменён.</value></data>
+  <data name="StaffRemoveTestsConfirm" xml:space="preserve"><value>Убрать опубликованный архив тестов? Задачи и их тесты сохранятся.</value></data>
+  <data name="StaffFinishContestConfirm" xml:space="preserve"><value>Завершить соревнование: разморозить таблицу, открыть дорешивание и удалить логины и пароли участников? Учётные записи участников, решения и сообщения сохранятся.</value></data>
+  <data name="StaffArchiveFailed" xml:space="preserve"><value>Не удалось собрать архив тестов. Проверьте активные тесты, имена файлов и ограничения размера архива.</value></data>
+  <data name="StaffDisableProblemConfirm" xml:space="preserve"><value>Выключить задачу? Новые посылки участников станут недоступны, ожидающие посылки участников останутся в очереди, а начатые проверки завершатся. Посылки сотрудников продолжат проверяться. Тесты и прежние результаты сохранятся.</value></data>
+  <data name="StaffEnableProblemConfirm" xml:space="preserve"><value>Включить задачу с текущим набором активных тестов? Существующие результаты сохранятся.</value></data>
+  <data name="StaffDisableTestConfirm" xml:space="preserve"><value>Выключить тест для следующих проверок? Существующие результаты сохранятся до ретеста.</value></data>
+  <data name="StaffEnableTestConfirm" xml:space="preserve"><value>Включить тест для следующих проверок? Существующие результаты сохранятся до ретеста.</value></data>
+  <data name="StaffProblemOperations" xml:space="preserve"><value>Действия с задачей</value></data>
+  <data name="StaffTestOperations" xml:space="preserve"><value>Действия с тестом</value></data>
+  <data name="StaffHideRetest" xml:space="preserve"><value>Скрыть ретест</value></data>
 </root>

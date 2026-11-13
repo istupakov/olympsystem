@@ -2,7 +2,6 @@
     <table class="table table-striped table-hover">
         <thead>
             <tr>
-                @if (ShowId) { <th scope="col">ID</th> }
                 <th scope="col">@SiteResources.SubmissionTime</th>
                 @if (ShowAuthor)
                 {
@@ -22,17 +21,12 @@
                 {
                     <th scope="col">@SiteResources.SourceCode</th>
                 }
-                @if (ShowIpAddress)
-                {
-                    <th scope="col">@SiteResources.IpAddress</th>
-                }
             </tr>
         </thead>
         <tbody>
             @foreach (var submission in Items)
             {
                 <tr id="submission-@submission.Id">
-                    @if (ShowId) { <td><a href="@SourceUrl(submission)">@submission.Id</a></td> }
                     <td>@submission.CommitTime.ToLocalTime().ToString("g")</td>
                     @if (ShowAuthor)
                     {
@@ -40,7 +34,7 @@
                             @submission.Author
                             @if (submission.IsParticipant)
                             {
-                                <span class="badge text-bg-secondary ms-1">@(submission.IsTeam ? SiteResources.StaffTeam : SiteResources.Competitor)</span>
+                                <span class="badge text-bg-secondary ms-1">@SiteResources.Competitor</span>
                             }
                         </td>
                     }
@@ -57,7 +51,9 @@
                             </div>
                         </td>
                     }
-                    <td title="@(string.IsNullOrWhiteSpace(submission.CompilerDescription) ? null : submission.CompilerDescription)">@submission.Compiler</td>
+                    <td title="@(string.IsNullOrWhiteSpace(submission.CompilerDescription) ? null : submission.CompilerDescription)">
+                        @submission.Compiler
+                    </td>
                     <td>
                         @if (submission.StatusCode is int status)
                         {
@@ -93,10 +89,6 @@
                             }
                         </td>
                     }
-                    @if (ShowIpAddress)
-                    {
-                        <td class="text-nowrap">@(string.IsNullOrWhiteSpace(submission.IpAddress) ? "–" : submission.IpAddress)</td>
-                    }
                 </tr>
             }
         </tbody>
@@ -106,9 +98,6 @@
 @code {
     [Parameter, EditorRequired]
     public IReadOnlyList<SubmissionListItem> Items { get; set; } = [];
-
-    [Parameter]
-    public bool ShowId { get; set; }
 
     [Parameter]
     public bool ShowAuthor { get; set; } = true;
@@ -124,9 +113,6 @@
 
     [Parameter]
     public bool ShowSource { get; set; } = true;
-
-    [Parameter]
-    public bool ShowIpAddress { get; set; }
 
     [Parameter]
     public Func<SubmissionListItem, string> SourceUrl { get; set; } = item => $"submissions/{item.Id}";

@@ -44,6 +44,18 @@
 
     private async ValueTask<GridItemsProviderResult<TGridItem>> LoadAsync(GridItemsProviderRequest<TGridItem> request)
     {
+        try
+        {
+            return await LoadCoreAsync(request);
+        }
+        catch (System.Data.Common.DbException exception) when (request.CancellationToken.IsCancellationRequested)
+        {
+            throw new OperationCanceledException(null, exception, request.CancellationToken);
+        }
+    }
+
+    private async ValueTask<GridItemsProviderResult<TGridItem>> LoadCoreAsync(GridItemsProviderRequest<TGridItem> request)
+    {
         string uri = Navigation.Uri;
         await using var db = await ContextFactory.CreateDbContextAsync(request.CancellationToken);
         var query = Query(db);

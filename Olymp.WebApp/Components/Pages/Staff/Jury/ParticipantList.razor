@@ -5,6 +5,8 @@
 @inject IDbContextFactory<OlympContext> ContextFactory
 @inject IServiceScopeFactory ScopeFactory
 @inject ILogger<ParticipantList> Logger
+@inject NavigationManager Navigation
+@inject StaffGridState GridState
 
 <PageTitle>@SiteResources.ContestParticipants</PageTitle>
 @if (_contest is null)
@@ -55,57 +57,102 @@ else
             </div>
         </fieldset>
     }
-    <div class="table-responsive">
-        <table class="table table-striped align-middle">
-            <thead>
-                <tr>
-                    <th>@AccountResources.PublicName</th>
-                    <th>@SiteResources.StaffMembers</th>
-                    <th>@SiteResources.StaffOrganization</th>
-                    <th>@SiteResources.StaffCoach</th>
-                    <th>@SiteResources.StaffLogin</th>
-                    <th>@SiteResources.StaffPassword</th>
-                    <th>@SiteResources.StaffStatus</th>
-                    <th>@SiteResources.StaffRegistrationDate</th>
-                    @if (_canManage || _admin) { <th>@SiteResources.StaffActions</th> }</tr>
-            </thead>
-            <tbody>
-                @foreach (var participant in _participants) {
-                    <tr>
-                        <td>@participant.Name @if (participant.IsHidden) { <span class="badge text-bg-secondary">@SiteResources.StaffHiddenAccount</span> }
-                        </td>
-                        <td>
-                            @foreach (var (name, member) in participant.GetMembers() ?? []) { <div>@name@if (member?.Email is { } email) { <text> (</text><a href="mailto:@email">@email</a><text>)</text> }
-                                </div> }
-                        </td>
-                        <td>@participant.Organization?.Name</td>
-                        <td>@participant.Coach?.Name@if (participant.Coach?.Email is { } coachEmail) { <text> (</text><a href="mailto:@coachEmail">@coachEmail</a><text>)</text> }
-                        </td>
-                        <td>@participant.UserName</td>
-                        <td>@participant.PasswordHash</td>
-                        <td>
-                            <div>@(participant.IsApproved ? SiteResources.StaffApproved : SiteResources.StaffUnapproved)</div>
-                            <div>@(participant.IsOutOfCompetition ? SiteResources.StaffUnofficial : SiteResources.StaffOfficial)</div>
-                            @if (participant.IsDisqualified) { <span class="badge text-bg-danger">@SiteResources.StaffDisqualified</span> }
-                        </td>
-                        <td>@participant.RegistrationDate?.LocalDateTime.ToString("g")</td>
-                        @if (_canManage || _admin) {
-                            <td>
-                                <div class="d-flex flex-wrap gap-2">
-                                    @if (_canManage) {
-                                        <button class="btn btn-sm btn-outline-primary" disabled="@_busy" @onclick="() => Ask(participant.IsApproved ? ParticipantAction.Disapprove : ParticipantAction.Approve, participant)">@(participant.IsApproved ? SiteResources.StaffDisapprove : SiteResources.StaffApprove)</button>
-                                        <button class="btn btn-sm btn-outline-primary" disabled="@_busy" @onclick="() => Ask(participant.IsOutOfCompetition ? ParticipantAction.Official : ParticipantAction.Unofficial, participant)">@(participant.IsOutOfCompetition ? SiteResources.StaffMakeOfficial : SiteResources.StaffMakeUnofficial)</button>
-                                        <button class="btn btn-sm btn-outline-warning" disabled="@_busy" @onclick="() => Ask(participant.IsDisqualified ? ParticipantAction.Restore : ParticipantAction.Disqualify, participant)">@(participant.IsDisqualified ? SiteResources.StaffRestoreParticipant : SiteResources.StaffDisqualify)</button>
-                                        <button class="btn btn-sm btn-outline-danger" disabled="@_busy" @onclick="() => Ask(ParticipantAction.Delete, participant)">@SiteResources.StaffDelete</button>
-                                    }
-                                    @if (_admin) { <a class="btn btn-sm btn-outline-secondary" href="admin/users/@participant.Id/edit">@SiteResources.StaffAccount</a> }
-                                </div>
-                            </td>
-                        }
-                    </tr>
-                }
-            </tbody>
-        </table>
+    <EditForm Model="_filters" OnValidSubmit="ApplyFilters" class="row g-3 mb-3">
+        <div class="col-md-6">
+            <label for="participant-search" class="form-label">@AccountResources.PublicName / @SiteResources.StaffLogin</label>
+            <InputText id="participant-search" class="form-control" @bind-Value="_filters.Search" />
+        </div>
+        <div class="col-md-6">
+            <label for="participant-organization" class="form-label">@SiteResources.StaffOrganization</label>
+            <InputSelect id="participant-organization" class="form-select" @bind-Value="_filters.Organization">
+                <option value="">@SiteResources.StaffAll</option>
+                @foreach (var organization in _organizations) { <option value="@organization.Id">@organization.Name</option> }
+            </InputSelect>
+        </div>
+        <div class="col-md-4">
+            <label for="participant-approved" class="form-label">@SiteResources.StaffApproved</label>
+            <InputSelect id="participant-approved" class="form-select" @bind-Value="_filters.Approved">
+                <option value="">@SiteResources.StaffAll</option><option value="true">@SiteResources.StaffApproved</option><option value="false">@SiteResources.StaffUnapproved</option>
+            </InputSelect>
+        </div>
+        <div class="col-md-4">
+            <label for="participant-unofficial" class="form-label">@SiteResources.StaffUnofficial</label>
+            <InputSelect id="participant-unofficial" class="form-select" @bind-Value="_filters.Unofficial">
+                <option value="">@SiteResources.StaffAll</option><option value="false">@SiteResources.StaffOfficial</option><option value="true">@SiteResources.StaffUnofficial</option>
+            </InputSelect>
+        </div>
+        <div class="col-md-4">
+            <label for="participant-disqualified" class="form-label">@SiteResources.StaffDisqualified</label>
+            <InputSelect id="participant-disqualified" class="form-select" @bind-Value="_filters.Disqualified">
+                <option value="">@SiteResources.StaffAll</option><option value="true">@SiteResources.StaffYes</option><option value="false">@SiteResources.StaffNo</option>
+            </InputSelect>
+        </div>
+        <div class="col-12 d-flex flex-wrap gap-2">
+            <button class="btn btn-primary">@SiteResources.StaffFind</button>
+            <a class="btn btn-outline-secondary" href="jury/contests/@ContestId/participants">@SiteResources.StaffReset</a>
+            <a class="btn btn-outline-primary" href="@ExportUrl()" data-enhance-nav="false">@SiteResources.StaffExportLogins</a>
+        </div>
+    </EditForm>
+    <div class="d-flex flex-wrap gap-2 mb-3">
+        <ActiveFilter Name="Search" Label="@AccountResources.PublicName" Value="@Search" />
+        <ActiveFilter Name="Organization" Label="@SiteResources.StaffOrganization" Value="@(Organization is int organization ? _organizations.SingleOrDefault(item => item.Id == organization)?.Name ?? $"ID {organization}" : null)" />
+        <ActiveFilter Name="Approved" Label="@SiteResources.StaffApproved" Value="@(Approved is bool approved ? approved ? SiteResources.StaffYes : SiteResources.StaffNo : null)" />
+        <ActiveFilter Name="Unofficial" Label="@SiteResources.StaffUnofficial" Value="@(Unofficial is bool unofficial ? unofficial ? SiteResources.StaffYes : SiteResources.StaffNo : null)" />
+        <ActiveFilter Name="Disqualified" Label="@SiteResources.StaffDisqualified" Value="@(Disqualified is bool disqualified ? disqualified ? SiteResources.StaffYes : SiteResources.StaffNo : null)" />
     </div>
-    @if (_participants.Count == 0) { <p>@SiteResources.StaffNoParticipants</p> }
+    @if (_missingLogins > 0) { <p class="alert alert-warning">@string.Format(SiteResources.StaffMissingLogins, _missingLogins)</p> }
+    <StaffGrid @key="_gridVersion" TGridItem="Competitor" Query="Query" ItemKey="@(item => item.Id)" OrderKey="@(item => item.Id)" EmptyText="@SiteResources.StaffNoParticipants">
+        <TemplateColumn Title="ID" SortBy="_idSort" Sortable="true" Context="participant">
+            @if (_admin) { <a href="@AccountUrl(participant.Id)">@participant.Id</a> } else { @participant.Id }
+        </TemplateColumn>
+        <TemplateColumn Title="@SiteResources.StaffName" SortBy="_nameSort" Sortable="true" Context="participant">
+            @if (_admin) { <a href="@AccountUrl(participant.Id)">@participant.Name</a> } else { @participant.Name }
+        </TemplateColumn>
+        <TemplateColumn Title="@SiteResources.StaffMembers" Context="participant">
+            @foreach (var (name, member) in participant.GetMembers() ?? participant.Members.Select(member => (member.Name, (OlympUser?)member)))
+            {
+                <div>@if (_admin && member is not null) { <a href="@AccountUrl(member.Id, participant.Id)">@name</a> } else { @name }</div>
+            }
+        </TemplateColumn>
+        <TemplateColumn Title="@SiteResources.StaffOrganization" Context="participant">
+            @if (_admin && participant.OrganizationId is int organizationId) { <a href="@GridState.DetailUrl(Navigation.Uri, $"admin/organizations/{organizationId}/edit", participant.Id)">@participant.Organization?.Name</a> }
+            else { @participant.Organization?.Name }
+            @if (participant.OrganizationId is int orgId) { <QuickFilter Url="@StaffFilterUrl.Set(Navigation.Uri, nameof(Organization), orgId)" Label="@SiteResources.StaffOrganization" Value="@participant.Organization!.Name" /> }
+        </TemplateColumn>
+        <TemplateColumn Title="@SiteResources.StaffCoach" Context="participant">
+            @if (_admin && participant.CoachId is int coachId) { <a href="@AccountUrl(coachId, participant.Id)">@participant.Coach?.Name</a> } else { @participant.Coach?.Name }
+        </TemplateColumn>
+        <PropertyColumn Property="@(item => item.UserName)" Title="@SiteResources.StaffLogin" Sortable="true" />
+        <PropertyColumn Property="@(item => item.PasswordHash)" Title="@SiteResources.StaffPassword" />
+        <TemplateColumn Title="@SiteResources.StaffStatus" Context="participant">
+            <div class="d-flex flex-wrap gap-1">
+                <span class="badge @(participant.IsApproved ? "text-bg-success" : "text-bg-warning")">@(participant.IsApproved ? SiteResources.StaffApproved : SiteResources.StaffUnapproved)</span>
+                <QuickFilter Url="@StaffFilterUrl.Set(Navigation.Uri, nameof(Approved), participant.IsApproved)" Label="@SiteResources.StaffApproved" Value="@(participant.IsApproved ? SiteResources.StaffYes : SiteResources.StaffNo)" />
+                <span class="badge @(participant.IsOutOfCompetition ? "text-bg-info" : "text-bg-light")">@(participant.IsOutOfCompetition ? SiteResources.StaffUnofficial : SiteResources.StaffOfficial)</span>
+                <QuickFilter Url="@StaffFilterUrl.Set(Navigation.Uri, nameof(Unofficial), participant.IsOutOfCompetition)" Label="@SiteResources.StaffUnofficial" Value="@(participant.IsOutOfCompetition ? SiteResources.StaffYes : SiteResources.StaffNo)" />
+                @if (participant.IsDisqualified)
+                {
+                    <span class="badge text-bg-danger">@SiteResources.StaffDisqualified</span>
+                    <QuickFilter Url="@StaffFilterUrl.Set(Navigation.Uri, nameof(Disqualified), true)" Label="@SiteResources.StaffDisqualified" Value="@SiteResources.StaffYes" />
+                }
+                @if (participant.IsHidden) { <span class="badge text-bg-secondary">@SiteResources.StaffHiddenAccount</span> }
+            </div>
+        </TemplateColumn>
+        <TemplateColumn Title="@SiteResources.StaffRegistrationDate" SortBy="_dateSort" Sortable="true" Context="participant">@participant.RegistrationDate?.ToLocalTime().ToString("g")</TemplateColumn>
+        <TemplateColumn Title="@SiteResources.StaffRelatedData" Context="participant">
+            <div><a href="jury/contests/@ContestId/submissions?AuthorId=@participant.Id">@SiteResources.Submissions</a></div>
+            <div><a href="jury/contests/@ContestId/messages?AuthorId=@participant.Id">@SiteResources.StaffQuestions</a></div>
+        </TemplateColumn>
+        @if (_canManage)
+        {
+            <TemplateColumn Title="@SiteResources.StaffActions" Context="participant">
+                <div class="d-flex flex-wrap gap-2">
+                    <button class="btn btn-sm btn-outline-primary" disabled="@_busy" @onclick="() => Ask(participant.IsApproved ? ParticipantAction.Disapprove : ParticipantAction.Approve, participant)">@(participant.IsApproved ? SiteResources.StaffDisapprove : SiteResources.StaffApprove)</button>
+                    <button class="btn btn-sm btn-outline-primary" disabled="@_busy" @onclick="() => Ask(participant.IsOutOfCompetition ? ParticipantAction.Official : ParticipantAction.Unofficial, participant)">@(participant.IsOutOfCompetition ? SiteResources.StaffMakeOfficial : SiteResources.StaffMakeUnofficial)</button>
+                    <button class="btn btn-sm btn-outline-warning" disabled="@_busy" @onclick="() => Ask(participant.IsDisqualified ? ParticipantAction.Restore : ParticipantAction.Disqualify, participant)">@(participant.IsDisqualified ? SiteResources.StaffRestoreParticipant : SiteResources.StaffDisqualify)</button>
+                    <button class="btn btn-sm btn-outline-danger" disabled="@_busy" @onclick="() => Ask(ParticipantAction.Delete, participant)">@SiteResources.StaffDelete</button>
+                </div>
+            </TemplateColumn>
+        }
+    </StaffGrid>
 }

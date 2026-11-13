@@ -27,6 +27,7 @@
         <dt class="col-sm-3">@SiteResources.SubmissionTime</dt>
         <dd class="col-sm-9">@submission.CommitTime.ToLocalTime().ToString("g")</dd>
     </dl>
+    <p><SubmissionStatus StatusCode="submission.StatusCode" /></p>
     <SubmissionView Submission="submission" DownloadUrl="@($"submissions/{submission.Id}/download")" />
 }
 

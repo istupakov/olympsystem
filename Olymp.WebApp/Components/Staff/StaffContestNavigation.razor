@@ -11,6 +11,7 @@
         }
     </div>
     <ul class="nav nav-underline">
+        <li class="nav-item"><NavLink class="nav-link" Match="NavLinkMatch.All" href="@($"jury/contests/{ContestId}")">@SiteResources.StaffContestDetails</NavLink></li>
         <li class="nav-item"><NavLink class="nav-link" href="@($"jury/contests/{ContestId}/edit")">@SiteResources.StaffSettings</NavLink></li>
         <li class="nav-item"><NavLink class="nav-link" href="@($"jury/contests/{ContestId}/problems")">@SiteResources.Problems</NavLink></li>
         <li class="nav-item"><NavLink class="nav-link" href="@($"jury/contests/{ContestId}/participants")">@SiteResources.ContestParticipants</NavLink></li>

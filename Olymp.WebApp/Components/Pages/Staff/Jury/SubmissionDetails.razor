@@ -2,6 +2,8 @@
 @rendermode @(new InteractiveServerRenderMode(prerender: false))
 @using Olymp.WebApp.Components.Submissions
 @inject IDbContextFactory<OlympContext> ContextFactory
+@inject StaffGridState GridState
+@inject NavigationManager Navigation
 
 <PageTitle>@SiteResources.SubmissionSource</PageTitle>
 @if (_submission is null)
@@ -11,29 +13,97 @@
 else
 {
     <StaffContestNavigation ContestId="_submission.Problem.ContestId" ContestName="@_submission.Problem.Contest.Name" IsHidden="_submission.Problem.Contest.IsHidden" />
-    @if (BackUrl is not null)
+    @if (ReturnTo is not null)
     {
-        <p><a href="@BackUrl">@(BackToProblem ? SiteResources.BackToProblem : SiteResources.StaffBackToSubmissions)</a></p>
+        <BackToList ReturnTo="@ReturnTo" Fallback="@($"jury/contests/{_submission.Problem.ContestId}/submissions")" />
+    }
+    else if (BackUrl is not null)
+    {
+        <BackToList ReturnTo="@BackUrl" Fallback="@($"jury/contests/{_submission.Problem.ContestId}/submissions")" Label="@(BackToProblem ? SiteResources.BackToProblem : SiteResources.StaffBackToList)" />
+    }
+    else
+    {
+        <BackToList Fallback="@($"jury/contests/{_submission.Problem.ContestId}/submissions")" />
     }
     <h1>@SiteResources.SubmissionSource #@_submission.Id</h1>
-    <p>@SiteResources.SubmissionAuthor: @_submission.User.Name · <a href="jury/contests/@_submission.Problem.ContestId/submissions?AuthorId=@_submission.UserId">@SiteResources.StaffAuthorSubmissions</a></p>
-    <p class="text-break">@SiteResources.IpAddress: @(string.IsNullOrWhiteSpace(_submission.CommiterInfo) ? "–" : _submission.CommiterInfo)</p>
-    <p><a href="jury/contests/@_submission.Problem.ContestId/submissions?Problem=@_submission.ProblemId">@_submission.Problem.NameWithNumber</a> · @(string.IsNullOrWhiteSpace(_submission.Compilator.Description) ? _submission.Compilator.Name : _submission.Compilator.Description) · @_submission.CommitTime.ToLocalTime().ToString("g")</p>
-    <SubmissionView Submission="_submission" DownloadUrl="@($"jury/submissions/{Id}/download")" />
+    <section class="card mb-3" aria-label="@SiteResources.StaffSubmissionOverview">
+        <div class="card-body">
+            <dl class="row mb-0 text-break">
+                <dt class="col-sm-3">@SiteResources.SubmissionStatus</dt>
+                <dd class="col-sm-9">
+                    <SubmissionTestStatus Code="_submission.StatusCode" ProblemId="_submission.ProblemId" Tests="_testIds" />
+                    <QuickFilter Url="@Filter(nameof(SubmissionList.StatusCode), _submission.StatusCode, nameof(SubmissionList.Status))" Label="@SiteResources.SubmissionStatus" Value="@CheckStatusCodes.Description(_submission.StatusCode)" />
+                </dd>
+                <dt class="col-sm-3">@SiteResources.SubmissionTime</dt><dd class="col-sm-9">@_submission.CommitTime.ToLocalTime().ToString("g")</dd>
+                @if (_submission.Score is int score)
+                {
+                    <dt class="col-sm-3">@SiteResources.Points</dt><dd class="col-sm-9">@score</dd>
+                }
+                <dt class="col-sm-3">@SiteResources.StaffContest</dt>
+                <dd class="col-sm-9">
+                    <a href="jury/contests/@_submission.Problem.ContestId">@_submission.Problem.Contest.Name</a>
+                    <QuickFilter Url="@Filter(nameof(SubmissionList.Contest), _submission.Problem.ContestId, nameof(SubmissionList.Problem), nameof(SubmissionList.ProblemSearch))" Label="@SiteResources.StaffContest" Value="@_submission.Problem.Contest.Name" />
+                </dd>
+                <dt class="col-sm-3">@SiteResources.Problem</dt>
+                <dd class="col-sm-9">
+                    <a href="jury/contests/@_submission.Problem.ContestId/problems?problemId=@_submission.ProblemId">@_submission.Problem.NameWithNumber</a> · ID @_submission.ProblemId
+                    <QuickFilter Url="@Filter(nameof(SubmissionList.Problem), _submission.ProblemId, nameof(SubmissionList.ProblemSearch))" Label="@SiteResources.Problem" Value="@_submission.Problem.NameWithNumber" />
+                </dd>
+                <dt class="col-sm-3">@SiteResources.SubmissionAuthor</dt>
+                <dd class="col-sm-9">
+                    @if (_admin) { <a href="@GridState.DetailUrl(Navigation.Uri, $"admin/users/{_submission.UserId}/edit")">@_submission.User.Name</a> }
+                    else { @_submission.User.Name }
+                    · ID @_submission.UserId
+                    <QuickFilter Url="@Filter(nameof(SubmissionList.AuthorId), _submission.UserId, nameof(SubmissionList.Author))" Label="@SiteResources.SubmissionAuthor" Value="@_submission.User.Name" />
+                </dd>
+                <dt class="col-sm-3">@SiteResources.Compiler</dt>
+                <dd class="col-sm-9">
+                    @if (_admin) { <a href="@GridState.DetailUrl(Navigation.Uri, $"admin/compilers/{_submission.CompilatorId}")">@(_submission.Compilator.Description ?? _submission.Compilator.Name)</a> }
+                    else { @(_submission.Compilator.Description ?? _submission.Compilator.Name) }
+                    · ID @_submission.CompilatorId
+                    <QuickFilter Url="@Filter(nameof(SubmissionList.Compiler), _submission.CompilatorId)" Label="@SiteResources.Compiler" Value="@(_submission.Compilator.Description ?? _submission.Compilator.Name)" />
+                </dd>
+                <dt class="col-sm-3">@SiteResources.StaffLanguage</dt>
+                <dd class="col-sm-9">
+                    @_submission.Compilator.Language
+                    <QuickFilter Url="@Filter(nameof(SubmissionList.Language), _submission.Compilator.Language)" Label="@SiteResources.StaffLanguage" Value="@_submission.Compilator.Language" />
+                </dd>
+            </dl>
+        </div>
+    </section>
+    <details class="card mb-4">
+        <summary class="card-header">@SiteResources.StaffServiceInfo</summary>
+        <dl class="row card-body text-break mb-0">
+            <dt class="col-sm-4">@SiteResources.IpAddress</dt>
+            <dd class="col-sm-8">
+                @(string.IsNullOrWhiteSpace(_submission.CommiterInfo) ? "–" : _submission.CommiterInfo)
+                @if (!string.IsNullOrWhiteSpace(_submission.CommiterInfo))
+                {
+                    <QuickFilter Url="@Filter(nameof(SubmissionList.IpAddress), _submission.CommiterInfo)" Label="@SiteResources.IpAddress" Value="@_submission.CommiterInfo" />
+                }
+            </dd>
+            <dt class="col-sm-4">@SiteResources.StaffLastModification</dt><dd class="col-sm-8">@_submission.LastModification.ToLocalTime().ToString("g")</dd>
+            <dt class="col-sm-4">@SiteResources.StaffStatusCode</dt><dd class="col-sm-8">@_submission.StatusCode</dd>
+            <dt class="col-sm-4">@SiteResources.StaffHiddenSubmission</dt><dd class="col-sm-8">@(_submission.IsHidden ? SiteResources.StaffYes : SiteResources.StaffNo)</dd>
+            <dt class="col-sm-4">@SiteResources.StaffReferenceSubmission</dt><dd class="col-sm-8">@(_submission.IsReference ? SiteResources.StaffYes : SiteResources.StaffNo)</dd>
+            <dt class="col-sm-4">@SiteResources.StaffDescription</dt><dd class="col-sm-8">@_submission.Description</dd>
+            <dt class="col-sm-4">@SiteResources.StaffScoresByTest</dt><dd class="col-sm-8">@_submission.ScoresByTest</dd>
+            <dt class="col-sm-4">@SiteResources.StaffSourceSize</dt><dd class="col-sm-8">@_submission.SourceCode.Length</dd>
+        </dl>
+    </details>
+    <section class="mb-4" aria-labelledby="source-heading">
+        <h2 id="source-heading" class="h4">@SiteResources.SourceCode</h2>
+        <SubmissionView Submission="_submission" DownloadUrl="@($"jury/submissions/{Id}/download")" />
+    </section>
     <h2 class="h4 mt-4">@SiteResources.StaffCheckHistory</h2>
     @foreach (var check in _checks)
     {
-        <details class="card mb-3">
-            <summary class="card-header">@check.CheckTime.LocalDateTime.ToString("g") · <SubmissionStatus StatusCode="check.StatusCode" />
-            </summary>
+        <details class="card mb-3" data-check-id="@check.Id">
+            <summary class="card-header">@check.CheckTime.LocalDateTime.ToString("g") · <SubmissionStatus StatusCode="check.StatusCode" /></summary>
             <div class="card-body">
-                @if (_submission.Problem.Contest.IsSchool)
-                {
-                    <div class="border-bottom pb-2 mb-3">
-                        <p>@SiteResources.Points: @check.Score</p>
-                        <p class="text-break mb-0">@check.TestResults</p>
-                    </div>
-                }
+                <p><SubmissionTestStatus Code="check.StatusCode" ProblemId="_submission.ProblemId" Tests="_testIds" /></p>
+                <p>ID: @check.Id · @SiteResources.StaffStatusCode: @check.StatusCode · @SiteResources.Points: @check.Score</p>
+                <p class="text-break">@SiteResources.StaffTestResults: @check.TestResults</p>
                 <pre class="overflow-auto">@check.Log</pre>
             </div>
         </details>
@@ -41,16 +111,25 @@ else
 }
 
 @code {
-    [Parameter]
-    public int Id { get; set; }
-
-    [SupplyParameterFromQuery]
-    public string? ReturnUrl { get; set; }
-
+    [Parameter] public int Id { get; set; }
+    [SupplyParameterFromQuery] public string? ReturnUrl { get; set; }
+    [SupplyParameterFromQuery] public string? ReturnTo { get; set; }
+    [CascadingParameter] private Task<AuthenticationState> AuthenticationState { get; set; } = default!;
+    private bool _admin;
     private Submission? _submission;
     private List<CheckResult> _checks = [];
+    private Dictionary<int, int> _testIds = [];
     private bool _loaded;
     private bool BackToProblem => ReturnUrl?.Split('?')[0] == $"/jury/contests/{_submission?.Problem.ContestId}/problems";
+    private string Filter(string name, object value, params string[] clear)
+    {
+        string fallback = $"/jury/contests/{_submission?.Problem.ContestId}/submissions";
+        string source = StaffGridState.BackUrl(ReturnTo ?? ReturnUrl, fallback);
+        string path = source.Split('?')[0];
+        if (path != "/jury/submissions" && path != fallback) source = fallback;
+        if (name == nameof(SubmissionList.Contest)) source = "/jury/submissions" + (source.Contains('?') ? source[source.IndexOf('?')..] : "");
+        return StaffFilterUrl.Set(source, name, value, clear);
+    }
     private string? BackUrl
     {
         get
@@ -61,16 +140,24 @@ else
                 && !url.Contains('\\') && !url.Contains('#') ? url + (BackToProblem ? "#submissions" : "") : null;
         }
     }
-
     protected override async Task OnParametersSetAsync()
     {
         _loaded = false;
+        _admin = (await AuthenticationState).User.IsInRole(RoleNames.Admin);
         await using var context = await ContextFactory.CreateDbContextAsync();
         _submission = await context.Submissions.AsNoTracking().Include(item => item.User)
             .Include(item => item.Problem).ThenInclude(item => item.Contest).Include(item => item.Compilator)
             .SingleOrDefaultAsync(item => item.Id == Id);
         _checks = _submission is null ? [] : await context.CheckResults.AsNoTracking()
             .Where(item => item.SubmissionId == Id).OrderByDescending(item => item.CheckTime).ThenByDescending(item => item.Id).ToListAsync();
+        _testIds = [];
+        if (_submission is not null)
+        {
+            int[] numbers = _checks.Select(item => item.StatusCode).Append(_submission.StatusCode)
+                .Where(StaffVerdicts.HasTest).Select(CheckStatusCodes.TestNumber).Distinct().ToArray();
+            _testIds = await context.Tests.Where(item => item.ProblemId == _submission.ProblemId && numbers.Contains(item.Number))
+                .GroupBy(item => item.Number).Select(group => new { Number = group.Key, Id = group.Min(item => item.Id) }).ToDictionaryAsync(item => item.Number, item => item.Id);
+        }
         _loaded = true;
     }
 }

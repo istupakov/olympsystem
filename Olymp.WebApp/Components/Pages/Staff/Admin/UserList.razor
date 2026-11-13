@@ -6,10 +6,6 @@
 
 <PageTitle>@SiteResources.StaffUsers</PageTitle>
 <h1 class="mb-4">@SiteResources.StaffUsers</h1>
-@if (_relationName is not null)
-{
-    <p class="alert alert-info"><a href="@_relationUrl">@_relationName</a> · @RelationLabel</p>
-}
 <EditForm Model="_filters" OnValidSubmit="ApplyFilters" class="row g-3 mb-4">
     <div class="col-12">
         <label for="user-search" class="form-label">@SiteResources.StaffUserSearch</label>
@@ -52,6 +48,17 @@
         <a class="btn btn-outline-secondary" href="admin/users">@SiteResources.StaffReset</a>
     </div>
 </EditForm>
+<div class="d-flex flex-wrap gap-2 mb-3">
+    <ActiveFilter Name="Search" Label="@SiteResources.StaffUserSearch" Value="@Search" />
+    <ActiveFilter Name="AccountType" Label="@SiteResources.StaffAccountType" Value="@(SelectedAccountType == "participant" ? SiteResources.Competitor : SelectedAccountType == "permanent" ? SiteResources.StaffPermanentAccount : null)" Clear="@TypeGroup" />
+    <ActiveFilter Name="Role" Label="@SiteResources.StaffRoles" Value="@(SelectedRole == "admin" ? SiteResources.AdminSection : SelectedRole == "jury" ? SiteResources.JurySection : SelectedRole == "coach" ? SiteResources.StaffCoach : null)" Clear="@RoleGroup" />
+    <ActiveFilter Name="Visibility" Label="@SiteResources.StaffVisibility" Value="@(Visibility == "hidden" ? SiteResources.StaffHiddenAccounts : Visibility == "visible" ? SiteResources.StaffVisibleAccounts : null)" />
+    <ActiveFilter Name="Organization" Label="@SiteResources.StaffOrganization" Value="@(Organization is int organization ? _organizations.SingleOrDefault(item => item.Id == organization)?.Name ?? $"ID {organization}" : null)" />
+    <ActiveFilter Name="CoachOrganization" Label="@SiteResources.StaffOrganizationCoaches" Value="@_relations.GetValueOrDefault(nameof(CoachOrganization))" />
+    <ActiveFilter Name="Coach" Label="@SiteResources.StaffCoachedAccounts" Value="@_relations.GetValueOrDefault(nameof(Coach))" />
+    <ActiveFilter Name="Member" Label="@SiteResources.StaffMemberships" Value="@_relations.GetValueOrDefault(nameof(Member))" />
+    <ActiveFilter Name="Participant" Label="@SiteResources.StaffMembers" Value="@_relations.GetValueOrDefault(nameof(Participant))" />
+</div>
 <StaffGrid @key="Navigation.Uri" TGridItem="Row" Query="Query" ItemKey="@(item => item.Id)" OrderKey="@(item => item.Id)" EmptyText="@SiteResources.StaffNoUsers">
     <TemplateColumn Title="ID" SortBy="_idSort" Sortable="true" Context="item">
         <a href="@DetailUrl(item.Id)">@item.Id</a>
@@ -65,17 +72,24 @@
     </TemplateColumn>
     <PropertyColumn Property="@(item => item.Login)" Title="@SiteResources.StaffLogin" Sortable="true" />
     <PropertyColumn Property="@(item => item.Email)" Title="@SiteResources.StaffEmail" Sortable="true" />
-    <TemplateColumn Title="@SiteResources.StaffAccountType" Context="item">@(item.Participant ? SiteResources.Competitor : SiteResources.StaffPermanentAccount)</TemplateColumn>
+    <TemplateColumn Title="@SiteResources.StaffAccountType" Context="item">
+        @(item.Participant ? SiteResources.Competitor : SiteResources.StaffPermanentAccount)
+        <QuickFilter Url="@StaffFilterUrl.Set(Navigation.Uri, nameof(AccountType), item.Participant ? "participant" : "permanent", TypeGroup)" Label="@SiteResources.StaffAccountType" Value="@(item.Participant ? SiteResources.Competitor : SiteResources.StaffPermanentAccount)" />
+    </TemplateColumn>
     <TemplateColumn Title="@SiteResources.StaffOrganization" SortBy="_organizationSort" Sortable="true" Context="item">
-        @if (item.OrganizationId is int id) { <a href="@GridState.DetailUrl(Navigation.Uri, $"admin/organizations/{id}/edit", item.Id)">@item.OrganizationName</a> }
+        @if (item.OrganizationId is int id)
+        {
+            <a href="@GridState.DetailUrl(Navigation.Uri, $"admin/organizations/{id}/edit", item.Id)">@item.OrganizationName</a>
+            <QuickFilter Url="@StaffFilterUrl.Set(Navigation.Uri, nameof(Organization), id)" Label="@SiteResources.StaffOrganization" Value="@(item.OrganizationName ?? "")" />
+        }
     </TemplateColumn>
     <TemplateColumn Title="@SiteResources.StaffRoles" Context="item">
-        @if (item.Admin) { <span class="badge text-bg-secondary me-1">@SiteResources.AdminSection</span> }
-        @if (item.Jury) { <span class="badge text-bg-secondary me-1">@SiteResources.JurySection</span> }
-        @if (item.Coach) { <span class="badge text-bg-secondary">@SiteResources.StaffCoach</span> }
+        @if (item.Admin) { <span class="badge text-bg-secondary me-1">@SiteResources.AdminSection</span><QuickFilter Url="@StaffFilterUrl.Set(Navigation.Uri, nameof(Role), "admin", RoleGroup)" Label="@SiteResources.StaffRoles" Value="@SiteResources.AdminSection" /> }
+        @if (item.Jury) { <span class="badge text-bg-secondary me-1">@SiteResources.JurySection</span><QuickFilter Url="@StaffFilterUrl.Set(Navigation.Uri, nameof(Role), "jury", RoleGroup)" Label="@SiteResources.StaffRoles" Value="@SiteResources.JurySection" /> }
+        @if (item.Coach) { <span class="badge text-bg-secondary">@SiteResources.StaffCoach</span><QuickFilter Url="@StaffFilterUrl.Set(Navigation.Uri, nameof(Role), "coach", RoleGroup)" Label="@SiteResources.StaffRoles" Value="@SiteResources.StaffCoach" /> }
     </TemplateColumn>
     <TemplateColumn Title="@SiteResources.StaffStatus" Context="item">
-        @if (item.Hidden) { <span class="badge text-bg-secondary me-1">@SiteResources.StaffHiddenAccount</span> }
+        @if (item.Hidden) { <span class="badge text-bg-secondary me-1">@SiteResources.StaffHiddenAccount</span><QuickFilter Url="@StaffFilterUrl.Set(Navigation.Uri, nameof(Visibility), "hidden")" Label="@SiteResources.StaffVisibility" Value="@SiteResources.StaffHiddenAccounts" /> }
         @if (item.Locked) { <span class="badge text-bg-danger">@SiteResources.StaffBanned</span> }
     </TemplateColumn>
 </StaffGrid>
@@ -93,39 +107,38 @@
     [SupplyParameterFromQuery] public int? Participant { get; set; }
     private Filters _filters = new();
     private List<Organization> _organizations = [];
-    private string? _relationName;
-    private string? _relationUrl;
+    private readonly Dictionary<string, string> _relations = [];
+    private string? SelectedAccountType => AccountType ?? (Group is "permanent" or "participant" ? Group : null);
+    private string? SelectedRole => Role ?? (Group is "admin" or "jury" or "coach" ? Group : null);
+    private string[] TypeGroup => Group is "permanent" or "participant" ? [nameof(Group)] : [];
+    private string[] RoleGroup => Group is "admin" or "jury" or "coach" ? [nameof(Group)] : [];
     private readonly GridSort<Row> _idSort = GridSort<Row>.ByAscending(item => item.Id);
     private readonly GridSort<Row> _nameSort = GridSort<Row>.ByAscending(item => item.Name).ThenAscending(item => item.Id);
     private readonly GridSort<Row> _organizationSort = GridSort<Row>.ByAscending(item => item.OrganizationName).ThenAscending(item => item.Id);
-    private string RelationLabel => CoachOrganization.HasValue ? SiteResources.StaffOrganizationCoaches
-        : Coach.HasValue ? SiteResources.StaffCoachedAccounts : Member.HasValue ? SiteResources.StaffMemberships : SiteResources.StaffMembers;
 
     protected override async Task OnParametersSetAsync()
     {
-        _filters = new() { Search = Search, AccountType = AccountType ?? (Group is "permanent" or "participant" ? Group : null),
-            Role = Role ?? (Group is "admin" or "jury" or "coach" ? Group : null), Visibility = Visibility, Organization = Organization };
+        _filters = new() { Search = Search, AccountType = SelectedAccountType,
+            Role = SelectedRole, Visibility = Visibility, Organization = Organization };
         await using var db = await ContextFactory.CreateDbContextAsync();
         _organizations = await db.Organizations.AsNoTracking().OrderBy(item => item.Name).ToListAsync();
-        _relationName = null;
-        _relationUrl = null;
+        _relations.Clear();
         if (CoachOrganization is int organizationId)
         {
-            _relationName = _organizations.SingleOrDefault(item => item.Id == organizationId)?.Name ?? $"ID {organizationId}";
-            _relationUrl = $"admin/organizations/{organizationId}/edit";
+            _relations[nameof(CoachOrganization)] = _organizations.SingleOrDefault(item => item.Id == organizationId)?.Name ?? $"ID {organizationId}";
         }
-        else if ((Coach ?? Member ?? Participant) is int userId)
+        foreach (var (name, selectedId) in new[] { (nameof(Coach), Coach), (nameof(Member), Member), (nameof(Participant), Participant) })
         {
-            _relationName = await db.Users.Where(item => item.Id == userId).Select(item => item.Name).SingleOrDefaultAsync() ?? $"ID {userId}";
-            _relationUrl = $"admin/users/{userId}/edit";
+            if (selectedId is int userId)
+                _relations[name] = await db.Users.Where(item => item.Id == userId).Select(item => item.Name).SingleOrDefaultAsync() ?? $"ID {userId}";
         }
     }
 
     internal IQueryable<Row> Query(OlympContext db)
     {
         var query = db.Users.AsNoTracking();
-        string? accountType = AccountType ?? (Group is "permanent" or "participant" ? Group : null);
-        string? selectedRole = Role ?? (Group is "admin" or "jury" or "coach" ? Group : null);
+        string? accountType = SelectedAccountType;
+        string? selectedRole = SelectedRole;
         if (!string.IsNullOrWhiteSpace(Search)) {
             string search = Search.Trim();
             bool hasId = int.TryParse(search, out int id);

@@ -1,0 +1,12 @@
+@using Olymp.WebApp.Components.Submissions
+@if (StaffVerdicts.HasTest(Code) && Tests.TryGetValue(CheckStatusCodes.TestNumber(Code), out int testId))
+{
+    <a class="text-danger" href="jury/problems/@ProblemId/tests/@testId" title="@SiteResources.StaffFailedTest">@CheckStatusCodes.Description(Code)</a>
+}
+else { <SubmissionStatus StatusCode="Code" /> }
+
+@code {
+    [Parameter] public int Code { get; set; }
+    [Parameter] public int ProblemId { get; set; }
+    [Parameter] public IReadOnlyDictionary<int, int> Tests { get; set; } = new Dictionary<int, int>();
+}

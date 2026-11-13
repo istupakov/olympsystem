@@ -3,10 +3,13 @@
 @using System.Security.Claims
 @using Olymp.WebApp.Components.Problems
 @using Olymp.WebApp.Components.Submissions
+@using Olymp.WebApp.Services
+@using Olymp.WebApp.Services.Contests
 @inject IDbContextFactory<OlympContext> ContextFactory
 @inject SubmissionService Submissions
 @inject NavigationManager Navigation
 @inject ILogger<Problems> Logger
+@inject IServiceScopeFactory ScopeFactory
 
 <PageTitle>@SiteResources.Problems</PageTitle>
 @if (!_loaded)
@@ -29,7 +32,50 @@ else
     {
         <ProblemWorkspace Progress="_progress" Selected="_selected" ProblemUrl="ProblemUrl" OnProblemChanged="SelectProblem">
             @if (!_selected.IsActive) { <p class="badge text-bg-secondary">@SiteResources.StaffInactiveProblem</p> }
-            <p><a href="@ProblemUrl(_selected.Id)#submit-heading">@SiteResources.JumpToSubmission</a></p>
+            <div class="d-flex flex-wrap gap-3 mb-3">
+                <a href="jury/contests/@ContestId/submissions?Problem=@_selected.Id">@SiteResources.Submissions</a>
+                <a href="jury/contests/@ContestId/messages?Problem=@_selected.Id">@SiteResources.StaffQuestions</a>
+                <a href="jury/problems/@_selected.Id/tests">@SiteResources.StaffTests</a>
+                <a href="@ProblemUrl(_selected.Id)#submit-heading">@SiteResources.JumpToSubmission</a>
+            </div>
+            @if (_canManage)
+            {
+                <StaffActions Title="@SiteResources.StaffProblemOperations">
+                    <div class="d-flex flex-wrap gap-2">
+                        <button class="btn btn-outline-secondary" disabled="@_activityBusy" @onclick="() => _confirmActivity = !_confirmActivity">@(_selected.IsActive ? SiteResources.StaffDisable : SiteResources.StaffEnable)</button>
+                        @if (_admin)
+                        {
+                            <a class="btn btn-outline-secondary" href="jury/contests/@ContestId/submissions?Problem=@_selected.Id&Retest=true">@SiteResources.StaffRetestFiltered</a>
+                        }
+                    </div>
+                    @if (_activityError is not null) { <p class="text-danger mt-2" role="alert">@_activityError</p> }
+                    @if (_confirmActivity)
+                    {
+                        <div class="alert alert-warning mt-3" role="alert">
+                            <p>@(_selected.IsActive ? SiteResources.StaffDisableProblemConfirm : SiteResources.StaffEnableProblemConfirm)</p>
+                            <button class="btn btn-warning" disabled="@_activityBusy" @onclick="ToggleActivityAsync">@SiteResources.StaffConfirm</button>
+                            <button class="btn btn-outline-secondary ms-2" disabled="@_activityBusy" @onclick="() => _confirmActivity = false">@SiteResources.StaffCancel</button>
+                        </div>
+                    }
+                </StaffActions>
+            }
+            <details class="card mb-3">
+                <summary class="card-header">@SiteResources.StaffServiceInfo</summary>
+                <dl class="row card-body mb-0">
+                    <dt class="col-sm-4">ID</dt><dd class="col-sm-8">@_selected.Id</dd>
+                    <dt class="col-sm-4">@SiteResources.StaffTestNumber</dt><dd class="col-sm-8">@_selected.Number</dd>
+                    <dt class="col-sm-4">@SiteResources.StaffName</dt><dd class="col-sm-8">@_selected.Name</dd>
+                    <dt class="col-sm-4">@SiteResources.StaffTestActive</dt><dd class="col-sm-8">@(_selected.IsActive ? SiteResources.StaffYes : SiteResources.StaffNo)</dd>
+                    <dt class="col-sm-4">@SiteResources.TimeLimit</dt><dd class="col-sm-8">@_selected.TimeLimit @SiteResources.Seconds</dd>
+                    <dt class="col-sm-4">@SiteResources.StaffSlowTimeLimit</dt><dd class="col-sm-8"><span class="text-nowrap">@_selected.SlowTimeLimit @SiteResources.Seconds</span></dd>
+                    <dt class="col-sm-4">@SiteResources.MemoryLimit</dt><dd class="col-sm-8">@_selected.MemoryLimit @SiteResources.Megabytes</dd>
+                    <dt class="col-sm-4">@SiteResources.StaffContest · ID</dt><dd class="col-sm-8">@_selected.ContestId</dd>
+                    <dt class="col-sm-4">@SiteResources.StaffChecker</dt><dd class="col-sm-8">@_selected.Checker?.Description · ID @_selected.CheckerId</dd>
+                    <dt class="col-sm-4">@SiteResources.StaffTotalTests</dt><dd class="col-sm-8">@_testCount</dd>
+                    <dt class="col-sm-4">@SiteResources.StaffActiveTests</dt><dd class="col-sm-8">@_activeTestCount</dd>
+                    <dt class="col-sm-4">@SiteResources.StaffOpenTests</dt><dd class="col-sm-8">@_openTestCount</dd>
+                </dl>
+            </details>
             <ProblemStatementView Problem="_selected" Examples="_examples" Clarifications="_clarifications" ShowPdfLink="false" />
             <section class="mt-4" aria-labelledby="submit-heading">
                 <h2 id="submit-heading" class="h4">@SiteResources.SubmitSolution</h2>
@@ -54,11 +100,11 @@ else
                 @if (_rows.Count == 0) { <p>@SiteResources.NoSubmissions</p> }
                 else
                 {
-                    <SubmissionTable Items="_rows" ShowId="true" ShowProblem="false" ShowSource="false" ShowScores="_contest.IsSchool"
-                                     SourceUrl="@(item => SourceUrl(item.Id))" />
+                    <SubmissionTable Items="_rows" ShowProblem="false" ShowScores="_contest.IsSchool"
+                                     SourceUrl="@(item => SourceUrl(item.Id))"
+                                     DownloadUrl="@(item => $"jury/submissions/{item.Id}/download")" />
                 }
                 <Pagination Page="CurrentPage" HasNextPage="_hasNext" PageUrl="@(page => SubmissionsUrl(CurrentScope, page))" Label="@SiteResources.SubmissionPages" />
-                <p class="mt-3"><a href="jury/contests/@ContestId/submissions?Problem=@_selected.Id">@SiteResources.StaffProblemSubmissions</a></p>
             </section>
         </ProblemWorkspace>
     }
@@ -90,32 +136,39 @@ else
     private string? _error;
     private bool _loaded;
     private bool _busy;
+    private bool _admin;
+    private bool _canManage, _confirmActivity, _activityBusy;
+    private string? _activityError;
     private int _loadVersion;
     private const int PageSize = 20;
     private int CurrentPage => Math.Max(1, SubmissionPage ?? 1);
     private string CurrentScope => Scope == "hidden" ? "hidden" : "own";
     private List<SubmissionListItem> _rows = [];
     private bool _hasNext;
+    private int _testCount, _activeTestCount, _openTestCount;
 
     private string ProblemUrl(int id) => $"jury/contests/{ContestId}/problems?problemId={id}" + (CurrentScope == "hidden" ? "&scope=hidden" : "");
     private string SubmissionsUrl(string scope, int page) => Navigation.GetUriWithQueryParameters(Navigation.Uri.Split('#')[0],
-        new Dictionary<string, object?> { [nameof(Scope)] = scope == "own" ? null : scope, [nameof(SubmissionPage)] = page == 1 ? null : page });
+        new Dictionary<string, object?> { [nameof(Scope)] = scope == "own" ? null : scope, [nameof(SubmissionPage)] = page == 1 ? null : page }) + "#submissions";
     private string SourceUrl(int id) => $"jury/submissions/{id}?returnUrl={Uri.EscapeDataString(new Uri(Navigation.Uri).PathAndQuery)}";
     private void SelectProblem(int id) => Navigation.NavigateTo(ProblemUrl(id));
 
     protected override async Task OnParametersSetAsync()
     {
         int version = ++_loadVersion;
+        _confirmActivity = false;
+        _activityError = null;
+        _canManage = (await Authorization.AuthorizeAsync((await AuthenticationState).User, ContestId, PolicyNames.ManageContest)).Succeeded;
         int contestId = ContestId;
         int? requestedProblem = ProblemId;
         string selectedScope = CurrentScope;
         int page = CurrentPage;
-        _loaded = false;
+        if (_contest?.Id != contestId || (requestedProblem is int requested && _selected?.Id != requested)) _loaded = false;
         _error = null;
         int? previousProblem = _selected?.Id;
         int? compiler = _input.CompilatorId;
         await using var context = await ContextFactory.CreateDbContextAsync();
-        var contest = await context.Contests.AsNoTracking().Include(item => item.Problems)
+        var contest = await context.Contests.AsNoTracking().Include(item => item.Problems).ThenInclude(item => item.Checker)
             .SingleOrDefaultAsync(item => item.Id == contestId);
         var problems = contest?.Problems.OrderBy(item => item.Number).ThenBy(item => item.Id).ToList() ?? [];
         var selected = requestedProblem is int id ? problems.SingleOrDefault(item => item.Id == id) : problems.FirstOrDefault();
@@ -127,6 +180,10 @@ else
         List<SubmissionListItem> rows = [];
         if (selected is not null)
         {
+            var tests = context.Tests.Where(item => item.ProblemId == selected.Id);
+            _testCount = await tests.CountAsync();
+            _activeTestCount = await tests.CountAsync(item => item.IsActive);
+            _openTestCount = await tests.CountAsync(item => item.IsOpen);
             examples = await context.Tests.AsNoTracking()
                 .Where(item => item.ProblemId == selected.Id && item.IsOpen && item.IsActive)
                 .OrderBy(item => item.Number).ToListAsync();
@@ -137,6 +194,7 @@ else
             compilers = await context.Compilators.AsNoTracking().Where(item => item.IsActive)
                 .OrderBy(item => item.Description).ThenBy(item => item.Name).ToListAsync();
             var user = (await AuthenticationState).User;
+            _admin = user.IsInRole(RoleNames.Admin);
             int userId = int.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
             var own = context.Submissions.AsNoTracking().Where(item => item.UserId == userId && item.Problem.ContestId == contestId);
             if (!compilers.Any(item => item.Id == compiler))
@@ -153,7 +211,25 @@ else
                 rows = await context.Submissions.AsNoTracking().Where(item => item.ProblemId == selected.Id)
                     .ForAuthors(selectedScope, userId, context, contestId)
                     .OrderByDescending(item => item.CommitTime).ThenByDescending(item => item.Id)
-                    .Skip((int)skip).Take(PageSize + 1).AsStaffRows(context, contestId).ToListAsync();
+                    .Skip((int)skip).Take(PageSize + 1)
+                    .Select(item => new SubmissionListItem(
+                        Id: item.Id,
+                        CommitTime: item.CommitTime,
+                        Author: item.User.Name,
+                        IsParticipant: context.Competitors.Any(author => author.Id == item.UserId && author.ContestId == contestId),
+                        Compiler: item.Compilator.Name,
+                        ContestId: contestId,
+                        Contest: contest!.Name,
+                        ProblemId: selected.Id,
+                        Problem: selected.NameWithNumber,
+                        IsSchool: contest.IsSchool,
+                        StatusCode: item.StatusCode,
+                        IsAccepted: null,
+                        Score: item.Score,
+                        CanViewSource: true)
+                    {
+                        CompilerDescription = item.Compilator.Description
+                    }).ToListAsync();
         }
         if (version != _loadVersion) return;
         _contest = contest;
@@ -167,6 +243,23 @@ else
         if (_hasNext) _rows.RemoveAt(PageSize);
         if (previousProblem != selected?.Id) _input = new() { CompilatorId = compiler };
         _loaded = true;
+    }
+
+    private async Task ToggleActivityAsync()
+    {
+        if (_activityBusy || !_confirmActivity || _selected is null) return;
+        _activityBusy = true;
+        try
+        {
+            await using var scope = ScopeFactory.CreateAsyncScope();
+            await scope.ServiceProvider.GetRequiredService<ContestProblemService>()
+                .SetProblemActiveAsync((await AuthenticationState).User, ContestId, _selected.Id, !_selected.IsActive);
+            await OnParametersSetAsync();
+        }
+        catch (OperationValidationException exception) { _activityError = exception.Message; }
+        catch (EntityNotFoundException) { _activityError = SiteResources.PageNotFoundMessage; }
+        catch (System.Data.Common.DbException) { _activityError = SiteResources.StaffSaveFailed; }
+        finally { _activityBusy = false; }
     }
 
     private async Task SubmitAsync()
@@ -185,7 +278,7 @@ else
             {
                 _input = new() { CompilatorId = _input.CompilatorId };
                 string url = SubmissionsUrl("own", 1);
-                if (url == Navigation.Uri.Split('#')[0]) await OnParametersSetAsync();
+                if (url.Split('#')[0] == Navigation.Uri.Split('#')[0]) await OnParametersSetAsync();
                 else Navigation.NavigateTo(url, replace: true);
             }
         }

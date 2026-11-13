@@ -25,7 +25,7 @@ public partial class Messages
     [SupplyParameterFromQuery]
     public int? AuthorId { get; set; }
     [SupplyParameterFromQuery]
-    public bool? Answered { get; set; }
+    public string? Status { get; set; }
     [SupplyParameterFromQuery]
     public int? Page { get; set; }
     [CascadingParameter]
@@ -71,7 +71,7 @@ public partial class Messages
             _editing = false;
             _pending = null;
         }
-        _filters = new() { Author = Author, Problem = Problem, Answered = Answered };
+        _filters = new() { Author = Author, Problem = Problem, Status = Status };
         await using var db = await ContextFactory.CreateDbContextAsync(_stop.Token);
         _selectedAuthor = null;
         if (!Announcements && AuthorId is int authorId)
@@ -152,9 +152,13 @@ public partial class Messages
             if (!Announcements && AuthorId is null && !string.IsNullOrWhiteSpace(Author))
                 query = query.Where(item => item.User != null && (item.User.Name.Contains(Author)
                     || (item.User.UserName != null && item.User.UserName.Contains(Author))));
-            if (!Announcements && Answered is bool answered)
-                query = query.Where(item => answered ? item.JuryText != null && item.JuryText.Trim() != ""
-                    : item.JuryText == null || item.JuryText.Trim() == "");
+            if (!Announcements && Status is "answered" or "unanswered")
+            {
+                bool answered = Status == "answered";
+                query = query.Where(item => answered
+                    ? item.JuryText != null && item.JuryText.Replace("\r", "").Replace("\n", "").Replace("\t", "").Trim() != ""
+                    : item.JuryText == null || item.JuryText.Replace("\r", "").Replace("\n", "").Replace("\t", "").Trim() == "");
+            }
             long skip = ((long)CurrentPage - 1) * 20;
             _messages = skip <= int.MaxValue ? await query.Include(item => item.User).Include(item => item.Problem)
                 .OrderByDescending(item => item.SendTime).ThenByDescending(item => item.Id)
@@ -295,17 +299,11 @@ public partial class Messages
 
     private string TabUrl(bool announcements) => $"jury/contests/{ContestId}/messages" + (announcements ? "?Announcements=true" : "");
     private string PageUrl(int page) => Navigation.GetUriWithQueryParameter(nameof(Page), page);
-    private string ClearAuthorUrl() => Navigation.GetUriWithQueryParameters(new Dictionary<string, object?>
-    {
-        [nameof(AuthorId)] = null,
-        [nameof(Author)] = null,
-        [nameof(Page)] = null
-    });
     private void ApplyFilters() => Navigation.NavigateTo(Navigation.GetUriWithQueryParameters(new Dictionary<string, object?>
     {
         [nameof(Problem)] = _filters.Problem,
         [nameof(Author)] = AuthorId is null ? _filters.Author : null,
-        [nameof(Answered)] = _filters.Answered,
+        [nameof(Status)] = string.IsNullOrEmpty(_filters.Status) ? null : _filters.Status,
         [nameof(Page)] = null
     }));
 
@@ -334,7 +332,7 @@ public partial class Messages
     {
         public int? Problem { get; set; }
         public string? Author { get; set; }
-        public bool? Answered { get; set; }
+        public string? Status { get; set; }
     }
 
     private sealed class Editor

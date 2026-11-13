@@ -390,6 +390,28 @@ public sealed class CompetitorManagementService(OlympContext context, UserManage
         var contest = await context.Contests.AsTracking().Include(x => x.Competitors)
             .SingleOrDefaultAsync(x => x.Id == contestId, token) ?? throw new EntityNotFoundException();
 
+        await RemoveLoginsCoreAsync(contest, token);
+        await transaction.CommitAsync(token);
+    }
+
+    public async Task FinishContestAsync(ClaimsPrincipal actor, int contestId, CancellationToken token = default)
+    {
+        await AuthorizeAsync(actor, contestId);
+        await using var transaction = await context.Database.BeginTransactionAsync(IsolationLevel.Serializable, token);
+        var contest = await context.Contests.AsTracking().Include(item => item.Competitors)
+            .SingleOrDefaultAsync(item => item.Id == contestId, token) ?? throw new EntityNotFoundException();
+        if (contest.EndTime >= timeProvider.GetUtcNow())
+            throw new OperationValidationException(SiteResources.StaffContestMustEnd);
+
+        contest.FreezeTime = null;
+        contest.IsOpen = true;
+        await RemoveLoginsCoreAsync(contest, token);
+        await context.SaveChangesAsync(token);
+        await transaction.CommitAsync(token);
+    }
+
+    private async Task RemoveLoginsCoreAsync(Contest contest, CancellationToken token)
+    {
         foreach (var participant in contest.Competitors)
         {
             token.ThrowIfCancellationRequested();
@@ -407,7 +429,7 @@ public sealed class CompetitorManagementService(OlympContext context, UserManage
             context.ChangeTracker.QueryTrackingBehavior = QueryTrackingBehavior.TrackAll;
             try
             {
-                result = await users.RemoveClaimAsync(participant, new Claim(ClaimNames.CompetitorContest, contestId.ToString()));
+                result = await users.RemoveClaimAsync(participant, new Claim(ClaimNames.CompetitorContest, contest.Id.ToString()));
             }
             finally
             {
@@ -417,7 +439,5 @@ public sealed class CompetitorManagementService(OlympContext context, UserManage
             if (!result.Succeeded)
                 throw new IdentityOperationException(result.Errors);
         }
-
-        await transaction.CommitAsync(token);
     }
 }
