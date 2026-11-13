@@ -103,7 +103,7 @@ public partial class StaffListTests(WebAppFactory factory) : IClassFixture<WebAp
     }
 
     [Fact]
-    public async Task OrganizationSearchIncludesFullNameAndPrefixAndPreservesPagination()
+    public async Task OrganizationSearchIncludesFullNameAndPrefixWithoutPagination()
     {
         string prefix = Guid.NewGuid().ToString("N");
         await using var scope = factory.Services.CreateAsyncScope();
@@ -117,12 +117,11 @@ public partial class StaffListTests(WebAppFactory factory) : IClassFixture<WebAp
         }));
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
         using var first = await new HtmlParser().ParseDocumentAsync(await RenderAsync<Organizations>($"/admin/organizations?Search={prefix}", []));
-        Assert.Equal(20, first.QuerySelectorAll("tbody tr").Length);
-        string next = first.QuerySelector("a[rel=next]")!.GetAttribute("href")!;
-        Assert.Contains($"Search={prefix}", next);
-        using var second = await new HtmlParser().ParseDocumentAsync(await RenderAsync<Organizations>(next, []));
-        Assert.Single(second.QuerySelectorAll("tbody tr"));
-        Assert.Null(second.QuerySelector("a[rel=next]"));
+        Assert.Null(first.QuerySelector(".pagination"));
+        Assert.Contains($"{SiteResources.StaffFound}: 21", first.Body!.TextContent);
+        var organizations = await new Organizations { Search = prefix }.Query(db).ToListAsync(TestContext.Current.CancellationToken);
+        Assert.Equal(21, organizations.Count);
+        Assert.All(organizations, item => Assert.True(item.FullName == prefix || item.ACMName == prefix));
     }
 
     [Fact]
@@ -210,13 +209,16 @@ public partial class StaffListTests(WebAppFactory factory) : IClassFixture<WebAp
         Assert.True((await manager.AddClaimAsync(user, new Claim(ClaimNames.CoachOrg, "1"))).Succeeded);
         using var document = await new HtmlParser().ParseDocumentAsync(await RenderAsync<Users>(
             $"/admin/users?Search={name}&AccountType=permanent&Role=jury", []));
-        var row = Assert.Single(document.QuerySelectorAll("tbody tr"));
-        Assert.Equal(jury.Id.ToString(), row.Children[0].TextContent.Trim());
-        Assert.Equal(2, row.Children[5].QuerySelectorAll(".badge").Length);
+        var filtered = await new Users { Search = name, AccountType = "permanent", Role = "jury" }.Query(db).ToListAsync(TestContext.Current.CancellationToken);
+        var row = Assert.Single(filtered);
+        Assert.Equal(jury.Id, row.Id);
+        Assert.True(row.Jury);
+        Assert.True(row.Coach);
+        Assert.False(row.Admin);
         Assert.Null(document.QuerySelector(".pagination"));
         using var participants = await new HtmlParser().ParseDocumentAsync(await RenderAsync<Users>(
             $"/admin/users?Search={name}&AccountType=participant&Role=jury", []));
-        Assert.Empty(participants.QuerySelectorAll("tbody tr"));
+        Assert.Empty(await new Users { Search = name, AccountType = "participant", Role = "jury" }.Query(db).ToListAsync(TestContext.Current.CancellationToken));
     }
 
     [Fact]

@@ -1,0 +1,91 @@
+@page "/admin/compilers"
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@using Olymp.WebApp.Services.Checker
+@inject ICheckerManager Checkers
+@inject NavigationManager Navigation
+@inject StaffGridState GridState
+@inject IDbContextFactory<OlympContext> ContextFactory
+
+<PageTitle>@SiteResources.StaffCompilers</PageTitle>
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+    <h1 class="mb-0">@SiteResources.StaffCompilers</h1>
+    <a class="btn btn-outline-primary" href="jury/runners">@SiteResources.StaffRunner</a>
+</div>
+<EditForm Model="_filters" OnValidSubmit="ApplyFilters" class="row g-3 mb-4">
+    <div class="col-12 col-md-6">
+        <label for="compiler-search" class="form-label">@SiteResources.StaffCompilerSearch</label>
+        <InputText id="compiler-search" class="form-control" @bind-Value="_filters.Search" />
+    </div>
+    <div class="col-md-3">
+        <label for="compiler-language" class="form-label">@SiteResources.StaffLanguage</label>
+        <InputSelect id="compiler-language" class="form-select" @bind-Value="_filters.Language">
+            <option value="">@SiteResources.StaffAll</option>
+            @foreach (var language in _languages) { <option value="@language">@language</option> }
+        </InputSelect>
+    </div>
+    <div class="col-md-3">
+        <label for="compiler-active" class="form-label">@SiteResources.StaffEnabledOnSite</label>
+        <InputSelect id="compiler-active" class="form-select" @bind-Value="_filters.Active">
+            <option value="">@SiteResources.StaffAll</option>
+            <option value="true">@SiteResources.StaffEnabled</option>
+            <option value="false">@SiteResources.StaffDisabled</option>
+        </InputSelect>
+    </div>
+    <div class="col-12 d-flex gap-2">
+        <button class="btn btn-primary">@SiteResources.StaffFind</button>
+        <a class="btn btn-outline-secondary" href="admin/compilers">@SiteResources.StaffReset</a>
+    </div>
+</EditForm>
+<StaffGrid @key="Navigation.Uri" TGridItem="Compilator" Query="Query" ItemKey="@(item => item.Id)" OrderKey="@(item => item.Id)" EmptyText="@SiteResources.StaffNoCompilers">
+    <TemplateColumn Title="ID" SortBy="_idSort" Sortable="true" Context="item">
+        <a href="@GridState.DetailUrl(Navigation.Uri, $"admin/compilers/{item.Id}", item.Id)">@item.Id</a>
+    </TemplateColumn>
+    <TemplateColumn Title="@SiteResources.Compiler" SortBy="_nameSort" Sortable="true" Context="item">
+        <a href="@GridState.DetailUrl(Navigation.Uri, $"admin/compilers/{item.Id}", item.Id)">@(item.Description ?? item.Name)</a>
+        <div class="small text-body-secondary">@item.Name</div>
+    </TemplateColumn>
+    <PropertyColumn Property="@(item => item.Language)" Title="@SiteResources.StaffLanguage" Sortable="true" />
+    <PropertyColumn Property="@(item => item.ConfigName)" Title="@SiteResources.StaffConfiguration" Sortable="true" />
+    <TemplateColumn Title="@SiteResources.StaffEnabledOnSite" SortBy="_activeSort" Sortable="true" Context="item">
+        <span class="badge @(item.IsActive ? "text-bg-success" : "text-bg-secondary")">@(item.IsActive ? SiteResources.StaffEnabled : SiteResources.StaffDisabled)</span>
+    </TemplateColumn>
+    <TemplateColumn Title="@SiteResources.StaffRunnerAvailable" Context="item">
+        @(Checkers.Checkers.Values.Any(runner => runner.SupportsCompiler(item)) ? SiteResources.StaffYes : SiteResources.StaffNo)
+    </TemplateColumn>
+</StaffGrid>
+
+@code {
+    [SupplyParameterFromQuery] public string? Search { get; set; }
+    [SupplyParameterFromQuery] public string? Language { get; set; }
+    [SupplyParameterFromQuery] public bool? Active { get; set; }
+    private Filters _filters = new();
+    private List<string> _languages = [];
+    private readonly GridSort<Compilator> _idSort = GridSort<Compilator>.ByAscending(item => item.Id);
+    private readonly GridSort<Compilator> _nameSort = GridSort<Compilator>.ByAscending(item => item.Description ?? item.Name).ThenAscending(item => item.Id);
+    private readonly GridSort<Compilator> _activeSort = GridSort<Compilator>.ByAscending(item => item.IsActive).ThenAscending(item => item.Id);
+    protected override async Task OnParametersSetAsync()
+    {
+        _filters = new() { Search = Search, Language = Language, Active = Active };
+        await using var db = await ContextFactory.CreateDbContextAsync();
+        _languages = await db.Compilators.Select(item => item.Language).Distinct().OrderBy(item => item).ToListAsync();
+    }
+    internal IQueryable<Compilator> Query(OlympContext db)
+    {
+        var query = db.Compilators.AsNoTracking();
+        if (!string.IsNullOrWhiteSpace(Search)) {
+            string search = Search.Trim();
+            query = query.Where(item => item.Name.Contains(search) || (item.Description != null && item.Description.Contains(search)) || item.ConfigName.Contains(search));
+        }
+        if (!string.IsNullOrWhiteSpace(Language)) { string language = Language.Trim(); query = query.Where(item => item.Language == language); }
+        if (Active is bool active) query = query.Where(item => item.IsActive == active);
+        return query.OrderByDescending(item => item.IsActive).ThenByDescending(item => item.Id);
+    }
+    private void ApplyFilters() => Navigation.NavigateTo(Navigation.GetUriWithQueryParameters(new Dictionary<string, object?> {
+        [nameof(Search)] = _filters.Search, [nameof(Language)] = _filters.Language, [nameof(Active)] = _filters.Active, ["row"] = null
+    }));
+    private sealed class Filters {
+        public string? Search { get; set; }
+        public string? Language { get; set; }
+        public bool? Active { get; set; }
+    }
+}

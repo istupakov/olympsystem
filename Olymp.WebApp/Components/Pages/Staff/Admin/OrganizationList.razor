@@ -1,15 +1,15 @@
 @page "/admin/organizations"
 @rendermode @(new InteractiveServerRenderMode(prerender: false))
-@inject IDbContextFactory<OlympContext> ContextFactory
 @inject NavigationManager Navigation
+@inject StaffGridState GridState
 
 <PageTitle>@SiteResources.StaffOrganizations</PageTitle>
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
     <h1 class="mb-0">@SiteResources.StaffOrganizations</h1>
-    <a class="btn btn-primary" href="admin/organizations/new">@SiteResources.StaffCreateOrganization</a>
+    <a class="btn btn-primary" href="@DetailUrl("admin/organizations/new")">@SiteResources.StaffCreateOrganization</a>
 </div>
 <EditForm Model="_filters" OnValidSubmit="ApplyFilters" class="row g-3 mb-4">
-    <div class="col-md-8">
+    <div class="col-12">
         <label for="organization-search" class="form-label">@SiteResources.StaffOrganizationSearch</label>
         <InputText id="organization-search" class="form-control" @bind-Value="_filters.Search" />
     </div>
@@ -18,46 +18,25 @@
         <a class="btn btn-outline-secondary" href="admin/organizations">@SiteResources.StaffReset</a>
     </div>
 </EditForm>
-@if (!_loaded) { <p role="status">@SiteResources.StaffLoading</p> }
-else
-{
-    <div class="table-responsive">
-        <table class="table table-striped align-middle">
-            <thead><tr><th>ID</th><th>@SiteResources.StaffOrganizationName</th><th>@SiteResources.StaffOrganizationFullName</th><th>@SiteResources.StaffTeamPrefix</th></tr></thead>
-            <tbody>
-                @foreach (var organization in _organizations)
-                {
-                    <tr>
-                        <td><a href="admin/organizations/@organization.Id/edit">@organization.Id</a></td>
-                        <td>@organization.Name</td><td>@organization.FullName</td><td>@organization.ACMName</td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    </div>
-    @if (_organizations.Count == 0) { <p>@SiteResources.StaffNoOrganizations</p> }
-    <Pagination Page="CurrentPage" HasNextPage="_hasNext" PageUrl="PageUrl" Label="@SiteResources.StaffOrganizationPages" />
-}
+<StaffGrid @key="Search" TGridItem="Organization" Query="Query" ItemKey="@(item => item.Id)" OrderKey="@(item => item.Id)" EmptyText="@SiteResources.StaffNoOrganizations">
+    <TemplateColumn Title="ID" SortBy="_idSort" Sortable="true" Context="item">
+        <a href="@DetailUrl($"admin/organizations/{item.Id}/edit", item.Id)">@item.Id</a>
+    </TemplateColumn>
+    <TemplateColumn Title="@SiteResources.StaffOrganizationName" SortBy="_nameSort" Sortable="true" Context="item">
+        <a href="@DetailUrl($"admin/organizations/{item.Id}/edit", item.Id)">@item.Name</a>
+    </TemplateColumn>
+    <PropertyColumn Property="@(item => item.FullName)" Title="@SiteResources.StaffOrganizationFullName" Sortable="true" />
+    <PropertyColumn Property="@(item => item.ACMName)" Title="@SiteResources.StaffTeamPrefix" Sortable="true" />
+</StaffGrid>
 
 @code {
-    [SupplyParameterFromQuery]
-    public string? Search { get; set; }
-
-    [SupplyParameterFromQuery]
-    public int? Page { get; set; }
-
-    private const int PageSize = 20;
-    private int CurrentPage => Math.Max(1, Page ?? 1);
-    private List<Organization> _organizations = [];
+    [SupplyParameterFromQuery] public string? Search { get; set; }
     private Filters _filters = new();
-    private bool _loaded;
-    private bool _hasNext;
-
-    protected override async Task OnParametersSetAsync()
+    private readonly GridSort<Organization> _idSort = GridSort<Organization>.ByAscending(item => item.Id);
+    private readonly GridSort<Organization> _nameSort = GridSort<Organization>.ByAscending(item => item.Name).ThenAscending(item => item.Id);
+    protected override void OnParametersSet() => _filters = new() { Search = Search };
+    internal IQueryable<Organization> Query(OlympContext db)
     {
-        _loaded = false;
-        _filters = new() { Search = Search };
-        await using var db = await ContextFactory.CreateDbContextAsync();
         var query = db.Organizations.AsNoTracking();
         if (!string.IsNullOrWhiteSpace(Search))
         {
@@ -65,21 +44,11 @@ else
             query = query.Where(item => item.Name.Contains(search) || (item.FullName != null && item.FullName.Contains(search))
                 || (item.ACMName != null && item.ACMName.Contains(search)));
         }
-        long skip = ((long)CurrentPage - 1) * PageSize;
-        _organizations = skip > int.MaxValue ? [] : await query.OrderBy(item => item.Name).ThenBy(item => item.Id)
-            .Skip((int)skip).Take(PageSize + 1).ToListAsync();
-        _hasNext = _organizations.Count > PageSize;
-        if (_hasNext) _organizations.RemoveAt(PageSize);
-        _loaded = true;
+        return query.OrderBy(item => item.Name).ThenBy(item => item.Id);
     }
-
     private void ApplyFilters() => Navigation.NavigateTo(Navigation.GetUriWithQueryParameters(new Dictionary<string, object?> {
-        [nameof(Search)] = _filters.Search, [nameof(Page)] = null
+        [nameof(Search)] = _filters.Search, ["page"] = null, ["row"] = null
     }));
-    private string PageUrl(int page) => Navigation.GetUriWithQueryParameter(nameof(Page), page);
-
-    private sealed class Filters
-    {
-        public string? Search { get; set; }
-    }
+    private string DetailUrl(string path, int? itemId = null) => GridState.DetailUrl(Navigation.Uri, path, itemId);
+    private sealed class Filters { public string? Search { get; set; } }
 }

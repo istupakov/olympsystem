@@ -21,6 +21,7 @@ using Olymp.WebApp.Components;
 using Olymp.WebApp.Components.Account;
 using Olymp.WebApp.Components.Contests;
 using Olymp.WebApp.Components.Layout;
+using Olymp.WebApp.Components.Staff;
 using Olymp.WebApp.Components.Submissions;
 using Olymp.WebApp.Services.AntiCheat;
 using Olymp.WebApp.Services.Authentication;
@@ -113,6 +114,8 @@ builder.Services.AddWebEncoders(options =>
     options.TextEncoderSettings = new TextEncoderSettings(UnicodeRanges.BasicLatin, UnicodeRanges.Cyrillic));
 
 builder.Services.AddScoped<CompetitorManagementService>();
+builder.Services.AddScoped<AdminParticipantService>();
+builder.Services.AddScoped<StaffGridState>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<IcpcImportService>();
 builder.Services.AddHttpClient<Olymp.Icpc.IcpcClient>(client => client.Timeout = TimeSpan.FromSeconds(30))

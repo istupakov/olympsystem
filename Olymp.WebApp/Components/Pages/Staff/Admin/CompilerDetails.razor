@@ -1,0 +1,81 @@
+@page "/admin/compilers/{Id:int}"
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@using Olymp.Checker
+@using Olymp.WebApp.Services.Checker
+@inject IDbContextFactory<OlympContext> ContextFactory
+@inject ICheckerManager Checkers
+@inject ILogger<CompilerDetails> Logger
+
+<PageTitle>@SiteResources.Compiler</PageTitle>
+<BackToList ReturnTo="@ReturnTo" Fallback="admin/compilers" />
+@if (_compiler is null) { <p role="status">@(_loaded ? SiteResources.PageNotFoundMessage : SiteResources.StaffLoading)</p> }
+else
+{
+    <h1 class="mb-4 text-break">@(_compiler.Description ?? _compiler.Name)</h1>
+    @if (_error is not null) { <div class="alert alert-danger" role="alert">@_error</div> }
+    <dl class="row text-break">
+        <dt class="col-sm-4">ID</dt><dd class="col-sm-8">@_compiler.Id</dd>
+        <dt class="col-sm-4">@SiteResources.StaffTechnicalName</dt><dd class="col-sm-8">@_compiler.Name</dd>
+        <dt class="col-sm-4">@SiteResources.StaffDescription</dt><dd class="col-sm-8">@_compiler.Description</dd>
+        <dt class="col-sm-4">@SiteResources.StaffLanguage</dt><dd class="col-sm-8">@_compiler.Language</dd>
+        <dt class="col-sm-4">@SiteResources.StaffSourceExtension</dt><dd class="col-sm-8">@_compiler.SourceExtension</dd>
+        <dt class="col-sm-4">@SiteResources.StaffCommandLine</dt><dd class="col-sm-8"><code>@_compiler.CommandLine</code></dd>
+        <dt class="col-sm-4">@SiteResources.StaffConfiguration</dt><dd class="col-sm-8">@_compiler.ConfigName</dd>
+        <dt class="col-sm-4">@SiteResources.StaffEnabledOnSite</dt><dd class="col-sm-8">@(_compiler.IsActive ? SiteResources.StaffEnabled : SiteResources.StaffDisabled)</dd>
+        <dt class="col-sm-4">@SiteResources.StaffAvailableRunners</dt>
+        <dd class="col-sm-8">
+            @foreach (var runner in Checkers.Checkers.Values.Where(runner => runner.SupportsCompiler(_compiler)))
+            { <div><a href="jury/runners?Runner=@runner.Id">@runner.Name</a></div> }
+        </dd>
+    </dl>
+    <h2 class="h5">@SiteResources.StaffRelatedData</h2>
+    <p><a href="jury/submissions?Compiler=@Id">@SiteResources.Submissions · @_submissions</a></p>
+    @if (_confirm)
+    {
+        <section class="alert alert-warning" role="alert">
+            <p>@string.Format(SiteResources.StaffDisableCompilerConfirm, _compiler.Description ?? _compiler.Name)</p>
+            <button class="btn btn-warning me-2" disabled="@_busy" @onclick="() => SetActiveAsync(false)">@SiteResources.StaffConfirm</button>
+            <button class="btn btn-outline-secondary" disabled="@_busy" @onclick="() => _confirm = false">@SiteResources.StaffCancel</button>
+        </section>
+    }
+    <button class="btn btn-outline-primary" disabled="@_busy" @onclick="ToggleAsync">@(_compiler.IsActive ? SiteResources.StaffDisable : SiteResources.StaffEnable)</button>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+    [SupplyParameterFromQuery] public string? ReturnTo { get; set; }
+    [CascadingParameter] private Task<AuthenticationState> AuthenticationState { get; set; } = default!;
+    private Compilator? _compiler;
+    private bool _loaded;
+    private bool _busy;
+    private bool _confirm;
+    private int _submissions;
+    private string? _error;
+    protected override async Task OnParametersSetAsync() { _confirm = false; await LoadAsync(); }
+    private async Task LoadAsync() {
+        await using var db = await ContextFactory.CreateDbContextAsync();
+        _compiler = await db.Compilators.AsNoTracking().SingleOrDefaultAsync(item => item.Id == Id);
+        _submissions = await db.Submissions.CountAsync(item => item.CompilatorId == Id);
+        _loaded = true;
+    }
+    private Task ToggleAsync() {
+        if (_compiler!.IsActive) { _confirm = true; return Task.CompletedTask; }
+        return SetActiveAsync(true);
+    }
+    private async Task SetActiveAsync(bool active) {
+        if (_busy || (!active && !_confirm)) return;
+        _busy = true;
+        _error = null;
+        try {
+            if (!(await Authorization.AuthorizeAsync((await AuthenticationState).User, PolicyNames.Admin)).Succeeded) { _error = SiteResources.StaffAccessDenied; return; }
+            await Checkers.SetCompilatorActiveAsync(Id, active);
+            _confirm = false;
+            await LoadAsync();
+        }
+        catch (Exception exception) when (exception is System.Data.Common.DbException or DbUpdateException or InvalidOperationException) {
+            Logger.LogWarning(exception, "Could not change compiler {CompilerId}", Id);
+            _error = SiteResources.StaffSaveFailed;
+        }
+        finally { _busy = false; }
+    }
+}

@@ -48,7 +48,17 @@ else
         {
             <div class="col-md-4">
                 <label for="message-author" class="form-label">@SiteResources.SubmissionAuthor</label>
-                <InputText id="message-author" class="form-control" @bind-Value="_filters.Author" />
+                @if (AuthorId is not null)
+                {
+                    <div class="input-group">
+                        <input id="message-author" class="form-control" value="@_selectedAuthor" readonly />
+                        <a class="btn btn-outline-secondary" href="@ClearAuthorUrl()">@SiteResources.StaffReset</a>
+                    </div>
+                }
+                else
+                {
+                    <InputText id="message-author" class="form-control" @bind-Value="_filters.Author" />
+                }
             </div>
             <div class="col-md-4">
                 <label for="message-answered" class="form-label">@SiteResources.SubmissionStatus</label>

@@ -424,6 +424,14 @@ Additional restrictions:
 - Organization deletion requires confirmation and is forbidden while any account
   references it or any `coach-org` claim identifies it. These references are
   rechecked when deleting; linked accounts and claims are retained.
+- Administrators may rename a participant, link or unlink permanent member
+  accounts, and assign, replace, or remove its coach from the participant account
+  card. These operations are allowed after the contest starts or ends and across
+  organizations; the coach does not need a `coach-org` claim. An account cannot be
+  linked to more than one participant in the same contest. Roster entries without
+  accounts are retained; unlinking an account retains its roster name and the
+  participant's submissions and messages. These exceptions apply to administrator
+  editing only; ordinary registration rules are unchanged.
 - Compiler records may be imported only from a connected Runner that passed
   self-testing. New records start disabled; repeated imports retain availability.
   Disabling requires confirmation and preserves existing submissions.

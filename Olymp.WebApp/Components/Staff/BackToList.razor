@@ -1,0 +1,11 @@
+@inject StaffGridState GridState
+@inject NavigationManager Navigation
+
+<p><a href="@StaffGridState.BackUrl(ReturnTo, Fallback)">@SiteResources.StaffBackToList</a></p>
+
+@code {
+    [Parameter] public string? ReturnTo { get; set; }
+    [Parameter, EditorRequired] public string Fallback { get; set; } = "";
+
+    protected override void OnParametersSet() => GridState.RememberReturnTo(Navigation.Uri, ReturnTo);
+}
