@@ -10,12 +10,6 @@
 
 <PageTitle>@SiteResources.StaffRunner</PageTitle>
 <h1 class="h3">@SiteResources.StaffRunner</h1>
-<nav class="mb-3" aria-label="@SiteResources.StaffRunner">
-    <ul class="nav nav-underline">
-        <li class="nav-item"><a class="nav-link @(!Compilers ? "active" : null)" aria-current="@(!Compilers ? "page" : null)" href="jury/runners">@SiteResources.StaffRunner</a></li>
-        <li class="nav-item"><a class="nav-link @(Compilers ? "active" : null)" aria-current="@(Compilers ? "page" : null)" href="jury/runners?Compilers=true">@SiteResources.StaffCompilers</a></li>
-    </ul>
-</nav>
 @if (!_loaded)
 {
     <p role="status">@SiteResources.StaffLoading</p>

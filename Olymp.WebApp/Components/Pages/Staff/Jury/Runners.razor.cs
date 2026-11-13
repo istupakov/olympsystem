@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using Olymp.Checker;
 using Olymp.Domain.Models;
 using Olymp.WebApp.Resources;
+using Olymp.WebApp.Services.Checker;
 
 namespace Olymp.WebApp.Components.Pages.Staff.Jury;
 
@@ -112,9 +113,7 @@ public partial class Runners
     private static IEnumerable<CompilatorInfo> RunnerCompilers(ICheckerService runner) => runner.Compilators
         ?? [.. runner.Configurations.Select(config => new CompilatorInfo(config, config.Name, null))];
 
-    private IEnumerable<ICheckerService> AvailableRunners(Compilator compiler) => _runners.Where(runner =>
-        runner.SelfTestingStatus == CheckerSelfTestingStatus.Success && (runner.Compilators?.Any(info =>
-            info.Configuration.Name == compiler.Name && info.DisplayName == compiler.Description && info.Error is null) ?? false));
+    private IEnumerable<ICheckerService> AvailableRunners(Compilator compiler) => _runners.Where(runner => runner.SupportsCompiler(compiler));
 
     private static string StatusText(CheckerSelfTestingStatus status) => status switch
     {

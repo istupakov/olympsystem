@@ -11,6 +11,7 @@ using Olymp.Domain;
 using Olymp.Domain.Models;
 using Olymp.WebApp.Resources;
 using Olymp.WebApp.Services;
+using Olymp.WebApp.Services.Contests;
 
 namespace Olymp.WebApp.Components.Pages.Staff.Admin;
 
@@ -20,6 +21,17 @@ public partial class EditUser
     public int Id { get; set; }
     [CascadingParameter]
     private Task<AuthenticationState> AuthenticationState { get; set; } = default!;
+    [SupplyParameterFromQuery] public string? ReturnTo { get; set; }
+    private bool _confirmed;
+    private int _submissionCount;
+    private int _messageCount;
+    private int _coachedCount;
+    private int _membershipCount;
+    private string _participantName = "";
+    private int? _coachId;
+    private int? _memberId;
+    private int? _memberSlot;
+    private int? _removeMemberId;
     private User? _user;
     private IList<string> _roles = [];
     private List<string> _coachOrganizations = [];
@@ -42,16 +54,59 @@ public partial class EditUser
             await db.Entry(competitor).Reference(item => item.Contest).LoadAsync();
             await db.Entry(competitor).Collection(item => item.Members).LoadAsync();
         }
-        else if (_user is OlympUser permanent)
-        {
-            await db.Entry(permanent).Collection(item => item.Memberships).Query().Include(item => item.Contest).LoadAsync();
-        }
+
+        _membershipCount = _user is OlympUser ? await db.Competitors.CountAsync(item => item.Members.Any(member => member.Id == Id)) : 0;
+        _participantName = _user?.Name ?? "";
+        _coachId = _user?.CoachId;
+        _memberId = _memberSlot = _removeMemberId = null;
+        _confirmed = _user is not null && await scope.ServiceProvider.GetRequiredService<IUserConfirmation<User>>().IsConfirmedAsync(users, _user);
+        _submissionCount = await db.Submissions.CountAsync(item => item.UserId == Id);
+        _messageCount = _user is Competitor ? await db.Messages.CountAsync(item => item.UserId == Id) : 0;
+        _coachedCount = _user is OlympUser ? await db.Users.CountAsync(item => item.CoachId == Id) : 0;
         _roles = _user is null ? [] : await users.GetRolesAsync(_user);
         var claims = _user is null ? [] : await users.GetClaimsAsync(_user);
         var organizations = await db.Organizations.AsNoTracking().ToDictionaryAsync(item => item.Id, item => item.Name);
         _coachOrganizations = [.. claims.Where(item => item.Type == ClaimNames.CoachOrg).Select(item => int.TryParse(item.Value, out int id)
             && organizations.TryGetValue(id, out var name) ? name : item.Value)];
         _loaded = true;
+    }
+    private Task RenameParticipantAsync()
+    {
+        string name = _participantName;
+        return ChangeParticipantAsync((service, actor, id) => service.RenameAsync(actor, id, name));
+    }
+    private Task SaveCoachAsync()
+    {
+        int? coachId = _coachId;
+        return ChangeParticipantAsync((service, actor, id) => service.SetCoachAsync(actor, id, coachId));
+    }
+    private Task AddMemberAsync()
+    {
+        int? slot = _memberSlot;
+        return _memberId is int memberId
+            ? ChangeParticipantAsync((service, actor, id) => service.AddMemberAsync(actor, id, memberId, slot)) : Task.CompletedTask;
+    }
+    private Task RemoveMemberAsync(int memberId) => _removeMemberId == memberId
+        ? ChangeParticipantAsync((service, actor, id) => service.RemoveMemberAsync(actor, id, memberId)) : Task.CompletedTask;
+    private async Task ChangeParticipantAsync(Func<AdminParticipantService, ClaimsPrincipal, int, Task> change)
+    {
+        if (_busy) return;
+        int id = Id;
+        _busy = true;
+        _saved = false;
+        _error = null;
+        try
+        {
+            await using var scope = ScopeFactory.CreateAsyncScope();
+            await change(scope.ServiceProvider.GetRequiredService<AdminParticipantService>(), (await AuthenticationState).User, id);
+            if (Id != id) return;
+            _saved = true;
+            await LoadAsync();
+        }
+        catch (OperationValidationException exception) { _error = exception.Message; }
+        catch (EntityNotFoundException) { _error = SiteResources.StaffUserNotFound; }
+        catch (Exception exception) { Logger.LogError(exception, "Participant edit failed for {UserId}", Id); _error = SiteResources.StaffSaveFailed; }
+        finally { _busy = false; }
     }
     private void Ask(UserAction action) { _pending = action; _saved = false; _error = null; }
     private async Task ExecuteAsync()

@@ -1,0 +1,57 @@
+@typeparam TGridItem
+@attribute [CascadingTypeParameter(nameof(TGridItem))]
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using Microsoft.EntityFrameworkCore
+@using System.Linq.Expressions
+@using Olymp.Domain
+@inject IDbContextFactory<OlympContext> ContextFactory
+@inject StaffGridState State
+@inject NavigationManager Navigation
+
+<p class="small text-body-secondary" role="status">@SiteResources.StaffFound: @_total</p>
+<div class="table-responsive admin-grid-scroll" tabindex="0">
+    <QuickGrid TGridItem="TGridItem" Class="table table-striped table-hover align-middle" ItemsProvider="LoadAsync"
+               Virtualize="true" ItemSize="64" OverscanCount="15" InitialItemIndex="_initialIndex" ItemKey="ItemKey">
+        @ChildContent
+    </QuickGrid>
+</div>
+@if (_total == 0)
+{
+    <p>@EmptyText</p>
+}
+
+@code {
+    [Parameter, EditorRequired] public Func<OlympContext, IQueryable<TGridItem>> Query { get; set; } = default!;
+    [Parameter, EditorRequired] public RenderFragment ChildContent { get; set; } = default!;
+    [Parameter, EditorRequired] public Func<TGridItem, object> ItemKey { get; set; } = default!;
+    [Parameter, EditorRequired] public Expression<Func<TGridItem, int>> OrderKey { get; set; } = default!;
+    [Parameter] public string EmptyText { get; set; } = "";
+    private int _total;
+    private int _initialIndex;
+    private const int RowsAboveSelection = 2;
+    private string? _uri;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_uri != Navigation.Uri)
+        {
+            _uri = Navigation.Uri;
+            _initialIndex = Math.Max(0, State.GetIndex(_uri) - RowsAboveSelection);
+        }
+        await using var db = await ContextFactory.CreateDbContextAsync();
+        _total = await Query(db).CountAsync();
+    }
+
+    private async ValueTask<GridItemsProviderResult<TGridItem>> LoadAsync(GridItemsProviderRequest<TGridItem> request)
+    {
+        string uri = Navigation.Uri;
+        await using var db = await ContextFactory.CreateDbContextAsync(request.CancellationToken);
+        var query = Query(db);
+        int total = await query.CountAsync(request.CancellationToken);
+        var sorted = (IOrderedQueryable<TGridItem>)request.ApplySorting(query);
+        var items = await sorted.ThenBy(OrderKey).Skip(request.StartIndex).Take(request.Count ?? 50).ToArrayAsync(request.CancellationToken);
+        request.CancellationToken.ThrowIfCancellationRequested();
+        State.RememberRows(uri, items.Select(ItemKey), request.StartIndex);
+        return GridItemsProviderResult.From(items, total);
+    }
+}

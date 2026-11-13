@@ -1,45 +1,55 @@
 @page "/admin/news"
 @rendermode @(new InteractiveServerRenderMode(prerender: false))
-@inject IDbContextFactory<OlympContext> ContextFactory
+@inject NavigationManager Navigation
+@inject StaffGridState GridState
 
-<PageTitle>@SiteResources.AdminSection – @SiteResources.News</PageTitle>
-
+<PageTitle>@SiteResources.News</PageTitle>
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
     <h1 class="mb-0">@SiteResources.News</h1>
-    <a class="btn btn-primary" href="admin/news/new">@SiteResources.CreateNews</a>
+    <a class="btn btn-primary" href="@DetailUrl("admin/news/new")">@SiteResources.CreateNews</a>
 </div>
-
-@if (news is null)
-{
-    <p role="status">@SiteResources.StaffLoading</p>
-}
-else
-{
-    <div class="list-group">
-        @foreach (var item in news)
-        {
-            <div class="list-group-item d-flex flex-wrap justify-content-between align-items-center gap-3">
-                <div class="text-break">
-                    <div class="fw-semibold">@item.Title</div>
-                    <time class="small text-body-secondary" datetime="@item.PublicationDate.ToString("O", CultureInfo.InvariantCulture)">@item.PublicationDate.LocalDateTime.ToString("g")</time>
-                </div>
-                <a class="btn btn-outline-primary btn-sm" href="admin/news/@item.Id/edit">@SiteResources.StaffEdit</a>
-            </div>
-        }
+<EditForm Model="_filters" OnValidSubmit="ApplyFilters" class="row g-3 mb-4">
+    <div class="col-12">
+        <label for="news-search" class="form-label">@SiteResources.StaffNewsSearch</label>
+        <InputText id="news-search" class="form-control" @bind-Value="_filters.Search" />
     </div>
-    @if (news.Count == 0)
-    {
-        <p>@SiteResources.NoNews</p>
-    }
-}
+    <div class="col-12 d-flex gap-2">
+        <button class="btn btn-primary">@SiteResources.StaffFind</button>
+        <a class="btn btn-outline-secondary" href="admin/news">@SiteResources.StaffReset</a>
+    </div>
+</EditForm>
+<StaffGrid @key="Search" TGridItem="News" Query="Query" ItemKey="@(item => item.Id)" OrderKey="@(item => item.Id)" EmptyText="@SiteResources.NoNews">
+    <TemplateColumn Title="ID" SortBy="_idSort" Sortable="true" Context="item">
+        <a href="@DetailUrl($"admin/news/{item.Id}/edit", item.Id)">@item.Id</a>
+    </TemplateColumn>
+    <TemplateColumn Title="@SiteResources.NewsTitle" SortBy="_titleSort" Sortable="true" Context="item">
+        <a href="@DetailUrl($"admin/news/{item.Id}/edit", item.Id)">@item.Title</a>
+    </TemplateColumn>
+    <TemplateColumn Title="@SiteResources.PublicationDate" SortBy="_publicationSort" Sortable="true" Context="item">
+        @item.PublicationDate.LocalDateTime.ToString("g")
+    </TemplateColumn>
+</StaffGrid>
 
 @code {
-    private List<News>? news;
-
-    protected override async Task OnInitializedAsync()
+    [SupplyParameterFromQuery] public string? Search { get; set; }
+    private Filters _filters = new();
+    private readonly GridSort<News> _idSort = GridSort<News>.ByAscending(item => item.Id);
+    private readonly GridSort<News> _titleSort = GridSort<News>.ByAscending(item => item.Title).ThenAscending(item => item.Id);
+    private readonly GridSort<News> _publicationSort = GridSort<News>.ByAscending(item => item.PublicationDate).ThenAscending(item => item.Id);
+    protected override void OnParametersSet() => _filters = new() { Search = Search };
+    internal IQueryable<News> Query(OlympContext db)
     {
-        await using var context = await ContextFactory.CreateDbContextAsync();
-        news = await context.News.AsNoTracking().OrderByDescending(item => item.PublicationDate)
-            .ThenByDescending(item => item.Id).ToListAsync();
+        var query = db.News.AsNoTracking();
+        if (!string.IsNullOrWhiteSpace(Search))
+        {
+            string search = Search.Trim();
+            query = query.Where(item => item.Title.Contains(search) || item.Text.Contains(search));
+        }
+        return query.OrderByDescending(item => item.PublicationDate).ThenByDescending(item => item.Id);
     }
+    private void ApplyFilters() => Navigation.NavigateTo(Navigation.GetUriWithQueryParameters(new Dictionary<string, object?> {
+        [nameof(Search)] = _filters.Search, ["page"] = null, ["row"] = null
+    }));
+    private string DetailUrl(string path, int? itemId = null) => GridState.DetailUrl(Navigation.Uri, path, itemId);
+    private sealed class Filters { public string? Search { get; set; } }
 }

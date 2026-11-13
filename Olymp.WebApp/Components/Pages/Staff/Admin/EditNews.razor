@@ -9,12 +9,13 @@
 @inject ILogger<EditNews> Logger
 
 <PageTitle>@Title</PageTitle>
+<BackToList ReturnTo="@ReturnTo" Fallback="admin/news" />
 <h1 class="mb-4">@Title</h1>
 
 @if (_unavailable)
 {
     <p>@SiteResources.PageNotFoundMessage</p>
-    <a href="admin/news">@SiteResources.News</a>
+    <a href="@BackUrl">@SiteResources.StaffBackToList</a>
 }
 else if (_editContext is null)
 {
@@ -62,7 +63,7 @@ else
             <p class="small text-body-secondary">@SiteResources.NewsPublishesImmediately</p>
             <div class="d-flex flex-wrap gap-2">
                 <button type="submit" class="btn btn-primary">@(_saving ? SiteResources.StaffSaving : Id is null ? SiteResources.CreateNews : SiteResources.StaffSave)</button>
-                <a class="btn btn-outline-secondary" href="admin/news">@SiteResources.StaffCancel</a>
+                <a class="btn btn-outline-secondary" href="@BackUrl">@SiteResources.StaffBackToList</a>
                 @if (Id is not null)
                 {
                     <button type="button" class="btn btn-outline-danger ms-sm-auto" @onclick="() => _confirmDelete = true">@SiteResources.DeleteNews</button>
@@ -83,6 +84,8 @@ else
 }
 
 @code {
+    [SupplyParameterFromQuery] public string? ReturnTo { get; set; }
+    private string BackUrl => StaffGridState.BackUrl(ReturnTo, "admin/news");
     [Parameter]
     public int? Id { get; set; }
 
@@ -157,7 +160,7 @@ else
                 context.News.Add(item);
             await context.SaveChangesAsync();
             if (Id is null)
-                Navigation.NavigateTo($"admin/news/{item.Id}/edit?saved=true");
+                Navigation.NavigateTo($"admin/news/{item.Id}/edit?saved=true&returnTo={Uri.EscapeDataString(BackUrl)}");
             else
                 _saved = true;
         }
@@ -189,7 +192,7 @@ else
         {
             await using var context = await ContextFactory.CreateDbContextAsync();
             await context.News.Where(item => item.Id == id).ExecuteDeleteAsync();
-            Navigation.NavigateTo("admin/news");
+            Navigation.NavigateTo(BackUrl);
         }
         catch (DbException exception)
         {

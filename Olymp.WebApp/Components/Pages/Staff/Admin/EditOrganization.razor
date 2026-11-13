@@ -8,12 +8,13 @@
 @inject ILogger<EditOrganization> Logger
 
 <PageTitle>@Title</PageTitle>
+<BackToList ReturnTo="@ReturnTo" Fallback="admin/organizations" />
 <h1 class="mb-4">@Title</h1>
 @if (!_loaded) { <p role="status">@SiteResources.StaffLoading</p> }
 else if (_unavailable)
 {
     <p>@SiteResources.PageNotFoundMessage</p>
-    <a href="admin/organizations">@SiteResources.StaffOrganizations</a>
+    <a href="@BackUrl">@SiteResources.StaffBackToList</a>
 }
 else
 {
@@ -38,7 +39,7 @@ else
             </div>
             <div class="d-flex flex-wrap gap-2">
                 <button class="btn btn-primary">@SiteResources.StaffSave</button>
-                <a class="btn btn-outline-secondary" href="admin/organizations">@SiteResources.StaffCancel</a>
+                <a class="btn btn-outline-secondary" href="@BackUrl">@SiteResources.StaffBackToList</a>
                 @if (Id is not null)
                 {
                     <button type="button" class="btn btn-outline-danger ms-sm-auto" disabled="@HasReferences" @onclick="() => _confirmDelete = true">@SiteResources.StaffDeleteOrganization</button>
@@ -46,6 +47,16 @@ else
             </div>
         </fieldset>
     </EditForm>
+    @if (Id is not null)
+    {
+        <section class="mt-4">
+            <h2 class="h5">@SiteResources.StaffRelatedData</h2>
+            <div class="d-flex flex-wrap gap-3">
+                <a href="admin/users?Organization=@Id">@SiteResources.StaffUsers · @_users</a>
+                <a href="admin/users?CoachOrganization=@Id">@SiteResources.StaffOrganizationCoaches · @_coaches</a>
+            </div>
+        </section>
+    }
     @if (HasReferences)
     {
         <p class="alert alert-info mt-3">@string.Format(SiteResources.StaffOrganizationInUse, _users, _coaches)</p>
@@ -63,6 +74,8 @@ else
 }
 
 @code {
+    [SupplyParameterFromQuery] public string? ReturnTo { get; set; }
+    private string BackUrl => StaffGridState.BackUrl(ReturnTo, "admin/organizations");
     [Parameter]
     public int? Id { get; set; }
 
@@ -136,7 +149,7 @@ else
             await db.SaveChangesAsync();
             if (Id != organizationId) return;
             _storedName = organization.Name;
-            if (!organizationId.HasValue) Navigation.NavigateTo($"admin/organizations/{organization.Id}/edit", replace: true);
+            if (!organizationId.HasValue) Navigation.NavigateTo($"admin/organizations/{organization.Id}/edit?returnTo={Uri.EscapeDataString(BackUrl)}", replace: true);
             else _saved = true;
         }
         catch (Exception exception) when (exception is DbUpdateException or DbException)
@@ -169,7 +182,7 @@ else
             int deleted = await db.Organizations.Where(item => item.Id == id
                 && !db.Users.Any(user => user.OrganizationId == id)
                 && !db.UserClaims.Any(claim => claim.ClaimType == ClaimNames.CoachOrg && claim.ClaimValue == value)).ExecuteDeleteAsync();
-            if (deleted > 0) { Navigation.NavigateTo("admin/organizations", replace: true); return; }
+            if (deleted > 0) { Navigation.NavigateTo(BackUrl, replace: true); return; }
             _unavailable = !await db.Organizations.AnyAsync(item => item.Id == id);
             await LoadReferencesAsync(db, id);
         }

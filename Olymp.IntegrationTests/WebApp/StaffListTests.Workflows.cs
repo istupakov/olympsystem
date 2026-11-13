@@ -132,6 +132,42 @@ public partial class StaffListTests
     }
 
     [Fact]
+    public async Task MessageAuthorSelectionShowsAccountAndResetPreservesOtherFilters()
+    {
+        var author = await factory.AddUserAsync();
+        var other = await factory.AddUserAsync();
+        await using var scope = factory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<OlympContext>();
+        var contest = TestEntities.CreateContest("Author filter", DateTimeOffset.Now, DateTimeOffset.Now.AddHours(4));
+        var problem = TestEntities.CreateProblem(contest);
+        db.Problems.Add(problem);
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        db.Messages.AddRange(
+            new Message { Contest = null!, ContestId = contest.Id, ProblemId = problem.Id, UserId = author.Id, UserText = "Selected question" },
+            new Message { Contest = null!, ContestId = contest.Id, ProblemId = problem.Id, UserId = other.Id, UserText = "Other question" });
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        string path = $"/jury/contests/{contest.Id}/messages?AuthorId={author.Id}&Author=unrelated&Problem={problem.Id}&Answered=false";
+        using var selected = await new HtmlParser().ParseDocumentAsync(await RenderAsync<JuryMessages>(
+            path, new() { ["ContestId"] = contest.Id }, Staff(author.Id)));
+        var field = selected.QuerySelector("#message-author")!;
+        Assert.True(field.HasAttribute("readonly"));
+        Assert.Contains(author.Name, field.GetAttribute("value"));
+        Assert.Contains(author.UserName!, field.GetAttribute("value"));
+        Assert.Contains($"ID {author.Id}", field.GetAttribute("value"));
+        Assert.Contains("Selected question", selected.Body!.TextContent);
+        Assert.DoesNotContain("Other question", selected.Body.TextContent);
+        string reset = selected.QuerySelector("#message-author + a")!.GetAttribute("href")!;
+        Assert.DoesNotContain("Author", reset);
+        Assert.Contains($"Problem={problem.Id}", reset);
+        Assert.Contains("Answered=false", reset, StringComparison.OrdinalIgnoreCase);
+        using var cleared = await new HtmlParser().ParseDocumentAsync(await RenderAsync<JuryMessages>(
+            reset, new() { ["ContestId"] = contest.Id }, Staff(author.Id)));
+        Assert.False(cleared.QuerySelector("#message-author")!.HasAttribute("readonly"));
+        Assert.Contains("Selected question", cleared.Body!.TextContent);
+        Assert.Contains("Other question", cleared.Body.TextContent);
+    }
+
+    [Fact]
     public async Task MessageCrudPreservesQuestionsAndDetectsConcurrentEdits()
     {
         var author = await factory.AddUserAsync();
@@ -230,6 +266,24 @@ public partial class StaffListTests
         using var publicPage = await client.GetAsync($"/contests/{contest.Id}/standing", TestContext.Current.CancellationToken);
         Assert.Equal(System.Net.HttpStatusCode.NotFound, publicPage.StatusCode);
     }
+    [Fact]
+    public async Task CompilerAvailabilityRequiresPassedSelfTestsAndMatchingVersion()
+    {
+        var runner = new Olymp.IntegrationTests.Services.Checkers.CheckerTestData.TestRunner();
+        var checker = await Olymp.IntegrationTests.Services.Checkers.CheckerTestData.CreateCheckerAsync(runner, "available-compiler");
+        var compiler = TestEntities.CreateCompilator();
+        compiler.Name = "available-compiler";
+        compiler.Description = "Test compiler";
+        Assert.False(checker.SupportsCompiler(compiler));
+        Assert.True(await checker.RunSelfTests(TestContext.Current.CancellationToken));
+        Assert.True(checker.SupportsCompiler(compiler));
+        compiler.Description = "Another version";
+        Assert.False(checker.SupportsCompiler(compiler));
+        compiler.Description = "Test compiler";
+        compiler.Name = "another-compiler";
+        Assert.False(checker.SupportsCompiler(compiler));
+    }
+
     [Fact]
     public async Task RunnerViewRetainsDiagnosticsAndTrialRunKeepsSource()
     {

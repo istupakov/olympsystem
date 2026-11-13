@@ -23,6 +23,8 @@ public partial class Messages
     [SupplyParameterFromQuery]
     public string? Author { get; set; }
     [SupplyParameterFromQuery]
+    public int? AuthorId { get; set; }
+    [SupplyParameterFromQuery]
     public bool? Answered { get; set; }
     [SupplyParameterFromQuery]
     public int? Page { get; set; }
@@ -41,6 +43,7 @@ public partial class Messages
     private HashSet<int>? _knownQuestions;
     private int _observedContest;
     private Filters _filters = new();
+    private string? _selectedAuthor;
     private Editor _editor = new();
     private Message? _pending;
     private int? _editingId;
@@ -70,6 +73,14 @@ public partial class Messages
         }
         _filters = new() { Author = Author, Problem = Problem, Answered = Answered };
         await using var db = await ContextFactory.CreateDbContextAsync(_stop.Token);
+        _selectedAuthor = null;
+        if (!Announcements && AuthorId is int authorId)
+        {
+            var author = await db.Users.AsNoTracking().Where(item => item.Id == authorId)
+                .Select(item => new { item.Name, item.UserName }).SingleOrDefaultAsync(_stop.Token);
+            _selectedAuthor = string.Join(" · ", new[] { author?.Name, author?.UserName, $"ID {authorId}" }
+                .Where(value => !string.IsNullOrWhiteSpace(value)));
+        }
         _contest = await db.Contests.AsNoTracking().SingleOrDefaultAsync(item => item.Id == ContestId, _stop.Token);
         _problems = await db.Problems.AsNoTracking().Where(item => item.ContestId == ContestId)
             .OrderBy(item => item.Number).ToListAsync(_stop.Token);
@@ -137,7 +148,8 @@ public partial class Messages
                 && (Announcements ? item.UserId == null : item.UserId != null));
             if (Problem is int problem)
                 query = query.Where(item => item.ProblemId == problem);
-            if (!Announcements && !string.IsNullOrWhiteSpace(Author))
+            if (!Announcements && AuthorId is int authorId) query = query.Where(item => item.UserId == authorId);
+            if (!Announcements && AuthorId is null && !string.IsNullOrWhiteSpace(Author))
                 query = query.Where(item => item.User != null && (item.User.Name.Contains(Author)
                     || (item.User.UserName != null && item.User.UserName.Contains(Author))));
             if (!Announcements && Answered is bool answered)
@@ -283,10 +295,16 @@ public partial class Messages
 
     private string TabUrl(bool announcements) => $"jury/contests/{ContestId}/messages" + (announcements ? "?Announcements=true" : "");
     private string PageUrl(int page) => Navigation.GetUriWithQueryParameter(nameof(Page), page);
+    private string ClearAuthorUrl() => Navigation.GetUriWithQueryParameters(new Dictionary<string, object?>
+    {
+        [nameof(AuthorId)] = null,
+        [nameof(Author)] = null,
+        [nameof(Page)] = null
+    });
     private void ApplyFilters() => Navigation.NavigateTo(Navigation.GetUriWithQueryParameters(new Dictionary<string, object?>
     {
         [nameof(Problem)] = _filters.Problem,
-        [nameof(Author)] = _filters.Author,
+        [nameof(Author)] = AuthorId is null ? _filters.Author : null,
         [nameof(Answered)] = _filters.Answered,
         [nameof(Page)] = null
     }));

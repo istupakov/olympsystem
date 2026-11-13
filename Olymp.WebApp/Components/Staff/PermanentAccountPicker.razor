@@ -1,0 +1,52 @@
+@using Microsoft.EntityFrameworkCore
+@using Olymp.Domain
+@inject IDbContextFactory<OlympContext> ContextFactory
+
+<div class="mb-3">
+    <label for="@_searchId" class="form-label">@Label</label>
+    <div class="input-group mb-2">
+        <input id="@_searchId" class="form-control" @bind="_search" placeholder="@SiteResources.StaffUserSearch" />
+        <button type="button" class="btn btn-outline-secondary" @onclick="SearchAsync" disabled="@Disabled">@SiteResources.StaffFind</button>
+    </div>
+    <label for="@_selectId" class="visually-hidden">@SiteResources.StaffAccount</label>
+    <select id="@_selectId" class="form-select" value="@Value" @onchange="SelectAsync" disabled="@Disabled">
+        <option value="">@SiteResources.StaffNoAccountSelected</option>
+        @foreach (var account in _accounts) { <option value="@account.Id">@account.Name · @account.Email · ID @account.Id</option> }
+    </select>
+    @if (_searched) { <div class="form-text">@SiteResources.StaffAccountSearchHint</div> }
+</div>
+
+@code {
+    [Parameter] public string Label { get; set; } = "";
+    [Parameter] public int? Value { get; set; }
+    [Parameter] public EventCallback<int?> ValueChanged { get; set; }
+    [Parameter] public bool Disabled { get; set; }
+    private readonly string _searchId = $"account-search-{Guid.NewGuid():N}";
+    private readonly string _selectId = $"account-select-{Guid.NewGuid():N}";
+    private string _search = "";
+    private List<OlympUser> _accounts = [];
+    private bool _searched;
+    protected override async Task OnParametersSetAsync() {
+        if (Value is int id && _accounts.All(item => item.Id != id)) {
+            await using var db = await ContextFactory.CreateDbContextAsync();
+            var account = await db.OlympUsers.AsNoTracking().SingleOrDefaultAsync(item => item.Id == id);
+            if (account is not null) _accounts.Add(account);
+        }
+    }
+    private async Task SearchAsync() {
+        await using var db = await ContextFactory.CreateDbContextAsync();
+        string search = _search.Trim();
+        bool hasId = int.TryParse(search, out int id);
+        var query = db.OlympUsers.AsNoTracking();
+        if (search.Length > 0) query = query.Where(item => (hasId && item.Id == id) || item.Name.Contains(search)
+            || (item.Email != null && item.Email.Contains(search)) || (item.UserName != null && item.UserName.Contains(search)));
+        _accounts = await query.OrderBy(item => item.Name).ThenBy(item => item.Id).Take(20).ToListAsync();
+        _searched = true;
+        if (Value is int selected && _accounts.All(item => item.Id != selected))
+        {
+            var account = await db.OlympUsers.AsNoTracking().SingleOrDefaultAsync(item => item.Id == selected);
+            if (account is not null) _accounts.Add(account);
+        }
+    }
+    private Task SelectAsync(ChangeEventArgs args) => ValueChanged.InvokeAsync(int.TryParse(args.Value?.ToString(), out int id) ? id : null);
+}

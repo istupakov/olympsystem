@@ -13,6 +13,7 @@
             </AuthorizeView>
             <AuthorizeView Roles="@RoleNames.Admin">
                 <div class="small text-body-secondary px-3 py-2">@SiteResources.AdminSection</div>
+                <NavLink class="nav-link" href="admin/compilers">@SiteResources.StaffCompilers</NavLink>
                 <NavLink class="nav-link" href="admin/news">@SiteResources.News</NavLink>
                 <NavLink class="nav-link" href="admin/users">@SiteResources.StaffUsers</NavLink>
                 <NavLink class="nav-link" href="admin/organizations">@SiteResources.StaffOrganizations</NavLink>

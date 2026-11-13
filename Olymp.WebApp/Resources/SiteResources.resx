@@ -422,6 +422,7 @@
   <data name="StaffLoadingVersions" xml:space="preserve"><value>Loading compiler versions…</value></data>
   <data name="StaffEnabledOnSite" xml:space="preserve"><value>Enabled on site</value></data>
   <data name="StaffAvailableRunners" xml:space="preserve"><value>Available Runner</value></data>
+  <data name="StaffRunnerAvailable" xml:space="preserve"><value>Runner available</value></data>
   <data name="StaffEnabled" xml:space="preserve"><value>Enabled</value></data>
   <data name="StaffDisabled" xml:space="preserve"><value>Disabled</value></data>
   <data name="StaffEnable" xml:space="preserve"><value>Enable</value></data>
@@ -522,4 +523,32 @@
   <data name="StaffPublicPages" xml:space="preserve"><value>Public pages</value></data>
   <data name="StaffPublicPagesHidden" xml:space="preserve"><value>Public pages are unavailable: the contest is hidden.</value></data>
   <data name="SubmissionContest" xml:space="preserve"><value>Contest</value></data>
+  <data name="StaffFound" xml:space="preserve"><value>Found</value></data>
+  <data name="StaffNewsSearch" xml:space="preserve"><value>Title or text</value></data>
+  <data name="StaffCompilerSearch" xml:space="preserve"><value>Name or configuration</value></data>
+  <data name="StaffLanguage" xml:space="preserve"><value>Language</value></data>
+  <data name="StaffTechnicalName" xml:space="preserve"><value>Technical name</value></data>
+  <data name="StaffSourceExtension" xml:space="preserve"><value>Source extension</value></data>
+  <data name="StaffCommandLine" xml:space="preserve"><value>Command line</value></data>
+  <data name="StaffRelatedData" xml:space="preserve"><value>Related data</value></data>
+  <data name="StaffOrganizationCoaches" xml:space="preserve"><value>Organization coaches</value></data>
+  <data name="StaffCoachedAccounts" xml:space="preserve"><value>Coached accounts</value></data>
+  <data name="StaffMemberships" xml:space="preserve"><value>Contest participations</value></data>
+  <data name="StaffAccountConfirmed" xml:space="preserve"><value>Account confirmed</value></data>
+  <data name="StaffLoginAvailable" xml:space="preserve"><value>Sign-in allowed</value></data>
+  <data name="StaffEditParticipant" xml:space="preserve"><value>Edit participant</value></data>
+  <data name="StaffSaveCoach" xml:space="preserve"><value>Save coach</value></data>
+  <data name="StaffAddLinkedAccount" xml:space="preserve"><value>Link account</value></data>
+  <data name="StaffUnlinkAccount" xml:space="preserve"><value>Unlink account</value></data>
+  <data name="StaffUnlinkAccountConfirm" xml:space="preserve"><value>Unlink this account? The roster name and submission history will be retained.</value></data>
+  <data name="StaffRosterEntry" xml:space="preserve"><value>Roster entry</value></data>
+  <data name="StaffNewRosterEntry" xml:space="preserve"><value>Add a new roster name</value></data>
+  <data name="StaffNoAccountSelected" xml:space="preserve"><value>No account selected</value></data>
+  <data name="StaffAccountSearchHint" xml:space="preserve"><value>First 20 matches. Refine the search to find another account.</value></data>
+  <data name="StaffParticipantNameRequired" xml:space="preserve"><value>Enter the participant name.</value></data>
+  <data name="StaffRosterFull" xml:space="preserve"><value>The roster contains three members. Select an existing unlinked roster entry.</value></data>
+  <data name="StaffEmailNotConfirmed" xml:space="preserve"><value>Email is not confirmed</value></data>
+  <data name="StaffBackToList" xml:space="preserve"><value>Back to list</value></data>
+  <data name="StaffProfileYear" xml:space="preserve"><value>Year</value></data>
+  <data name="StaffTeamRoster" xml:space="preserve"><value>Team roster</value></data>
 </root>
