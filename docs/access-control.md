@@ -388,8 +388,10 @@ details, including to jury members without a contest management assignment.
 | Operation | Required access |
 | --- | --- |
 | Read contest information, participants and assigned credentials, statements, submissions, source, diagnostics, standings, and messages | Jury or administrator; includes hidden contests/accounts, unpublished and inactive problems, and results without freeze restrictions. |
+| Read test metadata and bounded file previews; download individual input/output files, all tests of a problem as ZIP, and stored contest attachments | Jury or administrator; includes closed and inactive tests and hidden contests. Public download rules are unchanged. |
+| Export assigned participant credentials | Jury or administrator. |
 | Create a contest | Jury or administrator; the creator receives management permission. New contests are hidden. |
-| Edit contest settings, manage participants and credentials, import ICPC teams, answer questions, manage announcements and clarifications | Administrator or jury member with the stored `contest-manage` assignment for this contest. |
+| Edit contest settings, problem and test activity; publish or remove the contest test archive; finish a contest; manage participants and credentials, import ICPC teams, answer questions, manage announcements and clarifications | Administrator or jury member with the stored `contest-manage` assignment for this contest. Archive publication and contest completion are permitted only after the contest ends and require confirmation; archive removal also requires confirmation. |
 | Submit solutions from the staff task page | Jury or administrator, without a contest assignment or public publication, activity, time, or open-contest restrictions. Solutions belong to the signed-in account. |
 | Run anti-cheat analysis and Runner trials | Jury or administrator. Analysis applies no participant penalties automatically. |
 | Manage news, users, roles, coach claims, organizations, and compiler records; rejudge submissions | Administrator only. |

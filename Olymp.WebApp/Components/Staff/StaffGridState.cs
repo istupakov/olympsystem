@@ -53,5 +53,6 @@ public sealed class StaffGridState
     }
 
     public static string BackUrl(string? returnTo, string fallback) => returnTo is not null
-        && returnTo.StartsWith("/admin/", StringComparison.Ordinal) && !returnTo.Contains('\\') ? returnTo : fallback;
+        && (returnTo.StartsWith("/admin/", StringComparison.Ordinal) || returnTo.StartsWith("/jury/", StringComparison.Ordinal))
+        && !returnTo.Contains('\\') ? returnTo : fallback;
 }

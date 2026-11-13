@@ -1,0 +1,10 @@
+<section class="card mb-3 @Class" aria-label="@Title">
+    <h2 class="card-header h5">@Title</h2>
+    <div class="card-body">@ChildContent</div>
+</section>
+
+@code {
+    [Parameter, EditorRequired] public string Title { get; set; } = "";
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

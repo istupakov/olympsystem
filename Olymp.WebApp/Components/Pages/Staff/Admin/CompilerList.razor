@@ -36,6 +36,11 @@
         <a class="btn btn-outline-secondary" href="admin/compilers">@SiteResources.StaffReset</a>
     </div>
 </EditForm>
+<div class="d-flex flex-wrap gap-2 mb-3">
+    <ActiveFilter Name="Search" Label="@SiteResources.Compiler" Value="@Search" />
+    <ActiveFilter Name="Language" Label="@SiteResources.StaffLanguage" Value="@Language" />
+    <ActiveFilter Name="Active" Label="@SiteResources.StaffEnabledOnSite" Value="@(Active is bool active ? active ? SiteResources.StaffYes : SiteResources.StaffNo : null)" />
+</div>
 <StaffGrid @key="Navigation.Uri" TGridItem="Compilator" Query="Query" ItemKey="@(item => item.Id)" OrderKey="@(item => item.Id)" EmptyText="@SiteResources.StaffNoCompilers">
     <TemplateColumn Title="ID" SortBy="_idSort" Sortable="true" Context="item">
         <a href="@GridState.DetailUrl(Navigation.Uri, $"admin/compilers/{item.Id}", item.Id)">@item.Id</a>
@@ -44,10 +49,13 @@
         <a href="@GridState.DetailUrl(Navigation.Uri, $"admin/compilers/{item.Id}", item.Id)">@(item.Description ?? item.Name)</a>
         <div class="small text-body-secondary">@item.Name</div>
     </TemplateColumn>
-    <PropertyColumn Property="@(item => item.Language)" Title="@SiteResources.StaffLanguage" Sortable="true" />
+    <TemplateColumn Title="@SiteResources.StaffLanguage" SortBy="_languageSort" Sortable="true" Context="item">
+        @item.Language <QuickFilter Url="@StaffFilterUrl.Set(Navigation.Uri, nameof(Language), item.Language)" Label="@SiteResources.StaffLanguage" Value="@item.Language" />
+    </TemplateColumn>
     <PropertyColumn Property="@(item => item.ConfigName)" Title="@SiteResources.StaffConfiguration" Sortable="true" />
     <TemplateColumn Title="@SiteResources.StaffEnabledOnSite" SortBy="_activeSort" Sortable="true" Context="item">
         <span class="badge @(item.IsActive ? "text-bg-success" : "text-bg-secondary")">@(item.IsActive ? SiteResources.StaffEnabled : SiteResources.StaffDisabled)</span>
+        <QuickFilter Url="@StaffFilterUrl.Set(Navigation.Uri, nameof(Active), item.IsActive)" Label="@SiteResources.StaffEnabledOnSite" Value="@(item.IsActive ? SiteResources.StaffYes : SiteResources.StaffNo)" />
     </TemplateColumn>
     <TemplateColumn Title="@SiteResources.StaffRunnerAvailable" Context="item">
         @(Checkers.Checkers.Values.Any(runner => runner.SupportsCompiler(item)) ? SiteResources.StaffYes : SiteResources.StaffNo)
@@ -63,6 +71,7 @@
     private readonly GridSort<Compilator> _idSort = GridSort<Compilator>.ByAscending(item => item.Id);
     private readonly GridSort<Compilator> _nameSort = GridSort<Compilator>.ByAscending(item => item.Description ?? item.Name).ThenAscending(item => item.Id);
     private readonly GridSort<Compilator> _activeSort = GridSort<Compilator>.ByAscending(item => item.IsActive).ThenAscending(item => item.Id);
+    private readonly GridSort<Compilator> _languageSort = GridSort<Compilator>.ByAscending(item => item.Language);
     protected override async Task OnParametersSetAsync()
     {
         _filters = new() { Search = Search, Language = Language, Active = Active };

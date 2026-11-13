@@ -1,6 +1,5 @@
 using Olymp.Domain;
 using Olymp.Domain.Models;
-using Olymp.WebApp.Components.Submissions;
 
 namespace Olymp.WebApp.Components.Staff;
 
@@ -16,14 +15,26 @@ public static class StaffSubmissionQuery
             _ => query
         };
 
-    public static IQueryable<SubmissionListItem> AsStaffRows(this IQueryable<Submission> query, OlympContext context, int? contestId) =>
-        query.Select(item => new SubmissionListItem(item.Id, item.CommitTime, item.User.Name,
-            context.Competitors.Any(author => author.Id == item.UserId && author.ContestId == (contestId ?? item.Problem.ContestId)),
-            item.Compilator.Description ?? item.Compilator.Name, item.Problem.ContestId, item.Problem.Contest.Name,
-            item.ProblemId, item.Problem.Number.ToString() + ". " + item.Problem.Name, item.Problem.Contest.Abbr.StartsWith("school"),
-            item.StatusCode, null, item.Score, true)
+    public static IQueryable<StaffSubmissionListItem> AsStaffRows(this IQueryable<Submission> query, OlympContext context, int? contestId) =>
+        query.Select(item => new StaffSubmissionListItem
         {
+            Id = item.Id,
+            CommitTime = item.CommitTime,
+            Author = item.User.Name,
+            IsParticipant = context.Competitors.Any(author => author.Id == item.UserId && author.ContestId == (contestId ?? item.Problem.ContestId)),
+            Compiler = item.Compilator.Description ?? item.Compilator.Name,
+            ContestId = item.Problem.ContestId,
+            Contest = item.Problem.Contest.Name,
+            ProblemId = item.ProblemId,
+            Problem = item.Problem.Number.ToString() + ". " + item.Problem.Name,
+            StatusCode = item.StatusCode,
+            Score = item.Score,
             IsTeam = item.Problem.Contest.Abbr.StartsWith("acm") || item.Problem.Contest.Abbr.StartsWith("icpc"),
-            IpAddress = item.CommiterInfo
+            IpAddress = item.CommiterInfo,
+            AuthorId = item.UserId,
+            CompilerId = item.CompilatorId,
+            Language = item.Compilator.Language,
+            IsHidden = item.IsHidden,
+            IsReference = item.IsReference
         });
 }

@@ -2,10 +2,13 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Forms;
+using Microsoft.AspNetCore.Components.QuickGrid;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 
 using Olymp.Domain;
 using Olymp.Domain.Models;
+using Olymp.WebApp.Components.Staff;
 using Olymp.WebApp.Resources;
 using Olymp.WebApp.Services;
 using Olymp.WebApp.Services.Contests;
@@ -19,7 +22,57 @@ public partial class ParticipantList
     [CascadingParameter]
     private Task<AuthenticationState> AuthenticationState { get; set; } = default!;
     private Contest? _contest;
-    private List<Competitor> _participants = [];
+    [SupplyParameterFromQuery] public string? Search { get; set; }
+    [SupplyParameterFromQuery] public int? Organization { get; set; }
+    [SupplyParameterFromQuery] public bool? Approved { get; set; }
+    [SupplyParameterFromQuery] public bool? Unofficial { get; set; }
+    [SupplyParameterFromQuery] public bool? Disqualified { get; set; }
+    private Filters _filters = new();
+    private List<Organization> _organizations = [];
+    private int _missingLogins, _gridVersion;
+    private readonly GridSort<Competitor> _idSort = GridSort<Competitor>.ByAscending(item => item.Id);
+    private readonly GridSort<Competitor> _nameSort = GridSort<Competitor>.ByAscending(item => item.Name);
+    private readonly GridSort<Competitor> _dateSort = GridSort<Competitor>.ByAscending(item => item.RegistrationDate);
+    private ParticipantQuery Selection => new(ContestId, Search, Organization, Approved, Unofficial, Disqualified);
+    internal IQueryable<Competitor> Query(OlympContext db) => Selection.Apply(db)
+        .Include(item => item.Organization).Include(item => item.Coach).Include(item => item.Members).AsSplitQuery()
+        .OrderBy(item => item.RegistrationDate).ThenBy(item => item.Id);
+    private string AccountUrl(int id, int? sourceId = null) => GridState.DetailUrl(Navigation.Uri, $"admin/users/{id}/edit", sourceId ?? id);
+    private string ExportUrl()
+    {
+        var query = QueryHelpers.ParseQuery(new Uri(Navigation.Uri).Query);
+        query.TryGetValue("sort", out var column);
+        query.TryGetValue("direction", out var direction);
+        string sortKey = column == "ID" ? "ID" : column == SiteResources.StaffName ? "Name"
+            : column == SiteResources.StaffLogin ? "Login" : "Date";
+        return QueryHelpers.AddQueryString($"/jury/contests/{ContestId}/participants/export", new Dictionary<string, string?>
+        {
+            ["search"] = Search,
+            ["organization"] = Organization?.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            ["approved"] = Approved?.ToString(),
+            ["unofficial"] = Unofficial?.ToString(),
+            ["disqualified"] = Disqualified?.ToString(),
+            ["sort"] = sortKey,
+            ["descending"] = string.Equals(direction, "desc", StringComparison.OrdinalIgnoreCase).ToString()
+        });
+    }
+    private void ApplyFilters() => Navigation.NavigateTo(Navigation.GetUriWithQueryParameters(new Dictionary<string, object?>
+    {
+        [nameof(Search)] = _filters.Search,
+        [nameof(Organization)] = _filters.Organization,
+        [nameof(Approved)] = _filters.Approved,
+        [nameof(Unofficial)] = _filters.Unofficial,
+        [nameof(Disqualified)] = _filters.Disqualified,
+        ["row"] = null
+    }));
+    private sealed class Filters
+    {
+        public string? Search { get; set; }
+        public int? Organization { get; set; }
+        public bool? Approved { get; set; }
+        public bool? Unofficial { get; set; }
+        public bool? Disqualified { get; set; }
+    }
     private bool _loaded;
     private bool _canManage;
     private bool _admin;
@@ -32,6 +85,7 @@ public partial class ParticipantList
 
     protected override async Task OnParametersSetAsync()
     {
+        _filters = new() { Search = Search, Organization = Organization, Approved = Approved, Unofficial = Unofficial, Disqualified = Disqualified };
         _pending = null;
         _names = [];
         _logins.Clear();
@@ -46,9 +100,10 @@ public partial class ParticipantList
         var user = (await AuthenticationState).User;
         _admin = user.IsInRole(RoleNames.Admin);
         _canManage = (await Authorization.AuthorizeAsync(user, ContestId, PolicyNames.ManageContest)).Succeeded;
-        _participants = _contest is null ? [] : await db.Competitors.AsNoTracking().Where(item => item.ContestId == ContestId)
-            .Include(item => item.Organization).Include(item => item.Coach).Include(item => item.Members).AsSplitQuery()
-            .OrderBy(item => item.RegistrationDate).ThenBy(item => item.Id).ToListAsync();
+        _organizations = await db.Competitors.Where(item => item.ContestId == ContestId && item.OrganizationId != null)
+            .Select(item => item.Organization!).Distinct().OrderBy(item => item.Name).ToListAsync();
+        _missingLogins = await Selection.Apply(db).CountAsync(item => item.UserName == null || item.UserName == "");
+        _gridVersion++;
         _loaded = true;
     }
 

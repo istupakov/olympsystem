@@ -5,9 +5,6 @@
 @inject IJSRuntime JavaScript
 
 <p>
-    <SubmissionStatus StatusCode="Submission.StatusCode" />
-</p>
-<p>
     <a href="@DownloadUrl" data-enhance-nav="false">@SiteResources.DownloadSource</a>
 </p>
 <pre @key="Submission.Id" class="border rounded overflow-auto"><code @ref="_sourceElement" class="d-block p-3" id="submission-source-@Submission.Id" data-source-language="@Submission.Compilator.SourceExtension.TrimStart('.').ToLowerInvariant()">@Submission.Text</code></pre>

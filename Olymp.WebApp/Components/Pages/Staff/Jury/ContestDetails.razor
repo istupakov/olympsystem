@@ -1,0 +1,61 @@
+@page "/jury/contests/{Id:int}"
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@inject IDbContextFactory<OlympContext> ContextFactory
+
+<PageTitle>@SiteResources.StaffContestDetails</PageTitle>
+<BackToList ReturnTo="@ReturnTo" Fallback="jury/contests" />
+@if (!_loaded) { <p role="status">@SiteResources.StaffLoading</p> }
+else if (_contest is null) { <p>@SiteResources.PageNotFoundMessage</p> }
+else
+{
+    <StaffContestNavigation ContestId="Id" ContestName="@_contest.Name" IsHidden="_contest.IsHidden" />
+    <h1 class="h3">@SiteResources.StaffContestDetails</h1>
+    <dl class="row text-break">
+        <dt class="col-sm-4">ID</dt><dd class="col-sm-8">@Id</dd>
+        <dt class="col-sm-4">@SiteResources.StaffName</dt><dd class="col-sm-8">@_contest.Name</dd>
+        <dt class="col-sm-4">@SiteResources.Abbreviation</dt><dd class="col-sm-8">@_contest.Abbr</dd>
+        <dt class="col-sm-4">@SiteResources.ContestStart</dt><dd class="col-sm-8">@_contest.StartTime.ToLocalTime().ToString("g")</dd>
+        <dt class="col-sm-4">@SiteResources.ContestEnd</dt><dd class="col-sm-8">@_contest.EndTime.ToLocalTime().ToString("g")</dd>
+        <dt class="col-sm-4">@SiteResources.PrintingAvailableFrom</dt><dd class="col-sm-8">@_contest.ProblemShowTime?.ToLocalTime().ToString("g")</dd>
+        <dt class="col-sm-4">@SiteResources.FreezeStartsAt</dt><dd class="col-sm-8">@_contest.FreezeTime?.ToLocalTime().ToString("g")</dd>
+        <dt class="col-sm-4">@SiteResources.HiddenContest</dt><dd class="col-sm-8">@(_contest.IsHidden ? SiteResources.StaffYes : SiteResources.StaffNo)</dd>
+        <dt class="col-sm-4">@SiteResources.OpenContest</dt><dd class="col-sm-8">@(_contest.IsOpen ? SiteResources.StaffYes : SiteResources.StaffNo)</dd>
+        <dt class="col-sm-4">@SiteResources.StaffDescription</dt><dd class="col-sm-8">@_contest.Description</dd>
+        @foreach (var (kind, label, blobId) in new[] {
+            ("problems", SiteResources.ContestStatements, _contest.ProblemPdfId),
+            ("tests", SiteResources.ContestTests, _contest.TestZipId),
+            ("final", SiteResources.StaffFinalTable, _contest.FinalTableId),
+            ("official", SiteResources.StaffOfficialTable, _contest.OfficialTableId) })
+        {
+            <dt class="col-sm-4">@label</dt>
+            <dd class="col-sm-8">@if (blobId is int blob) { <a href="jury/contests/@Id/files/@kind" data-enhance-nav="false">@label · ID @blob</a> } else { <text>–</text> }</dd>
+        }
+    </dl>
+    <h2 class="h5">@SiteResources.StaffRelatedData</h2>
+    <ul>
+        <li><a href="jury/contests/@Id/problems">@SiteResources.Problems · @_problems</a></li>
+        <li><a href="jury/contests/@Id/participants">@SiteResources.ContestParticipants · @_participants</a></li>
+        <li><a href="jury/contests/@Id/submissions">@SiteResources.Submissions · @_submissions</a></li>
+        <li><a href="jury/contests/@Id/messages">@SiteResources.StaffQuestions · @_questions</a></li>
+        <li><a href="jury/contests/@Id/messages?Announcements=true">@SiteResources.StaffAnnouncements · @_announcements</a></li>
+    </ul>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+    [SupplyParameterFromQuery] public string? ReturnTo { get; set; }
+    private Contest? _contest;
+    private bool _loaded;
+    private int _problems, _participants, _submissions, _questions, _announcements;
+    protected override async Task OnParametersSetAsync()
+    {
+        await using var db = await ContextFactory.CreateDbContextAsync();
+        _contest = await db.Contests.AsNoTracking().SingleOrDefaultAsync(item => item.Id == Id);
+        _problems = await db.Problems.CountAsync(item => item.ContestId == Id);
+        _participants = await db.Competitors.CountAsync(item => item.ContestId == Id);
+        _submissions = await db.Submissions.CountAsync(item => item.Problem.ContestId == Id);
+        _questions = await db.Messages.CountAsync(item => item.ContestId == Id && item.UserId != null);
+        _announcements = await db.Messages.CountAsync(item => item.ContestId == Id && item.UserId == null);
+        _loaded = true;
+    }
+}

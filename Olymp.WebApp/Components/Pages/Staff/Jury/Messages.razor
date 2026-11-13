@@ -50,10 +50,7 @@ else
                 <label for="message-author" class="form-label">@SiteResources.SubmissionAuthor</label>
                 @if (AuthorId is not null)
                 {
-                    <div class="input-group">
-                        <input id="message-author" class="form-control" value="@_selectedAuthor" readonly />
-                        <a class="btn btn-outline-secondary" href="@ClearAuthorUrl()">@SiteResources.StaffReset</a>
-                    </div>
+                    <input id="message-author" class="form-control" value="@_selectedAuthor" readonly />
                 }
                 else
                 {
@@ -61,11 +58,11 @@ else
                 }
             </div>
             <div class="col-md-4">
-                <label for="message-answered" class="form-label">@SiteResources.SubmissionStatus</label>
-                <InputSelect id="message-answered" class="form-select" @bind-Value="_filters.Answered">
+                <label for="message-status" class="form-label">@SiteResources.SubmissionStatus</label>
+                <InputSelect id="message-status" class="form-select" @bind-Value="_filters.Status">
                     <option value="">@SiteResources.StaffAll</option>
-                    <option value="false">@SiteResources.StaffUnanswered</option>
-                    <option value="true">@SiteResources.StaffAnswered</option>
+                    <option value="unanswered">@SiteResources.StaffUnanswered</option>
+                    <option value="answered">@SiteResources.StaffAnswered</option>
                 </InputSelect>
             </div>
         }
@@ -78,6 +75,15 @@ else
             }
         </div>
     </EditForm>
+    <div class="d-flex flex-wrap gap-2 mb-3">
+        <ActiveFilter Name="Problem" Label="@SiteResources.Problem" Value="@(Problem is int problemId ? _problems.SingleOrDefault(item => item.Id == problemId)?.NameWithNumber ?? $"ID {problemId}" : null)" />
+        @if (!Announcements)
+        {
+            <ActiveFilter Name="AuthorId" Label="@SiteResources.SubmissionAuthor" Value="@_selectedAuthor" Clear="@(new[] { nameof(Author) })" />
+            <ActiveFilter Name="Author" Label="@SiteResources.SubmissionAuthor" Value="@(AuthorId is null ? Author : null)" />
+            <ActiveFilter Name="Status" Label="@SiteResources.SubmissionStatus" Value="@(Status == "answered" ? SiteResources.StaffAnswered : Status == "unanswered" ? SiteResources.StaffUnanswered : null)" />
+        }
+    </div>
     @if (_error is not null)
     {
         <p class="alert alert-danger" role="alert">@_error</p>
@@ -139,8 +145,15 @@ else
     {
         <article class="card mb-3" id="message-@message.Id" @key="message.Id">
             <div class="card-header d-flex flex-wrap justify-content-between gap-2">
-                <span>@(message.Problem?.NameWithNumber ?? SiteResources.GeneralQuestion)</span>
-                <span>@message.User?.Name @message.SendTime?.ToLocalTime().ToString("g")</span>
+                <span>
+                    @(message.Problem?.NameWithNumber ?? SiteResources.GeneralQuestion)
+                    @if (message.ProblemId is int messageProblem) { <QuickFilter Url="@StaffFilterUrl.Set(Navigation.Uri, nameof(Problem), messageProblem)" Label="@SiteResources.Problem" Value="@message.Problem!.NameWithNumber" /> }
+                </span>
+                <span>
+                    @message.User?.Name
+                    @if (!Announcements && message.UserId is int userId) { <QuickFilter Url="@StaffFilterUrl.Set(Navigation.Uri, nameof(AuthorId), userId, nameof(Author))" Label="@SiteResources.SubmissionAuthor" Value="@message.User!.Name" /> }
+                    @message.SendTime?.ToLocalTime().ToString("g")
+                </span>
             </div>
             <div class="card-body">
                 @if (message.UserText is not null)

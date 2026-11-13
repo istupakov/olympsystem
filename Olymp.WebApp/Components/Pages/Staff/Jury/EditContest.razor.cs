@@ -34,6 +34,7 @@ public partial class EditContest
     private bool _saving;
     private bool _saved;
     private bool _isHidden = true;
+    private bool _canRetest;
     private string Title => Id is null ? SiteResources.CreateContest : SiteResources.EditContest;
 
     protected override async Task OnParametersSetAsync()
@@ -44,6 +45,9 @@ public partial class EditContest
         _preview = false;
         _input = new();
         _isHidden = true;
+        _canRetest = (await AuthenticationState).User.IsInRole(RoleNames.Admin);
+        _pendingOperation = null;
+        _operationCompleted = false;
         if (Id is { } id)
         {
             await using var context = await ContextFactory.CreateDbContextAsync();
@@ -61,6 +65,7 @@ public partial class EditContest
             }
             _input = InputModel.From(contest);
             _isHidden = contest.IsHidden;
+            await LoadOperationsAsync(context, id);
         }
         _editContext = new(_input);
         _messages = new(_editContext);
@@ -114,6 +119,7 @@ public partial class EditContest
                 await context.SaveChangesAsync();
                 _isHidden = contest.IsHidden;
                 _saved = true;
+                await LoadOperationsAsync(context, Id.Value);
             }
         }
         catch (DbUpdateException exception)

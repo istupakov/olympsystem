@@ -1,0 +1,19 @@
+@inject NavigationManager Navigation
+@if (!string.IsNullOrEmpty(Value))
+{
+    <span class="badge text-bg-light border d-inline-flex align-items-center gap-2 text-wrap">
+        <span>@Label: @Value</span>
+        <a class="d-inline-flex text-reset flex-shrink-0" data-clear-filter="@Name" href="@StaffFilterUrl.Set(Navigation.Uri, Name, null, Clear)" aria-label="@string.Format(SiteResources.StaffRemoveFilter, Label)" title="@string.Format(SiteResources.StaffRemoveFilter, Label)">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M3.646 3.646a.5.5 0 0 1 .708 0L8 7.293l3.646-3.647a.5.5 0 0 1 .708.708L8.707 8l3.647 3.646a.5.5 0 0 1-.708.708L8 8.707l-3.646 3.647a.5.5 0 0 1-.708-.708L7.293 8 3.646 4.354a.5.5 0 0 1 0-.708" />
+            </svg>
+        </a>
+    </span>
+}
+
+@code {
+    [Parameter, EditorRequired] public string Name { get; set; } = "";
+    [Parameter, EditorRequired] public string Label { get; set; } = "";
+    [Parameter] public string? Value { get; set; }
+    [Parameter] public string[] Clear { get; set; } = [];
+}

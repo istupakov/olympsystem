@@ -1,0 +1,94 @@
+@page "/jury/problems/{ProblemId:int}/tests"
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@inject IDbContextFactory<OlympContext> ContextFactory
+@inject NavigationManager Navigation
+@inject StaffGridState GridState
+
+<PageTitle>@SiteResources.StaffTests</PageTitle>
+@if (!_loaded) { <p role="status">@SiteResources.StaffLoading</p> }
+else if (_problem is null) { <p>@SiteResources.PageNotFoundMessage</p> }
+else
+{
+    <StaffContestNavigation ContestId="_problem.ContestId" ContestName="@_problem.Contest.Name" IsHidden="_problem.Contest.IsHidden" />
+    <h1 class="h3">@_problem.NameWithNumber – @SiteResources.StaffTests</h1>
+    <div class="d-flex flex-wrap gap-3 mb-3">
+        <a href="jury/contests/@_problem.ContestId/problems?problemId=@ProblemId">@SiteResources.StaffToProblem</a>
+        <a href="jury/problems/@ProblemId/tests/download" data-enhance-nav="false">@SiteResources.StaffDownloadAllTests</a>
+    </div>
+    <p>@SiteResources.StaffTotalTests: @_total · @SiteResources.StaffActiveTests: @_active · @SiteResources.StaffOpenTests: @_open</p>
+    <EditForm Model="_filters" OnValidSubmit="ApplyFilters" class="row g-3 mb-3">
+        <div class="col-md-4">
+            <label for="test-active" class="form-label">@SiteResources.StaffTestActive</label>
+            <InputSelect id="test-active" class="form-select" @bind-Value="_filters.Active">
+                <option value="">@SiteResources.StaffAll</option>
+                <option value="true">@SiteResources.StaffActive</option><option value="false">@SiteResources.StaffInactive</option>
+            </InputSelect>
+        </div>
+        <div class="col-md-4">
+            <label for="test-open" class="form-label">@SiteResources.StaffTestOpen</label>
+            <InputSelect id="test-open" class="form-select" @bind-Value="_filters.Open">
+                <option value="">@SiteResources.StaffAll</option>
+                <option value="true">@SiteResources.StaffTestOpen</option><option value="false">@SiteResources.StaffClosedTests</option>
+            </InputSelect>
+        </div>
+        <div class="col-12 d-flex gap-2">
+            <button class="btn btn-primary">@SiteResources.StaffFind</button>
+            <a class="btn btn-outline-secondary" href="jury/problems/@ProblemId/tests">@SiteResources.StaffReset</a>
+        </div>
+    </EditForm>
+    <div class="d-flex flex-wrap gap-2 mb-3">
+        <ActiveFilter Name="Active" Label="@SiteResources.StaffTestActive" Value="@(Active is bool active ? active ? SiteResources.StaffYes : SiteResources.StaffNo : null)" />
+        <ActiveFilter Name="Open" Label="@SiteResources.StaffTestOpen" Value="@(Open is bool open ? open ? SiteResources.StaffYes : SiteResources.StaffNo : null)" />
+    </div>
+    <StaffGrid @key="Navigation.Uri" TGridItem="TestRow" Query="Query" ItemKey="@(item => item.Id)" OrderKey="@(item => item.Id)" EmptyText="@SiteResources.StaffNoTests">
+        <TemplateColumn Title="@SiteResources.StaffTestNumber" Sortable="true" SortBy="_numberSort" Context="item">
+            <a href="@DetailsUrl(item.Id)">@item.Number</a>
+        </TemplateColumn>
+        <TemplateColumn Title="@SiteResources.StaffTestActive" Context="item">
+            <span class="badge @(item.IsActive ? "text-bg-success" : "text-bg-secondary")">@(item.IsActive ? SiteResources.StaffYes : SiteResources.StaffNo)</span>
+            <QuickFilter Url="@StaffFilterUrl.Set(Navigation.Uri, nameof(Active), item.IsActive)" Label="@SiteResources.StaffTestActive" Value="@(item.IsActive ? SiteResources.StaffYes : SiteResources.StaffNo)" />
+        </TemplateColumn>
+        <TemplateColumn Title="@SiteResources.StaffTestOpen" Context="item">
+            <span class="badge @(item.IsOpen ? "text-bg-info" : "text-bg-secondary")">@(item.IsOpen ? SiteResources.StaffYes : SiteResources.StaffNo)</span>
+            <QuickFilter Url="@StaffFilterUrl.Set(Navigation.Uri, nameof(Open), item.IsOpen)" Label="@SiteResources.StaffTestOpen" Value="@(item.IsOpen ? SiteResources.StaffYes : SiteResources.StaffNo)" />
+        </TemplateColumn>
+        <PropertyColumn Property="@(item => item.Score)" Title="@SiteResources.Points" Sortable="true" />
+        <PropertyColumn Property="@(item => item.Comment)" Title="@SiteResources.StaffTestComment" />
+        <TemplateColumn Title="@SiteResources.StaffTestInput" SortBy="_inputSort" Sortable="true" Context="item">
+            <a class="text-nowrap" href="jury/problems/@ProblemId/tests/@item.Id/input" title="@($"{SiteResources.StaffDownloadInput} · {item.InputSize} B")" data-enhance-nav="false">↓ @ByteSize.Format(item.InputSize)</a>
+        </TemplateColumn>
+        <TemplateColumn Title="@SiteResources.StaffTestOutput" SortBy="_outputSort" Sortable="true" Context="item">
+            <a class="text-nowrap" href="jury/problems/@ProblemId/tests/@item.Id/output" title="@($"{SiteResources.StaffDownloadOutput} · {item.OutputSize} B")" data-enhance-nav="false">↓ @ByteSize.Format(item.OutputSize)</a>
+        </TemplateColumn>
+    </StaffGrid>
+}
+
+@code {
+    [Parameter] public int ProblemId { get; set; }
+    [SupplyParameterFromQuery] public bool? Active { get; set; }
+    [SupplyParameterFromQuery] public bool? Open { get; set; }
+    private Problem? _problem;
+    private bool _loaded;
+    private int _total, _active, _open;
+    private Filters _filters = new();
+    private readonly GridSort<TestRow> _numberSort = GridSort<TestRow>.ByAscending(item => item.Number);
+    private readonly GridSort<TestRow> _inputSort = GridSort<TestRow>.ByAscending(item => item.InputSize);
+    private readonly GridSort<TestRow> _outputSort = GridSort<TestRow>.ByAscending(item => item.OutputSize);
+    protected override async Task OnParametersSetAsync()
+    {
+        _filters = new() { Active = Active, Open = Open };
+        await using var db = await ContextFactory.CreateDbContextAsync();
+        _problem = await db.Problems.AsNoTracking().Include(item => item.Contest).SingleOrDefaultAsync(item => item.Id == ProblemId);
+        var tests = db.Tests.Where(item => item.ProblemId == ProblemId);
+        _total = await tests.CountAsync();
+        _active = await tests.CountAsync(item => item.IsActive);
+        _open = await tests.CountAsync(item => item.IsOpen);
+        _loaded = true;
+    }
+    internal IQueryable<TestRow> Query(OlympContext db) => TestQuery.Rows(TestQuery.Filter(db, ProblemId, Active, Open))
+        .OrderBy(item => item.Number).ThenBy(item => item.Id);
+    private string DetailsUrl(int id) => GridState.DetailUrl(Navigation.Uri, $"jury/problems/{ProblemId}/tests/{id}", id);
+    private void ApplyFilters() => Navigation.NavigateTo(Navigation.GetUriWithQueryParameters(new Dictionary<string, object?> {
+        [nameof(Active)] = _filters.Active, [nameof(Open)] = _filters.Open, ["row"] = null }));
+    private sealed class Filters { public bool? Active { get; set; } public bool? Open { get; set; } }
+}

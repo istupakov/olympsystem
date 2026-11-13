@@ -114,6 +114,7 @@ builder.Services.AddWebEncoders(options =>
     options.TextEncoderSettings = new TextEncoderSettings(UnicodeRanges.BasicLatin, UnicodeRanges.Cyrillic));
 
 builder.Services.AddScoped<CompetitorManagementService>();
+builder.Services.AddScoped<ContestProblemService>();
 builder.Services.AddScoped<AdminParticipantService>();
 builder.Services.AddScoped<StaffGridState>();
 builder.Services.AddSingleton(TimeProvider.System);
@@ -227,6 +228,7 @@ app.MapAdditionalIdentityEndpoints();
 app.MapLanguageEndpoint();
 app.MapContestDownloads();
 app.MapSubmissionDownloads();
+app.MapStaffDownloads();
 app.MapGrpcService<RunnerService>().RequireAuthorization(PolicyNames.Runner);
 
 app.Run();

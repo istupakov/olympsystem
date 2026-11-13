@@ -1,7 +1,11 @@
 @page "/jury/contests"
+@page "/jury/contests/{View}"
 @rendermode @(new InteractiveServerRenderMode(prerender: false))
 @using System.Security.Claims
 @inject IDbContextFactory<OlympContext> ContextFactory
+@inject NavigationManager Navigation
+@inject StaffGridState GridState
+@inject TimeProvider Clock
 
 <PageTitle>@SiteResources.JurySection – @SiteResources.Contests</PageTitle>
 
@@ -9,8 +13,51 @@
     <h1 class="mb-0">@SiteResources.Contests</h1>
     <a class="btn btn-primary" href="jury/contests/new">@SiteResources.CreateContest</a>
 </div>
+<nav class="mb-3">
+    <ul class="nav nav-underline">
+        <li class="nav-item"><a class="nav-link @(!Archive ? "active" : null)" href="jury/contests">@SiteResources.StaffCurrentContests</a></li>
+        <li class="nav-item"><a class="nav-link @(Archive ? "active" : null)" href="jury/contests/archive">@SiteResources.StaffArchive</a></li>
+    </ul>
+</nav>
+<EditForm Model="_filters" OnValidSubmit="Find" class="row g-3 mb-3">
+    <div class="col-md-8">
+        <label for="contest-search" class="form-label">@SiteResources.StaffName</label>
+        <InputText id="contest-search" class="form-control" @bind-Value="_filters.Search" />
+    </div>
+    <div class="col-12 d-flex gap-2">
+        <button class="btn btn-primary">@SiteResources.StaffFind</button>
+        <a class="btn btn-outline-secondary" href="@(Archive ? "jury/contests/archive" : "jury/contests")">@SiteResources.StaffReset</a>
+    </div>
+</EditForm>
+<div class="d-flex flex-wrap gap-2 mb-3">
+    <ActiveFilter Name="Search" Label="@SiteResources.StaffName" Value="@Search" />
+    <ActiveFilter Name="Open" Label="@SiteResources.OpenContest" Value="@(Open is bool open ? open ? SiteResources.StaffYes : SiteResources.StaffNo : null)" />
+    <ActiveFilter Name="Hidden" Label="@SiteResources.HiddenContest" Value="@(Hidden is bool hidden ? hidden ? SiteResources.StaffYes : SiteResources.StaffNo : null)" />
+</div>
 
-@if (contests is null)
+@if (Archive)
+{
+    <StaffGrid @key="Navigation.Uri" TGridItem="Contest" Query="Query" ItemKey="@(item => item.Id)" OrderKey="@(item => item.Id)" EmptyText="@SiteResources.NoStaffContests">
+        <TemplateColumn Title="ID" SortBy="_idSort" Sortable="true" Context="item">
+            <a href="@DetailsUrl(item.Id)">@item.Id</a>
+        </TemplateColumn>
+        <TemplateColumn Title="@SiteResources.StaffName" SortBy="_nameSort" Sortable="true" Context="item">
+            <a href="@DetailsUrl(item.Id)">@item.Name</a>
+        </TemplateColumn>
+        <PropertyColumn Property="@(item => item.Abbr)" Title="@SiteResources.Abbreviation" Sortable="true" />
+        <TemplateColumn Title="@SiteResources.OpenContest" SortBy="_openSort" Sortable="true" Context="item">
+            @(item.IsOpen ? SiteResources.StaffYes : SiteResources.StaffNo)
+            <QuickFilter Url="@StaffFilterUrl.Set(Navigation.Uri, nameof(Open), item.IsOpen)" Label="@SiteResources.OpenContest" Value="@(item.IsOpen ? SiteResources.StaffYes : SiteResources.StaffNo)" />
+        </TemplateColumn>
+        <TemplateColumn Title="@SiteResources.HiddenContest" SortBy="_hiddenSort" Sortable="true" Context="item">
+            @(item.IsHidden ? SiteResources.StaffYes : SiteResources.StaffNo)
+            <QuickFilter Url="@StaffFilterUrl.Set(Navigation.Uri, nameof(Hidden), item.IsHidden)" Label="@SiteResources.HiddenContest" Value="@(item.IsHidden ? SiteResources.StaffYes : SiteResources.StaffNo)" />
+        </TemplateColumn>
+        <TemplateColumn Title="@SiteResources.ContestStart" SortBy="_startSort" Sortable="true" Context="item">@item.StartTime.ToLocalTime().ToString("g")</TemplateColumn>
+        <TemplateColumn Title="@SiteResources.ContestEnd" SortBy="_endSort" Sortable="true" Context="item">@item.EndTime.ToLocalTime().ToString("g")</TemplateColumn>
+    </StaffGrid>
+}
+else if (contests is null)
 {
     <p role="status">@SiteResources.StaffLoading</p>
 }
@@ -19,9 +66,9 @@ else
     <div class="list-group">
         @foreach (var contest in contests)
         {
-            <div class="list-group-item d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <div class="list-group-item d-flex flex-column gap-3">
                 <div class="text-break">
-                    <div class="fw-semibold">@contest.Name</div>
+                    <div class="fw-semibold"><a href="@DetailsUrl(contest.Id)">@contest.Name</a></div>
                     <div class="small text-body-secondary">@contest.StartTime.LocalDateTime.ToString("g") · @FormatDuration(contest.EndTime - contest.StartTime)</div>
                     @if (contest.IsHidden)
                     {
@@ -59,6 +106,30 @@ else
     private List<Contest>? contests;
     private HashSet<string?> managed = [];
     private bool admin;
+    [SupplyParameterFromQuery] public string? Search { get; set; }
+    [Parameter] public string? View { get; set; }
+    [SupplyParameterFromQuery] public bool? Open { get; set; }
+    [SupplyParameterFromQuery] public bool? Hidden { get; set; }
+    private bool Archive => View == "archive";
+    private DateTimeOffset _archiveBefore;
+    private Filters _filters = new();
+    private readonly GridSort<Contest> _idSort = GridSort<Contest>.ByAscending(item => item.Id);
+    private readonly GridSort<Contest> _nameSort = GridSort<Contest>.ByAscending(item => item.Name);
+    private readonly GridSort<Contest> _startSort = GridSort<Contest>.ByAscending(item => item.StartTime);
+    private readonly GridSort<Contest> _endSort = GridSort<Contest>.ByAscending(item => item.EndTime);
+    private readonly GridSort<Contest> _openSort = GridSort<Contest>.ByAscending(item => item.IsOpen);
+    private readonly GridSort<Contest> _hiddenSort = GridSort<Contest>.ByAscending(item => item.IsHidden);
+    internal IQueryable<Contest> Query(OlympContext db)
+    {
+        var query = db.Contests.AsNoTracking().Where(item => Archive ? item.EndTime < _archiveBefore : item.EndTime >= _archiveBefore);
+        if (Open is bool open) query = query.Where(item => item.IsOpen == open);
+        if (Hidden is bool hidden) query = query.Where(item => item.IsHidden == hidden);
+        if (!string.IsNullOrWhiteSpace(Search)) { string search = Search.Trim(); query = query.Where(item => item.Name.Contains(search) || item.Abbr.Contains(search)); }
+        return query.OrderByDescending(item => item.StartTime).ThenByDescending(item => item.Id);
+    }
+    private string DetailsUrl(int id) => GridState.DetailUrl(Navigation.Uri, $"jury/contests/{id}", id);
+    private void Find() => Navigation.NavigateTo(Navigation.GetUriWithQueryParameters(new Dictionary<string, object?> { [nameof(Search)] = _filters.Search, ["row"] = null }));
+    private sealed class Filters { public string? Search { get; set; } }
 
     private static string FormatDuration(TimeSpan duration)
     {
@@ -70,13 +141,15 @@ else
             : string.Format(SiteResources.DurationHoursMinutes, hours, duration.Minutes);
     }
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnParametersSetAsync()
     {
+        if (View is not null and not "archive") { Navigation.NotFound(); return; }
+        _archiveBefore = Clock.GetUtcNow().AddMonths(-1);
+        _filters = new() { Search = Search };
         var user = (await AuthenticationState).User;
         admin = user.IsInRole(RoleNames.Admin);
         await using var context = await ContextFactory.CreateDbContextAsync();
-        contests = await context.Contests.AsNoTracking().OrderByDescending(contest => contest.StartTime)
-            .ThenByDescending(contest => contest.Id).ToListAsync();
+        contests = Archive ? [] : await Query(context).ToListAsync();
         if (!admin && int.TryParse(user.FindFirstValue(ClaimTypes.NameIdentifier), out int userId))
             managed = (await context.UserClaims.Where(claim => claim.UserId == userId && claim.ClaimType == ClaimNames.ContestManage)
                 .Select(claim => claim.ClaimValue).ToListAsync()).ToHashSet();

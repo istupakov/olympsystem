@@ -7,6 +7,7 @@
 @inject IDbContextFactory<OlympContext> ContextFactory
 @inject NavigationManager Navigation
 @inject ICheckerManager Checkers
+@inject StaffGridState GridState
 
 <PageTitle>@SiteResources.Submissions</PageTitle>
 @if (!_loaded || (ContestId is not null && _contest is null))
@@ -20,7 +21,6 @@ else
         <StaffContestNavigation ContestId="_contest.Id" ContestName="@_contest.Name" IsHidden="_contest.IsHidden" />
     }
     <h1 class="h3">@SiteResources.Submissions</h1>
-    @if (_authorName is not null) { <p>@SiteResources.SubmissionAuthor: @_authorName</p> }
     @if (ContestId is null)
     {
         <div class="mb-3">
@@ -37,20 +37,32 @@ else
     <EditForm Model="_filters" OnValidSubmit="ApplyFilters" class="row g-3 mb-4">
         <div class="col-md-6 col-xl-3">
             <label for="author" class="form-label">@SiteResources.SubmissionAuthor</label>
-            <InputText id="author" class="form-control" @bind-Value="_filters.Author" />
+            @if (AuthorId is int authorId)
+            {
+                <input id="author" class="form-control" readonly value="@($"{_authorName} · ID {authorId}")" />
+            }
+            else { <InputText id="author" class="form-control" @bind-Value="_filters.Author" /> }
         </div>
         <div class="col-md-6 col-xl-3">
             <label for="problem" class="form-label">@SiteResources.Problem</label>
-            <InputSelect id="problem" class="form-select" @bind-Value="_filters.Problem">
+            @if (EffectiveContest is null)
+            {
+                @if (Problem is not null) { <input id="problem" class="form-control" readonly value="@_problemName" /> }
+                else { <InputText id="problem" class="form-control" @bind-Value="_filters.ProblemSearch" placeholder="@SiteResources.StaffProblemSearch" /> }
+            }
+            else
+            {
+                <InputSelect id="problem" class="form-select" @bind-Value="_filters.Problem">
                 <option value="">@SiteResources.StaffAll</option>
                 @foreach (var problem in _problems) { <option value="@problem.Id">@(EffectiveContest is null ? $"{problem.Contest.Name}: {problem.NameWithNumber}" : problem.NameWithNumber)</option> }
-            </InputSelect>
+                </InputSelect>
+            }
         </div>
         <div class="col-md-6 col-xl-3">
-            <label for="compiler" class="form-label">@SiteResources.Compiler</label>
-            <InputSelect id="compiler" class="form-select" @bind-Value="_filters.Compiler">
+            <label for="language" class="form-label">@SiteResources.StaffLanguage</label>
+            <InputSelect id="language" class="form-select" @bind-Value="_filters.Language">
                 <option value="">@SiteResources.StaffAll</option>
-                @foreach (var compiler in _compilers) { <option value="@compiler.Id">@(compiler.Description ?? compiler.Name)</option> }
+                @foreach (var language in _languages) { <option value="@language">@language</option> }
             </InputSelect>
         </div>
         <div class="col-md-6 col-xl-3">
@@ -72,6 +84,10 @@ else
             </InputSelect>
         </div>
         <div class="col-md-6">
+            <label for="ip-address" class="form-label">@SiteResources.IpAddress</label>
+            <InputText id="ip-address" class="form-control" @bind-Value="_filters.IpAddress" />
+        </div>
+        <div class="col-md-6">
             <label for="from" class="form-label">@SiteResources.StaffDateFrom</label>
             <InputDate id="from" Type="InputDateType.DateTimeLocal" class="form-control" @bind-Value="_filters.From" ParsingErrorMessage="@SiteResources.InvalidDate" />
         </div>
@@ -91,15 +107,31 @@ else
         <div class="col-12 d-flex flex-wrap gap-2">
             <button class="btn btn-primary">@SiteResources.StaffFind</button>
             <a class="btn btn-outline-secondary" href="@BaseUrl">@SiteResources.StaffReset</a>
-            <a class="btn btn-outline-secondary" href="@PageUrl(CurrentPage)">@SiteResources.Refresh</a>
+            <a class="btn btn-outline-secondary" href="@Navigation.Uri">@SiteResources.Refresh</a>
         </div>
     </EditForm>
+    <div class="d-flex flex-wrap gap-2 mb-3">
+        <ActiveFilter Name="AuthorId" Label="@SiteResources.SubmissionAuthor" Value="@(AuthorId is int authorId ? $"{_authorName} · ID {authorId}" : null)" Clear="@(new[] { nameof(Author) })" />
+        <ActiveFilter Name="Author" Label="@SiteResources.SubmissionAuthor" Value="@(AuthorId is null ? Author : null)" />
+        <ActiveFilter Name="Problem" Label="@SiteResources.Problem" Value="@_problemName" Clear="@(new[] { nameof(ProblemSearch) })" />
+        <ActiveFilter Name="ProblemSearch" Label="@SiteResources.Problem" Value="@(Problem is null ? ProblemSearch : null)" />
+        <ActiveFilter Name="Compiler" Label="@SiteResources.Compiler" Value="@_compilerName" />
+        <ActiveFilter Name="Language" Label="@SiteResources.StaffLanguage" Value="@Language" />
+        <ActiveFilter Name="IpAddress" Label="@SiteResources.IpAddress" Value="@IpAddress" />
+        <ActiveFilter Name="Contest" Label="@SiteResources.StaffContest" Value="@(ContestId is null && Contest is int selectedContestFilter ? _contest?.Name ?? $"ID {selectedContestFilter}" : null)" />
+        <ActiveFilter Name="Scope" Label="@SiteResources.StaffSubmissionAuthors" Value="@(EffectiveScope == "own" ? SiteResources.OwnSubmissions : EffectiveScope == "participants" ? SiteResources.ContestParticipants : EffectiveScope == "hidden" ? SiteResources.StaffJuryAuthors : null)" Clear="@(new[] { nameof(OnlyParticipants) })" />
+        <ActiveFilter Name="Status" Label="@SiteResources.SubmissionStatus" Value="@(Status is not null ? _statusLabel : null)" />
+        <ActiveFilter Name="StatusCode" Label="@SiteResources.SubmissionStatus" Value="@(StatusCode is int exactStatus ? CheckStatusCodes.Description(exactStatus) : null)" />
+        <ActiveFilter Name="From" Label="@SiteResources.StaffDateFrom" Value="@From?.ToString("g")" />
+        <ActiveFilter Name="To" Label="@SiteResources.StaffDateTo" Value="@To?.ToString("g")" />
+    </div>
     <p class="small text-body-secondary">@SiteResources.ServerTimeZone: @TimeZoneInfo.Local.Id</p>
     @if (_error is not null) { <p class="alert alert-danger" role="alert">@_error</p> }
-    @if (_canRetest)
+    @if (_canRetest && Retest)
     {
-        <div class="mb-3">
+        <div class="d-flex flex-wrap gap-2 mb-3">
             <button class="btn btn-outline-warning" disabled="@(_busy || _error is not null)" @onclick="PrepareRetestAsync">@SiteResources.StaffRetestFiltered</button>
+            <a class="btn btn-outline-secondary" href="@StaffFilterUrl.Set(Navigation.Uri, nameof(Retest), null)">@SiteResources.StaffHideRetest</a>
         </div>
         @if (_retestTotal is int total)
         {
@@ -120,10 +152,56 @@ else
     {
         <p class="alert alert-info" role="status">@_notice</p>
     }
-    <SubmissionTable Items="_rows" ShowContest="@(ContestId is null)" ShowId="true" ShowSource="false" ShowIpAddress="true" SourceUrl="@(item => DetailsUrl(item.Id))"
-                     ProblemUrl="@(item => $"jury/contests/{item.ContestId}/problems?problemId={item.ProblemId}")" />
-    @if (_rows.Count == 0 && _error is null) { <p>@SiteResources.NoSubmissions</p> }
-    <Pagination Page="CurrentPage" HasNextPage="_hasNext" PageUrl="PageUrl" Label="@SiteResources.SubmissionPages" />
+    @if (_error is null)
+    {
+        <StaffGrid @key="_gridVersion" TGridItem="StaffSubmissionListItem" Query="Query" ItemKey="@(item => item.Id)" OrderKey="@(item => item.Id)" EmptyText="@SiteResources.NoSubmissions">
+            <TemplateColumn Title="ID" SortBy="_idSort" Sortable="true" Context="item">
+                <a href="@DetailsUrl(item.Id)">@item.Id</a>
+            </TemplateColumn>
+            <TemplateColumn Title="@SiteResources.SubmissionTime" SortBy="_dateSort" Sortable="true" Context="item">@item.CommitTime.ToLocalTime().ToString("g")</TemplateColumn>
+            <TemplateColumn Title="@SiteResources.SubmissionAuthor" SortBy="_authorSort" Sortable="true" Context="item">
+                @if (_canRetest) { <a href="@GridState.DetailUrl(Navigation.Uri, $"admin/users/{item.AuthorId}/edit", item.Id)">@item.Author</a> }
+                else { @item.Author }
+                <QuickFilter Url="@StaffFilterUrl.Set(Navigation.Uri, nameof(AuthorId), item.AuthorId, nameof(Author))" Label="@SiteResources.SubmissionAuthor" Value="@item.Author" />
+                @if (item.IsParticipant) { <span class="badge text-bg-secondary">@(item.IsTeam ? SiteResources.StaffTeam : SiteResources.Competitor)</span> }
+            </TemplateColumn>
+            <TemplateColumn Title="@SiteResources.Problem" SortBy="_problemSort" Sortable="true" Context="item">
+                <a href="jury/contests/@item.ContestId/problems?problemId=@item.ProblemId">@item.Problem</a>
+                <QuickFilter Url="@StaffFilterUrl.Set(Navigation.Uri, nameof(Problem), item.ProblemId, nameof(ProblemSearch))" Label="@SiteResources.Problem" Value="@item.Problem" />
+                @if (ContestId is null)
+                {
+                    <div class="small"><a href="jury/contests/@item.ContestId">@item.Contest</a><QuickFilter Url="@StaffFilterUrl.Set(Navigation.Uri, nameof(Contest), item.ContestId, nameof(Problem), nameof(ProblemSearch))" Label="@SiteResources.StaffContest" Value="@item.Contest" /></div>
+                }
+            </TemplateColumn>
+            <TemplateColumn Title="@SiteResources.Compiler" SortBy="_compilerSort" Sortable="true" Context="item">
+                @if (_canRetest) { <a href="@GridState.DetailUrl(Navigation.Uri, $"admin/compilers/{item.CompilerId}", item.Id)">@item.Compiler</a> }
+                else { @item.Compiler }
+                <QuickFilter Url="@StaffFilterUrl.Set(Navigation.Uri, nameof(Compiler), item.CompilerId)" Label="@SiteResources.Compiler" Value="@item.Compiler" />
+                @if (!string.IsNullOrWhiteSpace(item.Language))
+                {
+                    <div class="small text-body-secondary">@item.Language<QuickFilter Url="@StaffFilterUrl.Set(Navigation.Uri, nameof(Language), item.Language)" Label="@SiteResources.StaffLanguage" Value="@item.Language" /></div>
+                }
+            </TemplateColumn>
+            <TemplateColumn Title="@SiteResources.SubmissionStatus" Context="item">
+                @if (item.StatusCode is int code)
+                {
+                    @if (code == -1) { <a href="@(DetailsUrl(item.Id) + "#compilation-errors")"><SubmissionStatus StatusCode="code" /></a> }
+                    else { <SubmissionStatus StatusCode="code" /> }
+                    <QuickFilter Url="@StaffFilterUrl.Set(Navigation.Uri, nameof(StatusCode), code, nameof(Status))" Label="@SiteResources.SubmissionStatus" Value="@CheckStatusCodes.Description(code)" />
+                }
+                @if (item.IsHidden) { <div class="badge text-bg-secondary">@SiteResources.StaffHiddenSubmission</div> }
+                @if (item.IsReference) { <div class="badge text-bg-info">@SiteResources.StaffReferenceSubmission</div> }
+            </TemplateColumn>
+            <PropertyColumn Property="@(item => item.Score)" Title="@SiteResources.Points" Sortable="true" />
+            <TemplateColumn Title="@SiteResources.IpAddress" Context="item">
+                @(string.IsNullOrWhiteSpace(item.IpAddress) ? "–" : item.IpAddress)
+                @if (!string.IsNullOrWhiteSpace(item.IpAddress))
+                {
+                    <QuickFilter Url="@StaffFilterUrl.Set(Navigation.Uri, nameof(IpAddress), item.IpAddress)" Label="@SiteResources.IpAddress" Value="@item.IpAddress" />
+                }
+            </TemplateColumn>
+        </StaffGrid>
+    }
 }
 
 @code {
@@ -139,14 +217,17 @@ else
     public int? Problem { get; set; }
     [SupplyParameterFromQuery]
     public int? Compiler { get; set; }
+    [SupplyParameterFromQuery] public string? Language { get; set; }
+    [SupplyParameterFromQuery] public string? IpAddress { get; set; }
+    [SupplyParameterFromQuery] public string? ProblemSearch { get; set; }
     [SupplyParameterFromQuery]
     public string? Status { get; set; }
+    [SupplyParameterFromQuery] public int? StatusCode { get; set; }
+    [SupplyParameterFromQuery] public bool Retest { get; set; }
     [SupplyParameterFromQuery]
     public DateTime? From { get; set; }
     [SupplyParameterFromQuery]
     public DateTime? To { get; set; }
-    [SupplyParameterFromQuery]
-    public int? Page { get; set; }
     [SupplyParameterFromQuery]
     public bool OnlyParticipants { get; set; }
     [SupplyParameterFromQuery]
@@ -154,19 +235,23 @@ else
     [CascadingParameter]
     private Task<AuthenticationState> AuthenticationState { get; set; } = default!;
 
-    private const int PageSize = 20;
     private int? EffectiveContest => ContestId ?? Contest;
     private string BaseUrl => ContestId is int id ? $"jury/contests/{id}/submissions" : "jury/submissions";
     private string EffectiveScope => Scope ?? (OnlyParticipants ? "participants" : "all");
-    private int CurrentPage => Math.Max(1, Page ?? 1);
     private Contest? _contest;
     private List<Contest> _contests = [];
     private List<Problem> _problems = [];
-    private List<Compilator> _compilers = [];
-    private List<SubmissionListItem> _rows = [];
+    private List<string> _languages = [];
     private Filters _filters = new();
     private bool _loaded;
-    private bool _hasNext;
+    private int _gridVersion;
+    private readonly GridSort<StaffSubmissionListItem> _idSort = GridSort<StaffSubmissionListItem>.ByAscending(item => item.Id);
+    private readonly GridSort<StaffSubmissionListItem> _dateSort = GridSort<StaffSubmissionListItem>.ByAscending(item => item.CommitTime);
+    private readonly GridSort<StaffSubmissionListItem> _authorSort = GridSort<StaffSubmissionListItem>.ByAscending(item => item.Author);
+    private readonly GridSort<StaffSubmissionListItem> _problemSort = GridSort<StaffSubmissionListItem>.ByAscending(item => item.Problem);
+    private readonly GridSort<StaffSubmissionListItem> _compilerSort = GridSort<StaffSubmissionListItem>.ByAscending(item => item.Compiler);
+    internal IQueryable<StaffSubmissionListItem> Query(OlympContext db) => FilteredQuery(db)
+        .AsStaffRows(db, EffectiveContest).OrderByDescending(item => item.CommitTime).ThenByDescending(item => item.Id);
     private bool _canRetest;
     private bool _busy;
     private int _userId;
@@ -177,33 +262,37 @@ else
     private string? _error;
     private string? _notice;
     private string? _authorName;
+    private string? _compilerName, _problemName, _statusLabel;
 
     protected override async Task OnParametersSetAsync()
     {
         _loaded = false;
         _error = _authorName = _notice = null;
-        _rows = [];
-        _hasNext = false;
         _retestTotal = null;
-        _filters = new() { Author = Author, Problem = Problem, Compiler = Compiler, Status = Status, From = From, To = To, Scope = EffectiveScope };
+        _filters = new() { Author = Author, Problem = Problem, ProblemSearch = ProblemSearch, Language = Language, IpAddress = IpAddress, Status = Status, From = From, To = To, Scope = EffectiveScope };
+        _compilerName = _problemName = null;
+        _statusLabel = StaffVerdicts.Label(Status);
         var user = (await AuthenticationState).User;
         _canRetest = user.IsInRole(RoleNames.Admin);
         int.TryParse(user.FindFirstValue(ClaimTypes.NameIdentifier), out _userId);
         await using var db = await ContextFactory.CreateDbContextAsync();
         if (AuthorId is int selectedAuthor)
             _authorName = await db.Users.Where(item => item.Id == selectedAuthor).Select(item => item.Name).SingleOrDefaultAsync();
+        if (Compiler is int selectedCompiler)
+            _compilerName = (await db.Compilators.Where(item => item.Id == selectedCompiler).Select(item => item.Description ?? item.Name).SingleOrDefaultAsync() ?? SiteResources.Compiler) + $" · ID {selectedCompiler}";
+        if (Problem is int selectedProblem)
+            _problemName = (await db.Problems.Where(item => item.Id == selectedProblem).Select(item => item.Name).SingleOrDefaultAsync() ?? SiteResources.Problem) + $" · ID {selectedProblem}";
         _contest = EffectiveContest is int selectedContest
             ? await db.Contests.AsNoTracking().SingleOrDefaultAsync(item => item.Id == selectedContest) : null;
         if (ContestId is null)
             _contests = await db.Contests.AsNoTracking().OrderByDescending(item => item.StartTime).ToListAsync();
         if (EffectiveContest is null || _contest is not null)
         {
-            _problems = await db.Problems.AsNoTracking().Include(item => item.Contest)
-                .Where(item => EffectiveContest == null || item.ContestId == EffectiveContest)
-                .OrderBy(item => item.ContestId).ThenBy(item => item.Number).ToListAsync();
-            _compilers = await db.Submissions.Where(item => EffectiveContest == null || item.Problem.ContestId == EffectiveContest)
-                .Select(item => item.Compilator).Distinct().OrderBy(item => item.Name).ToListAsync();
-            await LoadRowsAsync(db);
+            _problems = EffectiveContest is null ? [] : await db.Problems.AsNoTracking()
+                .Where(item => item.ContestId == EffectiveContest).OrderBy(item => item.Number).ToListAsync();
+            _languages = await db.Submissions.Where(item => EffectiveContest == null || item.Problem.ContestId == EffectiveContest)
+                .Select(item => item.Compilator.Language).Distinct().OrderBy(item => item).ToListAsync();
+            RefreshGrid();
         }
         _loaded = true;
     }
@@ -216,14 +305,28 @@ else
             .Where(item => EffectiveContest == null || item.Problem.ContestId == EffectiveContest);
         if (AuthorId is int authorId)
             query = query.Where(item => item.UserId == authorId);
-        if (!string.IsNullOrWhiteSpace(Author))
+        if (AuthorId is null && !string.IsNullOrWhiteSpace(Author))
             query = query.Where(item => item.User.Name.Contains(Author) || (item.User.UserName != null && item.User.UserName.Contains(Author)));
         if (Problem is int problem)
             query = query.Where(item => item.ProblemId == problem);
+        if (Problem is null && !string.IsNullOrWhiteSpace(ProblemSearch))
+        {
+            string search = ProblemSearch.Trim();
+            query = query.Where(item => item.Problem.Name.Contains(search));
+        }
         if (Compiler is int compiler)
             query = query.Where(item => item.CompilatorId == compiler);
+        if (!string.IsNullOrWhiteSpace(Language))
+            query = query.Where(item => item.Compilator.Language == Language);
+        if (!string.IsNullOrWhiteSpace(IpAddress))
+        {
+            string address = IpAddress.Trim();
+            query = query.Where(item => item.CommiterInfo == address);
+        }
         query = query.ForAuthors(EffectiveScope, _userId, db, EffectiveContest);
-    query = Status switch {
+    if (StatusCode is int exactStatus)
+        query = query.Where(item => item.StatusCode == exactStatus);
+    query = (StatusCode is null ? Status : null) switch {
         "accepted" => query.Where(item => item.StatusCode == 2),
         "compilation" => query.Where(item => item.StatusCode == -1),
         "wrong-answer" => query.Where(item => item.StatusCode < -1000 && item.StatusCode > -2000),
@@ -252,22 +355,10 @@ else
         return query;
     }
 
-    private async Task LoadRowsAsync(OlympContext db)
+    private void RefreshGrid()
     {
-        try
-        {
-            long skip = ((long)CurrentPage - 1) * PageSize;
-            _rows = skip <= int.MaxValue ? await FilteredQuery(db)
-                .OrderByDescending(item => item.CommitTime).ThenByDescending(item => item.Id)
-                .Skip((int)skip).Take(PageSize + 1).AsStaffRows(db, EffectiveContest).ToListAsync() : [];
-            _hasNext = _rows.Count > PageSize;
-            if (_hasNext)
-                _rows.RemoveAt(PageSize);
-        }
-        catch (ArgumentException)
-        {
-            _error = SiteResources.StaffInvalidPeriod;
-        }
+        if (From > To) _error = SiteResources.StaffInvalidPeriod;
+        _gridVersion++;
     }
 
     private IQueryable<Submission> RetestQuery(OlympContext db) => FilteredQuery(db)
@@ -275,7 +366,7 @@ else
 
     private async Task PrepareRetestAsync()
     {
-        if (_busy || !(await Authorization.AuthorizeAsync((await AuthenticationState).User, PolicyNames.Admin)).Succeeded)
+        if (!Retest || _busy || !(await Authorization.AuthorizeAsync((await AuthenticationState).User, PolicyNames.Admin)).Succeeded)
             return;
         _busy = true;
         _notice = null;
@@ -298,7 +389,7 @@ else
 
     private async Task RetestAsync()
     {
-        if (_retestTotal is null || _busy || !(await Authorization.AuthorizeAsync((await AuthenticationState).User, PolicyNames.Admin)).Succeeded)
+        if (!Retest || _retestTotal is null || _busy || !(await Authorization.AuthorizeAsync((await AuthenticationState).User, PolicyNames.Admin)).Succeeded)
             return;
         _busy = true;
         try
@@ -314,7 +405,7 @@ else
             }
             _retestTotal = null;
             _notice = string.Format(SiteResources.StaffRetestQueued, count);
-            await LoadRowsAsync(db);
+            RefreshGrid();
         }
         catch (Exception exception) when (exception is System.Data.Common.DbException or DbUpdateException)
         {
@@ -328,19 +419,25 @@ else
 
     private void SelectContest(ChangeEventArgs args) => Navigation.NavigateTo(Navigation.GetUriWithQueryParameters(
         new Dictionary<string, object?> { [nameof(Contest)] = int.TryParse(args.Value?.ToString(), out int id) ? id : null,
-            [nameof(Problem)] = null, [nameof(Compiler)] = null, [nameof(Page)] = null }));
+            [nameof(Problem)] = null, [nameof(ProblemSearch)] = null, ["Page"] = null, ["row"] = null }));
 
     private void ApplyFilters() => Navigation.NavigateTo(Navigation.GetUriWithQueryParameters(new Dictionary<string, object?> {
-        [nameof(Author)] = _filters.Author, [nameof(Problem)] = _filters.Problem, [nameof(Compiler)] = _filters.Compiler,
-        [nameof(Status)] = _filters.Status, [nameof(OnlyParticipants)] = null, [nameof(Scope)] = _filters.Scope == "all" ? null : _filters.Scope, [nameof(From)] = _filters.From, [nameof(To)] = _filters.To, [nameof(Page)] = null
+        [nameof(Author)] = AuthorId is null ? _filters.Author : null,
+        [nameof(Problem)] = EffectiveContest is null ? Problem : _filters.Problem,
+        [nameof(ProblemSearch)] = Problem is null && EffectiveContest is null ? _filters.ProblemSearch : null,
+        [nameof(Language)] = _filters.Language,
+        [nameof(IpAddress)] = string.IsNullOrWhiteSpace(_filters.IpAddress) ? null : _filters.IpAddress.Trim(),
+        [nameof(StatusCode)] = _filters.Status == Status ? StatusCode : null,
+        [nameof(Status)] = _filters.Status, [nameof(OnlyParticipants)] = null, [nameof(Scope)] = _filters.Scope == "all" ? null : _filters.Scope, [nameof(From)] = _filters.From, [nameof(To)] = _filters.To, ["Page"] = null, ["row"] = null
     }));
-    private string PageUrl(int page) => Navigation.GetUriWithQueryParameter(nameof(Page), page);
-    private string DetailsUrl(int id) => $"jury/submissions/{id}?returnUrl={Uri.EscapeDataString(new Uri(Navigation.Uri).PathAndQuery)}";
+    private string DetailsUrl(int id) => GridState.DetailUrl(Navigation.Uri, $"jury/submissions/{id}", id);
 
     private sealed class Filters {
         public string? Author { get; set; }
         public int? Problem { get; set; }
-        public int? Compiler { get; set; }
+        public string? Language { get; set; }
+        public string? IpAddress { get; set; }
+        public string? ProblemSearch { get; set; }
         public string? Status { get; set; }
         public DateTime? From { get; set; }
         public DateTime? To { get; set; }
