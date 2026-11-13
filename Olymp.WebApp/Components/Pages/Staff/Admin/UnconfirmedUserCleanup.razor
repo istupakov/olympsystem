@@ -1,0 +1,79 @@
+@using Olymp.WebApp.Services.Identity
+@inject IServiceScopeFactory ScopeFactory
+@inject ILogger<UnconfirmedUserCleanup> Logger
+@inject NavigationManager Navigation
+@inject StaffGridState GridState
+
+@if (_error is not null) { <p class="alert alert-danger" role="alert">@_error</p> }
+@if (_result is not null) { <p class="alert alert-success" role="status">@string.Format(SiteResources.StaffCleanupResult, _result.Deleted, _result.Skipped)</p> }
+<StaffActions Title="@SiteResources.StaffUserOperations">
+    <p>@SiteResources.StaffCleanupDescription</p>
+    @if (_preview is null)
+    {
+        <button type="button" class="btn btn-outline-danger" disabled="@_busy" @onclick="PrepareAsync">@SiteResources.StaffCleanupUsers</button>
+    }
+    else
+    {
+        <p role="status">@string.Format(SiteResources.StaffCleanupCount, _preview.Ids.Length)</p>
+        @if (_preview.Ids.Length > 0)
+        {
+            <StaffGrid @key="_preview" TGridItem="OlympUser" Query="PreviewQuery" ItemKey="@(item => item.Id)" OrderKey="@(item => item.Id)">
+                <TemplateColumn Title="ID" Context="item"><a href="@GridState.DetailUrl(Navigation.Uri, $"admin/users/{item.Id}/edit", item.Id)">@item.Id</a></TemplateColumn>
+                <PropertyColumn Property="@(item => item.Name)" Title="@AccountResources.PublicName" />
+                <PropertyColumn Property="@(item => item.UserName)" Title="@SiteResources.StaffLogin" />
+                <PropertyColumn Property="@(item => item.Email)" Title="@SiteResources.StaffEmail" />
+                <TemplateColumn Title="@SiteResources.StaffRegistrationDate" Context="item">@item.RegistrationDate?.LocalDateTime.ToString("g")</TemplateColumn>
+            </StaffGrid>
+            <div class="alert alert-warning mt-3" role="alert">@SiteResources.StaffCleanupConfirm</div>
+            <button type="button" class="btn btn-danger me-2" disabled="@_busy" @onclick="DeleteAsync">@SiteResources.StaffConfirm</button>
+        }
+        <button type="button" class="btn btn-outline-secondary" disabled="@_busy" @onclick="Cancel">@SiteResources.StaffCancel</button>
+    }
+</StaffActions>
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState> AuthenticationState { get; set; } = default!;
+    [Parameter] public EventCallback OnDeleted { get; set; }
+    private UnconfirmedUserCleanupService.Preview? _preview;
+    private UnconfirmedUserCleanupService.Result? _result;
+    private string? _error;
+    private bool _busy;
+
+    private IQueryable<OlympUser> PreviewQuery(OlympContext db) => db.OlympUsers.AsNoTracking()
+        .Where(item => _preview!.Ids.Contains(item.Id)).OrderBy(item => item.RegistrationDate).ThenBy(item => item.Id);
+
+    private Task PrepareAsync() => RunAsync(async service =>
+    {
+        _result = null;
+        _preview = await service.PrepareAsync((await AuthenticationState).User);
+    });
+
+    private Task DeleteAsync() => RunAsync(async service =>
+    {
+        if (_preview is null) return;
+        _result = await service.DeleteAsync((await AuthenticationState).User, _preview);
+        _preview = null;
+        await OnDeleted.InvokeAsync();
+    });
+
+    private async Task RunAsync(Func<UnconfirmedUserCleanupService, Task> action)
+    {
+        if (_busy) return;
+        _busy = true;
+        _error = null;
+        try
+        {
+            await using var scope = ScopeFactory.CreateAsyncScope();
+            await action(scope.ServiceProvider.GetRequiredService<UnconfirmedUserCleanupService>());
+        }
+        catch (UnauthorizedAccessException) { _error = SiteResources.StaffAccessDenied; }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to clean up unconfirmed registrations");
+            _error = SiteResources.StaffSaveFailed;
+        }
+        finally { _busy = false; }
+    }
+
+    private void Cancel() { _preview = null; _error = null; }
+}

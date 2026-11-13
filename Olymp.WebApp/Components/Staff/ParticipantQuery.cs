@@ -5,12 +5,25 @@ using Olymp.Domain.Models;
 
 namespace Olymp.WebApp.Components.Staff;
 
-public sealed record ParticipantQuery(int ContestId, string? Search = null, int? Organization = null,
-    bool? Approved = null, bool? Unofficial = null, bool? Disqualified = null)
+public sealed record ParticipantQuery(int? ContestId, string? Search = null, int? Organization = null,
+    bool? Approved = null, bool? Unofficial = null, bool? Disqualified = null, int? Coach = null, int? Member = null, string? CoachSearch = null, string? MemberSearch = null)
 {
     public IQueryable<Competitor> Apply(OlympContext db)
     {
-        var query = db.Competitors.AsNoTracking().Where(item => item.ContestId == ContestId);
+        var query = db.Competitors.AsNoTracking();
+        if (ContestId is int contestId) query = query.Where(item => item.ContestId == contestId);
+        if (Coach is int coach) query = query.Where(item => item.CoachId == coach);
+        if (Member is int member) query = query.Where(item => item.Members.Any(account => account.Id == member));
+        if (!string.IsNullOrWhiteSpace(CoachSearch))
+        {
+            string search = CoachSearch.Trim();
+            query = query.Where(item => item.Coach != null && item.Coach.Name.Contains(search));
+        }
+        if (!string.IsNullOrWhiteSpace(MemberSearch))
+        {
+            string search = MemberSearch.Trim();
+            query = query.Where(item => item.Members.Any(account => account.Name.Contains(search)));
+        }
         if (!string.IsNullOrWhiteSpace(Search))
         {
             string search = Search.Trim();

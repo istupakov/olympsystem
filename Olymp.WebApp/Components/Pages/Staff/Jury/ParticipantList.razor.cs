@@ -18,10 +18,19 @@ namespace Olymp.WebApp.Components.Pages.Staff.Jury;
 public partial class ParticipantList
 {
     [Parameter]
-    public int ContestId { get; set; }
+    public int? ContestId { get; set; }
     [CascadingParameter]
     private Task<AuthenticationState> AuthenticationState { get; set; } = default!;
     private Contest? _contest;
+    [SupplyParameterFromQuery] public int? Contest { get; set; }
+    [SupplyParameterFromQuery] public int? Coach { get; set; }
+    [SupplyParameterFromQuery] public int? Member { get; set; }
+    [SupplyParameterFromQuery] public string? CoachSearch { get; set; }
+    [SupplyParameterFromQuery] public string? MemberSearch { get; set; }
+    private int? SelectedContest => ContestId ?? Contest;
+    private string ListUrl => ContestId is int id ? $"jury/contests/{id}/participants" : "jury/participants";
+    private List<Contest> _contests = [];
+    private string? _coachName, _memberName;
     [SupplyParameterFromQuery] public string? Search { get; set; }
     [SupplyParameterFromQuery] public int? Organization { get; set; }
     [SupplyParameterFromQuery] public bool? Approved { get; set; }
@@ -29,14 +38,25 @@ public partial class ParticipantList
     [SupplyParameterFromQuery] public bool? Disqualified { get; set; }
     private Filters _filters = new();
     private List<Organization> _organizations = [];
-    private int _missingLogins, _gridVersion;
+    private int _gridVersion;
+    private bool _hasUnapproved, _hasAssignedLogins;
+    private bool BeforeEnd => _contest is not null && Clock.GetUtcNow() < _contest.EndTime;
+    private bool CanImportParticipants => BeforeEnd && _contest is { IsAcm: false };
+    private bool CanImportIcpc => BeforeEnd && _contest is { IsIcpc: true };
+    private bool CanAssignLogins { get => BeforeEnd && field; set; }
+    private bool CanDeleteEmpty { get => _contest is not null && Clock.GetUtcNow() > _contest.EndTime && field; set; }
+    private bool HasOperations => _hasUnapproved || _hasAssignedLogins || CanImportParticipants || CanImportIcpc || CanAssignLogins || CanDeleteEmpty;
+    private ExportPreview? _export;
+    private bool _preparingExport;
+    private sealed record ExportPreview(int Total, int Missing, string Url);
     private readonly GridSort<Competitor> _idSort = GridSort<Competitor>.ByAscending(item => item.Id);
     private readonly GridSort<Competitor> _nameSort = GridSort<Competitor>.ByAscending(item => item.Name);
     private readonly GridSort<Competitor> _dateSort = GridSort<Competitor>.ByAscending(item => item.RegistrationDate);
-    private ParticipantQuery Selection => new(ContestId, Search, Organization, Approved, Unofficial, Disqualified);
+    private ParticipantQuery Selection => new(SelectedContest, Search, Organization, Approved, Unofficial, Disqualified, Coach, Member, Coach.HasValue ? null : CoachSearch, Member.HasValue ? null : MemberSearch);
     internal IQueryable<Competitor> Query(OlympContext db) => Selection.Apply(db)
-        .Include(item => item.Organization).Include(item => item.Coach).Include(item => item.Members).AsSplitQuery()
-        .OrderBy(item => item.RegistrationDate).ThenBy(item => item.Id);
+        .Include(item => item.Contest).Include(item => item.Organization).Include(item => item.Coach).Include(item => item.Members).AsSplitQuery()
+        .OrderByDescending(item => item.Contest.StartTime).ThenBy(item => item.RegistrationDate).ThenBy(item => item.Id);
+    private string ParticipantUrl(Competitor participant) => GridState.DetailUrl(Navigation.Uri, $"jury/contests/{participant.ContestId}/participants/{participant.Id}", participant.Id);
     private string AccountUrl(int id, int? sourceId = null) => GridState.DetailUrl(Navigation.Uri, $"admin/users/{id}/edit", sourceId ?? id);
     private string ExportUrl()
     {
@@ -48,6 +68,10 @@ public partial class ParticipantList
         return QueryHelpers.AddQueryString($"/jury/contests/{ContestId}/participants/export", new Dictionary<string, string?>
         {
             ["search"] = Search,
+            ["coach"] = Coach?.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            ["member"] = Member?.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            ["coachSearch"] = Coach.HasValue ? null : CoachSearch,
+            ["memberSearch"] = Member.HasValue ? null : MemberSearch,
             ["organization"] = Organization?.ToString(System.Globalization.CultureInfo.InvariantCulture),
             ["approved"] = Approved?.ToString(),
             ["unofficial"] = Unofficial?.ToString(),
@@ -59,19 +83,26 @@ public partial class ParticipantList
     private void ApplyFilters() => Navigation.NavigateTo(Navigation.GetUriWithQueryParameters(new Dictionary<string, object?>
     {
         [nameof(Search)] = _filters.Search,
+        [nameof(Contest)] = ContestId.HasValue ? null : _filters.Contest,
+        [nameof(CoachSearch)] = Coach.HasValue ? null : _filters.CoachSearch,
+        [nameof(MemberSearch)] = Member.HasValue ? null : _filters.MemberSearch,
         [nameof(Organization)] = _filters.Organization,
-        [nameof(Approved)] = _filters.Approved,
-        [nameof(Unofficial)] = _filters.Unofficial,
-        [nameof(Disqualified)] = _filters.Disqualified,
+        [nameof(Approved)] = ParseFlag(_filters.Approved),
+        [nameof(Unofficial)] = ParseFlag(_filters.Unofficial),
+        [nameof(Disqualified)] = ParseFlag(_filters.Disqualified),
         ["row"] = null
     }));
+    private static bool? ParseFlag(string? value) => bool.TryParse(value, out bool flag) ? flag : null;
     private sealed class Filters
     {
+        public int? Contest { get; set; }
+        public string? CoachSearch { get; set; }
+        public string? MemberSearch { get; set; }
         public string? Search { get; set; }
         public int? Organization { get; set; }
-        public bool? Approved { get; set; }
-        public bool? Unofficial { get; set; }
-        public bool? Disqualified { get; set; }
+        public string? Approved { get; set; }
+        public string? Unofficial { get; set; }
+        public string? Disqualified { get; set; }
     }
     private bool _loaded;
     private bool _canManage;
@@ -85,8 +116,9 @@ public partial class ParticipantList
 
     protected override async Task OnParametersSetAsync()
     {
-        _filters = new() { Search = Search, Organization = Organization, Approved = Approved, Unofficial = Unofficial, Disqualified = Disqualified };
+        _filters = new() { Contest = Contest, CoachSearch = CoachSearch, MemberSearch = MemberSearch, Search = Search, Organization = Organization, Approved = Approved?.ToString(), Unofficial = Unofficial?.ToString(), Disqualified = Disqualified?.ToString() };
         _pending = null;
+        _export = null;
         _names = [];
         _logins.Clear();
         _error = _status = null;
@@ -99,20 +131,70 @@ public partial class ParticipantList
         _contest = await db.Contests.AsNoTracking().SingleOrDefaultAsync(item => item.Id == ContestId);
         var user = (await AuthenticationState).User;
         _admin = user.IsInRole(RoleNames.Admin);
-        _canManage = (await Authorization.AuthorizeAsync(user, ContestId, PolicyNames.ManageContest)).Succeeded;
-        _organizations = await db.Competitors.Where(item => item.ContestId == ContestId && item.OrganizationId != null)
-            .Select(item => item.Organization!).Distinct().OrderBy(item => item.Name).ToListAsync();
-        _missingLogins = await Selection.Apply(db).CountAsync(item => item.UserName == null || item.UserName == "");
+        _canManage = ContestId is int scopedId && (await Authorization.AuthorizeAsync(user, scopedId, PolicyNames.ManageContest)).Succeeded;
+        _contests = ContestId.HasValue ? [] : await db.Contests.AsNoTracking().OrderByDescending(item => item.StartTime).ThenByDescending(item => item.Id).ToListAsync();
+        _coachName = Coach is int coach ? StaffEntityLabel.Format(coach, await db.OlympUsers.Where(item => item.Id == coach).Select(item => item.Name).SingleOrDefaultAsync()) : null;
+        _memberName = Member is int member ? StaffEntityLabel.Format(member, await db.OlympUsers.Where(item => item.Id == member).Select(item => item.Name).SingleOrDefaultAsync()) : null;
+        await LoadOrganizationsAsync();
+        _hasUnapproved = _hasAssignedLogins = CanAssignLogins = CanDeleteEmpty = false;
+        if (_canManage)
+        {
+            var participants = db.Competitors.Where(item => item.ContestId == ContestId);
+            _hasUnapproved = await participants.AnyAsync(item => !item.IsApproved);
+            _hasAssignedLogins = await participants.AnyAsync(item => item.UserName != null && item.UserName != "");
+            CanAssignLogins = await participants.AnyAsync(item => item.UserName == null);
+            CanDeleteEmpty = await participants.AnyAsync(item => !item.Submissions.Any() && !item.Messages.Any());
+        }
         _gridVersion++;
         _loaded = true;
+    }
+
+    private Task SelectContestAsync() => LoadOrganizationsAsync();
+
+    private async Task LoadOrganizationsAsync()
+    {
+        var filters = _filters;
+        int? contest = ContestId ?? filters.Contest;
+        await using var db = await ContextFactory.CreateDbContextAsync();
+        var organizations = await db.Competitors.Where(item => (contest == null || item.ContestId == contest) && item.OrganizationId != null)
+            .Select(item => item.Organization!).Distinct().OrderBy(item => item.Name).ToListAsync();
+        if (filters.Organization is int organizationId && !organizations.Any(item => item.Id == organizationId))
+        {
+            var selected = await db.Organizations.AsNoTracking().SingleOrDefaultAsync(item => item.Id == organizationId);
+            if (selected is not null) organizations.Add(selected);
+        }
+        if (ReferenceEquals(filters, _filters) && contest == (ContestId ?? _filters.Contest)) _organizations = organizations;
+    }
+
+    private async Task PrepareExportAsync()
+    {
+        if (!ContestId.HasValue || _preparingExport) return;
+        string uri = Navigation.Uri, url = ExportUrl();
+        var selection = Selection;
+        _preparingExport = true;
+        try
+        {
+            await using var db = await ContextFactory.CreateDbContextAsync();
+            var query = selection.Apply(db);
+            int total = await query.CountAsync();
+            int missing = await query.CountAsync(item => item.UserName == null || item.UserName == "");
+            if (Navigation.Uri == uri) _export = new(total, missing, url);
+        }
+        catch (System.Data.Common.DbException exception)
+        {
+            Logger.LogError(exception, "Failed to prepare participant export in contest {ContestId}", ContestId);
+            _error = SiteResources.StaffSaveFailed;
+        }
+        finally { _preparingExport = false; }
     }
 
     private Task Ask(ParticipantAction action, Competitor? participant = null)
     {
         _error = _status = null;
-        _pending = new(action, participant?.Id, participant?.Name);
-        return action is ParticipantAction.Approve or ParticipantAction.Disapprove or ParticipantAction.Official or ParticipantAction.Unofficial
-            or ParticipantAction.Disqualify or ParticipantAction.Restore ? ExecuteAsync() : Task.CompletedTask;
+        if (ContestId is not int contestId) return Task.CompletedTask;
+        if (participant is not null && participant.ContestId != contestId) return Task.CompletedTask;
+        _pending = new(action, contestId, participant?.Id, participant?.Name);
+        return action is ParticipantAction.Approve or ParticipantAction.Disapprove ? ExecuteAsync() : Task.CompletedTask;
     }
 
     private async Task SelectParticipantsAsync(InputFileChangeEventArgs args)
@@ -168,7 +250,7 @@ public partial class ParticipantList
         if (_busy || _pending is not { } pending) return;
         _busy = true;
         _error = _status = null;
-        int contestId = ContestId;
+        int contestId = pending.ContestId;
         try
         {
             await using var scope = ScopeFactory.CreateAsyncScope();
@@ -178,11 +260,6 @@ public partial class ParticipantList
             {
                 case ParticipantAction.Approve: await service.SetApprovalAsync(actor, contestId, pending.Id!.Value, true); break;
                 case ParticipantAction.Disapprove: await service.SetApprovalAsync(actor, contestId, pending.Id!.Value, false); break;
-                case ParticipantAction.Official: await service.SetOutOfCompetitionAsync(actor, contestId, pending.Id!.Value, false); break;
-                case ParticipantAction.Unofficial: await service.SetOutOfCompetitionAsync(actor, contestId, pending.Id!.Value, true); break;
-                case ParticipantAction.Disqualify: await service.SetDisqualificationAsync(actor, contestId, pending.Id!.Value, true); break;
-                case ParticipantAction.Restore: await service.SetDisqualificationAsync(actor, contestId, pending.Id!.Value, false); break;
-                case ParticipantAction.Delete: await service.DeleteAsync(actor, contestId, pending.Id!.Value); break;
                 case ParticipantAction.ApproveAll: await service.ApproveAllAsync(actor, contestId); break;
                 case ParticipantAction.GenerateLogins: await service.GenerateLoginsAsync(actor, contestId); break;
                 case ParticipantAction.RemoveLogins: await service.RemoveLoginsAsync(actor, contestId); break;
@@ -201,6 +278,7 @@ public partial class ParticipantList
         catch (Microsoft.Data.SqlClient.SqlException exception) { Logger.LogError(exception, "Participant operation failed in contest {ContestId}", contestId); _error = SiteResources.StaffSaveFailed; }
         catch (DbUpdateException exception) { Logger.LogError(exception, "Participant operation failed in contest {ContestId}", contestId); _error = SiteResources.StaffSaveFailed; }
         finally { _pending = null; _names = []; _logins.Clear(); _busy = false; }
+        _export = null;
         await LoadAsync();
     }
 
@@ -208,11 +286,6 @@ public partial class ParticipantList
     {
         ParticipantAction.Approve => SiteResources.StaffApprove,
         ParticipantAction.Disapprove => SiteResources.StaffDisapprove,
-        ParticipantAction.Official => SiteResources.StaffMakeOfficial,
-        ParticipantAction.Unofficial => SiteResources.StaffMakeUnofficial,
-        ParticipantAction.Disqualify => SiteResources.StaffDisqualify,
-        ParticipantAction.Restore => SiteResources.StaffRestoreParticipant,
-        ParticipantAction.Delete => SiteResources.StaffDelete,
         ParticipantAction.ApproveAll => SiteResources.StaffApproveAll,
         ParticipantAction.GenerateLogins => SiteResources.StaffGenerateLogins,
         ParticipantAction.RemoveLogins => SiteResources.StaffRemoveLogins,
@@ -221,6 +294,6 @@ public partial class ParticipantList
         ParticipantAction.ImportLogins => SiteResources.StaffImportLogins,
         _ => throw new ArgumentOutOfRangeException(nameof(action))
     };
-    private enum ParticipantAction { Approve, Disapprove, Official, Unofficial, Disqualify, Restore, Delete, ApproveAll, GenerateLogins, RemoveLogins, DeleteEmpty, ImportParticipants, ImportLogins }
-    private sealed record Pending(ParticipantAction Action, int? Id, string? Name);
+    private enum ParticipantAction { Approve, Disapprove, ApproveAll, GenerateLogins, RemoveLogins, DeleteEmpty, ImportParticipants, ImportLogins }
+    private sealed record Pending(ParticipantAction Action, int ContestId, int? Id, string? Name);
 }

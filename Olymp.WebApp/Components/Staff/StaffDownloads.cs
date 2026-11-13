@@ -78,11 +78,12 @@ internal static class StaffDownloads
 
     private static async Task<IResult> ExportParticipantsAsync(int contestId, string? search, int? organization,
         bool? approved, bool? unofficial, bool? disqualified, string? sort, bool? descending,
+        int? coach, int? member, string? coachSearch, string? memberSearch,
         HttpContext http, IDbContextFactory<OlympContext> factory)
     {
         await using var db = await factory.CreateDbContextAsync(http.RequestAborted);
         if (!await db.Contests.AnyAsync(item => item.Id == contestId, http.RequestAborted)) return Results.NotFound();
-        var query = new ParticipantQuery(contestId, search, organization, approved, unofficial, disqualified).Apply(db)
+        var query = new ParticipantQuery(contestId, search, organization, approved, unofficial, disqualified, coach, member, coachSearch, memberSearch).Apply(db)
             .Where(item => item.UserName != null && item.UserName != "");
         var participants = await ParticipantQuery.Order(query, sort, descending ?? false)
             .Include(item => item.Organization).Include(item => item.Members).AsSplitQuery().ToListAsync(http.RequestAborted);

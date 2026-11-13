@@ -2,6 +2,7 @@ using System.Data;
 using System.Security.Claims;
 
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 using Olymp.Domain;
@@ -10,7 +11,7 @@ using Olymp.WebApp.Resources;
 
 namespace Olymp.WebApp.Services.Contests;
 
-public sealed class AdminParticipantService(OlympContext context, IAuthorizationService authorization)
+public sealed class AdminParticipantService(OlympContext context, IAuthorizationService authorization, UserManager<User> users)
 {
     public Task RenameAsync(ClaimsPrincipal actor, int id, string name, CancellationToken token = default) => ChangeAsync(actor, id, async participant =>
     {
@@ -62,6 +63,15 @@ public sealed class AdminParticipantService(OlympContext context, IAuthorization
         participant.MemberInfos = WriteRoster(members);
         return Task.CompletedTask;
     }, token);
+
+    public Task SetLoginBlockedAsync(ClaimsPrincipal actor, int id, bool blocked, CancellationToken token = default) => ChangeAsync(actor, id, async participant =>
+    {
+        Check(await users.SetLockoutEnabledAsync(participant, true));
+        Check(await users.SetLockoutEndDateAsync(participant, blocked ? DateTimeOffset.Now.AddYears(100) : null));
+        if (blocked) Check(await users.UpdateSecurityStampAsync(participant));
+    }, token);
+
+    private static void Check(IdentityResult result) { if (!result.Succeeded) throw new IdentityOperationException(result.Errors); }
 
     private async Task ChangeAsync(ClaimsPrincipal actor, int id, Func<Competitor, Task> change, CancellationToken token)
     {

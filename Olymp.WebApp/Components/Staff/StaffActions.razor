@@ -1,7 +1,7 @@
-<section class="card mb-3 @Class" aria-label="@Title">
-    <h2 class="card-header h5">@Title</h2>
+<details class="card mb-3 @Class" aria-label="@Title">
+    <summary class="card-header">@Title</summary>
     <div class="card-body">@ChildContent</div>
-</section>
+</details>
 
 @code {
     [Parameter, EditorRequired] public string Title { get; set; } = "";

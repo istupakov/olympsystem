@@ -51,7 +51,8 @@ else
                 </dd>
                 <dt class="col-sm-3">@SiteResources.SubmissionAuthor</dt>
                 <dd class="col-sm-9">
-                    @if (_admin) { <a href="@GridState.DetailUrl(Navigation.Uri, $"admin/users/{_submission.UserId}/edit")">@_submission.User.Name</a> }
+                    @if (_submission.User is Competitor participant) { <a href="@GridState.DetailUrl(Navigation.Uri, $"jury/contests/{participant.ContestId}/participants/{participant.Id}")">@participant.Name</a> }
+                    else if (_admin) { <a href="@GridState.DetailUrl(Navigation.Uri, $"admin/users/{_submission.UserId}/edit")">@_submission.User.Name</a> }
                     else { @_submission.User.Name }
                     · ID @_submission.UserId
                     <QuickFilter Url="@Filter(nameof(SubmissionList.AuthorId), _submission.UserId, nameof(SubmissionList.Author))" Label="@SiteResources.SubmissionAuthor" Value="@_submission.User.Name" />
@@ -86,8 +87,8 @@ else
             <dt class="col-sm-4">@SiteResources.StaffStatusCode</dt><dd class="col-sm-8">@_submission.StatusCode</dd>
             <dt class="col-sm-4">@SiteResources.StaffHiddenSubmission</dt><dd class="col-sm-8">@(_submission.IsHidden ? SiteResources.StaffYes : SiteResources.StaffNo)</dd>
             <dt class="col-sm-4">@SiteResources.StaffReferenceSubmission</dt><dd class="col-sm-8">@(_submission.IsReference ? SiteResources.StaffYes : SiteResources.StaffNo)</dd>
-            <dt class="col-sm-4">@SiteResources.StaffDescription</dt><dd class="col-sm-8">@_submission.Description</dd>
-            <dt class="col-sm-4">@SiteResources.StaffScoresByTest</dt><dd class="col-sm-8">@_submission.ScoresByTest</dd>
+            <dt class="col-sm-4">@SiteResources.StaffDescription</dt><dd class="col-sm-8">@(string.IsNullOrWhiteSpace(_submission.Description) ? "–" : _submission.Description)</dd>
+            <dt class="col-sm-4">@SiteResources.StaffScoresByTest</dt><dd class="col-sm-8">@(string.IsNullOrWhiteSpace(_submission.ScoresByTest) ? "–" : _submission.ScoresByTest)</dd>
             <dt class="col-sm-4">@SiteResources.StaffSourceSize</dt><dd class="col-sm-8">@_submission.SourceCode.Length</dd>
         </dl>
     </details>

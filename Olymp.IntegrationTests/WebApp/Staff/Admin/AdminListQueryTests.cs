@@ -37,6 +37,48 @@ namespace Olymp.IntegrationTests.WebApp.Staff.Admin;
 public partial class AdminListQueryTests(WebAppFactory factory) : StaffComponentTests(factory)
 {
     [Fact]
+    public async Task VisibilityAndSignInFiltersCombineAndIgnoreExpiredOrDisabledLockout()
+    {
+        string search = Guid.NewGuid().ToString("N");
+        var now = DateTimeOffset.UtcNow;
+        (bool Hidden, bool Confirmed, bool Lockout, DateTimeOffset? End)[] states =
+        [
+            (false, true, false, null), (true, true, false, null),
+            (true, true, true, now.AddDays(1)), (true, false, false, null),
+            (false, true, true, now.AddDays(-1)), (false, true, false, now.AddDays(1))
+        ];
+        await using var scope = _factory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<OlympContext>();
+        var ids = new List<int>();
+        foreach (var (hidden, confirmed, lockout, end) in states)
+        {
+            var account = await _factory.AddUserAsync();
+            var user = (await db.OlympUsers.FindAsync([account.Id], TestContext.Current.CancellationToken))!;
+            user.Name = search;
+            user.IsHidden = hidden;
+            user.EmailConfirmed = confirmed;
+            user.LockoutEnabled = lockout;
+            user.LockoutEnd = end;
+            ids.Add(user.Id);
+        }
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        foreach (var (visibility, login, expected) in new (string Visibility, string Login, int[] Expected)[]
+        {
+            ("hidden", "allowed", [ids[1]]), ("hidden", "blocked", [ids[2]]),
+            ("hidden", "unconfirmed", [ids[3]]), ("visible", "allowed", [ids[0], ids[4], ids[5]])
+        })
+        {
+            var rows = await new Users { Search = search, Visibility = visibility, LoginState = login }.Query(db).ToListAsync(TestContext.Current.CancellationToken);
+            Assert.Equal(expected.Order(), rows.Select(item => item.Id).Order());
+        }
+        using var document = await new HtmlParser().ParseDocumentAsync(await RenderAsync<Users>(
+            $"/admin/users?Search={search}&Visibility=hidden&LoginState=blocked", []));
+        Assert.Contains(document.QuerySelectorAll("th"), item => item.TextContent.Trim() == SiteResources.StaffVisibility);
+        Assert.Contains(document.QuerySelectorAll("th"), item => item.TextContent.Trim() == SiteResources.StaffSignIn);
+        Assert.NotNull(document.QuerySelector("#user-sign-in"));
+    }
+
+    [Fact]
     public async Task OrganizationSearchIncludesFullNameAndPrefixWithoutPagination()
     {
         string prefix = Guid.NewGuid().ToString("N");
@@ -59,7 +101,7 @@ public partial class AdminListQueryTests(WebAppFactory factory) : StaffComponent
     }
 
     [Fact]
-    public async Task UserTypeAndRoleFiltersCombineAndShowAllRoles()
+    public async Task UserListContainsOnlyPermanentAccountsAndShowsAllRoles()
     {
         var jury = await _factory.AddUserAsync();
         var ordinary = await _factory.AddUserAsync();
@@ -75,17 +117,19 @@ public partial class AdminListQueryTests(WebAppFactory factory) : StaffComponent
         Assert.True((await manager.AddToRoleAsync(user, RoleNames.Jury)).Succeeded);
         Assert.True((await manager.AddClaimAsync(user, new Claim(ClaimNames.CoachOrg, "1"))).Succeeded);
         using var document = await new HtmlParser().ParseDocumentAsync(await RenderAsync<Users>(
-            $"/admin/users?Search={name}&AccountType=permanent&Role=jury", []));
-        var filtered = await new Users { Search = name, AccountType = "permanent", Role = "jury" }.Query(db).ToListAsync(TestContext.Current.CancellationToken);
+            $"/admin/users?Search={name}&Role=jury", []));
+        var filtered = await new Users { Search = name, Role = "jury" }.Query(db).ToListAsync(TestContext.Current.CancellationToken);
         var row = Assert.Single(filtered);
         Assert.Equal(jury.Id, row.Id);
         Assert.True(row.Jury);
         Assert.True(row.Coach);
         Assert.False(row.Admin);
         Assert.Null(document.QuerySelector(".pagination"));
-        using var participants = await new HtmlParser().ParseDocumentAsync(await RenderAsync<Users>(
-            $"/admin/users?Search={name}&AccountType=participant&Role=jury", []));
-        Assert.Empty(await new Users { Search = name, AccountType = "participant", Role = "jury" }.Query(db).ToListAsync(TestContext.Current.CancellationToken));
+        var contest = TestEntities.CreateContest(name, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddHours(1));
+        db.Competitors.Add(TestEntities.CreateCompetitor(contest, name));
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        Assert.Equal(2, await new Users { Search = name }.Query(db).CountAsync(TestContext.Current.CancellationToken));
+        Assert.Null(document.QuerySelector("#user-type"));
     }
 
 }

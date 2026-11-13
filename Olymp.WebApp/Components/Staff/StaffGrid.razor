@@ -10,7 +10,7 @@
 
 <p class="small text-body-secondary" role="status">@SiteResources.StaffFound: @_total</p>
 <div class="table-responsive admin-grid-scroll" tabindex="0">
-    <QuickGrid TGridItem="TGridItem" Class="table table-striped table-hover align-middle" ItemsProvider="LoadAsync"
+    <QuickGrid TGridItem="TGridItem" Class="table table-striped table-hover align-middle text-nowrap" ItemsProvider="LoadAsync"
                Virtualize="true" ItemSize="64" OverscanCount="15" InitialItemIndex="_initialIndex" ItemKey="ItemKey">
         @ChildContent
     </QuickGrid>

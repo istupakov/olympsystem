@@ -16,14 +16,15 @@ else
     <dl class="row text-break">
         <dt class="col-sm-4">ID</dt><dd class="col-sm-8">@_compiler.Id</dd>
         <dt class="col-sm-4">@SiteResources.StaffTechnicalName</dt><dd class="col-sm-8">@_compiler.Name</dd>
-        <dt class="col-sm-4">@SiteResources.StaffDescription</dt><dd class="col-sm-8">@_compiler.Description</dd>
-        <dt class="col-sm-4">@SiteResources.StaffLanguage</dt><dd class="col-sm-8">@_compiler.Language</dd>
-        <dt class="col-sm-4">@SiteResources.StaffSourceExtension</dt><dd class="col-sm-8">@_compiler.SourceExtension</dd>
-        <dt class="col-sm-4">@SiteResources.StaffCommandLine</dt><dd class="col-sm-8"><code>@_compiler.CommandLine</code></dd>
-        <dt class="col-sm-4">@SiteResources.StaffConfiguration</dt><dd class="col-sm-8">@_compiler.ConfigName</dd>
+        <dt class="col-sm-4">@SiteResources.StaffDescription</dt><dd class="col-sm-8">@(string.IsNullOrWhiteSpace(_compiler.Description) ? "–" : _compiler.Description)</dd>
+        <dt class="col-sm-4">@SiteResources.StaffLanguage</dt><dd class="col-sm-8">@(string.IsNullOrWhiteSpace(_compiler.Language) ? "–" : _compiler.Language)</dd>
+        <dt class="col-sm-4">@SiteResources.StaffSourceExtension</dt><dd class="col-sm-8">@(string.IsNullOrWhiteSpace(_compiler.SourceExtension) ? "–" : _compiler.SourceExtension)</dd>
+        <dt class="col-sm-4">@SiteResources.StaffCommandLine</dt><dd class="col-sm-8"><code>@(string.IsNullOrWhiteSpace(_compiler.CommandLine) ? "–" : _compiler.CommandLine)</code></dd>
+        <dt class="col-sm-4">@SiteResources.StaffConfiguration</dt><dd class="col-sm-8">@(string.IsNullOrWhiteSpace(_compiler.ConfigName) ? "–" : _compiler.ConfigName)</dd>
         <dt class="col-sm-4">@SiteResources.StaffEnabledOnSite</dt><dd class="col-sm-8">@(_compiler.IsActive ? SiteResources.StaffEnabled : SiteResources.StaffDisabled)</dd>
         <dt class="col-sm-4">@SiteResources.StaffAvailableRunners</dt>
         <dd class="col-sm-8">
+            @if (!Checkers.Checkers.Values.Any(runner => runner.SupportsCompiler(_compiler))) { <text>–</text> }
             @foreach (var runner in Checkers.Checkers.Values.Where(runner => runner.SupportsCompiler(_compiler)))
             { <div><a href="jury/runners?Runner=@runner.Id">@runner.Name</a></div> }
         </dd>

@@ -6,6 +6,7 @@ public sealed record StaffSubmissionListItem
     public DateTimeOffset CommitTime { get; init; }
     public required string Author { get; init; }
     public int AuthorId { get; init; }
+    public int? AuthorContestId { get; init; }
     public bool IsParticipant { get; init; }
     public bool IsTeam { get; init; }
     public required string Compiler { get; init; }

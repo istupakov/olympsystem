@@ -318,6 +318,16 @@
   <data name="StaffReset" xml:space="preserve"><value>Сбросить</value></data>
   <data name="StaffRestoreParticipant" xml:space="preserve"><value>Отменить дисквалификацию</value></data>
   <data name="StaffRoles" xml:space="preserve"><value>Роли</value></data>
+  <data name="StaffUserOperations" xml:space="preserve"><value>Действия с пользователями</value></data>
+  <data name="StaffUserAccountOperations" xml:space="preserve"><value>Действия с пользователем</value></data>
+  <data name="StaffCleanupUsers" xml:space="preserve"><value>Удалить старые неподтверждённые регистрации</value></data>
+  <data name="StaffCleanupDescription" xml:space="preserve"><value>Проверяются все постоянные аккаунты независимо от фильтров списка. Удалить можно аккаунты с неподтверждённым email, зарегистрированные больше календарного месяца назад, без истории, членства в командах, пользователей или участников под руководством и прав администратора, жюри или тренера. Аккаунты без даты регистрации пропускаются.</value></data>
+  <data name="StaffCleanupCount" xml:space="preserve"><value>Выбрано аккаунтов для удаления: {0}.</value></data>
+  <data name="StaffCleanupConfirm" xml:space="preserve"><value>Безвозвратно удалить выбранные аккаунты? Условия будут проверены повторно. Новые подходящие аккаунты в удаление не попадут.</value></data>
+  <data name="StaffCleanupResult" xml:space="preserve"><value>Удалено: {0}. Пропущено из-за изменения условий: {1}.</value></data>
+  <data name="StaffAdministrator" xml:space="preserve"><value>Администратор</value></data>
+  <data name="StaffApproval" xml:space="preserve"><value>Допуск</value></data>
+  <data name="StaffParticipation" xml:space="preserve"><value>Участие</value></data>
   <data name="StaffRunAnalysis" xml:space="preserve"><value>Запустить проверку</value></data>
   <data name="StaffSecondSubmissionId" xml:space="preserve"><value>ID второй посылки</value></data>
   <data name="StaffSettings" xml:space="preserve"><value>Настройки</value></data>
@@ -532,7 +542,7 @@
   <data name="StaffCommandLine" xml:space="preserve"><value>Команда запуска</value></data>
   <data name="StaffRelatedData" xml:space="preserve"><value>Связанные данные</value></data>
   <data name="StaffOrganizationCoaches" xml:space="preserve"><value>Тренеры организации</value></data>
-  <data name="StaffCoachedAccounts" xml:space="preserve"><value>Подопечные</value></data>
+  <data name="StaffCoachedAccounts" xml:space="preserve"><value>Пользователи под руководством</value></data>
   <data name="StaffMemberships" xml:space="preserve"><value>Участия в соревнованиях</value></data>
   <data name="StaffAccountConfirmed" xml:space="preserve"><value>Аккаунт подтверждён</value></data>
   <data name="StaffLoginAvailable" xml:space="preserve"><value>Вход разрешён</value></data>
@@ -617,4 +627,11 @@
   <data name="StaffProblemOperations" xml:space="preserve"><value>Действия с задачей</value></data>
   <data name="StaffTestOperations" xml:space="preserve"><value>Действия с тестом</value></data>
   <data name="StaffHideRetest" xml:space="preserve"><value>Скрыть ретест</value></data>
+  <data name="StaffCoachedParticipants" xml:space="preserve"><value>Участники под руководством</value></data>
+  <data name="StaffParticipantOperations" xml:space="preserve"><value>Действия с участником</value></data>
+  <data name="StaffSignIn" xml:space="preserve"><value>Вход</value></data>
+  <data name="StaffSignInAllowed" xml:space="preserve"><value>Разрешён</value></data>
+  <data name="StaffParticipantsOperations" xml:space="preserve"><value>Действия с участниками</value></data>
+  <data name="StaffDownloadCsv" xml:space="preserve"><value>Скачать CSV</value></data>
+  <data name="StaffExportSelection" xml:space="preserve"><value>Участников в выбранном списке: {0}.</value></data>
 </root>

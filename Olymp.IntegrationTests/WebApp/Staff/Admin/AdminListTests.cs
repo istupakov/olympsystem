@@ -10,6 +10,7 @@ using Olymp.IntegrationTests.WebApp.Shared;
 using Olymp.Tests.Shared;
 using Olymp.WebApp;
 using Olymp.WebApp.Components.Pages.Staff.Admin;
+using Olymp.WebApp.Components.Pages.Staff.Jury;
 
 using Xunit;
 
@@ -38,19 +39,17 @@ public class AdminListTests(WebAppFactory factory) : IClassFixture<WebAppFactory
         var manager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
         var storedCoach = (await manager.FindByIdAsync(coach.Id.ToString()))!;
         Assert.True((await manager.AddClaimAsync(storedCoach, new Claim(ClaimNames.CoachOrg, organization.Id.ToString()))).Succeeded);
-        Assert.Equal(participant.Id, Assert.Single(await new UserList { Organization = organization.Id }.Query(db).ToListAsync(TestContext.Current.CancellationToken)).Id);
+        Assert.Empty(await new UserList { Organization = organization.Id }.Query(db).ToListAsync(TestContext.Current.CancellationToken));
         Assert.Equal(coach.Id, Assert.Single(await new UserList { CoachOrganization = organization.Id }.Query(db).ToListAsync(TestContext.Current.CancellationToken)).Id);
-        Assert.Equal(participant.Id, Assert.Single(await new UserList { Coach = coach.Id }.Query(db).ToListAsync(TestContext.Current.CancellationToken)).Id);
-        var participation = Assert.Single(await new UserList { Member = member.Id }.Query(db).ToListAsync(TestContext.Current.CancellationToken));
+        Assert.Equal(participant.Id, Assert.Single(await new ParticipantList { Coach = coach.Id }.Query(db).ToListAsync(TestContext.Current.CancellationToken)).Id);
+        var participation = Assert.Single(await new ParticipantList { Member = member.Id }.Query(db).ToListAsync(TestContext.Current.CancellationToken));
         Assert.Equal(participant.Id, participation.Id);
         Assert.Equal(contest.Id, participation.ContestId);
-        Assert.Equal(contest.Name, participation.ContestName);
-        Assert.Equal(member.Id, Assert.Single(await new UserList { Participant = participant.Id }.Query(db).ToListAsync(TestContext.Current.CancellationToken)).Id);
-        Assert.Null(Assert.Single(await new UserList { Participant = participant.Id }.Query(db).ToListAsync(TestContext.Current.CancellationToken)).ContestId);
-        Assert.Empty(await new UserList { Member = other.Id }.Query(db).ToListAsync(TestContext.Current.CancellationToken));
+        Assert.Equal(contest.Name, participation.Contest.Name);
+        Assert.Empty(await new ParticipantList { Member = other.Id }.Query(db).ToListAsync(TestContext.Current.CancellationToken));
         Assert.Empty(await new UserList { CoachOrganization = organization.Id, Organization = organization.Id }.Query(db).ToListAsync(TestContext.Current.CancellationToken));
-        var sorted = await new UserList { Participant = participant.Id }.Query(db).OrderBy(item => item.Login).ThenBy(item => item.Id).ToListAsync(TestContext.Current.CancellationToken);
-        Assert.Equal(member.Id, Assert.Single(sorted).Id);
+        var sorted = await new ParticipantList { Member = member.Id }.Query(db).OrderBy(item => item.UserName).ThenBy(item => item.Id).ToListAsync(TestContext.Current.CancellationToken);
+        Assert.Equal(participant.Id, Assert.Single(sorted).Id);
     }
 
     [Fact]

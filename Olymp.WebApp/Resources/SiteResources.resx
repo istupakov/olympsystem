@@ -318,6 +318,16 @@
   <data name="StaffReset" xml:space="preserve"><value>Reset</value></data>
   <data name="StaffRestoreParticipant" xml:space="preserve"><value>Cancel disqualification</value></data>
   <data name="StaffRoles" xml:space="preserve"><value>Roles</value></data>
+  <data name="StaffUserOperations" xml:space="preserve"><value>User actions</value></data>
+  <data name="StaffUserAccountOperations" xml:space="preserve"><value>User account actions</value></data>
+  <data name="StaffCleanupUsers" xml:space="preserve"><value>Delete old unconfirmed registrations</value></data>
+  <data name="StaffCleanupDescription" xml:space="preserve"><value>All permanent accounts are checked, regardless of the list filters. Only accounts with unconfirmed email registered more than one calendar month ago, without history, team memberships, coached accounts or staff/coach permissions, qualify. Accounts without a registration date are skipped.</value></data>
+  <data name="StaffCleanupCount" xml:space="preserve"><value>Accounts selected for deletion: {0}.</value></data>
+  <data name="StaffCleanupConfirm" xml:space="preserve"><value>Delete the selected accounts permanently? Eligibility will be checked again. Newly qualifying accounts are not included.</value></data>
+  <data name="StaffCleanupResult" xml:space="preserve"><value>Deleted: {0}. Skipped because they no longer qualify: {1}.</value></data>
+  <data name="StaffAdministrator" xml:space="preserve"><value>Administrator</value></data>
+  <data name="StaffApproval" xml:space="preserve"><value>Approval</value></data>
+  <data name="StaffParticipation" xml:space="preserve"><value>Participation</value></data>
   <data name="StaffRunAnalysis" xml:space="preserve"><value>Run analysis</value></data>
   <data name="StaffSecondSubmissionId" xml:space="preserve"><value>Second submission ID</value></data>
   <data name="StaffSettings" xml:space="preserve"><value>Settings</value></data>
@@ -617,4 +627,11 @@
   <data name="StaffProblemOperations" xml:space="preserve"><value>Problem actions</value></data>
   <data name="StaffTestOperations" xml:space="preserve"><value>Test actions</value></data>
   <data name="StaffHideRetest" xml:space="preserve"><value>Hide rejudging</value></data>
+  <data name="StaffCoachedParticipants" xml:space="preserve"><value>Coached participants</value></data>
+  <data name="StaffParticipantOperations" xml:space="preserve"><value>Participant actions</value></data>
+  <data name="StaffSignIn" xml:space="preserve"><value>Sign-in</value></data>
+  <data name="StaffSignInAllowed" xml:space="preserve"><value>Allowed</value></data>
+  <data name="StaffParticipantsOperations" xml:space="preserve"><value>Participant operations</value></data>
+  <data name="StaffDownloadCsv" xml:space="preserve"><value>Download CSV</value></data>
+  <data name="StaffExportSelection" xml:space="preserve"><value>Participants in the selected list: {0}.</value></data>
 </root>

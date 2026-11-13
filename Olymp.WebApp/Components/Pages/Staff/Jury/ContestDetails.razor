@@ -13,14 +13,17 @@ else
     <dl class="row text-break">
         <dt class="col-sm-4">ID</dt><dd class="col-sm-8">@Id</dd>
         <dt class="col-sm-4">@SiteResources.StaffName</dt><dd class="col-sm-8">@_contest.Name</dd>
-        <dt class="col-sm-4">@SiteResources.Abbreviation</dt><dd class="col-sm-8">@_contest.Abbr</dd>
+        <dt class="col-sm-4">@SiteResources.Abbreviation</dt><dd class="col-sm-8">@(string.IsNullOrWhiteSpace(_contest.Abbr) ? "–" : _contest.Abbr)</dd>
         <dt class="col-sm-4">@SiteResources.ContestStart</dt><dd class="col-sm-8">@_contest.StartTime.ToLocalTime().ToString("g")</dd>
         <dt class="col-sm-4">@SiteResources.ContestEnd</dt><dd class="col-sm-8">@_contest.EndTime.ToLocalTime().ToString("g")</dd>
-        <dt class="col-sm-4">@SiteResources.PrintingAvailableFrom</dt><dd class="col-sm-8">@_contest.ProblemShowTime?.ToLocalTime().ToString("g")</dd>
-        <dt class="col-sm-4">@SiteResources.FreezeStartsAt</dt><dd class="col-sm-8">@_contest.FreezeTime?.ToLocalTime().ToString("g")</dd>
+        <dt class="col-sm-4">@SiteResources.PrintingAvailableFrom</dt><dd class="col-sm-8">@(_contest.ProblemShowTime?.ToLocalTime().ToString("g") ?? "–")</dd>
+        <dt class="col-sm-4">@SiteResources.FreezeStartsAt</dt><dd class="col-sm-8">@(_contest.FreezeTime?.ToLocalTime().ToString("g") ?? "–")</dd>
         <dt class="col-sm-4">@SiteResources.HiddenContest</dt><dd class="col-sm-8">@(_contest.IsHidden ? SiteResources.StaffYes : SiteResources.StaffNo)</dd>
         <dt class="col-sm-4">@SiteResources.OpenContest</dt><dd class="col-sm-8">@(_contest.IsOpen ? SiteResources.StaffYes : SiteResources.StaffNo)</dd>
-        <dt class="col-sm-4">@SiteResources.StaffDescription</dt><dd class="col-sm-8">@_contest.Description</dd>
+        @if (string.IsNullOrWhiteSpace(_contest.Description))
+        {
+            <dt class="col-sm-4">@SiteResources.StaffDescription</dt><dd class="col-sm-8">–</dd>
+        }
         @foreach (var (kind, label, blobId) in new[] {
             ("problems", SiteResources.ContestStatements, _contest.ProblemPdfId),
             ("tests", SiteResources.ContestTests, _contest.TestZipId),
@@ -31,6 +34,13 @@ else
             <dd class="col-sm-8">@if (blobId is int blob) { <a href="jury/contests/@Id/files/@kind" data-enhance-nav="false">@label · ID @blob</a> } else { <text>–</text> }</dd>
         }
     </dl>
+    @if (!string.IsNullOrWhiteSpace(_contest.Description))
+    {
+        <details class="card mb-3">
+            <summary class="card-header">@SiteResources.StaffDescription</summary>
+            <div class="card-body text-break overflow-auto">@((MarkupString)_contest.Description)</div>
+        </details>
+    }
     <h2 class="h5">@SiteResources.StaffRelatedData</h2>
     <ul>
         <li><a href="jury/contests/@Id/problems">@SiteResources.Problems · @_problems</a></li>

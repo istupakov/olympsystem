@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.JSInterop;
 
 using Olymp.Domain.Models;
+using Olymp.WebApp.Components.Staff;
 using Olymp.WebApp.Resources;
 
 namespace Olymp.WebApp.Components.Pages.Staff.Jury;
@@ -44,6 +45,7 @@ public partial class Messages
     private int _observedContest;
     private Filters _filters = new();
     private string? _selectedAuthor;
+    private string? _selectedProblem;
     private Editor _editor = new();
     private Message? _pending;
     private int? _editingId;
@@ -53,6 +55,7 @@ public partial class Messages
     private string? _error;
     private bool _loaded;
     private bool _canManage;
+    private bool _admin;
     private bool _busy;
     private bool _refreshing;
     private bool _editing;
@@ -76,14 +79,14 @@ public partial class Messages
         _selectedAuthor = null;
         if (!Announcements && AuthorId is int authorId)
         {
-            var author = await db.Users.AsNoTracking().Where(item => item.Id == authorId)
-                .Select(item => new { item.Name, item.UserName }).SingleOrDefaultAsync(_stop.Token);
-            _selectedAuthor = string.Join(" · ", new[] { author?.Name, author?.UserName, $"ID {authorId}" }
-                .Where(value => !string.IsNullOrWhiteSpace(value)));
+            _selectedAuthor = StaffEntityLabel.Format(authorId, await db.Users.AsNoTracking().Where(item => item.Id == authorId)
+                .Select(item => item.Name).SingleOrDefaultAsync(_stop.Token));
         }
         _contest = await db.Contests.AsNoTracking().SingleOrDefaultAsync(item => item.Id == ContestId, _stop.Token);
         _problems = await db.Problems.AsNoTracking().Where(item => item.ContestId == ContestId)
             .OrderBy(item => item.Number).ToListAsync(_stop.Token);
+        _selectedProblem = Problem is int problemId ? StaffEntityLabel.Format(problemId, await db.Problems.Where(item => item.Id == problemId)
+            .Select(item => item.Number.ToString() + ". " + item.Name).SingleOrDefaultAsync(_stop.Token)) : null;
         await RefreshAsync();
         _loaded = true;
     }
@@ -139,6 +142,7 @@ public partial class Messages
         try
         {
             await using var db = await ContextFactory.CreateDbContextAsync(_stop.Token);
+            _admin = (await AuthenticationState).User.IsInRole(RoleNames.Admin);
             _canManage = (await Authorization.AuthorizeAsync((await AuthenticationState).User, ContestId, PolicyNames.ManageContest)).Succeeded;
             var questions = await db.Messages.Where(item => item.ContestId == ContestId && item.UserId != null)
                 .Select(item => item.Id).ToHashSetAsync(_stop.Token);

@@ -1,0 +1,173 @@
+@page "/jury/contests/{ContestId:int}/participants/{Id:int}"
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@using Olymp.WebApp.Services
+@inject IServiceScopeFactory ScopeFactory
+@inject NavigationManager Navigation
+@inject ILogger<ParticipantDetails> Logger
+
+<PageTitle>@SiteResources.Competitor</PageTitle>
+@if (_participant is null)
+{
+    <p role="status">@(_loaded ? SiteResources.PageNotFoundMessage : SiteResources.StaffLoading)</p>
+}
+else
+{
+    <StaffContestNavigation ContestId="ContestId" ContestName="@_participant.Contest.Name" IsHidden="_participant.Contest.IsHidden" />
+    <BackToList ReturnTo="@ReturnTo" Fallback="@($"jury/contests/{ContestId}/participants")" />
+    <h1 class="h3 text-break">@_participant.Name</h1>
+    @if (_error is not null) { <p class="alert alert-danger" role="alert">@_error</p> }
+    @if (_saved) { <p class="alert alert-success" role="status">@SiteResources.StaffSaved</p> }
+    <dl class="row text-break">
+        <dt class="col-sm-4">ID</dt><dd class="col-sm-8">@Id</dd>
+        <dt class="col-sm-4">@SiteResources.StaffLogin</dt><dd class="col-sm-8">@(string.IsNullOrWhiteSpace(_participant.UserName) ? "–" : _participant.UserName)</dd>
+        <dt class="col-sm-4">@SiteResources.StaffPassword</dt><dd class="col-sm-8">@(string.IsNullOrWhiteSpace(_participant.PasswordHash) ? "–" : _participant.PasswordHash)</dd>
+        <dt class="col-sm-4">@SiteResources.StaffOrganization</dt>
+        <dd class="col-sm-8">
+            @if (_participant.Organization is { } organization)
+            {
+                @if (_admin) { <a href="admin/organizations/@organization.Id/edit">@organization.Name</a> } else { @organization.Name }
+            }
+            else { <text>–</text> }
+        </dd>
+        <dt class="col-sm-4">@SiteResources.StaffCoach</dt>
+        <dd class="col-sm-8">
+            @if (_participant.Coach is { } coach)
+            {
+                @if (_admin) { <a href="admin/users/@coach.Id/edit">@coach.Name</a> } else { @coach.Name }
+            }
+            else { <text>–</text> }
+        </dd>
+        <dt class="col-sm-4">@SiteResources.StaffRegistrationDate</dt><dd class="col-sm-8">@(_participant.RegistrationDate?.LocalDateTime.ToString("g") ?? "–")</dd>
+        <dt class="col-sm-4">@SiteResources.StaffApproval</dt><dd class="col-sm-8"><span class="badge @(_participant.IsApproved ? "text-bg-success" : "text-bg-warning")">@(_participant.IsApproved ? SiteResources.StaffApproved : SiteResources.StaffUnapproved)</span></dd>
+        <dt class="col-sm-4">@SiteResources.StaffParticipation</dt><dd class="col-sm-8"><span class="badge @(_participant.IsOutOfCompetition ? "text-bg-info" : "text-bg-light")">@(_participant.IsOutOfCompetition ? SiteResources.StaffUnofficial : SiteResources.StaffOfficial)</span></dd>
+        <dt class="col-sm-4">@SiteResources.StaffDisqualified</dt><dd class="col-sm-8">@(_participant.IsDisqualified ? SiteResources.StaffYes : SiteResources.StaffNo)</dd>
+        <dt class="col-sm-4">@SiteResources.StaffHiddenAccount</dt><dd class="col-sm-8">@(_participant.IsHidden ? SiteResources.StaffYes : SiteResources.StaffNo)</dd>
+        <dt class="col-sm-4">@SiteResources.StaffAccountConfirmed</dt><dd class="col-sm-8">@(_confirmed ? SiteResources.StaffYes : SiteResources.StaffNo)</dd>
+        <dt class="col-sm-4">@SiteResources.StaffLoginAvailable</dt>
+        <dd class="col-sm-8">@(_confirmed && !Locked && !string.IsNullOrEmpty(_participant.UserName) && !string.IsNullOrEmpty(_participant.PasswordHash) ? SiteResources.StaffYes : SiteResources.StaffNo)</dd>
+        <dt class="col-sm-4">@SiteResources.StaffBanned</dt>
+        <dd class="col-sm-8">@(Locked ? SiteResources.StaffYes : SiteResources.StaffNo) @if (Locked) { <span>· @_participant.LockoutEnd?.LocalDateTime.ToString("g")</span> }</dd>
+        @if (_admin)
+        {
+            <dt class="col-sm-4">@SiteResources.StaffEmail</dt><dd class="col-sm-8">@(string.IsNullOrWhiteSpace(_participant.Email) ? "–" : _participant.Email)</dd>
+            <dt class="col-sm-4">@SiteResources.StaffEmailConfirmed</dt><dd class="col-sm-8">@(_participant.EmailConfirmed ? SiteResources.StaffYes : SiteResources.StaffNo)</dd>
+        }
+    </dl>
+    <section class="mb-4">
+        <h2 class="h5">@SiteResources.StaffRelatedData</h2>
+        <div class="d-flex flex-wrap gap-3">
+            <a href="jury/contests/@ContestId/submissions?AuthorId=@Id">@SiteResources.Submissions · @_submissionCount</a>
+            <a href="jury/contests/@ContestId/messages?AuthorId=@Id">@SiteResources.StaffQuestions · @_messageCount</a>
+        </div>
+    </section>
+    @if (_canManage || _admin)
+    {
+        <StaffActions Title="@SiteResources.StaffParticipantOperations">
+            <fieldset disabled="@_busy" class="d-flex flex-wrap gap-2">
+                @if (_admin && !Editing) { <a class="btn btn-outline-primary" href="@ModeUrl(true)">@SiteResources.StaffEdit</a> }
+                @if (_canManage)
+                {
+                    <button class="btn btn-outline-primary" @onclick="() => Ask(_participant.IsApproved ? ParticipantAction.Disapprove : ParticipantAction.Approve)">@(_participant.IsApproved ? SiteResources.StaffDisapprove : SiteResources.StaffApprove)</button>
+                    <button class="btn btn-outline-primary" @onclick="() => Ask(_participant.IsOutOfCompetition ? ParticipantAction.Official : ParticipantAction.Unofficial)">@(_participant.IsOutOfCompetition ? SiteResources.StaffMakeOfficial : SiteResources.StaffMakeUnofficial)</button>
+                    <button class="btn btn-outline-warning" @onclick="() => Ask(_participant.IsDisqualified ? ParticipantAction.Restore : ParticipantAction.Disqualify)">@(_participant.IsDisqualified ? SiteResources.StaffRestoreParticipant : SiteResources.StaffDisqualify)</button>
+                    <button class="btn btn-outline-danger" disabled="@(_submissionCount > 0 || _messageCount > 0)" @onclick="() => Ask(ParticipantAction.Delete)">@SiteResources.StaffDelete</button>
+                }
+                @if (_admin) { <button class="btn btn-outline-danger" @onclick="() => Ask(Locked ? ParticipantAction.Unban : ParticipantAction.Ban)">@(Locked ? SiteResources.StaffUnban : SiteResources.StaffBan)</button> }
+            </fieldset>
+            @if (_pending is { } pending)
+            {
+                <div class="alert alert-warning mt-3 mb-0" role="alert">
+                    <p>@SiteResources.StaffConfirmOperation <strong>@ActionName(pending)</strong></p>
+                    <button class="btn btn-danger me-2" disabled="@_busy" @onclick="ExecuteAsync">@SiteResources.StaffConfirm</button>
+                    <button class="btn btn-outline-secondary" disabled="@_busy" @onclick="() => _pending = null">@SiteResources.StaffCancel</button>
+                </div>
+            }
+        </StaffActions>
+    }
+    @if (!Editing)
+    {
+        <section class="mb-4">
+            <h2 class="h5">@SiteResources.StaffTeamRoster</h2>
+            <ul class="list-group">
+                @foreach (var (name, member) in _participant.GetMembers() ?? _participant.Members.Select(member => (member.Name, (OlympUser?)member)))
+                {
+                    <li class="list-group-item text-break">
+                        @if (_admin && member is not null)
+                        {
+                            <a href="admin/users/@member.Id/edit">@name</a>
+                            <div class="small text-body-secondary">@member.Email</div>
+                        }
+                        else { @name }
+                    </li>
+                }
+            </ul>
+        </section>
+    }
+    else
+    {
+
+        <section class="card mb-4">
+            <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
+                <h2 class="h5 mb-0">@SiteResources.StaffEditParticipant</h2>
+                <a href="@ModeUrl(false)">@SiteResources.StaffCancel</a>
+            </div>
+            <div class="card-body">
+                <fieldset disabled="@_busy">
+                    <label for="participant-name" class="form-label">@SiteResources.StaffName</label>
+                    <div class="input-group mb-4">
+                        <input id="participant-name" class="form-control" @bind="_participantName" />
+                        <button class="btn btn-outline-primary" @onclick="RenameParticipantAsync">@SiteResources.StaffSave</button>
+                    </div>
+                    <PermanentAccountPicker Label="@SiteResources.StaffCoach" @bind-Value="_coachId" Disabled="_busy" />
+                    <button class="btn btn-outline-primary mb-4" @onclick="SaveCoachAsync">@SiteResources.StaffSaveCoach</button>
+                </fieldset>
+            </div>
+        </section>
+        <section class="card mb-4">
+            <div class="card-header"><h2 class="h5 mb-0">@SiteResources.StaffTeamRoster</h2></div>
+            <div class="card-body">
+                <fieldset disabled="@_busy">
+                    @{ var roster = _participant.GetMembers()?.ToList() ?? _participant.Members.Select(member => (name: member.Name, user: (OlympUser?)member)).ToList(); }
+                    <ul class="list-group mb-4">
+                        @foreach (var (name, member) in roster)
+                        {
+                            <li class="list-group-item d-flex flex-wrap justify-content-between align-items-center gap-2">
+                                <div class="text-break">
+                                    @if (member is null) { @name }
+                                    else
+                                    {
+                                        <a href="admin/users/@member.Id/edit">@name</a>
+                                        <div class="small text-body-secondary">@member.Email</div>
+                                    }
+                                </div>
+                                @if (member is not null)
+                                {
+                                    <button class="btn btn-sm btn-outline-danger" @onclick="() => _removeMemberId = member.Id">@SiteResources.StaffUnlinkAccount</button>
+                                }
+                            </li>
+                        }
+                    </ul>
+                    <PermanentAccountPicker Label="@SiteResources.StaffAddLinkedAccount" @bind-Value="_memberId" Disabled="_busy" />
+                    <label for="member-slot" class="form-label">@SiteResources.StaffRosterEntry</label>
+                    <select id="member-slot" class="form-select mb-2" @bind="_memberSlot">
+                        <option value="">@SiteResources.StaffNewRosterEntry</option>
+                        @for (int index = 0; index < roster.Count; index++)
+                        {
+                            @if (roster[index].user is null) { <option value="@index">@roster[index].name</option> }
+                        }
+                    </select>
+                    <button class="btn btn-outline-primary mb-3" disabled="@(!_memberId.HasValue)" @onclick="AddMemberAsync">@SiteResources.StaffAddLinkedAccount</button>
+
+                    @if (_removeMemberId is int removeId)
+                    {
+                        <div class="alert alert-warning" role="alert">
+                            <p>@SiteResources.StaffUnlinkAccountConfirm</p>
+                            <button class="btn btn-danger me-2" @onclick="() => RemoveMemberAsync(removeId)">@SiteResources.StaffConfirm</button>
+                            <button class="btn btn-outline-secondary" @onclick="() => _removeMemberId = null">@SiteResources.StaffCancel</button>
+                        </div>
+                    }
+                </fieldset>
+            </div>
+        </section>
+    }
+}

@@ -70,7 +70,7 @@ public partial class SubmissionListTests(WebAppFactory factory) : StaffComponent
             Assert.Equal(expectedId, Assert.Single(list).Id);
             using var task = await new HtmlParser().ParseDocumentAsync(await RenderAsync<JuryProblems>(
                 $"/jury/contests/{contest.Id}/problems?problemId={problem.Id}&Scope={filter}", new() { [nameof(JuryProblems.ContestId)] = contest.Id }, user));
-            Assert.Equal(expectedId.ToString(), Assert.Single(task.QuerySelectorAll("#submissions tbody tr")).Children[0].TextContent.Trim());
+            Assert.Equal($"submission-{expectedId}", Assert.Single(task.QuerySelectorAll("#submissions tbody tr")).Id);
             string link = task.QuerySelector("#submissions tbody tr td a")!.GetAttribute("href")!;
             using var source = await new HtmlParser().ParseDocumentAsync(await RenderAsync<JuryDetails>(link,
                 new() { [nameof(JuryDetails.Id)] = expectedId }, user));
