@@ -227,7 +227,7 @@ public sealed class ContestProblemService(OlympContext context, ICheckerManager 
                         size += bytes.LongLength;
                         if (size > options.Value.MaxExpandedBytes)
                             throw new InvalidDataException("The test archive exceeds the expanded size limit.");
-                        var path = $"{SafeSegment("Test" + contest.Abbr)}/{SafeSegment(problem.NameWithNumber)}/{prefix}{test.Number:00}.txt";
+                        var path = $"{SafeSegment("Test" + contest.Abbr)}/{SafeSegment(problem.NameWithNumber)}/{prefix}{test.Number:000}.txt";
                         if (!names.Add(path))
                             throw new InvalidDataException($"Duplicate test path: {path}");
                         var entry = archive.CreateEntry(path, CompressionLevel.Fastest);

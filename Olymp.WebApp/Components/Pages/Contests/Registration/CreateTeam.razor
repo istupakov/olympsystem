@@ -234,18 +234,19 @@
     private string? teamNameError;
     private string? teamName;
     private List<(string Name, string? Account)> previewMembers = [];
+    private bool IsClosed => contest is not null && Clock.GetUtcNow() >= contest.EndTime;
 
     protected override async Task OnParametersSetAsync()
     {
         contest = await Context.Contests.AsNoTracking()
             .SingleOrDefaultAsync(item => item.Id == Id && !item.IsHidden, HttpContext.RequestAborted);
-        if (contest is null || !contest.IsAcm || Clock.GetUtcNow() >= contest.EndTime)
+        if (contest is null || !contest.IsAcm)
         {
             contest = null;
             Navigation.NotFound();
             return;
         }
-        if (!HttpContext.User.HasClaim(ClaimNames.CoachOrg, OrgId.ToString(CultureInfo.InvariantCulture)))
+        if (IsClosed || !HttpContext.User.HasClaim(ClaimNames.CoachOrg, OrgId.ToString(CultureInfo.InvariantCulture)))
         {
             contest = null;
             HttpContext.Response.StatusCode = StatusCodes.Status403Forbidden;
@@ -276,7 +277,7 @@
 
     private async Task SubmitAsync(EditContext editContext)
     {
-        if (contest is null || organization is null)
+        if (contest is null || organization is null || IsClosed)
             return;
         if (Input.Action != "register")
         {
@@ -292,7 +293,7 @@
             messages.Add(new FieldIdentifier(Input, field), message);
             editContext.NotifyValidationStateChanged();
         }
-        if (Clock.GetUtcNow() > contest.EndTime)
+        if (Clock.GetUtcNow() >= contest.EndTime)
         {
             error = SiteResources.RegistrationClosed;
             return;

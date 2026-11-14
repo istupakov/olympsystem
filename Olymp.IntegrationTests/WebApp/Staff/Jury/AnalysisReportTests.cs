@@ -4,6 +4,7 @@ using System.Reflection;
 using AngleSharp.Html.Parser;
 
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Rendering;
 
 using Olymp.Domain.Models;
 using Olymp.IntegrationTests.WebApp.Shared;
@@ -18,6 +19,35 @@ namespace Olymp.IntegrationTests.WebApp.Staff.Jury;
 [Trait("Category", "Integration")]
 public class AnalysisReportTests(WebAppFactory factory) : StaffComponentTests(factory)
 {
+    [Fact]
+    public async Task NamesakeAuthorsKeepDistinctIdsAndSubmissionLinksOpenInNewTabs()
+    {
+        var author = await _factory.AddUserAsync();
+        var namesake = await _factory.AddUserAsync();
+        namesake.Name = author.Name;
+        var problem = TestEntities.CreateProblem(TestEntities.CreateContest("Report", DateTimeOffset.Now, DateTimeOffset.Now.AddHours(1)));
+        var compiler = TestEntities.CreateCompilator();
+        var first = TestEntities.CreateSubmission(author, problem, compiler, DateTimeOffset.Now); first.Id = 100;
+        var second = TestEntities.CreateSubmission(namesake, problem, compiler, DateTimeOffset.Now); second.Id = 200;
+        var component = new AnalysisReport();
+        RenderFragment Link(string method, object item) => (RenderFragment)typeof(AnalysisReport)
+            .GetMethod(method, BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(component, [item])!;
+        RenderFragment links = builder =>
+        {
+            builder.AddContent(0, Link("AuthorLink", author));
+            builder.AddContent(1, Link("SubmissionLink", first));
+            builder.AddContent(2, Link("AuthorLink", namesake));
+            builder.AddContent(3, Link("SubmissionLink", second));
+        };
+        using var html = await new HtmlParser().ParseDocumentAsync(await RenderAsync<ReportLinks>("/jury/anticheat",
+            new() { [nameof(ReportLinks.ChildContent)] = links }, Staff(author.Id)));
+
+        Assert.Contains(StaffEntityLabel.Format(author.Id, author.Name)!, html.Body!.TextContent);
+        Assert.Contains(StaffEntityLabel.Format(namesake.Id, namesake.Name)!, html.Body.TextContent);
+        Assert.NotNull(html.QuerySelector("a[href='jury/submissions/100'][target='_blank'][rel='noopener']"));
+        Assert.NotNull(html.QuerySelector("a[href='jury/submissions/200'][target='_blank'][rel='noopener']"));
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
@@ -84,6 +114,12 @@ public class AnalysisReportTests(WebAppFactory factory) : StaffComponentTests(fa
 
         Assert.Empty(html.QuerySelectorAll("input[id^=report-problem-]"));
         Assert.NotNull(html.QuerySelector("#report-author"));
+    }
+
+    private sealed class ReportLinks : ComponentBase
+    {
+        [Parameter] public RenderFragment? ChildContent { get; set; }
+        protected override void BuildRenderTree(RenderTreeBuilder builder) => builder.AddContent(0, ChildContent);
     }
 
     private static IEnumerable<object> ReadRows(AnalysisReport report, string name) =>

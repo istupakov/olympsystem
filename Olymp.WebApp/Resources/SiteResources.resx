@@ -61,7 +61,7 @@
   <data name="StandingView" xml:space="preserve"><value>Standings view</value></data>
   <data name="FullStanding" xml:space="preserve"><value>Full standings</value></data>
   <data name="OfficialStanding" xml:space="preserve"><value>Official standings</value></data>
-  <data name="OfficialStandingDescription" xml:space="preserve"><value>Excludes out-of-competition and disqualified participants, and users without contest registration.</value></data>
+  <data name="OfficialStandingDescription" xml:space="preserve"><value>Excludes out-of-competition and disqualified participants.</value></data>
   <data name="TimeLeft" xml:space="preserve"><value>{0} left</value></data>
   <data name="ContestOver" xml:space="preserve"><value>contest is over</value></data>
   <data name="StandingTimeFormat" xml:space="preserve"><value>hh:mm tt z</value></data>
@@ -677,4 +677,8 @@
   <data name="StaffRunTimeNumber" xml:space="preserve"><value>Enter the time limit as a number.</value></data>
   <data name="StaffRunTestNotFound" xml:space="preserve"><value>The selected test was not found or belongs to another problem. Select a test or switch to all active tests.</value></data>
   <data name="StaffSubmissionIdNumber" xml:space="preserve"><value>Enter the submission ID as an integer.</value></data>
+  <data name="StandingResultsLabel" xml:space="preserve"><value>Standings</value></data>
+  <data name="FullStandingShort" xml:space="preserve"><value>Full</value></data>
+  <data name="OfficialStandingShort" xml:space="preserve"><value>Official</value></data>
+  <data name="StaffJavaScriptRequired" xml:space="preserve"><value>This section requires JavaScript. Enable it in your browser settings and reload the page.</value></data>
 </root>

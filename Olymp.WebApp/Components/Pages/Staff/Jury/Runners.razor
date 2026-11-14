@@ -15,7 +15,7 @@
 else
 {
     <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
-        <button class="btn btn-outline-secondary" @onclick="RefreshAsync">@SiteResources.Refresh</button>
+        <button class="btn btn-secondary" @onclick="RefreshAsync">@SiteResources.Refresh</button>
         <span class="small text-body-secondary">@SiteResources.StaffRunnerRefresh</span>
     </div>
     @if (_error is not null) { <p class="alert alert-danger" role="alert">@_error</p> }

@@ -21,6 +21,14 @@
 </head>
 
 <body>
+    @if (IsStaffRoute)
+    {
+        <noscript>
+            <div class="container my-4">
+                <p class="alert alert-warning" role="alert">@SiteResources.StaffJavaScriptRequired</p>
+            </div>
+        </noscript>
+    }
     <Routes />
     <ReconnectModal />
     <script src="@Assets["_framework/blazor.web.js"]"></script>
@@ -36,8 +44,10 @@
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
 
-    private IComponentRenderMode? HeadRenderMode =>
+    private bool IsStaffRoute =>
         HttpContext.Request.Path.StartsWithSegments("/jury", StringComparison.OrdinalIgnoreCase)
-        || HttpContext.Request.Path.StartsWithSegments("/admin", StringComparison.OrdinalIgnoreCase)
-            ? new InteractiveServerRenderMode(prerender: false) : null;
+        || HttpContext.Request.Path.StartsWithSegments("/admin", StringComparison.OrdinalIgnoreCase);
+
+    private IComponentRenderMode? HeadRenderMode =>
+        IsStaffRoute ? new InteractiveServerRenderMode(prerender: false) : null;
 }

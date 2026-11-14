@@ -1,0 +1,31 @@
+<div class="d-flex flex-wrap align-items-center gap-3 mb-3">
+    @if (HasOfficialStanding)
+    {
+        <span>@SiteResources.StandingResultsLabel</span>
+        <nav class="standing-view" aria-label="@SiteResources.StandingView">
+            <div class="btn-group" role="group" aria-label="@SiteResources.StandingView">
+                <a class="btn @(!Official ? "btn-primary" : "btn-outline-secondary")" href="@BaseUrl" aria-current="@(!Official ? "page" : null)">@SiteResources.FullStandingShort</a>
+                <a class="btn @(Official ? "btn-primary" : "btn-outline-secondary")" href="@(BaseUrl + "?official=true")" aria-current="@(Official ? "page" : null)">@SiteResources.OfficialStandingShort</a>
+            </div>
+        </nav>
+    }
+    @if (Refresh.HasDelegate)
+    {
+        <button type="button" class="btn btn-secondary" @onclick="Refresh">@SiteResources.Refresh</button>
+    }
+    else
+    {
+        <a class="btn btn-outline-secondary" href="@(Official ? BaseUrl + "?official=true" : BaseUrl)" data-enhance-nav="false">@SiteResources.Refresh</a>
+    }
+</div>
+@if (Official)
+{
+    <p class="small text-body-secondary">@SiteResources.OfficialStandingDescription</p>
+}
+
+@code {
+    [Parameter, EditorRequired] public string BaseUrl { get; set; } = "";
+    [Parameter] public bool Official { get; set; }
+    [Parameter] public bool HasOfficialStanding { get; set; }
+    [Parameter] public EventCallback Refresh { get; set; }
+}

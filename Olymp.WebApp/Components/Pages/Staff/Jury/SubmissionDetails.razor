@@ -28,10 +28,10 @@ else
     <h1>@SiteResources.SubmissionSource #@_submission.Id</h1>
     <StaffActions Title="@SiteResources.StaffSubmissionOperations">
         <div class="d-flex flex-wrap gap-2">
-            <a class="btn btn-outline-secondary" href="jury/anticheat?SubmissionId=@_submission.Id">@SiteResources.StaffAnalyzeSubmission</a>
-            <a class="btn btn-outline-secondary" href="jury/trial-run?Submission=@_submission.Id">@SiteResources.StaffRunCode</a>
+            <a class="btn btn-secondary" href="jury/anticheat?SubmissionId=@_submission.Id">@SiteResources.StaffAnalyzeSubmission</a>
+            <a class="btn btn-secondary" href="jury/trial-run?Submission=@_submission.Id">@SiteResources.StaffRunCode</a>
             @if (StaffVerdicts.HasTest(_submission.StatusCode) && _testIds.TryGetValue(CheckStatusCodes.TestNumber(_submission.StatusCode), out int failedTest))
-            { <a class="btn btn-outline-secondary" href="jury/trial-run?Submission=@_submission.Id&Test=@failedTest">@SiteResources.StaffRunFailedTest</a> }
+            { <a class="btn btn-secondary" href="jury/trial-run?Submission=@_submission.Id&Test=@failedTest">@SiteResources.StaffRunFailedTest</a> }
         </div>
     </StaffActions>
     <section class="card mb-3" aria-label="@SiteResources.StaffSubmissionOverview">

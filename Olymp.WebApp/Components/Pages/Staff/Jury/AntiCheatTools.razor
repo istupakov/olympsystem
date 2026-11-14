@@ -87,7 +87,7 @@
             @if (_problems.Count > 1)
             {
                 <details class="card mb-3"><summary class="card-header">@SiteResources.StaffExcludeProblems (@(_problems.Count - _problems.Count(item => _excluded.Contains(item.Id)))/@_problems.Count)</summary><div class="card-body">
-                    <button type="button" class="btn btn-sm btn-outline-secondary mb-2" @onclick="() => _excluded.Clear()">@SiteResources.StaffAll</button>
+                    <button type="button" class="btn btn-sm btn-secondary mb-2" @onclick="() => _excluded.Clear()">@SiteResources.StaffAll</button>
                     @foreach (var problem in _problems)
                     { <div class="form-check"><input type="checkbox" id="analysis-problem-@problem.Id" class="form-check-input" checked="@(!_excluded.Contains(problem.Id))" @onchange="args => ToggleProblem(problem.Id, args.Value is true)" /><label for="analysis-problem-@problem.Id" class="form-check-label">@problem.Contest.Name · @StaffEntityLabel.Format(problem.Id, problem.NameWithNumber)</label></div> }
                 </div></details>

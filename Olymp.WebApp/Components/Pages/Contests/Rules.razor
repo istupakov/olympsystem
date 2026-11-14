@@ -25,7 +25,7 @@
         }
     </p>
 
-    @if (!isParticipant && DateTimeOffset.Now < contest.EndTime)
+    @if (!isParticipant)
     {
         <h2 class="h4">@(isRussian ? "Вход для участия" : "Signing In to Participate")</h2>
 

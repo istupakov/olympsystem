@@ -65,11 +65,11 @@ else
     {
         <StaffActions Title="@SiteResources.StaffParticipantOperations">
             <fieldset disabled="@_busy" class="d-flex flex-wrap gap-2">
-                @if (_admin && !Editing) { <a class="btn btn-outline-primary" href="@ModeUrl(true)">@SiteResources.StaffEdit</a> }
+                @if (_admin && !Editing) { <a class="btn btn-secondary" href="@ModeUrl(true)">@SiteResources.StaffEdit</a> }
                 @if (_canManage)
                 {
-                    <button class="btn btn-outline-primary" @onclick="() => Ask(_participant.IsApproved ? ParticipantAction.Disapprove : ParticipantAction.Approve)">@(_participant.IsApproved ? SiteResources.StaffDisapprove : SiteResources.StaffApprove)</button>
-                    <button class="btn btn-outline-primary" @onclick="() => Ask(_participant.IsOutOfCompetition ? ParticipantAction.Official : ParticipantAction.Unofficial)">@(_participant.IsOutOfCompetition ? SiteResources.StaffMakeOfficial : SiteResources.StaffMakeUnofficial)</button>
+                    <button class="btn btn-secondary" @onclick="() => Ask(_participant.IsApproved ? ParticipantAction.Disapprove : ParticipantAction.Approve)">@(_participant.IsApproved ? SiteResources.StaffDisapprove : SiteResources.StaffApprove)</button>
+                    <button class="btn btn-secondary" @onclick="() => Ask(_participant.IsOutOfCompetition ? ParticipantAction.Official : ParticipantAction.Unofficial)">@(_participant.IsOutOfCompetition ? SiteResources.StaffMakeOfficial : SiteResources.StaffMakeUnofficial)</button>
                     <button class="btn btn-outline-warning" @onclick="() => Ask(_participant.IsDisqualified ? ParticipantAction.Restore : ParticipantAction.Disqualify)">@(_participant.IsDisqualified ? SiteResources.StaffRestoreParticipant : SiteResources.StaffDisqualify)</button>
                     <button class="btn btn-outline-danger" disabled="@(_submissionCount > 0 || _messageCount > 0)" @onclick="() => Ask(ParticipantAction.Delete)">@SiteResources.StaffDelete</button>
                 }
@@ -117,10 +117,10 @@ else
                     <label for="participant-name" class="form-label">@SiteResources.StaffName</label>
                     <div class="input-group mb-4">
                         <input id="participant-name" class="form-control" @bind="_participantName" />
-                        <button class="btn btn-outline-primary" @onclick="RenameParticipantAsync">@SiteResources.StaffSave</button>
+                        <button class="btn btn-primary" @onclick="RenameParticipantAsync">@SiteResources.StaffSave</button>
                     </div>
                     <PermanentAccountPicker Label="@SiteResources.StaffCoach" @bind-Value="_coachId" Disabled="_busy" />
-                    <button class="btn btn-outline-primary mb-4" @onclick="SaveCoachAsync">@SiteResources.StaffSaveCoach</button>
+                    <button class="btn btn-primary mb-4" @onclick="SaveCoachAsync">@SiteResources.StaffSaveCoach</button>
                 </fieldset>
             </div>
         </section>
@@ -157,7 +157,7 @@ else
                             @if (roster[index].user is null) { <option value="@index">@roster[index].name</option> }
                         }
                     </select>
-                    <button class="btn btn-outline-primary mb-3" disabled="@(!_memberId.HasValue)" @onclick="AddMemberAsync">@SiteResources.StaffAddLinkedAccount</button>
+                    <button class="btn btn-secondary mb-3" disabled="@(!_memberId.HasValue)" @onclick="AddMemberAsync">@SiteResources.StaffAddLinkedAccount</button>
 
                     @if (_removeMemberId is int removeId)
                     {

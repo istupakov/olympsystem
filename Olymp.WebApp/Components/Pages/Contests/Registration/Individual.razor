@@ -23,6 +23,10 @@
 {
     <PageTitle>@string.Format(SiteResources.RegistrationForContest, contest.Name)</PageTitle>
     <ContestHeader Contest="contest" ActiveSection="registration" />
+    @if (IsClosed)
+    {
+        <p class="alert alert-info" role="status">@SiteResources.RegistrationClosed</p>
+    }
 
     @if (error is not null)
     {
@@ -37,7 +41,7 @@
             <CompetitorBadges User="participant" />
         </div>
     }
-    else if (missingFields.Count == 0)
+    else if (!IsClosed && missingFields.Count == 0)
     {
         <div class="form-floating mb-3">
             <input id="participant-name" class="form-control" value="@CompetitorManagementService.GetParticipantName(user)" placeholder="@SiteResources.Competitor" disabled />
@@ -72,7 +76,7 @@
             </form>
         }
     }
-    else
+    else if (!IsClosed)
     {
         @if (missingFields.Count > 0)
         {
@@ -131,13 +135,14 @@
     private string? error;
 
     private bool HasGroup => !string.IsNullOrWhiteSpace(user?.Details);
+    private bool IsClosed => contest is not null && Clock.GetUtcNow() >= contest.EndTime;
 
     protected override async Task OnParametersSetAsync()
     {
         Input ??= new();
         contest = await Context.Contests.AsNoTracking()
             .SingleOrDefaultAsync(item => item.Id == Id && !item.IsHidden, HttpContext.RequestAborted);
-        if (contest is null || contest.IsAcm || Clock.GetUtcNow() >= contest.EndTime)
+        if (contest is null || contest.IsAcm)
         {
             contest = null;
             Navigation.NotFound();
@@ -149,7 +154,7 @@
             .SingleAsync(item => item.Id == userId, HttpContext.RequestAborted);
         participant = await Context.Competitors.AsNoTracking().Include(item => item.Contest).Include(item => item.Members)
             .SingleOrDefaultAsync(item => item.ContestId == Id && item.Members.Any(member => member.Id == userId), HttpContext.RequestAborted);
-        canCancel = participant is not null
+        canCancel = !IsClosed && participant is not null
             && (await Authorization.AuthorizeAsync(HttpContext.User, participant, PolicyNames.CancelRegistration)).Succeeded;
 
         missingFields.Clear();
@@ -166,7 +171,7 @@
 
     private async Task RegisterAsync()
     {
-        if (contest is null || user is null)
+        if (contest is null || user is null || IsClosed)
             return;
         if (missingFields.Count > 0)
         {
@@ -194,7 +199,7 @@
 
     private async Task CancelAsync()
     {
-        if (contest is null || participant is null)
+        if (contest is null || participant is null || IsClosed)
             return;
         try
         {

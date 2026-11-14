@@ -19,6 +19,29 @@ namespace Olymp.IntegrationTests.Services.Contests;
 public class CompetitorRegistrationTests(ContestServiceFixture site) : IClassFixture<ContestServiceFixture>
 {
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task RegistrationIsRejectedAtTheExactEndTime(bool team)
+    {
+        var token = TestContext.Current.CancellationToken;
+        var (user, contest, orgId) = await SetupAsync();
+        if (team)
+        {
+            using var setup = site.Services.CreateScope();
+            await setup.ServiceProvider.GetRequiredService<OlympContext>().Contests.Where(item => item.Id == contest.Id)
+                .ExecuteUpdateAsync(update => update.SetProperty(item => item.Abbr, "acm-boundary"), token);
+        }
+        using var host = site.WithWebHostBuilder(builder => builder.ConfigureServices(services =>
+            services.AddSingleton<TimeProvider>(new ManualTimeProvider(contest.EndTime))));
+        using var scope = host.Services.CreateScope();
+        var service = scope.ServiceProvider.GetRequiredService<CompetitorManagementService>();
+        await Assert.ThrowsAsync<OperationValidationException>(() => team
+            ? service.RegisterTeamAsync(contest.Id, orgId, user.Id, "Team", ["One", "Two", "Three"], token)
+            : service.RegisterIndividualAsync(contest.Id, user.Id, false, token));
+        Assert.False(await scope.ServiceProvider.GetRequiredService<OlympContext>().Competitors.AnyAsync(item => item.ContestId == contest.Id, token));
+    }
+
+    [Theory]
     [InlineData("hidden")]
     [InlineData("team")]
     [InlineData("ended")]

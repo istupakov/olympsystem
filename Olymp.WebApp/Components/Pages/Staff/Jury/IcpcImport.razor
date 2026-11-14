@@ -55,7 +55,7 @@
             <p class="form-text">@SiteResources.IcpcCatalogHint</p>
             @if (_catalogFailed)
             {
-                <button type="button" class="btn btn-outline-secondary btn-sm mb-3" @onclick="() => LoadRegionsAsync(true)">@SiteResources.IcpcReloadCatalog</button>
+                <button type="button" class="btn btn-secondary btn-sm mb-3" @onclick="() => LoadRegionsAsync(true)">@SiteResources.IcpcReloadCatalog</button>
             }
             @if (_catalogBusy) { <p role="status">@SiteResources.StaffLoading</p> }
             <div class="row g-3">
@@ -82,8 +82,8 @@
         </div>
         <fieldset disabled="@_busy">
             <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
-                <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="() => SelectTeams(false)">@SiteResources.IcpcSelectAll</button>
-                <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="() => SelectTeams(true)">@SiteResources.IcpcSelectWithoutRemarks</button>
+                <button type="button" class="btn btn-secondary btn-sm" @onclick="() => SelectTeams(false)">@SiteResources.IcpcSelectAll</button>
+                <button type="button" class="btn btn-secondary btn-sm" @onclick="() => SelectTeams(true)">@SiteResources.IcpcSelectWithoutRemarks</button>
                 <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="ClearSelection">@SiteResources.IcpcClearSelection</button>
                 <span role="status">@string.Format(SiteResources.IcpcSelectedCount, SelectedRows.Count, VisibleRows.Count)</span>
             </div>

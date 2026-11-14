@@ -16,6 +16,7 @@ using Olymp.IntegrationTests.Shared;
 using Olymp.IntegrationTests.WebApp.Shared;
 using Olymp.Tests.Shared;
 using Olymp.WebApp;
+using Olymp.WebApp.Resources;
 using Olymp.WebApp.Services;
 using Olymp.WebApp.Services.Contests;
 
@@ -787,8 +788,46 @@ public class TeamRegistrationTests(WebAppFactory factory) : IClassFixture<WebApp
         foreach (string path in new[] { ListPath(contest.Id), CreatePath(contest.Id, organization.Id) })
         {
             using var response = await client.GetAsync(path, TestContext.Current.CancellationToken);
-            Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+            var expected = reason != "ended" ? HttpStatusCode.NotFound
+                : path == ListPath(contest.Id) ? HttpStatusCode.OK : HttpStatusCode.Forbidden;
+            Assert.Equal(expected, response.StatusCode);
+            if (expected == HttpStatusCode.OK)
+            {
+                using var closed = await new HtmlParser().ParseDocumentAsync(await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
+                Assert.Contains(SiteResources.RegistrationClosed, closed.QuerySelector("main")!.TextContent);
+                Assert.Empty(closed.QuerySelectorAll("main button"));
+                Assert.DoesNotContain(closed.QuerySelectorAll("main a.btn"), link => link.GetAttribute("href")!.Contains("/teams/create", StringComparison.Ordinal));
+            }
         }
+    }
+
+    [Fact]
+    public async Task FinishedContestKeepsTeamsReadableAndRejectsCancellationFromAnOldForm()
+    {
+        var token = TestContext.Current.CancellationToken;
+        var (contest, organization, coach) = await SetupAsync();
+        using (var setup = factory.Services.CreateScope())
+            await setup.ServiceProvider.GetRequiredService<CompetitorManagementService>().RegisterTeamAsync(
+                contest.Id, organization.Id, coach.Id, "Read-only team", ["One", "Two", "Three"], token);
+        using var client = await factory.LoginAsync(coach.UserName!);
+        using var page = await client.GetAsync(ListPath(contest.Id), token);
+        using var document = await new HtmlParser().ParseDocumentAsync(await page.Content.ReadAsStringAsync(token));
+        var form = document.QuerySelector("form:has(button[name='CancelTeamId'])")!;
+        var fields = ReadFormFields(form);
+        string teamId = form.QuerySelector("button[name='CancelTeamId']")!.GetAttribute("value")!;
+        fields["CancelTeamId"] = teamId;
+        using (var setup = factory.Services.CreateScope())
+            await setup.ServiceProvider.GetRequiredService<OlympContext>().Contests.Where(item => item.Id == contest.Id)
+                .ExecuteUpdateAsync(update => update.SetProperty(item => item.EndTime, DateTimeOffset.UtcNow.AddHours(-1)), token);
+        using var response = await client.GetAsync(ListPath(contest.Id), token);
+        response.EnsureSuccessStatusCode();
+        using var closed = await new HtmlParser().ParseDocumentAsync(await response.Content.ReadAsStringAsync(token));
+        Assert.Contains("Read-only team", closed.QuerySelector("tbody")!.TextContent);
+        Assert.Empty(closed.QuerySelectorAll("main button"));
+        using var posted = await client.PostAsync(ListPath(contest.Id), new FormUrlEncodedContent(fields), token);
+        Assert.NotEqual(HttpStatusCode.Redirect, posted.StatusCode);
+        using var check = factory.Services.CreateScope();
+        Assert.True(await check.ServiceProvider.GetRequiredService<OlympContext>().Competitors.AnyAsync(item => item.Id == int.Parse(teamId), token));
     }
 
     [Theory]

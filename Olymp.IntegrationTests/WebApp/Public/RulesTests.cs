@@ -59,11 +59,11 @@ public class RulesTests(WebAppFactory factory) : IClassFixture<WebAppFactory>
         Assert.Equal(scoring, text.Contains("60 + 2 × 20", StringComparison.Ordinal));
         Assert.DoesNotContain("Runtime error", text);
         Assert.NotNull(document.QuerySelector("a[href='rules']"));
-        Assert.Equal(!ended, text.Contains(culture == "ru" ? "Вход для участия" : "Signing In to Participate", StringComparison.Ordinal));
-        Assert.Equal(!ended && team, document.QuerySelector($"main a[href='contests/{contest.Id}/registration/teams']") is not null);
-        Assert.Equal(!ended && !team, document.QuerySelector($"main a[href='contests/{contest.Id}/registration']") is not null);
-        Assert.Equal(!ended && team, text.Contains(culture == "ru" ? "под аккаунтом команды" : "with the team account", StringComparison.Ordinal));
-        Assert.Equal(!ended && !team, text.Contains(culture == "ru" ? "При участии вне конкурса" : "For out-of-competition participation", StringComparison.Ordinal));
+        Assert.Contains(culture == "ru" ? "Вход для участия" : "Signing In to Participate", text);
+        Assert.Equal(team, document.QuerySelector($"main a[href='contests/{contest.Id}/registration/teams']") is not null);
+        Assert.Equal(!team, document.QuerySelector($"main a[href='contests/{contest.Id}/registration']") is not null);
+        Assert.Equal(team, text.Contains(culture == "ru" ? "под аккаунтом команды" : "with the team account", StringComparison.Ordinal));
+        Assert.Equal(!team, text.Contains(culture == "ru" ? "При участии вне конкурса" : "For out-of-competition participation", StringComparison.Ordinal));
     }
 
     [Theory]

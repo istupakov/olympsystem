@@ -43,10 +43,10 @@ else
             {
                 <StaffActions Title="@SiteResources.StaffProblemOperations">
                     <div class="d-flex flex-wrap gap-2">
-                        <button class="btn btn-outline-secondary" disabled="@_activityBusy" @onclick="() => _confirmActivity = !_confirmActivity">@(_selected.IsActive ? SiteResources.StaffDisable : SiteResources.StaffEnable)</button>
+                        <button class="btn btn-secondary" disabled="@_activityBusy" @onclick="() => _confirmActivity = !_confirmActivity">@(_selected.IsActive ? SiteResources.StaffDisable : SiteResources.StaffEnable)</button>
                         @if (_admin)
                         {
-                            <a class="btn btn-outline-secondary" href="jury/contests/@ContestId/submissions?Problem=@_selected.Id&Retest=true">@SiteResources.StaffRetestFiltered</a>
+                            <a class="btn btn-secondary" href="jury/contests/@ContestId/submissions?Problem=@_selected.Id&Retest=true">@SiteResources.StaffRetestFiltered</a>
                         }
                     </div>
                     @if (_activityError is not null) { <p class="text-danger mt-2" role="alert">@_activityError</p> }
@@ -90,7 +90,7 @@ else
             <section id="submissions" class="mt-4" aria-labelledby="problem-submissions-heading">
                 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
                     <h2 id="problem-submissions-heading" class="h4 mb-0">@SiteResources.Submissions</h2>
-                    <a class="btn btn-sm btn-outline-secondary" href="@SubmissionsUrl(CurrentScope, CurrentPage)">@SiteResources.Refresh</a>
+                    <a class="btn btn-sm btn-secondary" href="@SubmissionsUrl(CurrentScope, CurrentPage)">@SiteResources.Refresh</a>
                 </div>
                 <nav aria-label="@SiteResources.StaffSubmissionAuthors" class="mb-3">
                     <ul class="nav nav-underline">

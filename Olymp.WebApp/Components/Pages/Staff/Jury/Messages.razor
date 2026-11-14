@@ -22,7 +22,7 @@ else
     <StaffContestNavigation ContestId="ContestId" ContestName="@_contest.Name" IsHidden="_contest.IsHidden" />
     <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
         <h1 class="h3 mb-0">@SiteResources.StaffMessages</h1>
-        <button type="button" class="btn btn-outline-secondary" @ref="_soundButton"
+        <button type="button" class="btn btn-secondary" @ref="_soundButton"
                 data-enable-label="@SiteResources.StaffEnableSound" data-disable-label="@SiteResources.StaffDisableSound"
                 data-error-label="@SiteResources.StaffSoundUnavailable" aria-pressed="false">@SiteResources.StaffEnableSound</button>
     </div>
@@ -71,10 +71,10 @@ else
         <div class="col-12 d-flex flex-wrap gap-2">
             <button class="btn btn-primary">@SiteResources.StaffFind</button>
             <a class="btn btn-outline-secondary" href="@TabUrl(Announcements)">@SiteResources.StaffReset</a>
-            <button type="button" class="btn btn-outline-secondary" @onclick="RefreshAsync">@SiteResources.Refresh</button>
+            <button type="button" class="btn btn-secondary" @onclick="RefreshAsync">@SiteResources.Refresh</button>
             @if (Announcements && _canManage)
             {
-                <button type="button" class="btn btn-outline-primary" @onclick="NewAnnouncement">@SiteResources.StaffNewAnnouncement</button>
+                <button type="button" class="btn btn-secondary" @onclick="NewAnnouncement">@SiteResources.StaffNewAnnouncement</button>
             }
         </div>
     </EditForm>
@@ -120,7 +120,7 @@ else
                         <p class="form-text">@SiteResources.HtmlSupported</p>
                         <div class="d-flex flex-wrap gap-2">
                             <button class="btn btn-primary">@SiteResources.StaffSave</button>
-                            <button type="button" class="btn btn-outline-secondary" @onclick="() => _preview = !_preview">@SiteResources.StaffPreview</button>
+                            <button type="button" class="btn btn-secondary" @onclick="() => _preview = !_preview">@SiteResources.StaffPreview</button>
                             <button type="button" class="btn btn-outline-secondary" @onclick="() => _editing = false">@SiteResources.StaffCancel</button>
                         </div>
                     </fieldset>
@@ -176,7 +176,7 @@ else
                 @if (_canManage)
                 {
                     <div class="d-flex flex-wrap gap-2 mt-3">
-                        <button class="btn btn-sm btn-outline-primary" @onclick="() => Edit(message)">@(message.UserId is null || !string.IsNullOrWhiteSpace(message.JuryText) ? SiteResources.StaffEdit : SiteResources.StaffReply)</button>
+                        <button class="btn btn-sm btn-secondary" @onclick="() => Edit(message)">@(message.UserId is null || !string.IsNullOrWhiteSpace(message.JuryText) ? SiteResources.StaffEdit : SiteResources.StaffReply)</button>
                         @if (message.UserId is null || !string.IsNullOrWhiteSpace(message.JuryText))
                         {
                             <button class="btn btn-sm btn-outline-danger" @onclick="() => _pending = message">@(message.UserId is null ? SiteResources.StaffDeleteMessage : SiteResources.StaffClearReply)</button>

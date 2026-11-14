@@ -61,7 +61,7 @@
   <data name="StandingView" xml:space="preserve"><value>Вид таблицы результатов</value></data>
   <data name="FullStanding" xml:space="preserve"><value>Полная таблица</value></data>
   <data name="OfficialStanding" xml:space="preserve"><value>Официальная таблица</value></data>
-  <data name="OfficialStandingDescription" xml:space="preserve"><value>Без внеконкурсных, дисквалифицированных и участников вне регистрации.</value></data>
+  <data name="OfficialStandingDescription" xml:space="preserve"><value>Без внеконкурсных и дисквалифицированных участников.</value></data>
   <data name="TimeLeft" xml:space="preserve"><value>осталось {0}</value></data>
   <data name="ContestOver" xml:space="preserve"><value>соревнование закончено</value></data>
   <data name="StandingTimeFormat" xml:space="preserve"><value>HH:mm z</value></data>
@@ -677,4 +677,8 @@
   <data name="StaffRunTimeNumber" xml:space="preserve"><value>Введите ограничение времени числом.</value></data>
   <data name="StaffRunTestNotFound" xml:space="preserve"><value>Выбранный тест не найден или принадлежит другой задаче. Выберите тест или перейдите к запуску всех активных тестов.</value></data>
   <data name="StaffSubmissionIdNumber" xml:space="preserve"><value>Введите ID посылки целым числом.</value></data>
+  <data name="StandingResultsLabel" xml:space="preserve"><value>Таблица результатов</value></data>
+  <data name="FullStandingShort" xml:space="preserve"><value>Полная</value></data>
+  <data name="OfficialStandingShort" xml:space="preserve"><value>Официальная</value></data>
+  <data name="StaffJavaScriptRequired" xml:space="preserve"><value>Для работы раздела требуется JavaScript. Включите его в настройках браузера и обновите страницу.</value></data>
 </root>
