@@ -36,6 +36,7 @@ else
                 <a href="jury/contests/@ContestId/submissions?Problem=@_selected.Id">@SiteResources.Submissions</a>
                 <a href="jury/contests/@ContestId/messages?Problem=@_selected.Id">@SiteResources.StaffQuestions</a>
                 <a href="jury/problems/@_selected.Id/tests">@SiteResources.StaffTests</a>
+                <a href="jury/trial-run?Problem=@_selected.Id">@SiteResources.StaffRunCode</a>
                 <a href="@ProblemUrl(_selected.Id)#submit-heading">@SiteResources.JumpToSubmission</a>
             </div>
             @if (_canManage)

@@ -106,6 +106,7 @@ else
             <button class="btn btn-primary">@SiteResources.StaffFind</button>
             <a class="btn btn-outline-secondary" href="@BaseUrl">@SiteResources.StaffReset</a>
             <button type="button" class="btn btn-outline-secondary" @onclick="RefreshGrid">@SiteResources.Refresh</button>
+            <a class="btn btn-outline-secondary" href="@($"jury/anticheat?Selection={Uri.EscapeDataString(new Uri(Navigation.Uri).PathAndQuery)}")">@SiteResources.StaffAnalyzeSelection</a>
         </div>
     </EditForm>
     <div class="d-flex flex-wrap gap-2 mb-3">
@@ -174,8 +175,7 @@ else
             </TemplateColumn>
             <TemplateColumn Title="@SiteResources.Compiler" SortBy="_compilerSort" Sortable="true" Context="item">
                 <QuickFilter Url="@StaffFilterUrl.Set(Navigation.Uri, nameof(Compiler), item.CompilerId)" Label="@SiteResources.Compiler" Value="@item.Compiler">
-                    @if (_canRetest) { <a href="@GridState.DetailUrl(Navigation.Uri, $"admin/compilers/{item.CompilerId}", item.Id)">@item.Compiler</a> }
-                    else { @item.Compiler }
+                    <a href="@GridState.DetailUrl(Navigation.Uri, $"jury/compilers/{item.CompilerId}", item.Id)">@item.Compiler</a>
                 </QuickFilter>
             </TemplateColumn>
             <TemplateColumn Title="@SiteResources.SubmissionStatus" Context="item">
@@ -295,63 +295,8 @@ else
         _loaded = true;
     }
 
-    private IQueryable<Submission> FilteredQuery(OlympContext db)
-    {
-        if (From > To)
-            throw new ArgumentException();
-        var query = db.Submissions.AsNoTracking()
-            .Where(item => EffectiveContest == null || item.Problem.ContestId == EffectiveContest);
-        if (AuthorId is int authorId)
-            query = query.Where(item => item.UserId == authorId);
-        if (AuthorId is null && !string.IsNullOrWhiteSpace(Author))
-            query = query.Where(item => item.User.Name.Contains(Author) || (item.User.UserName != null && item.User.UserName.Contains(Author)));
-        if (Problem is int problem)
-            query = query.Where(item => item.ProblemId == problem);
-        if (Problem is null && !string.IsNullOrWhiteSpace(ProblemSearch))
-        {
-            string search = ProblemSearch.Trim();
-            query = query.Where(item => item.Problem.Name.Contains(search));
-        }
-        if (Compiler is int compiler)
-            query = query.Where(item => item.CompilatorId == compiler);
-        if (!string.IsNullOrWhiteSpace(Language))
-            query = query.Where(item => item.Compilator.Language == Language);
-        if (!string.IsNullOrWhiteSpace(IpAddress))
-        {
-            string address = IpAddress.Trim();
-            query = query.Where(item => item.CommiterInfo == address);
-        }
-        query = query.ForAuthors(EffectiveScope, _userId, db, EffectiveContest);
-    if (StatusCode is int exactStatus)
-        query = query.Where(item => item.StatusCode == exactStatus);
-    query = (StatusCode is null ? Status : null) switch {
-        "accepted" => query.Where(item => item.StatusCode == 2),
-        "compilation" => query.Where(item => item.StatusCode == -1),
-        "wrong-answer" => query.Where(item => item.StatusCode < -1000 && item.StatusCode > -2000),
-        "time-limit" => query.Where(item => item.StatusCode < -2000 && item.StatusCode > -3000),
-        "runtime-error" => query.Where(item => item.StatusCode < -3000 && item.StatusCode > -4000),
-        "presentation-error" => query.Where(item => item.StatusCode < -4000 && item.StatusCode > -5000),
-        "idleness-limit" => query.Where(item => item.StatusCode < -5000 && item.StatusCode > -6000),
-        "memory-limit" => query.Where(item => item.StatusCode < -6000 && item.StatusCode > -7000),
-        "internal-error" => query.Where(item => item.StatusCode != 0 && item.StatusCode != 1 && item.StatusCode != 2 && item.StatusCode != -1
-            && !(item.StatusCode < -1000 && item.StatusCode > -2000)
-            && !(item.StatusCode < -2000 && item.StatusCode > -3000)
-            && !(item.StatusCode < -3000 && item.StatusCode > -4000)
-            && !(item.StatusCode < -4000 && item.StatusCode > -5000)
-            && !(item.StatusCode < -5000 && item.StatusCode > -6000)
-            && !(item.StatusCode < -6000 && item.StatusCode > -7000)),
-        "queued" => query.Where(item => item.StatusCode == 0),
-        "checking" => query.Where(item => item.StatusCode == 1),
-        "pending" => query.Where(item => item.StatusCode == 0 || item.StatusCode == 1),
-        "rejected" => query.Where(item => item.StatusCode != 0 && item.StatusCode != 1 && item.StatusCode != 2),
-        _ => query
-    };
-        if (From is DateTime from)
-            query = query.Where(item => item.CommitTime >= new DateTimeOffset(from));
-        if (To is DateTime to)
-            query = query.Where(item => item.CommitTime <= new DateTimeOffset(to));
-        return query;
-    }
+    private IQueryable<Submission> FilteredQuery(OlympContext db) => new StaffSubmissionFilter(EffectiveContest, AuthorId, Author,
+        Problem, ProblemSearch, Compiler, Language, IpAddress, EffectiveScope, StatusCode, Status, From, To).Apply(db, _userId);
 
     private void RefreshGrid()
     {

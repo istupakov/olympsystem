@@ -16,9 +16,7 @@ public interface ICheckerManager
     void Unregister(IRunnerService runner);
     Task<IDisposable> EnterAsync(CancellationToken token = default);
     Task<bool> TryCheckFromDB(ICheckerService checker, CancellationToken token);
-    Task<int> AddCompilators(Guid checkerId, CancellationToken token);
-    Task<int> DisableCompilatorsWithoutRunner(CancellationToken token);
-    Task<int> AddCompilatorAsync(Guid runnerId, string name, string description, CancellationToken token = default);
+    Task<int> AddCompilatorAsync(Guid runnerId, string name, string description, CompilerConfigurationKey? expected = null, CancellationToken token = default);
     Task SetCompilatorActiveAsync(int id, bool active, CancellationToken token = default);
     Task<int?> QueueRetestAsync(IQueryable<Submission> selection, IReadOnlyCollection<int> confirmedAccepted, CancellationToken token = default);
 }
@@ -46,76 +44,22 @@ public sealed class CheckerManager(IServiceProvider provider, IDbContextFactory<
     public void Register(IRunnerService runner, CancellationToken token)
     {
         var checker = ActivatorUtilities.CreateInstance<CheckerService>(provider, runner);
-        if (!_checkers.TryAdd(runner.Id, checker))
-            throw new InvalidOperationException($"Runner {runner.Id} already registered");
+        Register(checker, token);
+    }
 
-        logger.LogInformation("Registered runner {id}: {name}", runner.Id, runner.Name);
-        Task.Run(() => Process(checker, token), token);
+    internal void Register(ICheckerService checker, CancellationToken token)
+    {
+        if (!_checkers.TryAdd(checker.Id, checker))
+            throw new InvalidOperationException($"Runner {checker.Id} already registered");
+
+        logger.LogInformation("Registered runner {id}: {name}", checker.Id, checker.Name);
+        _ = Task.Run(() => Process(checker, token), token);
     }
 
     public void Unregister(IRunnerService runner)
     {
         logger.LogInformation("Unregistered runner {id}: {name}", runner.Id, runner.Name);
         _checkers.TryRemove(runner.Id, out _);
-    }
-
-    public async Task<int> AddCompilators(Guid checkerId, CancellationToken token)
-    {
-        await _synchronizationSemaphore.WaitAsync(token);
-        try
-        {
-            if (!_checkers.TryGetValue(checkerId, out var checker))
-                throw new InvalidOperationException("The selected runner is no longer connected.");
-            if (checker.SelfTestingStatus != CheckerSelfTestingStatus.Success)
-                throw new InvalidOperationException("The selected runner has not passed self-testing.");
-
-            await using var context = await contextFactory.CreateDbContextAsync(token);
-            var records = await context.Compilators.AsTracking().ToListAsync(token);
-            foreach (var info in checker.Compilators!)
-            {
-                var configuration = info.Configuration;
-                var record = records.SingleOrDefault(x => x.Name == configuration.Name && x.Description == info.DisplayName);
-                if (record is null)
-                {
-                    record = CreateCompilator(info);
-                    context.Compilators.Add(record);
-                }
-
-                record.IsActive = true;
-            }
-
-            return await context.SaveChangesAsync(token);
-        }
-        finally
-        {
-            _synchronizationSemaphore.Release();
-        }
-    }
-
-    public async Task<int> DisableCompilatorsWithoutRunner(CancellationToken token)
-    {
-        await _synchronizationSemaphore.WaitAsync(token);
-        try
-        {
-            var checkers = _checkers.Values.Select(x => (x.SelfTestingStatus, x.Compilators)).ToArray();
-            if (checkers.Any(x => x.SelfTestingStatus is CheckerSelfTestingStatus.Unknown or CheckerSelfTestingStatus.InProcess))
-                throw new InvalidOperationException("Wait for runner self-testing to finish.");
-
-            var available = checkers.Where(x => x.SelfTestingStatus == CheckerSelfTestingStatus.Success)
-                .SelectMany(x => x.Compilators!)
-                .Select(x => (x.Configuration.Name, x.DisplayName)).ToHashSet();
-            await using var context = await contextFactory.CreateDbContextAsync(token);
-            var records = await context.Compilators.AsTracking().Where(x => x.IsActive).ToListAsync(token);
-            foreach (var record in records)
-                if (record.Description is null || !available.Contains((record.Name, record.Description)))
-                    record.IsActive = false;
-
-            return await context.SaveChangesAsync(token);
-        }
-        finally
-        {
-            _synchronizationSemaphore.Release();
-        }
     }
 
     private static Compilator CreateCompilator(CompilatorInfo info) => new()
@@ -129,7 +73,7 @@ public sealed class CheckerManager(IServiceProvider provider, IDbContextFactory<
         Submissions = []
     };
 
-    public async Task<int> AddCompilatorAsync(Guid runnerId, string name, string description, CancellationToken token = default)
+    public async Task<int> AddCompilatorAsync(Guid runnerId, string name, string description, CompilerConfigurationKey? expected = null, CancellationToken token = default)
     {
         using var gate = await EnterAsync(token);
         if (!_checkers.TryGetValue(runnerId, out var runner) || runner.SelfTestingStatus != CheckerSelfTestingStatus.Success)
@@ -137,10 +81,15 @@ public sealed class CheckerManager(IServiceProvider provider, IDbContextFactory<
         var info = runner.Compilators?.SingleOrDefault(item => item.Configuration.Name == name
             && item.DisplayName == description && item.Error is null)
             ?? throw new InvalidOperationException("The selected compilator is unavailable on this runner.");
+        if (expected is not null && expected != CompilerConfigurationKey.From(info))
+            throw new InvalidOperationException("The selected configuration has changed. Refresh the preview.");
+
         await using var db = await contextFactory.CreateDbContextAsync(token);
-        var existing = await db.Compilators.SingleOrDefaultAsync(item => item.Name == name && item.Description == description, token);
+        var candidates = await db.Compilators.Where(item => item.Name == name).ToListAsync(token);
+        var existing = candidates.FirstOrDefault(item => CompilerMatching.Matches(item, info));
         if (existing is not null)
             return existing.Id;
+
         var compiler = CreateCompilator(info);
         db.Compilators.Add(compiler);
         await db.SaveChangesAsync(token);
@@ -172,12 +121,12 @@ public sealed class CheckerManager(IServiceProvider provider, IDbContextFactory<
     {
         await using var context = await contextFactory.CreateDbContextAsync(token);
 
-        var available = checker.Compilators!.Where(x => x.Error is null)
-            .Select(x => (x.Configuration.Name, x.DisplayName)).ToHashSet();
+        var available = checker.Compilators!
+            .Where(x => x.Error is null).Select(CompilerConfigurationKey.From).ToHashSet();
         var records = await context.Compilators.Where(x => x.IsActive)
-            .Select(x => new { x.Id, x.Name, x.Description }).ToListAsync(token);
+            .AsNoTracking().ToListAsync(token);
         var compilatorIds = records
-            .Where(x => x.Description is not null && available.Contains((x.Name, x.Description)))
+            .Where(x => available.Contains(CompilerConfigurationKey.From(x)))
             .Select(x => x.Id).ToArray();
         if (compilatorIds.Length == 0)
             return false;
@@ -266,8 +215,7 @@ public sealed class CheckerManager(IServiceProvider provider, IDbContextFactory<
 
     private static CheckRequest CreateCheckRequest(Submission submission, ICheckerService checker)
     {
-        var compilator = checker.Compilators!.SingleOrDefault(x => x.Configuration.Name == submission.Compilator.Name
-            && x.DisplayName == submission.Compilator.Description)
+        var compilator = checker.Compilators!.SingleOrDefault(x => CompilerMatching.Matches(submission.Compilator, x))
             ?? throw new NotSupportedException($"Compilator {submission.Compilator.Id} ({submission.Compilator.Name}) has no matching configuration on runner {checker.Id}");
         var problem = submission.Problem;
         var timeLimit = TimeSpan.FromSeconds(compilator.Configuration.UseSlowTimeLimit
@@ -278,13 +226,12 @@ public sealed class CheckerManager(IServiceProvider provider, IDbContextFactory<
             timeLimit, problem.MemoryLimit, problem.Contest.IsSchool);
     }
 
-    private async Task Process(CheckerService checker, CancellationToken token)
+    private async Task Process(ICheckerService checker, CancellationToken token)
     {
         while (!token.IsCancellationRequested)
         {
             try
             {
-                await checker.LoadCompilators(token);
                 if (!await checker.RunSelfTests(token))
                 {
                     logger.LogWarning("Checker {id} self tests failed", checker.Id);
@@ -300,6 +247,7 @@ public sealed class CheckerManager(IServiceProvider provider, IDbContextFactory<
                     await Task.Delay(TimeSpan.FromSeconds(5), token);
                 }
             }
+            catch (OperationCanceledException) when (token.IsCancellationRequested) { return; }
             catch (Exception ex)
             {
                 logger.LogError(ex, "Error in checker {id}", checker.Id);

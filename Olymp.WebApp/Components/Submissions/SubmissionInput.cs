@@ -10,9 +10,7 @@ public sealed class SubmissionInput
     [Display(Name = nameof(SiteResources.Compiler), ResourceType = typeof(SiteResources))]
     public int? CompilatorId { get; set; }
 
-    [Required(ErrorMessageResourceType = typeof(SiteResources), ErrorMessageResourceName = nameof(SiteResources.SourceCodeRequired))]
-    [StringLength(32 * 1024, MinimumLength = 10,
-        ErrorMessageResourceType = typeof(SiteResources), ErrorMessageResourceName = nameof(SiteResources.SourceCodeLength))]
+    [SourceCode]
     [Display(Name = nameof(SiteResources.SourceCode), ResourceType = typeof(SiteResources))]
     public string Code { get; set; } = "";
 }

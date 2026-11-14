@@ -1,0 +1,305 @@
+@page "/jury/trial-run"
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@implements IAsyncDisposable
+@using System.ComponentModel.DataAnnotations
+@using Olymp.Checker
+@using Olymp.WebApp.Components.Submissions
+@using Olymp.WebApp.Services.Checker
+@inject IDbContextFactory<OlympContext> ContextFactory
+@inject ICheckerManager Checkers
+@inject ILogger<TrialRun> Logger
+@inject NavigationManager Navigation
+
+<PageTitle>@SiteResources.StaffRunCode</PageTitle>
+<h1 class="h3">@SiteResources.StaffRunCode</h1>
+@if (Submission is int submission) { <p><a href="jury/submissions/@submission">@SiteResources.Submissions #@submission</a></p> }
+@if (_error is not null) { <p class="alert alert-danger" role="alert">@_error</p> }
+@if (!_loaded) { <p role="status">@SiteResources.StaffLoading</p> }
+else
+{
+    <EditForm @key="_editContext" EditContext="_editContext" OnValidSubmit="RunAsync">
+        <DataAnnotationsValidator />
+        <ValidationSummary class="text-danger" role="alert" />
+        <fieldset disabled="@(_cancellation is not null)">
+            @if (_problem is not null)
+            {
+                <p><a href="jury/contests/@_problem.ContestId/problems?problemId=@_problem.Id">@StaffEntityLabel.Format(_problem.Id, _problem.NameWithNumber)</a></p>
+            }
+            @if (_originalCompiler is { IsActive: false } original)
+            {
+                <p class="text-body-secondary">@SiteResources.StaffOriginalCompiler: @StaffEntityLabel.Format(original.Id, original.Description ?? original.Name) (@SiteResources.StaffDisabled). @SiteResources.SelectCompiler</p>
+            }
+            <div class="row g-3 mb-3">
+                @if (HasTaskContext)
+                {
+                    <div class="col-md-6"><label for="trial-compiler" class="form-label">@SiteResources.Compiler</label>
+                        <InputSelect id="trial-compiler" class="form-select" @bind-Value="_input.Compiler" @bind-Value:after="SelectCompiler">
+                            <option value="">@SiteResources.SelectCompiler</option>
+                            @foreach (var compiler in _compilers) { <option value="@compiler.Id">@StaffEntityLabel.Format(compiler.Id, compiler.Description ?? compiler.Name)</option> }
+                        </InputSelect>
+                        <ValidationMessage For="() => _input.Compiler" class="text-danger" />
+                    </div>
+                }
+                <div class="col-md-6"><label for="trial-runner" class="form-label">@SiteResources.StaffRunner</label>
+                    <InputSelect id="trial-runner" class="form-select" @bind-Value="_input.Runner" @bind-Value:after="SelectConfiguration">
+                        <option value="">@SiteResources.StaffSelectRunner</option>
+                        @foreach (var runner in AvailableRunners) { <option value="@runner.Id">@runner.Name · ID @runner.Id · @StatusText(runner.SelfTestingStatus)</option> }
+                    </InputSelect>
+                    <ValidationMessage For="() => _input.Runner" class="text-danger" />
+                </div>
+                @if (!HasTaskContext)
+                {
+                    <div class="col-md-6"><label for="trial-configuration" class="form-label">@SiteResources.StaffConfiguration</label>
+                        <InputSelect id="trial-configuration" class="form-select" @bind-Value="_input.Configuration" @bind-Value:after="ResetLimits">
+                            <option value="">@SiteResources.StaffSelectConfiguration</option>
+                            @foreach (var info in CurrentConfigurations) { <option value="@info.Configuration.Name">@info.DisplayName (@info.Configuration.Name)</option> }
+                        </InputSelect>
+                        <ValidationMessage For="() => _input.Configuration" class="text-danger" />
+                    </div>
+                }
+                <div class="col-md-6"><label for="trial-time" class="form-label">@SiteResources.TimeLimit (@SiteResources.Seconds)</label><InputNumber id="trial-time" class="form-control" step="1" @bind-Value="_input.Seconds" ParsingErrorMessage="@SiteResources.StaffRunTimeNumber" /><ValidationMessage For="() => _input.Seconds" class="text-danger" /></div>
+                <div class="col-md-6"><label for="trial-memory" class="form-label">@SiteResources.MemoryLimit (@SiteResources.Megabytes)</label>
+                    <InputSelect id="trial-memory" class="form-select" @bind-Value="_input.Memory">@foreach (int memory in MemoryLimits) { <option value="@memory">@memory</option> }</InputSelect>
+                    <ValidationMessage For="() => _input.Memory" class="text-danger" />
+                </div>
+            </div>
+            @if (_problem is not null)
+            {
+                <button type="button" class="btn btn-outline-secondary mb-3" @onclick="ResetLimits">@SiteResources.StaffResetRunLimits</button>
+                <div class="mb-3"><label for="trial-test" class="form-label">@SiteResources.StaffTest</label>
+                    <InputSelect id="trial-test" class="form-select" @bind-Value="_input.Test">
+                        <option value="">@SiteResources.StaffAllActiveTests</option>
+                        @foreach (var test in _tests) { <option value="@test.Id">@SiteResources.StaffTest @test.Number · ID @test.Id @(!test.Active ? $"({SiteResources.StaffDisabled})" : null)</option> }
+                    </InputSelect>
+                </div>
+                @if (_input.Test is int test) { <p><a href="jury/problems/@_problem.Id/tests/@test">@SiteResources.StaffTest</a></p> }
+            }
+            <label for="trial-source" class="form-label">@SiteResources.SourceCode</label>
+            <InputTextArea id="trial-source" class="form-control font-monospace mb-3" rows="12" @bind-Value="_input.Source" />
+            <ValidationMessage For="() => _input.Source" class="text-danger" />
+            @if (!HasTaskContext)
+            {
+                <label for="trial-input" class="form-label">@SiteResources.StaffInputData</label>
+                <InputTextArea id="trial-input" class="form-control font-monospace mb-3" rows="6" @bind-Value="_input.Input" />
+            }
+            @if (UnavailableReason is { } reason) { <p id="trial-unavailable" class="text-body-secondary" role="status">@reason</p> }
+            @if (InvalidTest) { <p><a href="@Navigation.GetUriWithQueryParameter(nameof(Test), (int?)null)">@SiteResources.StaffAllActiveTests</a></p> }
+            <button class="btn btn-primary" disabled="@(UnavailableReason is not null)" aria-describedby="@(UnavailableReason is not null ? "trial-unavailable" : null)">@SiteResources.StaffRun</button>
+        </fieldset>
+    </EditForm>
+    @if (_cancellation is not null) { <p class="mt-3" role="status">@SiteResources.StaffChecking</p><button class="btn btn-outline-secondary" @onclick="Cancel">@SiteResources.StaffCancelRun</button> }
+    @if (_output is { } output)
+    {
+        <section class="mt-4" aria-label="@SiteResources.StaffRunOutput">
+            <h2 class="h4">@SiteResources.StaffRunOutput</h2>
+            <p>@SiteResources.TimeLimit: @output.Seconds @SiteResources.Seconds · @SiteResources.MemoryLimit: @output.Memory @SiteResources.Megabytes @if (output.Count is int count) { <text>· @SiteResources.StaffTestsCount: @count</text> }</p>
+            @if (output.Result is { } result)
+            {
+                <dl class="row"><dt class="col-sm-4">@SiteResources.StaffStatus</dt><dd class="col-sm-8"><SubmissionStatus StatusCode="result.StatusCode" /></dd>
+                    @if (result.Score is int score) { <dt class="col-sm-4">@SiteResources.StaffScore</dt><dd class="col-sm-8">@score</dd> }
+                    @if (result.TestResults is not null) { <dt class="col-sm-4">@SiteResources.StaffTestResults</dt><dd class="col-sm-8 text-break">@result.TestResults</dd> }
+                </dl>
+            }
+            <section class="card"><h3 class="card-header h5">@SiteResources.StaffLog</h3><pre class="card-body overflow-auto mb-0">@output.Log</pre></section>
+        </section>
+    }
+}
+
+@code {
+    [SupplyParameterFromQuery] public int? Submission { get; set; }
+    [SupplyParameterFromQuery] public int? Test { get; set; }
+    [SupplyParameterFromQuery] public int? Problem { get; set; }
+    [SupplyParameterFromQuery] public Guid? Runner { get; set; }
+    [SupplyParameterFromQuery] public string? Configuration { get; set; }
+    [CascadingParameter] private Task<AuthenticationState> AuthenticationState { get; set; } = default!;
+
+    private static readonly int[] MemoryLimits = [8, 16, 32, 64, 128, 256, 512];
+    private RunInput _input = new();
+    private EditContext _editContext = default!;
+    private Olymp.Domain.Models.Problem? _problem;
+    private Compilator? _originalCompiler;
+    private List<Compilator> _compilers = [];
+    private List<TestMetadata> _tests = [];
+    private RunOutput? _output;
+    private CancellationTokenSource? _cancellation;
+    private bool _loaded, _disposed;
+    private string? _error;
+
+    private bool HasTaskContext => Submission.HasValue || Problem.HasValue;
+    private bool InvalidTest => HasTaskContext && _problem is not null && _input.Test is int test && !_tests.Any(item => item.Id == test);
+    private ICheckerService? CurrentRunner => AvailableRunners.SingleOrDefault(item => item.Id == _input.Runner);
+    private IEnumerable<ICheckerService> AvailableRunners => Checkers.Checkers.Values.Where(item => !HasTaskContext
+        || _compilers.Any(compiler => compiler.Id == _input.Compiler && item.CanCheck(compiler))).OrderBy(item => item.Name).ThenBy(item => item.Id);
+    private IEnumerable<CompilatorInfo> CurrentConfigurations => CurrentRunner?.Compilators
+        ?? CurrentRunner?.Configurations.Select(config => new CompilatorInfo(config, config.Name, null)) ?? [];
+    private CompilatorInfo? CurrentConfiguration => HasTaskContext
+        ? CurrentConfigurations.SingleOrDefault(info => _compilers.Any(compiler => compiler.Id == _input.Compiler && CompilerMatching.Matches(compiler, info)))
+        : CurrentConfigurations.SingleOrDefault(info => info.Configuration.Name == _input.Configuration);
+
+    private string? UnavailableReason => HasTaskContext && _problem is null ? SiteResources.PageNotFoundMessage
+        : InvalidTest ? SiteResources.StaffRunTestNotFound
+        : HasTaskContext && _compilers.Count == 0 ? SiteResources.NoActiveCompilers
+        : HasTaskContext && _input.Compiler is null ? null
+        : !AvailableRunners.Any() ? HasTaskContext ? SiteResources.StaffNoMatchingRunner : SiteResources.StaffNoRunners
+        : _input.Runner is null ? null
+        : CurrentRunner is null ? SiteResources.StaffRunnerDisconnected
+        : !CurrentConfigurations.Any() ? SiteResources.StaffSelectConfiguration
+        : CurrentConfiguration is null ? null
+        : CurrentConfiguration.Error is { } error ? $"{SiteResources.StaffConfigurationUnavailable} {error}" : null;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        Cancel();
+        _loaded = false;
+        _error = null;
+        _output = null;
+        _originalCompiler = null;
+        _input = new() { Runner = Runner, Configuration = Configuration, Problem = Problem, HasTaskContext = HasTaskContext };
+        _editContext = new(_input);
+
+        await using var db = await ContextFactory.CreateDbContextAsync();
+        _compilers = HasTaskContext ? await db.Compilators.AsNoTracking().Where(item => item.IsActive).OrderByDescending(item => item.Id).ToListAsync() : [];
+        if (Submission is int id)
+        {
+            var submission = await db.Submissions.AsNoTracking().Include(item => item.Compilator).SingleOrDefaultAsync(item => item.Id == id);
+            if (submission is null) _error = SiteResources.StaffSubmissionNotFound;
+            else
+            {
+                _input.Source = submission.Text;
+                _originalCompiler = submission.Compilator;
+                _input.Compiler = submission.Compilator.IsActive ? submission.CompilatorId : null;
+                _input.Problem = submission.ProblemId;
+            }
+        }
+        else if (HasTaskContext)
+        {
+            _input.Compiler = _compilers.FirstOrDefault(compiler => Checkers.Checkers.Values.Any(runner => runner.CanCheck(compiler)))?.Id ?? _compilers.FirstOrDefault()?.Id;
+        }
+
+        _problem = HasTaskContext ? await db.Problems.AsNoTracking().SingleOrDefaultAsync(item => item.Id == _input.Problem) : null;
+        _tests = _problem is null ? [] : await db.Tests.Where(item => item.ProblemId == _problem.Id).OrderBy(item => item.Number)
+            .Select(item => new TestMetadata(item.Id, item.Number, item.IsActive)).ToListAsync();
+        _input.Test = Test;
+
+        _input.Runner ??= AvailableRunners.OrderByDescending(item => item.SelfTestingStatus == CheckerSelfTestingStatus.Success).FirstOrDefault()?.Id;
+        SelectConfiguration();
+        _loaded = true;
+    }
+
+    private void SelectCompiler()
+    {
+        _input.Runner = AvailableRunners.FirstOrDefault()?.Id;
+        SelectConfiguration();
+    }
+
+    private void SelectConfiguration()
+    {
+        if (!CurrentConfigurations.Any(item => item.Configuration.Name == _input.Configuration))
+            _input.Configuration = CurrentConfigurations.FirstOrDefault(item => item.Error is null)?.Configuration.Name ?? CurrentConfigurations.FirstOrDefault()?.Configuration.Name;
+        ResetLimits();
+    }
+
+    private void ResetLimits()
+    {
+        bool slow = CurrentConfiguration?.Configuration.UseSlowTimeLimit ?? _compilers.FirstOrDefault(item => item.Id == _input.Compiler)?.Language == "Python";
+        _input.Seconds = _problem is null ? 1 : slow ? _problem.SlowTimeLimit : _problem.TimeLimit;
+        _input.Memory = MemoryLimits.FirstOrDefault(value => value >= (_problem?.MemoryLimit ?? 128), 512);
+    }
+
+    private async Task RunAsync()
+    {
+        if (_cancellation is not null) return;
+        if (!(await Authorization.AuthorizeAsync((await AuthenticationState).User, PolicyNames.JuryOrAdmin)).Succeeded) { _error = SiteResources.StaffAccessDenied; return; }
+        if (!await _editContext.ValidateAsync()) return;
+        if (UnavailableReason is { } reason) { _error = reason; return; }
+
+        using var cancellation = new CancellationTokenSource();
+        _cancellation = cancellation;
+        _error = null;
+        _output = null;
+        try
+        {
+            if (_input.Runner is not Guid runnerId || !Checkers.Checkers.TryGetValue(runnerId, out var runner)) { _error = SiteResources.StaffNoRunners; return; }
+            double seconds = _input.Seconds;
+            int memory = _input.Memory;
+            var configurations = runner.Compilators ?? [.. runner.Configurations.Select(config => new CompilatorInfo(config, config.Name, null))];
+
+            if (!HasTaskContext)
+            {
+                var configuration = configurations.SingleOrDefault(item => item.Configuration.Name == _input.Configuration);
+                if (configuration is null || configuration.Error is not null) { _error = SiteResources.StaffConfigurationUnavailable; return; }
+                string log = await runner.Run(_input.Source, configuration.Configuration, _input.Input, TimeSpan.FromSeconds(seconds), memory, cancellation.Token);
+                if (!_disposed && !cancellation.IsCancellationRequested) _output = new(null, log, seconds, memory, null);
+                return;
+            }
+
+            await using var db = await ContextFactory.CreateDbContextAsync(cancellation.Token);
+            var compiler = await db.Compilators.AsNoTracking().SingleOrDefaultAsync(item => item.Id == _input.Compiler && item.IsActive, cancellation.Token);
+            if (compiler is null || !runner.CanCheck(compiler)) { _error = SiteResources.StaffCompilerUnavailable; return; }
+            var info = configurations.Single(item => CompilerMatching.Matches(compiler, item) && item.Error is null);
+            var problem = await db.Problems.AsNoTracking().SingleOrDefaultAsync(item => item.Id == _input.Problem, cancellation.Token);
+            if (problem is null) { _error = SiteResources.PageNotFoundMessage; return; }
+
+            var tests = await db.Tests.AsNoTracking().Where(item => item.ProblemId == problem.Id && (_input.Test.HasValue ? item.Id == _input.Test : item.IsActive))
+                .OrderBy(item => item.Number).Select(item => new CheckTest(item.Number, item.Input, item.Output, item.Score)).ToArrayAsync(cancellation.Token);
+            if (tests.Length == 0) { _error = SiteResources.StaffNoTests; return; }
+
+            var request = new CheckRequest(Guid.NewGuid().ToString("N"), _input.Source, info, problem.CheckerId, tests, TimeSpan.FromSeconds(seconds), memory, true);
+            var result = await runner.Check(request, cancellation.Token);
+            if (!_disposed && !cancellation.IsCancellationRequested) _output = new(result, result.Log, seconds, memory, tests.Length);
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception exception)
+        {
+            Logger.LogWarning(exception, "Trial run failed");
+            if (!_disposed && !cancellation.IsCancellationRequested) _error = SiteResources.StaffRunnerDisconnected;
+        }
+        finally { if (ReferenceEquals(_cancellation, cancellation)) _cancellation = null; }
+    }
+
+    private static string StatusText(CheckerSelfTestingStatus status) => status switch
+    {
+        CheckerSelfTestingStatus.Success => SiteResources.StaffSelfTestPassed,
+        CheckerSelfTestingStatus.Failed => SiteResources.StaffSelfTestFailed,
+        CheckerSelfTestingStatus.InProcess => SiteResources.StaffSelfTestRunning,
+        _ => SiteResources.StaffSelfTestUnknown
+    };
+
+    private void Cancel() => _cancellation?.Cancel();
+
+    public ValueTask DisposeAsync()
+    {
+        _disposed = true;
+        Cancel();
+        GC.SuppressFinalize(this);
+        return ValueTask.CompletedTask;
+    }
+
+    private sealed class RunInput : IValidatableObject
+    {
+        public bool HasTaskContext { get; set; }
+        public int? Compiler { get; set; }
+        public Guid? Runner { get; set; }
+        public string? Configuration { get; set; }
+        [SourceCode]
+        public string Source { get; set; } = "";
+        public string Input { get; set; } = "";
+        public double Seconds { get; set; } = 1;
+        public int Memory { get; set; } = 128;
+        public int? Test { get; set; }
+        public int? Problem { get; set; }
+
+        public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+        {
+            if (HasTaskContext && Compiler is null) yield return new(SiteResources.CompilerRequired, [nameof(Compiler)]);
+            if (Runner is null) yield return new(SiteResources.StaffSelectRunner, [nameof(Runner)]);
+            if (!HasTaskContext && string.IsNullOrWhiteSpace(Configuration)) yield return new(SiteResources.StaffSelectConfiguration, [nameof(Configuration)]);
+            if (!double.IsFinite(Seconds) || Seconds <= 0 || Seconds >= TimeSpan.MaxValue.TotalSeconds - 10)
+                yield return new(SiteResources.StaffRunTimeInvalid, [nameof(Seconds)]);
+            if (!MemoryLimits.Contains(Memory)) yield return new(SiteResources.StaffRunMemoryInvalid, [nameof(Memory)]);
+        }
+    }
+
+    private sealed record TestMetadata(int Id, int Number, bool Active);
+    private sealed record RunOutput(CheckerResult? Result, string Log, double Seconds, int Memory, int? Count);
+}

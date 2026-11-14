@@ -45,6 +45,7 @@ public sealed class ServiceFactory : WebApplicationFactory<App>, IAsyncLifetime
             new Dictionary<string, string?>
             {
                 ["ConnectionStrings:DefaultConnection"] = _connectionString,
+                ["Checker:FakeRunners"] = "false",
                 ["MailService:From"] = "tests@example.test",
                 ["MailService:SmtpServer"] = "localhost",
                 ["MailService:Port"] = "587",

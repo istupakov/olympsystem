@@ -21,7 +21,8 @@
 }
 
 @code {
-    [Parameter, EditorRequired] public Func<OlympContext, IQueryable<TGridItem>> Query { get; set; } = default!;
+    [Parameter] public Func<OlympContext, IQueryable<TGridItem>> Query { get; set; } = default!;
+    [Parameter] public IReadOnlyList<TGridItem>? Items { get; set; }
     [Parameter, EditorRequired] public RenderFragment ChildContent { get; set; } = default!;
     [Parameter, EditorRequired] public Func<TGridItem, object> ItemKey { get; set; } = default!;
     [Parameter, EditorRequired] public Expression<Func<TGridItem, int>> OrderKey { get; set; } = default!;
@@ -38,8 +39,12 @@
             _uri = Navigation.Uri;
             _initialIndex = Math.Max(0, State.GetIndex(_uri) - RowsAboveSelection);
         }
-        await using var db = await ContextFactory.CreateDbContextAsync();
-        _total = await Query(db).CountAsync();
+        if (Items is not null) _total = Items.Count;
+        else
+        {
+            await using var db = await ContextFactory.CreateDbContextAsync();
+            _total = await Query(db).CountAsync();
+        }
     }
 
     private async ValueTask<GridItemsProviderResult<TGridItem>> LoadAsync(GridItemsProviderRequest<TGridItem> request)
@@ -57,6 +62,12 @@
     private async ValueTask<GridItemsProviderResult<TGridItem>> LoadCoreAsync(GridItemsProviderRequest<TGridItem> request)
     {
         string uri = Navigation.Uri;
+        if (Items is not null)
+        {
+            var ordered = ((IOrderedQueryable<TGridItem>)request.ApplySorting(Items.AsQueryable().OrderBy(item => 0))).ThenBy(OrderKey);
+            var rows = ordered.Skip(request.StartIndex).Take(request.Count ?? 50).ToArray();
+            return GridItemsProviderResult.From(rows, Items.Count);
+        }
         await using var db = await ContextFactory.CreateDbContextAsync(request.CancellationToken);
         var query = Query(db);
         int total = await query.CountAsync(request.CancellationToken);

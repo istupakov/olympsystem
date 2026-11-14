@@ -292,6 +292,41 @@ public class StaffSubmissionTests(WebAppFactory factory) : IClassFixture<WebAppF
         Assert.Equal(1, analyzer.Comparisons.Count + analyzer.Detections);
     }
 
+    [Theory]
+    [InlineData(0.8f, 0.95f, true, false)]
+    [InlineData(0.95f, 0.8f, false, true)]
+    public async Task CombinedAnalysisUsesIndependentThresholdsAndExcludesHiddenAuthors(float similarityThreshold, float aiThreshold, bool similar, bool ai)
+    {
+        var first = await factory.AddUserAsync();
+        var second = await factory.AddUserAsync();
+        var hidden = await factory.AddUserAsync();
+        await using var scope = factory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<OlympContext>();
+        var storedHidden = await db.OlympUsers.AsTracking().SingleAsync(item => item.Id == hidden.Id, TestContext.Current.CancellationToken);
+        storedHidden.IsHidden = true;
+        var contest = TestEntities.CreateContest("Combined analysis", DateTimeOffset.Now, DateTimeOffset.Now.AddHours(1));
+        var problem = TestEntities.CreateProblem(contest);
+        var ignored = TestEntities.CreateProblem(contest, 2);
+        var compiler = TestEntities.CreateCompilator();
+        var submissions = new[] {
+            TestEntities.CreateSubmission(first, problem, compiler, DateTimeOffset.Now),
+            TestEntities.CreateSubmission(second, problem, compiler, DateTimeOffset.Now),
+            TestEntities.CreateSubmission(hidden, problem, compiler, DateTimeOffset.Now),
+            TestEntities.CreateSubmission(first, ignored, compiler, DateTimeOffset.Now) };
+        foreach (var submission in submissions) submission.User = null!;
+        db.Submissions.AddRange(submissions);
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var analyzer = new Analyzer();
+        var service = new AntiCheatReportService(db, analyzer, analyzer);
+        var report = await service.AnalyzeAsync(db.Submissions.Where(item => item.Id == submissions[0].Id || item.Id == submissions[2].Id),
+            similarityThreshold, aiThreshold, TestContext.Current.CancellationToken);
+        Assert.Equal(similar ? 1 : 0, report.Similarity.Count);
+        Assert.Equal(ai ? 1 : 0, report.Ai.Count);
+        Assert.Single(analyzer.Comparisons);
+        Assert.Equal(1, analyzer.Detections);
+        if (similar) Assert.NotNull(Assert.Single(Assert.Single(report.Similarity).Cases).Submission1.Problem.Contest);
+    }
+
     private sealed class Analyzer : ISubmissionSimilarityService, IAIDetectionService
     {
         public List<(string, string)> Comparisons { get; } = [];

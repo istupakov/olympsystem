@@ -155,11 +155,9 @@ internal static class CheckerTestData
         public void Unregister(IRunnerService runner) => Connected.Remove(runner.Id);
         public Task<IDisposable> EnterAsync(CancellationToken token = default) => throw new NotSupportedException();
         public Task<bool> TryCheckFromDB(ICheckerService checker, CancellationToken token) => throw new NotSupportedException();
-        public Task<int> AddCompilatorAsync(Guid runnerId, string name, string description, CancellationToken token = default) => throw new NotSupportedException();
+        public Task<int> AddCompilatorAsync(Guid runnerId, string name, string description, CompilerConfigurationKey? expected = null, CancellationToken token = default) => throw new NotSupportedException();
         public Task SetCompilatorActiveAsync(int id, bool active, CancellationToken token = default) => throw new NotSupportedException();
         public Task<int?> QueueRetestAsync(IQueryable<Submission> selection, IReadOnlyCollection<int> confirmedAccepted, CancellationToken token = default) => throw new NotSupportedException();
-        public Task<int> AddCompilators(Guid checkerId, CancellationToken token) => throw new NotSupportedException();
-        public Task<int> DisableCompilatorsWithoutRunner(CancellationToken token) => throw new NotSupportedException();
     }
 
     public sealed class RunnerRegistration : IAsyncDisposable
