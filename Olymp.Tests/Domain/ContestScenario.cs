@@ -62,8 +62,8 @@ internal sealed class ContestScenario
         return submission;
     }
 
-    public Standing.UserResult[] GetResults(bool official = true, bool notFreeze = false)
+    public Standing.UserResult[] GetResults(bool official = true, bool notFreeze = false, bool roundTime = true)
     {
-        return [.. Standing.NewStanding(Contest, includeAll: false, official: official, notFreeze: notFreeze, startTime: null)];
+        return [.. Standing.NewStanding(Contest, includeAll: false, official: official, notFreeze: notFreeze, startTime: null, roundTime: roundTime)];
     }
 }

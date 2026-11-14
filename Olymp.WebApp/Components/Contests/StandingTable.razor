@@ -45,12 +45,21 @@
         <tbody>
             @{
                 var results = Standing.Results.ToList();
-                var number = 1;
+                var number = 0;
+                var rank = 0;
+                Standing.UserResult? previous = null;
             }
             @foreach (var result in results)
             {
+                number++;
+                if (previous is null || result.Score != previous.Score || result.SummaryTime != previous.SummaryTime
+                    || result.LastSuccessTime != previous.LastSuccessTime)
+                {
+                    rank = number;
+                }
+                previous = result;
                 <tr>
-                    <td class="text-center">@(result.Score > 0 || number == results.Count ? (number++).ToString() : $"{number}-{results.Count}")</td>
+                    <td class="text-center">@rank</td>
                     <td>
                         <span class="fw-semibold">@result.User.Name</span><CompetitorBadges User="result.User" />
                         @if (result.IsVirtual) { <span class="badge text-bg-secondary ms-1">@SiteResources.VirtualParticipant</span> }

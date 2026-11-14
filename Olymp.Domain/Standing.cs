@@ -25,8 +25,15 @@ public class Standing
         public int Score { get; set; }
         public int MaxScore { get; set; }
 
-        public double SummaryTime(DateTimeOffset startTime, int penalty) =>
-            IsSuccess ? (LastCommitTime - startTime + TimeSpan.FromMinutes(penalty * (CommitNumber - 1))).TotalMilliseconds : 0;
+        public double SummaryTime(DateTimeOffset startTime, int penalty, bool roundTime)
+        {
+            if (!IsSuccess) return 0;
+
+            var time = LastCommitTime - startTime;
+            if (roundTime) time = TimeSpan.FromMinutes(Math.Floor(time.TotalMinutes));
+
+            return (time + TimeSpan.FromMinutes(penalty * (CommitNumber - 1))).TotalMilliseconds;
+        }
     }
 
     public class UserResult
@@ -34,6 +41,7 @@ public class Standing
         public required User User { get; set; }
         public int Score { get; set; }
         public TimeSpan SummaryTime { get; set; }
+        public TimeSpan LastSuccessTime { get; set; }
         public DateTimeOffset StartTime { get; set; }
         public bool IsVirtual { get; set; }
         public required IEnumerable<UserProblemResult> ProblemResults { get; set; }
@@ -53,13 +61,15 @@ public class Standing
                                  .Where(submission => submission.StatusCode == 2 || submission.Score > 0)
                                  .OrderBy(submission => submission.Score)
                                  .ThenByDescending(submission => submission.CommitTime)
+                                 .ThenByDescending(submission => submission.Id)
                                  .LastOrDefault()
                 let isSuccess = success != null
                 let score = isSuccess ? success.Score : 0
                 let first = firstSuccess != null && firstSuccess.Contains(problem.Id)
-                let checkedSubmission = knownSubmissions.Where(submission => submission.StatusCode != -1)
+                let checkedSubmission = knownSubmissions.Where(submission => submission.StatusCode is not (-1 or -10))
                 let signSubmissions = isSuccess
-                                    ? checkedSubmission.Where(submission => submission.CommitTime <= success.CommitTime)
+                                    ? checkedSubmission.Where(submission => submission.CommitTime < success.CommitTime
+                                        || (submission.CommitTime == success.CommitTime && submission.Id <= success.Id))
                                     : checkedSubmission
                 select new UserProblemResult
                 {
@@ -78,9 +88,10 @@ public class Standing
     }
 
     public static IEnumerable<UserResult> NewStanding(Contest contest, bool includeAll, bool official, bool notFreeze,
-        DateTimeOffset? startTime, DateTimeOffset? now = null)
+        DateTimeOffset? startTime, DateTimeOffset? now = null, bool? roundTime = null)
     {
         var penalty = contest.IsSchool ? 0 : Penalty;
+        bool roundProblemTime = !contest.IsSchool && (roundTime ?? (contest.StartTime.Year >= 2026));
         var currentTime = now ?? DateTimeOffset.Now;
         bool isVirtual = startTime.HasValue;
         var upperTimeBound = startTime is DateTimeOffset virtualStart ? currentTime - virtualStart : contest.Duration;
@@ -118,8 +129,10 @@ public class Standing
                 join submission in submissions on user.Id equals submission.UserId into userSubmissions
                 let problemResult = UserProblemStanding(problems, userSubmissions, firstSuccess[user.Id], freezeTime)
                 let score = problemResult.Sum(res => res.Score)
-                let summaryTime = TimeSpan.FromMilliseconds(problemResult.Sum(res => res.SummaryTime(UserStart(user), penalty)))
-                orderby score descending, summaryTime ascending, score ascending, user.Name ascending
+                let summaryTime = TimeSpan.FromMilliseconds(problemResult.Sum(res => res.SummaryTime(UserStart(user), penalty, roundProblemTime)))
+                let lastSuccessTime = contest.IsSchool ? 0 : problemResult.Where(res => res.IsSuccess)
+                    .Select(res => Math.Floor((res.LastCommitTime - UserStart(user)).TotalMinutes)).DefaultIfEmpty().Max()
+                orderby score descending, summaryTime ascending, lastSuccessTime ascending, user.Name ascending
                 select new UserResult
                 {
                     User = user,
@@ -127,7 +140,8 @@ public class Standing
                     IsVirtual = isVirtual && user is OlympUser,
                     ProblemResults = problemResult,
                     Score = score,
-                    SummaryTime = summaryTime
+                    SummaryTime = summaryTime,
+                    LastSuccessTime = TimeSpan.FromMinutes(lastSuccessTime)
                 }];
     }
 
@@ -204,7 +218,7 @@ public class Standing
     }
 
     public static Standing Create(Contest contest, bool includeAll, bool official, bool notFreeze,
-        DateTimeOffset? startTime, DateTimeOffset? now = null)
+        DateTimeOffset? startTime, DateTimeOffset? now = null, bool? roundTime = null)
     {
         var currentTime = now ?? DateTimeOffset.Now;
         return new Standing
@@ -213,7 +227,7 @@ public class Standing
             IsFrozen = startTime is null && !notFreeze && currentTime > contest.FreezeTime,
             IsOfficial = startTime is null && official,
             VirtualStartTime = startTime,
-            Results = NewStanding(contest, includeAll, official, notFreeze, startTime, currentTime)
+            Results = NewStanding(contest, includeAll, official, notFreeze, startTime, currentTime, roundTime)
         };
     }
 }

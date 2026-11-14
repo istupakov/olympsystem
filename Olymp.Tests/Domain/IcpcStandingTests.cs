@@ -1,7 +1,5 @@
 using Xunit;
 
-#pragma warning disable xUnit1004 // Known ICPC deviations are retained as skipped regression tests.
-
 namespace Olymp.Tests.Domain;
 
 // Scoring and verdicts: https://ccs-specs.icpc.io/2026-01/ccs_system_requirements
@@ -49,7 +47,7 @@ public class IcpcStandingTests
 
     [Theory]
     [InlineData(-1)] // Compilation error
-    [InlineData(-10, Skip = "Standing currently adds penalty for internal judging errors.")]
+    [InlineData(-10)]
     public void CompilationAndJudgingErrorsDoNotAddPenalty(int status)
     {
         var scenario = new ContestScenario();
@@ -133,7 +131,7 @@ public class IcpcStandingTests
         Assert.Equal(scenario.Contest.StartTime.AddMinutes(20), Assert.Single(result.ProblemResults).LastCommitTime);
     }
 
-    [Fact(Skip = "Standing currently counts attempts after acceptance when their timestamps match.")]
+    [Fact]
     public void AttemptsAfterAcceptanceAtSameTimestampDoNotAddPenalty()
     {
         var scenario = new ContestScenario();
@@ -166,6 +164,46 @@ public class IcpcStandingTests
         Assert.Equal(TimeSpan.FromMinutes(10), result.SummaryTime);
     }
 
+    [Theory]
+    [InlineData(true, 40, 2)]
+    [InlineData(false, 20, 1)]
+    public void EqualTimestampAttemptsFollowSubmissionIdRegardlessOfCollectionOrder(bool rejectedFirst, int minutes, int attempts)
+    {
+        var scenario = new ContestScenario();
+        var competitor = scenario.AddCompetitor(1);
+        var problem = scenario.AddProblem();
+        var first = scenario.Submit(competitor, problem, 20, rejectedFirst ? WrongAnswer : Accepted);
+        var second = scenario.Submit(competitor, problem, 20, rejectedFirst ? Accepted : WrongAnswer);
+        var third = scenario.Submit(competitor, problem, 20, Accepted);
+        problem.Submissions.Clear();
+        problem.Submissions.Add(third);
+        problem.Submissions.Add(second);
+        problem.Submissions.Add(first);
+
+        var result = Assert.Single(scenario.GetResults());
+
+        Assert.Equal(TimeSpan.FromMinutes(minutes), result.SummaryTime);
+        Assert.Equal(attempts, Assert.Single(result.ProblemResults).CommitNumber);
+    }
+
+    [Fact]
+    public void EqualMinuteScoresUseNameWhenLastAcceptancesDifferOnlyInSeconds()
+    {
+        var scenario = new ContestScenario();
+        var alice = scenario.AddCompetitor(1);
+        alice.Name = "Alice";
+        var bob = scenario.AddCompetitor(2);
+        bob.Name = "Bob";
+        var problem = scenario.AddProblem();
+        scenario.Submit(alice, problem, TimeSpan.FromSeconds(119), Accepted);
+        scenario.Submit(bob, problem, TimeSpan.FromSeconds(61), Accepted);
+
+        var results = scenario.GetResults();
+
+        Assert.Equal([1, 2], results.Select(result => result.User.Id));
+        Assert.All(results, result => Assert.Equal(TimeSpan.FromMinutes(1), result.SummaryTime));
+    }
+
     [Fact]
     public void JudgingAfterContestEndsDoesNotInvalidateTimelySubmission()
     {
@@ -183,9 +221,9 @@ public class IcpcStandingTests
 
     [Theory]
     [InlineData(0, 0)]
-    [InlineData(59999, 0, Skip = "Standing currently preserves fractional minutes.")]
+    [InlineData(59999, 0)]
     [InlineData(60000, 1)]
-    [InlineData(119999, 1, Skip = "Standing currently preserves fractional minutes.")]
+    [InlineData(119999, 1)]
     [InlineData(120000, 2)]
     public void AcceptedSubmissionTimeIsRoundedDownToWholeMinutes(int milliseconds, int expectedMinutes)
     {
@@ -199,7 +237,7 @@ public class IcpcStandingTests
         Assert.Equal(TimeSpan.FromMinutes(expectedMinutes), result.SummaryTime);
     }
 
-    [Fact(Skip = "Standing currently sums exact submission times without rounding each problem to minutes.")]
+    [Fact]
     public void EachSolvedProblemTimeIsRoundedBeforeSumming()
     {
         var scenario = new ContestScenario();
@@ -265,7 +303,7 @@ public class IcpcStandingTests
         Assert.Equal([2, 1], results.Select(result => result.User.Id));
     }
 
-    [Fact(Skip = "Standing currently sorts equal scores and penalties by name instead of last acceptance time.")]
+    [Fact]
     public void EarlierLastAcceptanceBreaksEqualScoreAndPenaltyBeforeName()
     {
         var scenario = new ContestScenario();
