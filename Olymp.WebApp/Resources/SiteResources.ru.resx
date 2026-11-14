@@ -244,7 +244,7 @@
   <data name="StaffAiDetection" xml:space="preserve"><value>Признаки использования ИИ</value></data>
   <data name="StaffAll" xml:space="preserve"><value>Все</value></data>
   <data name="StaffAnalysisByPeriod" xml:space="preserve"><value>Сходство за период</value></data>
-  <data name="StaffAnalysisByUser" xml:space="preserve"><value>Сходство по автору</value></data>
+  <data name="StaffAnalysisByUser" xml:space="preserve"><value>По автору</value></data>
   <data name="StaffAnalysisFailed" xml:space="preserve"><value>Не удалось выполнить анализ. Попробуйте ещё раз.</value></data>
   <data name="StaffAnalysisKind" xml:space="preserve"><value>Тип проверки</value></data>
   <data name="StaffAnalyzing" xml:space="preserve"><value>Выполняется анализ…</value></data>
@@ -634,4 +634,47 @@
   <data name="StaffParticipantsOperations" xml:space="preserve"><value>Действия с участниками</value></data>
   <data name="StaffDownloadCsv" xml:space="preserve"><value>Скачать CSV</value></data>
   <data name="StaffExportSelection" xml:space="preserve"><value>Участников в выбранном списке: {0}.</value></data>
+  <data name="StaffCompilerOperations" xml:space="preserve"><value>Действия с компилятором</value></data>
+  <data name="StaffSelectRunner" xml:space="preserve"><value>Выберите Runner</value></data>
+  <data name="StaffNewCompilerDisabled" xml:space="preserve"><value>Новые записи создаются выключенными. Существующие записи и посылки сохраняются.</value></data>
+  <data name="StaffCurrentConfiguration" xml:space="preserve"><value>Текущая конфигурация Runner</value></data>
+  <data name="StaffCompilerExists" xml:space="preserve"><value>Эта конфигурация уже добавлена</value></data>
+  <data name="StaffAddConfiguration" xml:space="preserve"><value>Добавить новую конфигурацию</value></data>
+  <data name="StaffInvalidRunLimits" xml:space="preserve"><value>Укажите исходный код и положительные лимиты времени и памяти.</value></data>
+  <data name="StaffResetRunLimits" xml:space="preserve"><value>Вернуть лимиты задачи</value></data>
+  <data name="StaffAnalysisDetails" xml:space="preserve"><value>Подробности</value></data>
+  <data name="StaffCombinedAnalysisScope" xml:space="preserve"><value>Сходство и признаки ИИ проверяются вместе. Скрытые авторы исключаются.</value></data>
+  <data name="StaffAnalysisSelection" xml:space="preserve"><value>Выборка решений</value></data>
+  <data name="StaffAnalysisBySubmission" xml:space="preserve"><value>По решению</value></data>
+  <data name="StaffSimilarityThreshold" xml:space="preserve"><value>Порог сходства</value></data>
+  <data name="StaffAiThreshold" xml:space="preserve"><value>Порог ИИ</value></data>
+  <data name="StaffAnalyzeAuthor" xml:space="preserve"><value>Античит по автору</value></data>
+  <data name="StaffAnalyzeSubmission" xml:space="preserve"><value>Античит по решению</value></data>
+  <data name="StaffAnalyzeSelection" xml:space="preserve"><value>Античит по выборке</value></data>
+  <data name="StaffRunFailedTest" xml:space="preserve"><value>Запустить на тесте с ошибкой</value></data>
+  <data name="StaffSubmissionOperations" xml:space="preserve"><value>Действия с решением</value></data>
+  <data name="StaffProblemId" xml:space="preserve"><value>ID задачи</value></data>
+  <data name="StaffAllActiveTests" xml:space="preserve"><value>Все активные тесты</value></data>
+  <data name="StaffChecking" xml:space="preserve"><value>Выполняется проверка…</value></data>
+  <data name="StaffTestsCount" xml:space="preserve"><value>Тестов</value></data>
+  <data name="StaffScore" xml:space="preserve"><value>Баллы</value></data>
+  <data name="StaffAnalysisScope" xml:space="preserve"><value>Область проверки</value></data>
+  <data name="StaffExcludeProblems" xml:space="preserve"><value>Исключение задач</value></data>
+  <data name="StaffChooseAnalysisAuthor" xml:space="preserve"><value>Укажите автора, чтобы выбрать решения для проверки.</value></data>
+  <data name="StaffAuthorNoSubmissions" xml:space="preserve"><value>У выбранного автора нет решений для проверки.</value></data>
+  <data name="StaffEmptyAnalysisSelection" xml:space="preserve"><value>В выбранной области нет решений для проверки.</value></data>
+  <data name="StaffOriginalCompiler" xml:space="preserve"><value>Исходный компилятор</value></data>
+  <data name="StaffSelectConfiguration" xml:space="preserve"><value>Выберите конфигурацию.</value></data>
+  <data name="StaffNoMatchingRunner" xml:space="preserve"><value>Нет подключённого Runner с пройденной самопроверкой для выбранного компилятора.</value></data>
+  <data name="StaffConfigurationUnavailable" xml:space="preserve"><value>Конфигурация недоступна.</value></data>
+  <data name="StaffRunTimeInvalid" xml:space="preserve"><value>Укажите положительный конечный лимит времени.</value></data>
+  <data name="StaffRunMemoryInvalid" xml:space="preserve"><value>Выберите лимит памяти: 8, 16, 32, 64, 128, 256 или 512 МБ.</value></data>
+  <data name="StaffAnalysisNeedsRun" xml:space="preserve"><value>Для добавленных задач нужно повторить проверку.</value></data>
+  <data name="StaffFirstAuthor" xml:space="preserve"><value>Автор 1</value></data>
+  <data name="StaffSecondAuthor" xml:space="preserve"><value>Автор 2</value></data>
+  <data name="StaffFirstSubmission" xml:space="preserve"><value>Решение 1</value></data>
+  <data name="StaffSecondSubmission" xml:space="preserve"><value>Решение 2</value></data>
+  <data name="StaffRunTimeNumber" xml:space="preserve"><value>Введите ограничение времени числом.</value></data>
+  <data name="StaffRunTestNotFound" xml:space="preserve"><value>Выбранный тест не найден или принадлежит другой задаче. Выберите тест или перейдите к запуску всех активных тестов.</value></data>
+  <data name="StaffSubmissionIdNumber" xml:space="preserve"><value>Введите ID посылки целым числом.</value></data>
 </root>

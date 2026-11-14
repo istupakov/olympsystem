@@ -191,6 +191,13 @@ builder.Services.AddTransient<IEmailSender<User>, IdentityEmailSender>();
 
 var app = builder.Build();
 
+if (app.Environment.IsDevelopment() && app.Configuration.GetValue("Checker:FakeRunners", true))
+{
+    var manager = (CheckerManager)app.Services.GetRequiredService<ICheckerManager>();
+    foreach (var checker in FakeCheckerService.Create())
+        manager.Register(checker, app.Lifetime.ApplicationStopping);
+}
+
 app.UseForwardedHeaders();
 
 // Configure the HTTP request pipeline.

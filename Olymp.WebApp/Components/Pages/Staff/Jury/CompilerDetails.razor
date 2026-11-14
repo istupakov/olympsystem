@@ -1,4 +1,4 @@
-@page "/admin/compilers/{Id:int}"
+@page "/jury/compilers/{Id:int}"
 @rendermode @(new InteractiveServerRenderMode(prerender: false))
 @using Olymp.Checker
 @using Olymp.WebApp.Services.Checker
@@ -7,7 +7,8 @@
 @inject ILogger<CompilerDetails> Logger
 
 <PageTitle>@SiteResources.Compiler</PageTitle>
-<BackToList ReturnTo="@ReturnTo" Fallback="admin/compilers" />
+<CompilerNavigation />
+<BackToList ReturnTo="@ReturnTo" Fallback="jury/compilers" />
 @if (_compiler is null) { <p role="status">@(_loaded ? SiteResources.PageNotFoundMessage : SiteResources.StaffLoading)</p> }
 else
 {
@@ -24,13 +25,15 @@ else
         <dt class="col-sm-4">@SiteResources.StaffEnabledOnSite</dt><dd class="col-sm-8">@(_compiler.IsActive ? SiteResources.StaffEnabled : SiteResources.StaffDisabled)</dd>
         <dt class="col-sm-4">@SiteResources.StaffAvailableRunners</dt>
         <dd class="col-sm-8">
-            @if (!Checkers.Checkers.Values.Any(runner => runner.SupportsCompiler(_compiler))) { <text>–</text> }
-            @foreach (var runner in Checkers.Checkers.Values.Where(runner => runner.SupportsCompiler(_compiler)))
-            { <div><a href="jury/runners?Runner=@runner.Id">@runner.Name</a></div> }
+            @if (!Checkers.Checkers.Values.Any(runner => runner.CanCheck(_compiler))) { <text>–</text> }
+            @foreach (var runner in Checkers.Checkers.Values.Where(runner => runner.CanCheck(_compiler)))
+            { <div><a href="jury/runners?Runner=@runner.Id">@runner.Name · ID @runner.Id</a></div> }
         </dd>
     </dl>
     <h2 class="h5">@SiteResources.StaffRelatedData</h2>
     <p><a href="jury/submissions?Compiler=@Id">@SiteResources.Submissions · @_submissions</a></p>
+    <AuthorizeView Roles="@RoleNames.Admin">
+    <StaffActions Title="@SiteResources.StaffCompilerOperations">
     @if (_confirm)
     {
         <section class="alert alert-warning" role="alert">
@@ -40,6 +43,8 @@ else
         </section>
     }
     <button class="btn btn-outline-primary" disabled="@_busy" @onclick="ToggleAsync">@(_compiler.IsActive ? SiteResources.StaffDisable : SiteResources.StaffEnable)</button>
+    </StaffActions>
+    </AuthorizeView>
 }
 
 @code {

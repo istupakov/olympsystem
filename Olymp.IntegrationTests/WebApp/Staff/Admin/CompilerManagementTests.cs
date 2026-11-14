@@ -36,14 +36,17 @@ public partial class CompilerManagementTests(WebAppFactory factory) : StaffCompo
         var compiler = TestEntities.CreateCompilator();
         compiler.Name = "available-compiler";
         compiler.Description = "Test compiler";
-        Assert.False(checker.SupportsCompiler(compiler));
+        compiler.Language = "C";
+        compiler.SourceExtension = ".c";
+        compiler.CommandLine = "compile";
+        Assert.False(checker.CanCheck(compiler));
         Assert.True(await checker.RunSelfTests(TestContext.Current.CancellationToken));
-        Assert.True(checker.SupportsCompiler(compiler));
+        Assert.True(checker.CanCheck(compiler));
         compiler.Description = "Another version";
-        Assert.False(checker.SupportsCompiler(compiler));
+        Assert.False(checker.CanCheck(compiler));
         compiler.Description = "Test compiler";
         compiler.Name = "another-compiler";
-        Assert.False(checker.SupportsCompiler(compiler));
+        Assert.False(checker.CanCheck(compiler));
     }
 
 }

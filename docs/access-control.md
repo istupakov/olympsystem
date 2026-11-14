@@ -393,7 +393,7 @@ details, including to jury members without a contest management assignment.
 | Create a contest | Jury or administrator; the creator receives management permission. New contests are hidden. |
 | Edit contest settings, problem and test activity; publish or remove the contest test archive; finish a contest; manage participants and credentials, import ICPC teams, answer questions, manage announcements and clarifications | Administrator or jury member with the stored `contest-manage` assignment for this contest. Archive publication and contest completion are permitted only after the contest ends and require confirmation; archive removal also requires confirmation. |
 | Submit solutions from the staff task page | Jury or administrator, without a contest assignment or public publication, activity, time, or open-contest restrictions. Solutions belong to the signed-in account. |
-| Run anti-cheat analysis and Runner trials | Jury or administrator. Analysis applies no participant penalties automatically. |
+| Read compiler configurations and Runner diagnostics; run anti-cheat analysis and trial runs | Jury or administrator. Analysis applies no participant penalties automatically. |
 | Manage news, users, roles, coach claims, organizations, and compiler records; rejudge submissions | Administrator only. |
 | Runner RPC | Separate API-key authentication. |
 
@@ -444,6 +444,13 @@ Additional restrictions:
 - Compiler records may be imported only from a connected Runner that passed
   self-testing. New records start disabled; repeated imports retain availability.
   Disabling requires confirmation and preserves existing submissions.
+- Trial runs require jury or administrator access, including when using inactive
+  tests or unpublished problems. They do not create submissions or change saved
+  results or check history. Task and submission trial runs require an active
+  compiler and a matching Runner that passed self-testing. Diagnostic runs using
+  custom input may use configurations of connected Runners regardless of their
+  self-testing status. Compiler import and activation remain administrator
+  operations even when a test Runner is connected in Development.
 - Message edits reject concurrent changes to the original text or problem
   association rather than silently overwriting them.
 

@@ -40,13 +40,13 @@ public class StaffEditingTests(WebAppFactory factory) : IClassFixture<WebAppFact
         using var client = user is null ? factory.CreateSiteClient() : await factory.LoginAsync(user.UserName!);
         foreach (string path in new[] { "/jury/contests", "/jury/contests/new", "/jury/contests/1/edit",
                      "/jury/contests/1/participants", "/jury/contests/1/submissions", "/jury/submissions/1",
-                     "/jury/submissions", "/jury/runners", "/jury/contests/1/messages", "/jury/contests/1/standing",
+                     "/jury/submissions", "/jury/runners", "/jury/compilers", "/jury/compilers/1", "/jury/compilers/add", "/jury/trial-run", "/jury/contests/1/messages", "/jury/contests/1/standing",
                      "/jury/participants", "/jury/contests/1/participants/1", "/jury/contests/1/anticheat", "/jury/anticheat", "/admin/users", "/admin/users/1/edit",
                      "/admin/news", "/admin/news/new", "/admin/news/1/edit",
                      "/admin/organizations", "/admin/organizations/new", "/admin/organizations/1/edit" })
         {
             using var response = await client.GetAsync(path, TestContext.Current.CancellationToken);
-            bool allowed = role == RoleNames.Admin || (role == RoleNames.Jury && path.StartsWith("/jury/", StringComparison.Ordinal));
+            bool allowed = role == RoleNames.Admin || (role == RoleNames.Jury && path.StartsWith("/jury/", StringComparison.Ordinal) && path != "/jury/compilers/add");
             Assert.Equal(allowed ? HttpStatusCode.OK : HttpStatusCode.Redirect, response.StatusCode);
             if (!allowed)
             {

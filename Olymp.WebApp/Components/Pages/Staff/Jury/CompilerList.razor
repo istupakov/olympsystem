@@ -1,4 +1,4 @@
-@page "/admin/compilers"
+@page "/jury/compilers"
 @rendermode @(new InteractiveServerRenderMode(prerender: false))
 @using Olymp.WebApp.Services.Checker
 @inject ICheckerManager Checkers
@@ -7,9 +7,10 @@
 @inject IDbContextFactory<OlympContext> ContextFactory
 
 <PageTitle>@SiteResources.StaffCompilers</PageTitle>
+<CompilerNavigation />
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
     <h1 class="mb-0">@SiteResources.StaffCompilers</h1>
-    <a class="btn btn-outline-primary" href="jury/runners">@SiteResources.StaffRunner</a>
+    <AuthorizeView Roles="@RoleNames.Admin"><a class="btn btn-outline-primary" href="jury/compilers/add">@SiteResources.StaffAddCompiler</a></AuthorizeView>
 </div>
 <EditForm Model="_filters" OnValidSubmit="ApplyFilters" class="row g-3 mb-4">
     <div class="col-12 col-md-6">
@@ -33,7 +34,7 @@
     </div>
     <div class="col-12 d-flex gap-2">
         <button class="btn btn-primary">@SiteResources.StaffFind</button>
-        <a class="btn btn-outline-secondary" href="admin/compilers">@SiteResources.StaffReset</a>
+        <a class="btn btn-outline-secondary" href="jury/compilers">@SiteResources.StaffReset</a>
     </div>
 </EditForm>
 <div class="d-flex flex-wrap gap-2 mb-3">
@@ -43,10 +44,10 @@
 </div>
 <StaffGrid @key="Navigation.Uri" TGridItem="Compilator" Query="Query" ItemKey="@(item => item.Id)" OrderKey="@(item => item.Id)" EmptyText="@SiteResources.StaffNoCompilers">
     <TemplateColumn Title="ID" SortBy="_idSort" Sortable="true" Context="item">
-        <a href="@GridState.DetailUrl(Navigation.Uri, $"admin/compilers/{item.Id}", item.Id)">@item.Id</a>
+        <a href="@GridState.DetailUrl(Navigation.Uri, $"jury/compilers/{item.Id}", item.Id)">@item.Id</a>
     </TemplateColumn>
     <TemplateColumn Title="@SiteResources.Compiler" SortBy="_nameSort" Sortable="true" Context="item">
-        <a href="@GridState.DetailUrl(Navigation.Uri, $"admin/compilers/{item.Id}", item.Id)">@(item.Description ?? item.Name)</a>
+        <a href="@GridState.DetailUrl(Navigation.Uri, $"jury/compilers/{item.Id}", item.Id)">@(item.Description ?? item.Name)</a>
         <span class="small text-body-secondary">(@item.Name)</span>
     </TemplateColumn>
     <TemplateColumn Title="@SiteResources.StaffLanguage" SortBy="_languageSort" Sortable="true" Context="item">
@@ -57,7 +58,7 @@
         <QuickFilter Url="@StaffFilterUrl.Set(Navigation.Uri, nameof(Active), item.IsActive)" Label="@SiteResources.StaffEnabledOnSite" Value="@(item.IsActive ? SiteResources.StaffYes : SiteResources.StaffNo)"><span class="badge @(item.IsActive ? "text-bg-success" : "text-bg-secondary")">@(item.IsActive ? SiteResources.StaffEnabled : SiteResources.StaffDisabled)</span></QuickFilter>
     </TemplateColumn>
     <TemplateColumn Title="@SiteResources.StaffRunnerAvailable" Context="item">
-        @(Checkers.Checkers.Values.Any(runner => runner.SupportsCompiler(item)) ? SiteResources.StaffYes : SiteResources.StaffNo)
+        @(Checkers.Checkers.Values.Any(runner => runner.CanCheck(item)) ? SiteResources.StaffYes : SiteResources.StaffNo)
     </TemplateColumn>
 </StaffGrid>
 

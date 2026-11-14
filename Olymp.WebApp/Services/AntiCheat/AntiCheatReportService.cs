@@ -11,11 +11,23 @@ public sealed record PlagiarismReport(User Competitor1, User Competitor2, IReadO
 
 public sealed record AIUsingCase(Submission Submission, AIDetectionResult Result);
 public sealed record AIUsingReport(User Competitor, IReadOnlyList<AIUsingCase> Cases);
+public sealed record CombinedAnalysisReport(IReadOnlyList<PlagiarismReport> Similarity, IReadOnlyList<AIUsingReport> Ai);
 
 /// <summary>Callers must authorize access to the contest or global analysis before requesting reports.</summary>
 public sealed class AntiCheatReportService(OlympContext context, ISubmissionSimilarityService similarityService,
     IAIDetectionService aiDetectionService)
 {
+    public async Task<CombinedAnalysisReport> AnalyzeAsync(IQueryable<Submission> selected, float similarityThreshold,
+        float aiThreshold, CancellationToken token = default)
+    {
+        if (!float.IsFinite(similarityThreshold) || similarityThreshold is < 0 or > 1
+            || !float.IsFinite(aiThreshold) || aiThreshold is < 0 or > 1) throw new ArgumentOutOfRangeException(nameof(similarityThreshold));
+        var sources = await LoadAsync(selected.Where(item => !item.User.IsHidden), token);
+        var problemIds = sources.Select(item => item.ProblemId).Distinct().ToArray();
+        var history = await LoadAsync(context.Submissions.Where(item => !item.User.IsHidden && problemIds.Contains(item.ProblemId)), token);
+        return await Task.Run(() => new CombinedAnalysisReport(Compare(sources, history, similarityThreshold, token), Detect(sources, aiThreshold, token)), token);
+    }
+
     /// <summary>Analyze selected submissions against problem history, excluding hidden authors on both sides.</summary>
     public async Task<IReadOnlyList<PlagiarismReport>> FindPlagiarismAsync(IQueryable<Submission> selected,
         float threshold, CancellationToken token = default)
@@ -94,7 +106,7 @@ public sealed class AntiCheatReportService(OlympContext context, ISubmissionSimi
         context.Competitors.Where(x => x.ContestId == contestId).SelectMany(x => x.Submissions);
 
     private static Task<List<Submission>> LoadAsync(IQueryable<Submission> query, CancellationToken token) =>
-        query.AsNoTrackingWithIdentityResolution().Include(x => x.User).Include(x => x.Problem).Include(x => x.Compilator)
+        query.AsNoTrackingWithIdentityResolution().Include(x => x.User).Include(x => x.Problem).ThenInclude(x => x.Contest).Include(x => x.Compilator)
             .OrderBy(x => x.Id).ToListAsync(token);
 
     private IReadOnlyList<PlagiarismReport> Compare(IReadOnlyList<Submission> selected,

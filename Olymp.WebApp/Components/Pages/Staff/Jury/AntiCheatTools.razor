@@ -1,70 +1,109 @@
 @page "/jury/anticheat"
 @rendermode @(new InteractiveServerRenderMode(prerender: false))
 @implements IDisposable
-@using System.ComponentModel.DataAnnotations
-@using Olymp.Checker
 @using Olymp.WebApp.Services.AntiCheat
 @inject IServiceScopeFactory ScopeFactory
 @inject ILogger<AntiCheatTools> Logger
 
 <PageTitle>@SiteResources.StaffAntiCheatTools</PageTitle>
-<h1>@SiteResources.StaffAntiCheatTools</h1>
-<EditForm Model="_input" OnValidSubmit="RunAsync" class="mb-4">
-    <DataAnnotationsValidator />
-    <ValidationSummary class="text-danger" />
-    <fieldset disabled="@(_cancellation is not null)">
-        <div class="mb-3">
-            <label for="mode" class="form-label">@SiteResources.StaffAnalysisKind</label>
-            <InputSelect id="mode" class="form-select" @bind-Value="_input.Mode">
-                <option value="User">@SiteResources.StaffAnalysisByUser</option>
-                <option value="Period">@SiteResources.StaffAnalysisByPeriod</option>
-                <option value="Compare">@SiteResources.StaffCompareSubmissions</option>
-                <option value="Ai">@SiteResources.StaffAiDetection</option>
-            </InputSelect>
+@if (_contest is not null) { <StaffContestNavigation ContestId="_contest.Id" ContestName="@_contest.Name" IsHidden="_contest.IsHidden" /> }
+<h1 class="h3">@SiteResources.StaffAntiCheatTools</h1>
+<p>@SiteResources.StaffCombinedAnalysisScope</p>
+@if (HasContext)
+{
+    <section class="card mb-3" aria-label="@SiteResources.StaffAnalysisScope">
+        <div class="card-body">
+            @if (_contextSubmission is { } submission)
+            {
+                <p><a href="jury/submissions/@submission.Id">@SiteResources.Submissions #@submission.Id</a></p>
+                <p><a href="@_authorUrl">@StaffEntityLabel.Format(submission.UserId, submission.User.Name)</a></p>
+                <p class="mb-0"><a href="jury/contests/@submission.Problem.ContestId/problems?problemId=@submission.ProblemId">@submission.Problem.Contest.Name · @StaffEntityLabel.Format(submission.ProblemId, submission.Problem.NameWithNumber)</a></p>
+            }
+            else if (_contextAuthor is { } author)
+            {
+                <a href="@_authorUrl">@StaffEntityLabel.Format(author.Id, author.Name)</a>
+            }
+            else if (Selection is not null)
+            {
+                <p><a href="@StaffGridState.BackUrl(Selection, "jury/submissions")">@SiteResources.StaffAnalysisSelection</a></p>
+                @if (_selectionSummary.Count > 0)
+                {
+                    <dl class="row mb-0">
+                        @foreach (var item in _selectionSummary) { <dt class="col-sm-4">@item.Label</dt><dd class="col-sm-8 text-break">@item.Value</dd> }
+                    </dl>
+                }
+            }
+            else if (_contest is { } contest)
+            {
+                <a href="jury/contests/@contest.Id">@StaffEntityLabel.Format(contest.Id, contest.Name)</a>
+            }
+            else { <p class="mb-0">@SiteResources.PageNotFoundMessage</p> }
         </div>
-        @if (_input.Mode == AnalysisMode.User) {
-            <div class="mb-3">
-                <label for="analysis-user" class="form-label">@SiteResources.StaffNameOrLogin</label>
-                <InputText id="analysis-user" class="form-control" @bind-Value="_input.User" />
-            </div>
+    </section>
+}
+<EditForm Model="_input" OnValidSubmit="RunAsync" class="mb-4">
+    <DataAnnotationsValidator /><ValidationSummary class="text-danger" />
+    <fieldset disabled="@(_cancellation is not null)">
+        @if (!HasContext)
+        {
+            <div class="card mb-3"><div class="card-body">
+                <div class="mb-3"><label for="mode" class="form-label">@SiteResources.StaffAnalysisScope</label>
+                    <InputSelect id="mode" class="form-select" @bind-Value="_input.Mode" @bind-Value:after="LoadProblemsAsync">
+                        <option value="User">@SiteResources.StaffAnalysisByUser</option>
+                        <option value="Period">@SiteResources.StaffAnalysisSelection</option>
+                        <option value="Ai">@SiteResources.StaffAnalysisBySubmission</option>
+                        <option value="Compare">@SiteResources.StaffCompareSubmissions</option>
+                    </InputSelect>
+                </div>
+                @if (_input.Mode == AnalysisMode.User)
+                {
+                    <div class="mb-3"><label for="analysis-user" class="form-label">@SiteResources.SubmissionAuthor</label>
+                        <InputText id="analysis-user" class="form-control" @bind-Value="_input.User" @bind-Value:after="LoadProblemsAsync" />
+                    </div>
+                }
+                @if (_input.Mode == AnalysisMode.Period)
+                {
+                    <p class="small text-body-secondary">@SiteResources.ServerTimeZone: @TimeZoneInfo.Local.Id</p>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6"><label for="analysis-from" class="form-label">@SiteResources.StaffDateFrom</label><InputDate id="analysis-from" Type="InputDateType.DateTimeLocal" class="form-control" @bind-Value="_input.From" @bind-Value:after="LoadProblemsAsync" ParsingErrorMessage="@SiteResources.InvalidDate" /></div>
+                        <div class="col-md-6"><label for="analysis-to" class="form-label">@SiteResources.StaffDateTo</label><InputDate id="analysis-to" Type="InputDateType.DateTimeLocal" class="form-control" @bind-Value="_input.To" @bind-Value:after="LoadProblemsAsync" ParsingErrorMessage="@SiteResources.InvalidDate" /></div>
+                    </div>
+                }
+                @if (_input.Mode is AnalysisMode.Compare or AnalysisMode.Ai)
+                {
+                    <label for="first-id" class="form-label">@SiteResources.StaffSubmissionId</label><InputNumber id="first-id" class="form-control" min="1" @bind-Value="_input.FirstId" @bind-Value:after="LoadProblemsAsync" ParsingErrorMessage="@SiteResources.StaffSubmissionIdNumber" />
+                }
+            </div></div>
         }
-        @if (_input.Mode == AnalysisMode.Period) {
-            <p class="small text-body-secondary">@SiteResources.ServerTimeZone: @TimeZoneInfo.Local.Id</p>
+        @if (_input.Mode != AnalysisMode.Compare) { <p class="small text-body-secondary">@SiteResources.Submissions: @_sourceCount</p> }
+        @if (_input.Mode == AnalysisMode.Compare)
+        { <label for="second-id" class="form-label">@SiteResources.StaffSecondSubmissionId</label><InputNumber id="second-id" class="form-control mb-3" min="1" @bind-Value="_input.SecondId" ParsingErrorMessage="@SiteResources.StaffSubmissionIdNumber" /> }
+        else
+        {
             <div class="row g-3 mb-3">
-                <div class="col-md-6">
-                    <label for="analysis-from" class="form-label">@SiteResources.StaffDateFrom</label>
-                    <InputDate id="analysis-from" Type="InputDateType.DateTimeLocal" class="form-control" @bind-Value="_input.From" ParsingErrorMessage="@SiteResources.InvalidDate" />
-                </div>
-                <div class="col-md-6">
-                    <label for="analysis-to" class="form-label">@SiteResources.StaffDateTo</label>
-                    <InputDate id="analysis-to" Type="InputDateType.DateTimeLocal" class="form-control" @bind-Value="_input.To" ParsingErrorMessage="@SiteResources.InvalidDate" />
-                </div>
+                <div class="col-md-6"><label for="tools-threshold" class="form-label">@SiteResources.StaffSimilarityThreshold</label><InputNumber id="tools-threshold" class="form-control" min="0" max="1" step="0.01" @bind-Value="_input.Threshold" ParsingErrorMessage="@SiteResources.StaffThresholdInvalid" /></div>
+                <div class="col-md-6"><label for="ai-threshold" class="form-label">@SiteResources.StaffAiThreshold</label><InputNumber id="ai-threshold" class="form-control" min="0" max="1" step="0.01" @bind-Value="_input.AiThreshold" ParsingErrorMessage="@SiteResources.StaffThresholdInvalid" /></div>
             </div>
+            @if (_problems.Count > 1)
+            {
+                <details class="card mb-3"><summary class="card-header">@SiteResources.StaffExcludeProblems (@(_problems.Count - _problems.Count(item => _excluded.Contains(item.Id)))/@_problems.Count)</summary><div class="card-body">
+                    <button type="button" class="btn btn-sm btn-outline-secondary mb-2" @onclick="() => _excluded.Clear()">@SiteResources.StaffAll</button>
+                    @foreach (var problem in _problems)
+                    { <div class="form-check"><input type="checkbox" id="analysis-problem-@problem.Id" class="form-check-input" checked="@(!_excluded.Contains(problem.Id))" @onchange="args => ToggleProblem(problem.Id, args.Value is true)" /><label for="analysis-problem-@problem.Id" class="form-check-label">@problem.Contest.Name · @StaffEntityLabel.Format(problem.Id, problem.NameWithNumber)</label></div> }
+                </div></details>
+            }
+            else if (_problems.Count == 1)
+            {
+                var problem = _problems[0];
+                <p>@SiteResources.Problem: @problem.Contest.Name · @StaffEntityLabel.Format(problem.Id, problem.NameWithNumber)</p>
+            }
+            else { <p class="text-body-secondary" role="status">@EmptySelectionText</p> }
         }
-        @if (_input.Mode is AnalysisMode.User or AnalysisMode.Period) {
-            <div class="mb-3">
-                <label for="tools-threshold" class="form-label">@SiteResources.StaffThreshold</label>
-                <InputNumber id="tools-threshold" class="form-control" min="0" max="1" step="0.01" @bind-Value="_input.Threshold" />
-            </div>
-        }
-        @if (_input.Mode is AnalysisMode.Compare or AnalysisMode.Ai) {
-            <div class="mb-3">
-                <label for="first-id" class="form-label">@SiteResources.StaffSubmissionId</label>
-                <InputNumber id="first-id" class="form-control" min="1" @bind-Value="_input.FirstId" />
-            </div>
-        }
-        @if (_input.Mode == AnalysisMode.Compare) {
-            <div class="mb-3">
-                <label for="second-id" class="form-label">@SiteResources.StaffSecondSubmissionId</label>
-                <InputNumber id="second-id" class="form-control" min="1" @bind-Value="_input.SecondId" />
-            </div>
-        }
-        <button class="btn btn-primary">@SiteResources.StaffRunAnalysis</button>
+        @if (NeedsAnalysis) { <p class="alert alert-warning" role="status">@SiteResources.StaffAnalysisNeedsRun</p> }
+        <button class="btn btn-primary" disabled="@(!_scopeValid || (_input.Mode != AnalysisMode.Compare && _problems.All(item => _excluded.Contains(item.Id))))">@SiteResources.StaffRunAnalysis</button>
     </fieldset>
 </EditForm>
-@if (_cancellation is not null) { <p role="status">@SiteResources.StaffAnalyzing</p>
-    <button class="btn btn-outline-secondary mb-3" @onclick="Cancel">@SiteResources.StaffCancel</button> }
+@if (_cancellation is not null) { <p role="status">@SiteResources.StaffAnalyzing</p><button class="btn btn-outline-secondary mb-3" @onclick="Cancel">@SiteResources.StaffCancel</button> }
 @if (_error is not null) { <p class="alert alert-danger" role="alert">@_error</p> }
-@if (_finished && _similarity.Count == 0 && _ai.Count == 0) { <p role="status">@SiteResources.StaffNoMatches</p> }
-<SimilarityReport Reports="_similarity" />
-<AiReport Reports="_ai" />
+@if (Finished && _similarity.Count == 0 && _ai.Count == 0) { <p role="status">@SiteResources.StaffNoMatches</p> }
+<AnalysisReport @key="(_similarity, _ai)" Similarity="_similarity" Ai="_ai" ExcludedProblems="_excluded" PreferredAuthorId="_reportAuthorId" PreferredSubmissionId="_reportSubmissionId" />

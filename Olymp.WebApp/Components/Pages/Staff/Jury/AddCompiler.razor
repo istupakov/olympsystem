@@ -1,0 +1,103 @@
+@page "/jury/compilers/add"
+@attribute [Authorize(Policy = PolicyNames.Admin)]
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@using Olymp.Checker
+@using Olymp.WebApp.Services.Checker
+@inject ICheckerManager Checkers
+@inject IDbContextFactory<OlympContext> ContextFactory
+@inject NavigationManager Navigation
+@inject ILogger<AddCompiler> Logger
+
+<PageTitle>@SiteResources.StaffAddCompiler</PageTitle>
+<CompilerNavigation />
+<BackToList Fallback="jury/compilers" />
+<h1 class="h3">@SiteResources.StaffAddCompiler</h1>
+@if (_error is not null) { <p class="alert alert-danger" role="alert">@_error</p> }
+<EditForm Model="_input" OnValidSubmit="PreviewAsync" class="row g-3 mb-4">
+    <div class="col-md-6">
+        <label for="add-runner" class="form-label">@SiteResources.StaffRunner</label>
+        <InputSelect id="add-runner" class="form-select" @bind-Value="_input.Runner" @bind-Value:after="SelectRunner">
+            <option value="">@SiteResources.StaffSelectRunner</option>
+            @foreach (var runner in AvailableRunners) { <option value="@runner.Id">@runner.Name · ID @runner.Id</option> }
+        </InputSelect>
+    </div>
+    <div class="col-md-6">
+        <label for="add-configuration" class="form-label">@SiteResources.Compiler</label>
+        <InputSelect id="add-configuration" class="form-select" @bind-Value="_input.Configuration" @bind-Value:after="ClearPreview">
+            <option value="">@SiteResources.SelectCompiler</option>
+            @foreach (var info in SelectedRunner?.Compilators?.Where(item => item.Error is null) ?? []) { <option value="@info.Configuration.Name">@info.DisplayName (@info.Configuration.Name)</option> }
+        </InputSelect>
+    </div>
+    <div class="col-12"><button class="btn btn-primary" disabled="@(_busy || _input.Runner is null || _input.Configuration is null)">@SiteResources.StaffPreview</button></div>
+</EditForm>
+@if (_key is not null)
+{
+    <p>@SiteResources.StaffNewCompilerDisabled</p>
+    <div class="table-responsive">
+        <table class="table table-bordered">
+            <thead><tr><th>@SiteResources.StaffConfiguration</th><th>@SiteResources.StaffCurrentConfiguration</th>@foreach (var compiler in _similar) { <th><a href="jury/compilers/@compiler.Id">ID @compiler.Id</a></th> }</tr></thead>
+            <tbody>
+                @foreach (var field in Fields(_key))
+                {
+                    <tr><th>@field.Label</th><td class="text-break">@field.Value</td>
+                        @foreach (var compiler in _similar) { var saved = Fields(CompilerConfigurationKey.From(compiler)).Single(item => item.Label == field.Label).Value; <td class="text-break @(saved != field.Value ? "table-warning" : null)">@saved</td> }
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    @if (_existing is int existing)
+    {
+        <p><a href="jury/compilers/@existing">@SiteResources.StaffCompilerExists · ID @existing</a></p>
+    }
+    else
+    {
+        <button class="btn btn-primary" disabled="@_busy" @onclick="AddAsync">@(_similar.Count > 0 ? SiteResources.StaffAddConfiguration : SiteResources.StaffAddCompiler)</button>
+    }
+}
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState> AuthenticationState { get; set; } = default!;
+    [SupplyParameterFromQuery] public Guid? Runner { get; set; }
+    [SupplyParameterFromQuery] public string? Configuration { get; set; }
+    private readonly Input _input = new();
+    private CompilerConfigurationKey? _key;
+    private List<Compilator> _similar = [];
+    private int? _existing;
+    private string? _error;
+    private bool _busy;
+    private IEnumerable<ICheckerService> AvailableRunners => Checkers.Checkers.Values.Where(item => item.SelfTestingStatus == CheckerSelfTestingStatus.Success).OrderBy(item => item.Name).ThenBy(item => item.Id);
+    private ICheckerService? SelectedRunner => AvailableRunners.SingleOrDefault(item => item.Id == _input.Runner);
+    protected override void OnParametersSet() { _input.Runner = Runner; _input.Configuration = Configuration; ClearPreview(); }
+    private void SelectRunner() { _input.Configuration = null; ClearPreview(); }
+    private void ClearPreview() { _key = null; _existing = null; _similar = []; _error = null; }
+    private async Task PreviewAsync()
+    {
+        ClearPreview();
+        var info = SelectedRunner?.Compilators?.SingleOrDefault(item => item.Error is null && item.Configuration.Name == _input.Configuration);
+        if (info is null) { _error = SiteResources.StaffCompilerUnavailable; return; }
+        _key = CompilerConfigurationKey.From(info);
+        await using var db = await ContextFactory.CreateDbContextAsync();
+        _similar = await db.Compilators.AsNoTracking().Where(item => item.Name == _key.Name).OrderByDescending(item => item.Id).ToListAsync();
+        _existing = _similar.FirstOrDefault(item => CompilerConfigurationKey.From(item) == _key)?.Id;
+    }
+
+    private async Task AddAsync()
+    {
+        if (_busy || _key is null || _input.Runner is not Guid runner || !(await Authorization.AuthorizeAsync((await AuthenticationState).User, PolicyNames.Admin)).Succeeded) return;
+        _busy = true;
+        try
+        {
+            int id = await Checkers.AddCompilatorAsync(runner, _key.Name, _key.Description!, expected: _key);
+            Navigation.NavigateTo($"jury/compilers/{id}");
+        }
+        catch (Exception exception) { Logger.LogWarning(exception, "Could not add compiler configuration"); _error = SiteResources.StaffCompilerUnavailable; }
+        finally { _busy = false; }
+    }
+
+    private static (string Label, string? Value)[] Fields(CompilerConfigurationKey key) => [
+        (SiteResources.StaffTechnicalName, key.Name), (SiteResources.StaffDescription, key.Description),
+        (SiteResources.StaffLanguage, key.Language), (SiteResources.StaffConfiguration, key.Environment),
+        (SiteResources.StaffSourceExtension, key.SourceExtension), (SiteResources.StaffCommandLine, key.CommandLine)];
+    private sealed class Input { public Guid? Runner { get; set; } public string? Configuration { get; set; } }
+}

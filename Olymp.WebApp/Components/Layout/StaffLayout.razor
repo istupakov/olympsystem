@@ -9,12 +9,12 @@
                 <NavLink class="nav-link" href="jury/contests">@SiteResources.Contests</NavLink>
                 <NavLink class="nav-link" href="jury/participants">@SiteResources.ContestParticipants</NavLink>
                 <NavLink class="nav-link" href="jury/submissions">@SiteResources.Submissions</NavLink>
-                <NavLink class="nav-link" href="jury/runners">@SiteResources.StaffRunner</NavLink>
+                <NavLink class="nav-link" href="jury/compilers">@SiteResources.StaffCompilers</NavLink>
+                <NavLink class="nav-link" href="jury/trial-run">@SiteResources.StaffRunCode</NavLink>
                 <NavLink class="nav-link" href="jury/anticheat">@SiteResources.StaffAntiCheatTools</NavLink>
             </AuthorizeView>
             <AuthorizeView Roles="@RoleNames.Admin">
                 <div class="small text-body-secondary px-3 py-2">@SiteResources.AdminSection</div>
-                <NavLink class="nav-link" href="admin/compilers">@SiteResources.StaffCompilers</NavLink>
                 <NavLink class="nav-link" href="admin/news">@SiteResources.News</NavLink>
                 <NavLink class="nav-link" href="admin/users">@SiteResources.StaffUsers</NavLink>
                 <NavLink class="nav-link" href="admin/organizations">@SiteResources.StaffOrganizations</NavLink>
