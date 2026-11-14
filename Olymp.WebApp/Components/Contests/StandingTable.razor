@@ -4,10 +4,20 @@
     <table class="table caption-top table-sm table-hover table-striped table-bordered">
         <caption>
             @{
-                var remaining = Standing.Contest.EndTime - DateTimeOffset.Now;
+                var now = DateTimeOffset.Now;
+                var start = Standing.VirtualStartTime ?? Standing.Contest.StartTime;
+                var remaining = start + Standing.Contest.Duration - now;
             }
-            @(Standing.Contest.IsOpen ? SiteResources.FinalResults : SiteResources.PreliminaryResults)
-            @if (remaining > TimeSpan.Zero)
+            @(Standing.VirtualStartTime is not null ? SiteResources.VirtualContest : Standing.Contest.IsOpen ? SiteResources.FinalResults : SiteResources.PreliminaryResults)
+            @if (Standing.VirtualStartTime is not null && now < start)
+            {
+                var untilStart = start - now;
+                var untilStartText = untilStart.TotalDays >= 1
+                    ? string.Format(SiteResources.DurationDaysHours, untilStart.Days, untilStart.Hours)
+                    : $"{(int)untilStart.TotalHours:D2}:{untilStart.Minutes:D2}:{untilStart.Seconds:D2}";
+                <span class="badge text-bg-primary ms-1">@string.Format(SiteResources.TimeUntilStart, untilStartText)</span>
+            }
+            else if (remaining > TimeSpan.Zero)
             {
                 <span class="badge text-bg-primary ms-1">@string.Format(SiteResources.TimeLeft, $"{(int)remaining.TotalHours:D2}:{remaining.Minutes:D2}:{remaining.Seconds:D2}")</span>
             }
@@ -43,6 +53,7 @@
                     <td class="text-center">@(result.Score > 0 || number == results.Count ? (number++).ToString() : $"{number}-{results.Count}")</td>
                     <td>
                         <span class="fw-semibold">@result.User.Name</span><CompetitorBadges User="result.User" />
+                        @if (result.IsVirtual) { <span class="badge text-bg-secondary ms-1">@SiteResources.VirtualParticipant</span> }
                         @if (Standing.Contest.IsAcm && result.User is Competitor team)
                         {
                             <div class="small text-body-secondary">@string.Join(", ", team.MemberNames ?? [])</div>
@@ -50,14 +61,22 @@
                     </td>
                     @foreach (var item in result.ProblemResults)
                     {
-                        var time = (item.LastCommitTime - result.StartTime).ToString("hh\\:mm");
                         var successful = Standing.Contest.IsSchool ? item.Score > 0 : item.IsSuccess;
                         var highlighted = Standing.Contest.IsSchool ? item.Score == item.MaxScore : item.IsFirstSuccess;
-                        var cellClass = successful
+                        var unknown = !Standing.Contest.IsSchool && item.UnknownCommitNumber > 0;
+                        var lastCommitTime = unknown && item.LastUnknownCommitTime is DateTimeOffset unknownTime && unknownTime > item.LastCommitTime
+                            ? unknownTime : item.LastCommitTime;
+                        var time = (lastCommitTime - result.StartTime).ToString("hh\\:mm");
+                        var cellClass = unknown ? "text-warning-emphasis text-center" : successful
                             ? highlighted ? "table-success text-center" : "text-success-emphasis text-center"
                             : "text-danger-emphasis text-center";
-                        <td class="@(item.CommitNumber > 0 ? cellClass : null)">
-                            @if (item.CommitNumber > 0)
+                        <td class="@(item.CommitNumber > 0 || unknown ? cellClass : null)">
+                            @if (unknown)
+                            {
+                                @($"?{item.CommitNumber + item.UnknownCommitNumber}")
+                                <br />@time
+                            }
+                            else if (item.CommitNumber > 0)
                             {
                                 @if (Standing.Contest.IsSchool)
                                 {
@@ -76,6 +95,17 @@
                 </tr>
             }
         </tbody>
+        <tfoot>
+            <tr>
+                <th colspan="2" scope="row">@SiteResources.StandingAttemptSummary</th>
+                @foreach (var problem in Standing.Contest.Problems.OrderBy(item => item.Number))
+                {
+                    var cells = results.SelectMany(result => result.ProblemResults).Where(item => item.Problem.Id == problem.Id).ToArray();
+                    <td class="text-center text-nowrap"><span class="text-success-emphasis">@(cells.Count(item => Standing.Contest.IsSchool ? item.Score > 0 : item.IsSuccess))</span>/@(cells.Sum(item => item.CommitNumber + item.UnknownCommitNumber))</td>
+                }
+                <td colspan="2"></td>
+            </tr>
+        </tfoot>
     </table>
 </div>
 

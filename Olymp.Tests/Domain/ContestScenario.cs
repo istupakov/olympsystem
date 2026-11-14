@@ -35,12 +35,22 @@ internal sealed class ContestScenario
         return problem;
     }
 
-    public Submission Submit(Competitor competitor, Problem problem, int minutes, int status, int? score = null)
+    public static OlympUser CreateOlympUser(int id) => new()
+    {
+        Id = id,
+        Name = $"User {id}",
+        Messages = [],
+        Submissions = [],
+        Memberships = [],
+        Teams = []
+    };
+
+    public Submission Submit(User competitor, Problem problem, int minutes, int status, int? score = null)
     {
         return Submit(competitor, problem, TimeSpan.FromMinutes(minutes), status, score);
     }
 
-    public Submission Submit(Competitor competitor, Problem problem, TimeSpan elapsed, int status, int? score = null)
+    public Submission Submit(User competitor, Problem problem, TimeSpan elapsed, int status, int? score = null)
     {
         var submission = TestEntities.CreateSubmission(competitor, problem, _compilator, Contest.StartTime + elapsed);
         submission.Id = _compilator.Submissions.Count + 1;

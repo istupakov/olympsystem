@@ -296,12 +296,18 @@ disqualified participants. Ordinary standings count submissions within the sched
 contest interval; later practice does not change those results. Stored final and
 official tables are displayed when available.
 
-Ordinary standings exclude submissions sent at or
-after `FreezeTime`. Earlier submissions use their current results; historical
+Ordinary standings exclude the results of submissions sent at or
+after `FreezeTime`, while exposing their count as unknown attempts.
+Earlier submissions use their current results; historical
 verdicts are not snapshotted. A submission sent before the freeze can therefore
 affect the table when its verdict arrives after the freeze. The freeze is not automatically lifted by reaching `EndTime`. The jury standings
 view bypasses freeze; the shared interface applies the ordinary visibility rules.
 Shared standings apply the same freeze to all viewers, including staff accounts.
+
+Virtual standings are public for visible contests with open practice and published
+standings. They include approved, visible original participants and visible personal
+accounts with eligible submissions. Freeze is disabled; ordinary submission access
+rules still apply.
 
 In personal, linked-participant, and coached-author scopes, compute information
 visibility per row based on the viewer's relationship to its author. The Public

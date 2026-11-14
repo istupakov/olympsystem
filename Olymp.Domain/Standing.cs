@@ -11,12 +11,15 @@ public class Standing
     public required bool IsFrozen { get; set; }
     public required bool IsOfficial { get; set; }
     public required IEnumerable<UserResult> Results { get; set; }
+    public DateTimeOffset? VirtualStartTime { get; set; }
 
     public class UserProblemResult
     {
         public required Problem Problem { get; set; }
         public bool IsSuccess { get; set; }
         public int CommitNumber { get; set; }
+        public int UnknownCommitNumber { get; set; }
+        public DateTimeOffset? LastUnknownCommitTime { get; set; }
         public DateTimeOffset LastCommitTime { get; set; }
         public bool IsFirstSuccess { get; set; }
         public int Score { get; set; }
@@ -32,86 +35,100 @@ public class Standing
         public int Score { get; set; }
         public TimeSpan SummaryTime { get; set; }
         public DateTimeOffset StartTime { get; set; }
+        public bool IsVirtual { get; set; }
         public required IEnumerable<UserProblemResult> ProblemResults { get; set; }
     }
 
-    public static IEnumerable<UserProblemResult> UserProblemStanding(IEnumerable<Problem> problems, IEnumerable<Submission> submissions, IEnumerable<int>? firstSuccess = null)
+    public static IEnumerable<UserProblemResult> UserProblemStanding(IEnumerable<Problem> problems, IEnumerable<Submission> submissions,
+        IEnumerable<int>? firstSuccess = null, DateTimeOffset? freezeTime = null)
     {
-        return from problem in problems
-               join submission in submissions
-                   on problem.Id equals submission.ProblemId into problemSubmissions
-               let success = problemSubmissions
-                                .Where(submission => submission.StatusCode == 2 || submission.Score > 0)
-                                .OrderBy(submission => submission.Score)
-                                .ThenByDescending(submission => submission.CommitTime)
-                                .LastOrDefault()
-               let isSuccess = success != null
-               let score = isSuccess ? success.Score : 0
-               let first = firstSuccess != null && firstSuccess.Contains(problem.Id)
-               let checkedSubmission = problemSubmissions.Where(submission => submission.StatusCode is not (0 or 1 or -1))
-               let signSubmissions = isSuccess
-                                   ? checkedSubmission.Where(submission => submission.CommitTime <= success.CommitTime)
-                                   : checkedSubmission
-               select new UserProblemResult
-               {
-                   Problem = problem,
-                   IsSuccess = isSuccess,
-                   CommitNumber = signSubmissions.Count(),
-                   IsFirstSuccess = first,
-                   Score = score ?? (isSuccess ? 1 : 0),
-                   MaxScore = MaxScore,
-                   LastCommitTime = signSubmissions.Select(submission => submission.CommitTime)
-                                                   .OrderBy(x => x)
-                                                   .LastOrDefault()
-               };
+        return [.. from problem in problems
+                join submission in submissions
+                    on problem.Id equals submission.ProblemId into problemSubmissions
+                let knownSubmissions = problemSubmissions.Where(submission => submission.StatusCode is not (0 or 1)
+                    && (freezeTime is null || submission.CommitTime < freezeTime))
+                let unknownSubmissions = problemSubmissions.Where(submission => submission.StatusCode is 0 or 1
+                    || (freezeTime is not null && submission.CommitTime >= freezeTime))
+                let success = knownSubmissions
+                                 .Where(submission => submission.StatusCode == 2 || submission.Score > 0)
+                                 .OrderBy(submission => submission.Score)
+                                 .ThenByDescending(submission => submission.CommitTime)
+                                 .LastOrDefault()
+                let isSuccess = success != null
+                let score = isSuccess ? success.Score : 0
+                let first = firstSuccess != null && firstSuccess.Contains(problem.Id)
+                let checkedSubmission = knownSubmissions.Where(submission => submission.StatusCode != -1)
+                let signSubmissions = isSuccess
+                                    ? checkedSubmission.Where(submission => submission.CommitTime <= success.CommitTime)
+                                    : checkedSubmission
+                select new UserProblemResult
+                {
+                    Problem = problem,
+                    IsSuccess = isSuccess,
+                    CommitNumber = signSubmissions.Count(),
+                    UnknownCommitNumber = isSuccess ? 0 : unknownSubmissions.Count(),
+                    LastUnknownCommitTime = isSuccess ? null : unknownSubmissions.Select(submission => (DateTimeOffset?)submission.CommitTime).Max(),
+                    IsFirstSuccess = first,
+                    Score = score ?? (isSuccess ? 1 : 0),
+                    MaxScore = MaxScore,
+                    LastCommitTime = signSubmissions.Select(submission => submission.CommitTime)
+                                                    .OrderBy(x => x)
+                                                    .LastOrDefault()
+                }];
     }
 
-    public static IEnumerable<UserResult> NewStanding(Contest contest, bool includeAll, bool official, bool notFreeze, DateTimeOffset? startTime)
+    public static IEnumerable<UserResult> NewStanding(Contest contest, bool includeAll, bool official, bool notFreeze,
+        DateTimeOffset? startTime, DateTimeOffset? now = null)
     {
         var penalty = contest.IsSchool ? 0 : Penalty;
+        var currentTime = now ?? DateTimeOffset.Now;
+        bool isVirtual = startTime.HasValue;
+        var upperTimeBound = startTime is DateTimeOffset virtualStart ? currentTime - virtualStart : contest.Duration;
+        if (upperTimeBound > contest.Duration) upperTimeBound = contest.Duration;
 
-        var users = Enumerable.Empty<User>();
-        if (!startTime.HasValue)
-        {
-            startTime = contest.StartTime;
-            users = contest.Competitors.Where(user => user.IsApproved && !user.IsHidden && (!official || (!user.IsOutOfCompetition && !user.IsDisqualified)));
-        }
+        DateTimeOffset UserStart(User user) => startTime is DateTimeOffset userStart && user is OlympUser ? userStart : contest.StartTime;
 
-        var problems = contest.Problems.OrderBy(problem => problem.Number);
+        IEnumerable<User> users = contest.Competitors.Where(user => user.IsApproved && !user.IsHidden
+            && (isVirtual || !official || (!user.IsOutOfCompetition && !user.IsDisqualified)));
+
+        var problems = contest.Problems.OrderBy(problem => problem.Number).ToArray();
         var submissions = problems.SelectMany(problem => problem.Submissions)
                 .OrderBy(submission => submission.CommitTime)
                 .Where(submission => !submission.IsHidden)
-                .Where(submission => submission.CommitTime >= startTime && submission.CommitTime <= startTime.Value + contest.Duration)
-                .Where(submission => submission.StatusCode is not 0 and not 1);
+                .Where(submission => submission.CommitTime >= UserStart(submission.User)
+                    && submission.CommitTime - UserStart(submission.User) <= upperTimeBound).ToArray();
 
-        if (contest.IsFreeze && !notFreeze)
-            submissions = submissions.Where(submission => submission.CommitTime < contest.FreezeTime);
+        var freezeTime = !isVirtual && !notFreeze && currentTime > contest.FreezeTime ? contest.FreezeTime : null;
 
-        if (includeAll)
-            users = users.Union(submissions.Select(submission => submission.User).Where(user => !user.IsHidden));
+        if (includeAll || isVirtual)
+            users = users.Union(submissions.Select(submission => submission.User)
+                .Where(user => !user.IsHidden && (!isVirtual || user is OlympUser)));
+
+        users = [.. users];
 
         var firstSuccess = (from user in users
                             join submission in submissions on user.Id equals submission.UserId
-                            where submission.StatusCode == 2
-                            orderby submission.CommitTime
+                            where submission.StatusCode == 2 && (freezeTime is null || submission.CommitTime < freezeTime)
+                            orderby submission.CommitTime - UserStart(user)
                             group submission by submission.ProblemId into probleminfo
                             select (problemId: probleminfo.Key, userId: probleminfo.First().UserId))
                             .ToLookup(x => x.userId, x => x.problemId);
 
-        return from user in users
-               join submission in submissions on user.Id equals submission.UserId into userSubmissions
-               let problemResult = UserProblemStanding(problems, userSubmissions, firstSuccess[user.Id])
-               let score = problemResult.Sum(res => res.Score)
-               let summaryTime = TimeSpan.FromMilliseconds(problemResult.Sum(res => res.SummaryTime(startTime.Value, penalty)))
-               orderby score descending, summaryTime ascending, score ascending, user.Name ascending
-               select new UserResult
-               {
-                   User = user,
-                   StartTime = startTime.Value,
-                   ProblemResults = problemResult,
-                   Score = score,
-                   SummaryTime = summaryTime
-               };
+        return [.. from user in users
+                join submission in submissions on user.Id equals submission.UserId into userSubmissions
+                let problemResult = UserProblemStanding(problems, userSubmissions, firstSuccess[user.Id], freezeTime)
+                let score = problemResult.Sum(res => res.Score)
+                let summaryTime = TimeSpan.FromMilliseconds(problemResult.Sum(res => res.SummaryTime(UserStart(user), penalty)))
+                orderby score descending, summaryTime ascending, score ascending, user.Name ascending
+                select new UserResult
+                {
+                    User = user,
+                    StartTime = UserStart(user),
+                    IsVirtual = isVirtual && user is OlympUser,
+                    ProblemResults = problemResult,
+                    Score = score,
+                    SummaryTime = summaryTime
+                }];
     }
 
     public static object StandingData(Contest contest, bool freeze, long? lastUpdate = null, DateTimeOffset? startTime = null)
@@ -186,14 +203,17 @@ public class Standing
         };
     }
 
-    public static Standing Create(Contest contest, bool includeAll, bool official, bool notFreeze, DateTimeOffset? startTime)
+    public static Standing Create(Contest contest, bool includeAll, bool official, bool notFreeze,
+        DateTimeOffset? startTime, DateTimeOffset? now = null)
     {
+        var currentTime = now ?? DateTimeOffset.Now;
         return new Standing
         {
             Contest = contest,
-            IsFrozen = contest.IsFreeze && !notFreeze,
-            IsOfficial = official,
-            Results = NewStanding(contest, includeAll, official, notFreeze, startTime)
+            IsFrozen = startTime is null && !notFreeze && currentTime > contest.FreezeTime,
+            IsOfficial = startTime is null && official,
+            VirtualStartTime = startTime,
+            Results = NewStanding(contest, includeAll, official, notFreeze, startTime, currentTime)
         };
     }
 }
