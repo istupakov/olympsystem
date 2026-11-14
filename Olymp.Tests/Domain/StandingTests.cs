@@ -8,6 +8,66 @@ public class StandingTests
     private const int Accepted = 2;
     private const int WrongAnswer = -1001;
 
+    [Theory]
+    [InlineData(2025, false, null, 119)]
+    [InlineData(2026, false, null, 60)]
+    [InlineData(2027, false, null, 60)]
+    [InlineData(2025, false, true, 60)]
+    [InlineData(2026, false, false, 119)]
+    [InlineData(2026, true, null, 119)]
+    [InlineData(2026, true, true, 119)]
+    public void TimeRoundingDefaultsToContestsFrom2026AndCanBeOverridden(int year, bool school, bool? roundTime, int seconds)
+    {
+        var scenario = new ContestScenario();
+        scenario.Contest.StartTime = new DateTimeOffset(year, 1, 1, 10, 0, 0, TimeSpan.Zero);
+        scenario.Contest.EndTime = scenario.Contest.StartTime.AddHours(5);
+        if (school) scenario.Contest.Abbr = "school-test";
+        var competitor = scenario.AddCompetitor(1);
+        var problem = scenario.AddProblem();
+        scenario.Submit(competitor, problem, TimeSpan.FromSeconds(119), Accepted);
+
+        var standing = Olymp.Domain.Standing.Create(scenario.Contest, false, true, true, null, roundTime: roundTime);
+
+        Assert.Equal(TimeSpan.FromSeconds(seconds), Assert.Single(standing.Results).SummaryTime);
+    }
+
+    [Fact]
+    public void TrainingUsesOriginalContestYearForRounding()
+    {
+        var scenario = new ContestScenario();
+        var user = ContestScenario.CreateOlympUser(1);
+        var problem = scenario.AddProblem();
+        var start = scenario.Contest.StartTime.AddYears(6);
+        scenario.Submit(user, problem, 0, Accepted).CommitTime = start.AddSeconds(119);
+
+        var standing = Olymp.Domain.Standing.Create(scenario.Contest, true, false, true, start, start.AddMinutes(3));
+
+        Assert.Equal(TimeSpan.FromSeconds(119), Assert.Single(standing.Results).SummaryTime);
+    }
+
+    [Fact]
+    public void SchoolContestPreservesExactTimesAndNameTieBreaker()
+    {
+        var scenario = new ContestScenario();
+        scenario.Contest.Abbr = "school-test";
+        var alice = scenario.AddCompetitor(1);
+        alice.Name = "Alice";
+        var bob = scenario.AddCompetitor(2);
+        bob.Name = "Bob";
+        var first = scenario.AddProblem();
+        var second = scenario.AddProblem();
+        scenario.Submit(alice, first, TimeSpan.FromSeconds(61), Accepted, score: 100);
+        scenario.Submit(alice, second, TimeSpan.FromSeconds(179), Accepted, score: 100);
+        scenario.Submit(bob, first, TimeSpan.FromSeconds(119), Accepted, score: 100);
+        scenario.Submit(bob, second, TimeSpan.FromSeconds(121), Accepted, score: 100);
+
+        var results = scenario.GetResults();
+
+        Assert.Equal([1, 2], results.Select(result => result.User.Id));
+        Assert.All(results, result => Assert.Equal(TimeSpan.FromSeconds(240), result.SummaryTime));
+        Assert.Equal(scenario.Contest.StartTime.AddSeconds(179), results[0].ProblemResults.Last().LastCommitTime);
+    }
+
     [Fact]
     public void ApprovedCompetitorWithoutSubmissionsAppearsWithZeroScore()
     {

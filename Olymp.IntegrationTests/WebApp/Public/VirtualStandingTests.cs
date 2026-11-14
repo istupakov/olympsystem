@@ -236,6 +236,48 @@ public class VirtualStandingTests(WebAppFactory factory) : StaffComponentTests(f
         Assert.Equal("00:00:00", page.QuerySelectorAll("tbody td")[3].TextContent);
     }
 
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task EqualResultsShareRankAndFollowingRanksSkipOccupiedPositions(bool school, bool virtualContest)
+    {
+        var contest = Contest();
+        if (school) contest.Abbr = "school-test";
+        var first = TestEntities.CreateProblem(contest, 1);
+        first.Id = 1;
+        var second = TestEntities.CreateProblem(contest, 2);
+        second.Id = 2;
+        contest.Problems.Add(first);
+        contest.Problems.Add(second);
+        var start = contest.StartTime.AddYears(6);
+        for (int index = 0; index < 6; index++)
+        {
+            User user = virtualContest ? Personal($"User {index}") : TestEntities.CreateCompetitor(contest, $"User {index}");
+            user.Id = index + 1;
+            if (user is Competitor competitor) contest.Competitors.Add(competitor);
+            var userStart = virtualContest ? start : contest.StartTime;
+            if (index < 4)
+            {
+                Submit(first, user, userStart.AddMinutes(index == 2 ? 10 : index == 3 ? 21 : 20), 2);
+                Submit(second, user, userStart.AddMinutes(index == 2 ? 50 : 40), 2);
+            }
+            else
+            {
+                Submit(first, user, userStart.AddMinutes(1), -1001);
+            }
+        }
+
+        var standing = Standing.Create(contest, true, false, true, virtualContest ? start : null, start.AddHours(2));
+        string[] expected = school ? ["1", "1", "1", "4", "5", "5"] : ["1", "1", "3", "4", "5", "5"];
+        foreach (string path in new[] { "/contests/1/standing", "/jury/contests/1/standing" })
+        {
+            using var page = await new HtmlParser().ParseDocumentAsync(await RenderAsync<StandingTable>(path, new() { [nameof(StandingTable.Standing)] = standing }));
+            Assert.Equal(expected, page.QuerySelectorAll("tbody tr").Select(row => row.FirstElementChild!.TextContent.Trim()));
+        }
+    }
+
     private static Contest Contest()
     {
         var contest = TestEntities.CreateContest($"Virtual {Guid.NewGuid():N}",

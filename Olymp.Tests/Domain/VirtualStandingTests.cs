@@ -8,6 +8,29 @@ namespace Olymp.Tests.Domain;
 public class VirtualStandingTests
 {
     [Fact]
+    public void LastAcceptanceTieBreakerAndMinuteRoundingUseEachParticipantsStart()
+    {
+        var scenario = new ContestScenario();
+        var original = scenario.AddCompetitor(1);
+        original.Name = "Alice";
+        var newcomer = ContestScenario.CreateOlympUser(2);
+        newcomer.Name = "Bob";
+        var first = scenario.AddProblem();
+        var second = scenario.AddProblem();
+        var start = scenario.Contest.StartTime.AddYears(6).AddSeconds(15);
+        scenario.Submit(original, first, TimeSpan.FromSeconds(659), 2);
+        scenario.Submit(original, second, TimeSpan.FromSeconds(3059), 2);
+        scenario.Submit(newcomer, first, 0, 2).CommitTime = start.AddSeconds(1201);
+        scenario.Submit(newcomer, second, 0, 2).CommitTime = start.AddSeconds(2401);
+
+        var rows = Standing.Create(scenario.Contest, true, false, false, start, start.AddHours(1), roundTime: true).Results.ToArray();
+
+        Assert.Equal([newcomer.Id, original.Id], rows.Select(row => row.User.Id));
+        Assert.All(rows, row => Assert.Equal(TimeSpan.FromMinutes(60), row.SummaryTime));
+        Assert.Equal(start.AddSeconds(2401), rows[0].ProblemResults.Last().LastCommitTime);
+    }
+
+    [Fact]
     public void DistantFutureStartDoesNotUnderflowOriginalParticipantTime()
     {
         var scenario = new ContestScenario();
