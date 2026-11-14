@@ -437,11 +437,14 @@ Additional restrictions:
   confirmation. Deletion is limited to the previewed IDs; eligibility is rechecked
   transactionally, and accounts that no longer qualify are skipped.
 - Administrators may rename a participant, link or unlink permanent member
-  accounts, and assign, replace, or remove its coach from the participant account
+  accounts, change or clear its organization, and assign, replace, or remove its coach from the participant account
   card. These operations are allowed after the contest starts or ends and across
   organizations; the coach does not need a `coach-org` claim. An account cannot be
   linked to more than one participant in the same contest. Roster entries without
-  accounts are retained; unlinking an account retains its roster name and the
+  accounts can be added, renamed, or removed. Administrators can also change the
+  displayed roster name of a linked member without changing the permanent
+  account or membership. Organization changes do not change the coach or roster.
+  Unlinking an account retains its roster name and the
   participant's submissions and messages. These exceptions apply to administrator
   editing only; ordinary registration rules are unchanged.
 - Compiler records may be imported only from a connected Runner that passed

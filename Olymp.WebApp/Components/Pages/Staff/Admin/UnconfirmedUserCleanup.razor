@@ -18,11 +18,11 @@
         @if (_preview.Ids.Length > 0)
         {
             <StaffGrid @key="_preview" TGridItem="OlympUser" Query="PreviewQuery" ItemKey="@(item => item.Id)" OrderKey="@(item => item.Id)">
-                <TemplateColumn Title="ID" Context="item"><a href="@GridState.DetailUrl(Navigation.Uri, $"admin/users/{item.Id}/edit", item.Id)">@item.Id</a></TemplateColumn>
-                <PropertyColumn Property="@(item => item.Name)" Title="@AccountResources.PublicName" />
-                <PropertyColumn Property="@(item => item.UserName)" Title="@SiteResources.StaffLogin" />
-                <PropertyColumn Property="@(item => item.Email)" Title="@SiteResources.StaffEmail" />
-                <TemplateColumn Title="@SiteResources.StaffRegistrationDate" Context="item">@item.RegistrationDate?.LocalDateTime.ToString("g")</TemplateColumn>
+                <TemplateColumn Title="ID" Sortable="true" SortBy="@(GridSort<OlympUser>.ByAscending(item => item.Id))" Context="item"><a href="@GridState.DetailUrl(Navigation.Uri, $"admin/users/{item.Id}/edit", item.Id)">@item.Id</a></TemplateColumn>
+                <PropertyColumn Property="@(item => item.Name)" Title="@AccountResources.PublicName" Sortable="true" />
+                <PropertyColumn Property="@(item => item.UserName)" Title="@SiteResources.StaffLogin" Sortable="true" />
+                <PropertyColumn Property="@(item => item.Email)" Title="@SiteResources.StaffEmail" Sortable="true" />
+                <TemplateColumn Title="@SiteResources.StaffRegistrationDate" Sortable="true" SortBy="@(GridSort<OlympUser>.ByAscending(item => item.RegistrationDate))" Context="item">@item.RegistrationDate?.LocalDateTime.ToString("g")</TemplateColumn>
             </StaffGrid>
             <div class="alert alert-warning mt-3" role="alert">@SiteResources.StaffCleanupConfirm</div>
             <button type="button" class="btn btn-danger me-2" disabled="@_busy" @onclick="DeleteAsync">@SiteResources.StaffConfirm</button>

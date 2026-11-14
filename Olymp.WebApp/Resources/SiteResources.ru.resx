@@ -681,4 +681,12 @@
   <data name="FullStandingShort" xml:space="preserve"><value>Полная</value></data>
   <data name="OfficialStandingShort" xml:space="preserve"><value>Официальная</value></data>
   <data name="StaffJavaScriptRequired" xml:space="preserve"><value>Для работы раздела требуется JavaScript. Включите его в настройках браузера и обновите страницу.</value></data>
+  <data name="StaffNotSpecified" xml:space="preserve"><value>Не указана</value></data>
+  <data name="StaffRosterDisplayName" xml:space="preserve"><value>Имя в составе</value></data>
+  <data name="StaffAddRosterEntry" xml:space="preserve"><value>Добавить человека без аккаунта</value></data>
+  <data name="StaffAdd" xml:space="preserve"><value>Добавить</value></data>
+  <data name="StaffLoginAssigned" xml:space="preserve"><value>Логин назначен</value></data>
+  <data name="StaffAllConfigurationsAdded" xml:space="preserve"><value>Все доступные конфигурации уже добавлены.</value></data>
+  <data name="StaffUnaddedConfigurations" xml:space="preserve"><value>Конфигурации, не добавленные на сайт</value></data>
+  <data name="StaffNotAddedToSite" xml:space="preserve"><value>Не добавлен на сайт</value></data>
 </root>

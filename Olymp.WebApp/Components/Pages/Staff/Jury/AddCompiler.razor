@@ -25,9 +25,10 @@
         <label for="add-configuration" class="form-label">@SiteResources.Compiler</label>
         <InputSelect id="add-configuration" class="form-select" @bind-Value="_input.Configuration" @bind-Value:after="ClearPreview">
             <option value="">@SiteResources.SelectCompiler</option>
-            @foreach (var info in SelectedRunner?.Compilators?.Where(item => item.Error is null) ?? []) { <option value="@info.Configuration.Name">@info.DisplayName (@info.Configuration.Name)</option> }
+            @foreach (var info in AvailableConfigurations) { <option value="@info.Configuration.Name">@info.DisplayName (@info.Configuration.Name)</option> }
         </InputSelect>
     </div>
+    @if (SelectedRunner is not null && !AvailableConfigurations.Any()) { <p class="col-12 text-body-secondary" role="status">@SiteResources.StaffAllConfigurationsAdded</p> }
     <div class="col-12"><button class="btn btn-primary" disabled="@(_busy || _input.Runner is null || _input.Configuration is null)">@SiteResources.StaffPreview</button></div>
 </EditForm>
 @if (_key is not null)
@@ -39,8 +40,9 @@
             <tbody>
                 @foreach (var field in Fields(_key))
                 {
-                    <tr><th>@field.Label</th><td class="text-break">@field.Value</td>
-                        @foreach (var compiler in _similar) { var saved = Fields(CompilerConfigurationKey.From(compiler)).Single(item => item.Label == field.Label).Value; <td class="text-break @(saved != field.Value ? "table-warning" : null)">@saved</td> }
+                    var valueClass = field.Label == SiteResources.StaffCommandLine ? "text-nowrap font-monospace" : "text-break";
+                    <tr><th>@field.Label</th><td class="@valueClass">@field.Value</td>
+                        @foreach (var compiler in _similar) { var saved = Fields(CompilerConfigurationKey.From(compiler)).Single(item => item.Label == field.Label).Value; <td class="@valueClass @(saved != field.Value ? "table-warning" : null)">@saved</td> }
                     </tr>
                 }
             </tbody>
@@ -66,9 +68,18 @@
     private int? _existing;
     private string? _error;
     private bool _busy;
+    private HashSet<CompilerConfigurationKey> _savedKeys = [];
+    private IEnumerable<CompilatorInfo> AvailableConfigurations => SelectedRunner?.Compilators?.Where(info => info.Error is null && !_savedKeys.Contains(CompilerConfigurationKey.From(info))) ?? [];
     private IEnumerable<ICheckerService> AvailableRunners => Checkers.Checkers.Values.Where(item => item.SelfTestingStatus == CheckerSelfTestingStatus.Success).OrderBy(item => item.Name).ThenBy(item => item.Id);
     private ICheckerService? SelectedRunner => AvailableRunners.SingleOrDefault(item => item.Id == _input.Runner);
-    protected override void OnParametersSet() { _input.Runner = Runner; _input.Configuration = Configuration; ClearPreview(); }
+    protected override async Task OnParametersSetAsync()
+    {
+        await using var db = await ContextFactory.CreateDbContextAsync();
+        _savedKeys = (await db.Compilators.AsNoTracking().ToListAsync()).Select(CompilerConfigurationKey.From).ToHashSet();
+        _input.Runner = Runner;
+        _input.Configuration = AvailableConfigurations.Any(info => info.Configuration.Name == Configuration) ? Configuration : null;
+        ClearPreview();
+    }
     private void SelectRunner() { _input.Configuration = null; ClearPreview(); }
     private void ClearPreview() { _key = null; _existing = null; _similar = []; _error = null; }
     private async Task PreviewAsync()

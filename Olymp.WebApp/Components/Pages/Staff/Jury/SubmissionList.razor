@@ -118,6 +118,8 @@ else
         <ActiveFilter Name="Language" Label="@SiteResources.StaffLanguage" Value="@Language" />
         <ActiveFilter Name="IpAddress" Label="@SiteResources.IpAddress" Value="@IpAddress" />
         <ActiveFilter Name="Contest" Label="@SiteResources.StaffContest" Value="@(ContestId is null && Contest is int selectedContestFilter ? StaffEntityLabel.Format(selectedContestFilter, _contest?.Name) : null)" Clear="@(new[] { nameof(Problem), nameof(ProblemSearch) })" />
+        <ActiveFilter Name="Hidden" Label="@SiteResources.StaffHiddenSubmission" Value="@(Hidden is bool hidden ? hidden ? SiteResources.StaffYes : SiteResources.StaffNo : null)" />
+        <ActiveFilter Name="Reference" Label="@SiteResources.StaffReferenceSubmission" Value="@(Reference is bool reference ? reference ? SiteResources.StaffYes : SiteResources.StaffNo : null)" />
         <ActiveFilter Name="Scope" Label="@SiteResources.StaffSubmissionAuthors" Value="@(EffectiveScope == "own" ? SiteResources.OwnSubmissions : EffectiveScope == "participants" ? SiteResources.ContestParticipants : EffectiveScope == "hidden" ? SiteResources.StaffJuryAuthors : null)" Clear="@(new[] { nameof(OnlyParticipants) })" />
         <ActiveFilter Name="Status" Label="@SiteResources.SubmissionStatus" Value="@(Status is not null ? _statusLabel : null)" />
         <ActiveFilter Name="StatusCode" Label="@SiteResources.SubmissionStatus" Value="@(StatusCode is int exactStatus ? CheckStatusCodes.Description(exactStatus) : null)" />
@@ -178,7 +180,7 @@ else
                     <a href="@GridState.DetailUrl(Navigation.Uri, $"jury/compilers/{item.CompilerId}", item.Id)">@item.Compiler</a>
                 </QuickFilter>
             </TemplateColumn>
-            <TemplateColumn Title="@SiteResources.SubmissionStatus" Context="item">
+            <TemplateColumn Title="@SiteResources.SubmissionStatus" Sortable="true" SortBy="_statusSort" Context="item">
                 @if (item.StatusCode is int code)
                 {
                     <QuickFilter Url="@StaffFilterUrl.Set(Navigation.Uri, nameof(StatusCode), code, nameof(Status))" Label="@SiteResources.SubmissionStatus" Value="@CheckStatusCodes.Description(code)">
@@ -186,11 +188,11 @@ else
                         else { <SubmissionStatus StatusCode="code" /> }
                     </QuickFilter>
                 }
-                @if (item.IsHidden) { <div class="badge text-bg-secondary">@SiteResources.StaffHiddenSubmission</div> }
-                @if (item.IsReference) { <div class="badge text-bg-info">@SiteResources.StaffReferenceSubmission</div> }
+                @if (item.IsHidden) { <div><QuickFilter Url="@StaffFilterUrl.Set(Navigation.Uri, nameof(Hidden), true)" Label="@SiteResources.StaffHiddenSubmission" Value="@SiteResources.StaffYes"><span class="badge text-bg-secondary">@SiteResources.StaffHiddenSubmission</span></QuickFilter></div> }
+                @if (item.IsReference) { <div><QuickFilter Url="@StaffFilterUrl.Set(Navigation.Uri, nameof(Reference), true)" Label="@SiteResources.StaffReferenceSubmission" Value="@SiteResources.StaffYes"><span class="badge text-bg-info">@SiteResources.StaffReferenceSubmission</span></QuickFilter></div> }
             </TemplateColumn>
             <PropertyColumn Property="@(item => item.Score)" Title="@SiteResources.Points" Sortable="true" />
-            <TemplateColumn Title="@SiteResources.IpAddress" Context="item">
+            <TemplateColumn Title="@SiteResources.IpAddress" Sortable="true" SortBy="@(GridSort<StaffSubmissionListItem>.ByAscending(item => item.IpAddress))" Context="item">
                 @(string.IsNullOrWhiteSpace(item.IpAddress) ? "–" : item.IpAddress)
                 @if (!string.IsNullOrWhiteSpace(item.IpAddress))
                 {
@@ -220,6 +222,8 @@ else
     [SupplyParameterFromQuery]
     public string? Status { get; set; }
     [SupplyParameterFromQuery] public int? StatusCode { get; set; }
+    [SupplyParameterFromQuery] public bool? Hidden { get; set; }
+    [SupplyParameterFromQuery] public bool? Reference { get; set; }
     [SupplyParameterFromQuery] public bool Retest { get; set; }
     [SupplyParameterFromQuery]
     public DateTime? From { get; set; }
@@ -247,6 +251,10 @@ else
     private readonly GridSort<StaffSubmissionListItem> _dateSort = GridSort<StaffSubmissionListItem>.ByAscending(item => item.CommitTime);
     private readonly GridSort<StaffSubmissionListItem> _authorSort = GridSort<StaffSubmissionListItem>.ByAscending(item => item.Author);
     private readonly GridSort<StaffSubmissionListItem> _problemSort = GridSort<StaffSubmissionListItem>.ByAscending(item => item.Problem);
+    private readonly GridSort<StaffSubmissionListItem> _statusSort = GridSort<StaffSubmissionListItem>.ByAscending(item =>
+        item.StatusCode == 0 ? 0 : item.StatusCode == 1 ? 1 : item.StatusCode == 2 ? 2 : item.StatusCode == -1 ? 3 :
+        item.StatusCode < -1000 && item.StatusCode > -7000 && item.StatusCode % 1000 != 0 ? 3 + (-item.StatusCode / 1000) : 10)
+        .ThenAscending(item => item.StatusCode < -1000 && item.StatusCode > -7000 ? (-item.StatusCode % 1000) : 0);
     private readonly GridSort<StaffSubmissionListItem> _compilerSort = GridSort<StaffSubmissionListItem>.ByAscending(item => item.Compiler);
     internal IQueryable<StaffSubmissionListItem> Query(OlympContext db) => FilteredQuery(db)
         .AsStaffRows(db, EffectiveContest).OrderByDescending(item => item.CommitTime).ThenByDescending(item => item.Id);
@@ -296,7 +304,7 @@ else
     }
 
     private IQueryable<Submission> FilteredQuery(OlympContext db) => new StaffSubmissionFilter(EffectiveContest, AuthorId, Author,
-        Problem, ProblemSearch, Compiler, Language, IpAddress, EffectiveScope, StatusCode, Status, From, To).Apply(db, _userId);
+        Problem, ProblemSearch, Compiler, Language, IpAddress, EffectiveScope, StatusCode, Status, From, To, Hidden, Reference).Apply(db, _userId);
 
     private void RefreshGrid()
     {

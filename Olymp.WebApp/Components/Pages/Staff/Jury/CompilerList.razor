@@ -28,8 +28,14 @@
         <label for="compiler-active" class="form-label">@SiteResources.StaffEnabledOnSite</label>
         <InputSelect id="compiler-active" class="form-select" @bind-Value="_filters.Active">
             <option value="">@SiteResources.StaffAll</option>
-            <option value="true">@SiteResources.StaffEnabled</option>
-            <option value="false">@SiteResources.StaffDisabled</option>
+            <option value="True">@SiteResources.StaffEnabled</option>
+            <option value="False">@SiteResources.StaffDisabled</option>
+        </InputSelect>
+    </div>
+    <div class="col-md-3">
+        <label for="compiler-runner" class="form-label">@SiteResources.StaffRunnerAvailable</label>
+        <InputSelect id="compiler-runner" class="form-select" @bind-Value="_filters.RunnerAvailable">
+            <option value="">@SiteResources.StaffAll</option><option value="True">@SiteResources.StaffYes</option><option value="False">@SiteResources.StaffNo</option>
         </InputSelect>
     </div>
     <div class="col-12 d-flex gap-2">
@@ -38,6 +44,8 @@
     </div>
 </EditForm>
 <div class="d-flex flex-wrap gap-2 mb-3">
+    <ActiveFilter Name="RunnerAvailable" Label="@SiteResources.StaffRunnerAvailable" Value="@(RunnerAvailable is bool available ? available ? SiteResources.StaffYes : SiteResources.StaffNo : null)" />
+    <ActiveFilter Name="Configuration" Label="@SiteResources.StaffConfiguration" Value="@Configuration" />
     <ActiveFilter Name="Search" Label="@SiteResources.Compiler" Value="@Search" />
     <ActiveFilter Name="Language" Label="@SiteResources.StaffLanguage" Value="@Language" />
     <ActiveFilter Name="Active" Label="@SiteResources.StaffEnabledOnSite" Value="@(Active is bool active ? active ? SiteResources.StaffYes : SiteResources.StaffNo : null)" />
@@ -53,12 +61,14 @@
     <TemplateColumn Title="@SiteResources.StaffLanguage" SortBy="_languageSort" Sortable="true" Context="item">
         <QuickFilter Url="@StaffFilterUrl.Set(Navigation.Uri, nameof(Language), item.Language)" Label="@SiteResources.StaffLanguage" Value="@item.Language">@item.Language</QuickFilter>
     </TemplateColumn>
-    <PropertyColumn Property="@(item => item.ConfigName)" Title="@SiteResources.StaffConfiguration" Sortable="true" />
+    <TemplateColumn Title="@SiteResources.StaffConfiguration" Sortable="true" SortBy="@(GridSort<Compilator>.ByAscending(item => item.ConfigName))" Context="item">
+        <QuickFilter Url="@StaffFilterUrl.Set(Navigation.Uri, nameof(Configuration), item.ConfigName)" Label="@SiteResources.StaffConfiguration" Value="@item.ConfigName">@item.ConfigName</QuickFilter>
+    </TemplateColumn>
     <TemplateColumn Title="@SiteResources.StaffEnabledOnSite" SortBy="_activeSort" Sortable="true" Context="item">
         <QuickFilter Url="@StaffFilterUrl.Set(Navigation.Uri, nameof(Active), item.IsActive)" Label="@SiteResources.StaffEnabledOnSite" Value="@(item.IsActive ? SiteResources.StaffYes : SiteResources.StaffNo)"><span class="badge @(item.IsActive ? "text-bg-success" : "text-bg-secondary")">@(item.IsActive ? SiteResources.StaffEnabled : SiteResources.StaffDisabled)</span></QuickFilter>
     </TemplateColumn>
-    <TemplateColumn Title="@SiteResources.StaffRunnerAvailable" Context="item">
-        @(Checkers.Checkers.Values.Any(runner => runner.CanCheck(item)) ? SiteResources.StaffYes : SiteResources.StaffNo)
+    <TemplateColumn Title="@SiteResources.StaffRunnerAvailable" Sortable="true" SortBy="@(GridSort<Compilator>.ByAscending(item => _availableIds.Contains(item.Id)))" Context="item">
+        <QuickFilter Url="@StaffFilterUrl.Set(Navigation.Uri, nameof(RunnerAvailable), _availableIds.Contains(item.Id))" Label="@SiteResources.StaffRunnerAvailable" Value="@(_availableIds.Contains(item.Id) ? SiteResources.StaffYes : SiteResources.StaffNo)">@(_availableIds.Contains(item.Id) ? SiteResources.StaffYes : SiteResources.StaffNo)</QuickFilter>
     </TemplateColumn>
 </StaffGrid>
 
@@ -66,6 +76,9 @@
     [SupplyParameterFromQuery] public string? Search { get; set; }
     [SupplyParameterFromQuery] public string? Language { get; set; }
     [SupplyParameterFromQuery] public bool? Active { get; set; }
+    [SupplyParameterFromQuery] public bool? RunnerAvailable { get; set; }
+    [SupplyParameterFromQuery] public string? Configuration { get; set; }
+    private int[] _availableIds = [];
     private Filters _filters = new();
     private List<string> _languages = [];
     private readonly GridSort<Compilator> _idSort = GridSort<Compilator>.ByAscending(item => item.Id);
@@ -74,8 +87,11 @@
     private readonly GridSort<Compilator> _languageSort = GridSort<Compilator>.ByAscending(item => item.Language);
     protected override async Task OnParametersSetAsync()
     {
-        _filters = new() { Search = Search, Language = Language, Active = Active };
+        _filters = new() { Search = Search, Language = Language, Active = Active?.ToString(), RunnerAvailable = RunnerAvailable?.ToString() };
         await using var db = await ContextFactory.CreateDbContextAsync();
+        var compilers = await db.Compilators.AsNoTracking().ToListAsync();
+        var runners = Checkers.Checkers.Values.ToArray();
+        _availableIds = [.. compilers.Where(compiler => runners.Any(runner => runner.CanCheck(compiler))).Select(compiler => compiler.Id)];
         _languages = await db.Compilators.Select(item => item.Language).Distinct().OrderBy(item => item).ToListAsync();
     }
     internal IQueryable<Compilator> Query(OlympContext db)
@@ -86,15 +102,19 @@
             query = query.Where(item => item.Name.Contains(search) || (item.Description != null && item.Description.Contains(search)) || item.ConfigName.Contains(search));
         }
         if (!string.IsNullOrWhiteSpace(Language)) { string language = Language.Trim(); query = query.Where(item => item.Language == language); }
+        if (RunnerAvailable is bool available) query = query.Where(item => _availableIds.Contains(item.Id) == available);
+        if (!string.IsNullOrEmpty(Configuration)) query = query.Where(item => item.ConfigName == Configuration);
         if (Active is bool active) query = query.Where(item => item.IsActive == active);
         return query.OrderByDescending(item => item.IsActive).ThenByDescending(item => item.Id);
     }
     private void ApplyFilters() => Navigation.NavigateTo(Navigation.GetUriWithQueryParameters(new Dictionary<string, object?> {
-        [nameof(Search)] = _filters.Search, [nameof(Language)] = _filters.Language, [nameof(Active)] = _filters.Active, ["row"] = null
+        [nameof(Search)] = _filters.Search, [nameof(Language)] = _filters.Language, [nameof(Active)] = ParseFlag(_filters.Active), [nameof(RunnerAvailable)] = ParseFlag(_filters.RunnerAvailable), ["row"] = null
     }));
+    private static bool? ParseFlag(string? value) => bool.TryParse(value, out bool flag) ? flag : null;
     private sealed class Filters {
         public string? Search { get; set; }
         public string? Language { get; set; }
-        public bool? Active { get; set; }
+        public string? Active { get; set; }
+        public string? RunnerAvailable { get; set; }
     }
 }

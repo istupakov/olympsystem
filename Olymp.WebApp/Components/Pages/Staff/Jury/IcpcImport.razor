@@ -30,7 +30,7 @@
                     <label class="form-label" for="icpc-region">@SiteResources.IcpcRegion</label>
                     <InputSelect id="icpc-region" class="form-select" @bind-Value="_regionId" @bind-Value:after="RegionChangedAsync">
                         <option value="">@SiteResources.IcpcSelectRegion</option>
-                        @foreach (var region in _regions) { <option value="@region.Id">@region.Label</option> }
+                        @foreach (var region in _regions.OrderBy(region => region.Label, StringComparer.CurrentCultureIgnoreCase).ThenBy(region => region.Id)) { <option value="@region.Id">@region.Label</option> }
                     </InputSelect>
                 </div>
                 <div class="col-md-4">
@@ -41,7 +41,7 @@
                     <label class="form-label" for="icpc-contest">@SiteResources.IcpcContest</label>
                     <InputSelect id="icpc-contest" class="form-select" @bind-Value="_credentials.ContestId" @bind-Value:after="ContestChanged">
                         <option value="0">@SiteResources.IcpcSelectContest</option>
-                        @foreach (var contest in _contests.Where(contest => contest.Id == _credentials.ContestId || contest.Name.Contains(_filter.Trim(), StringComparison.OrdinalIgnoreCase)))
+                        @foreach (var contest in _contests.Where(contest => contest.Id == _credentials.ContestId || contest.Name.Contains(_filter.Trim(), StringComparison.OrdinalIgnoreCase)).OrderBy(contest => contest.Name, StringComparer.CurrentCultureIgnoreCase).ThenBy(contest => contest.Id))
                         {
                             <option value="@contest.Id">@contest.Name @contest.Date</option>
                         }

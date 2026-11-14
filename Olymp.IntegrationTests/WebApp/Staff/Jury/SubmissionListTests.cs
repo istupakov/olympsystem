@@ -44,6 +44,41 @@ namespace Olymp.IntegrationTests.WebApp.Staff.Jury;
 public partial class SubmissionListTests(WebAppFactory factory) : StaffComponentTests(factory)
 {
     [Fact]
+    public async Task SubmissionFlagsArePreservedWhenPassingSelectionToAntiCheat()
+    {
+        var author = await _factory.AddUserAsync();
+        await using var scope = _factory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<OlympContext>();
+        var contest = TestEntities.CreateContest("Submission flags", DateTimeOffset.Now, DateTimeOffset.Now.AddHours(5));
+        var problem = TestEntities.CreateProblem(contest);
+        var compiler = TestEntities.CreateCompilator();
+        foreach (var (hidden, reference) in new[] { (false, false), (true, false), (false, true), (true, true) })
+        {
+            var submission = TestEntities.CreateSubmission(author, problem, compiler, DateTimeOffset.Now);
+            submission.User = null!;
+            submission.IsHidden = hidden;
+            submission.IsReference = reference;
+            db.Submissions.Add(submission);
+        }
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        foreach (var flags in new[] { "Hidden=true", "Reference=true", "Hidden=false&Reference=true" })
+        {
+            var path = $"/jury/contests/{contest.Id}/submissions?{flags}";
+            var rows = await ReadStaffRowsAsync(path, contest.Id);
+            var selection = StaffSubmissionFilter.FromList(path);
+            var ids = await selection.Apply(db, author.Id).Select(item => item.Id).ToListAsync(TestContext.Current.CancellationToken);
+            Assert.Equal(flags.Contains('&') ? 1 : 2, rows.Count);
+            Assert.Equal(rows.Select(item => item.Id).Order(), ids.Order());
+            Assert.All(rows, row =>
+            {
+                if (selection.Hidden is bool hidden) Assert.Equal(hidden, row.IsHidden);
+                if (selection.Reference is bool reference) Assert.Equal(reference, row.IsReference);
+            });
+        }
+    }
+
+    [Fact]
     public async Task OwnAndHiddenScopesMatchInContestAndProblemLists()
     {
         var own = await _factory.AddUserAsync();

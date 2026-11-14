@@ -81,10 +81,10 @@
         @if (item.Jury) { <QuickFilter Url="@StaffFilterUrl.Set(Navigation.Uri, nameof(Role), "jury")" Label="@SiteResources.StaffRoles" Value="@SiteResources.JurySection"><span class="badge text-bg-secondary">@SiteResources.JurySection</span></QuickFilter> }
         @if (item.Coach) { <QuickFilter Url="@StaffFilterUrl.Set(Navigation.Uri, nameof(Role), "coach")" Label="@SiteResources.StaffRoles" Value="@SiteResources.StaffCoach"><span class="badge text-bg-secondary">@SiteResources.StaffCoach</span></QuickFilter> }
     </TemplateColumn>
-    <TemplateColumn Title="@SiteResources.StaffVisibility" Context="item">
+    <TemplateColumn Title="@SiteResources.StaffVisibility" Sortable="true" SortBy="@(GridSort<Row>.ByAscending(item => item.Hidden))" Context="item">
         <QuickFilter Url="@StaffFilterUrl.Set(Navigation.Uri, nameof(Visibility), item.Hidden ? "hidden" : "visible")" Label="@SiteResources.StaffVisibility" Value="@(item.Hidden ? SiteResources.StaffHiddenAccounts : SiteResources.StaffVisibleAccounts)"><span class="badge @(item.Hidden ? "text-bg-secondary" : "text-bg-light")">@(item.Hidden ? SiteResources.StaffHiddenAccounts : SiteResources.StaffVisibleAccounts)</span></QuickFilter>
     </TemplateColumn>
-    <TemplateColumn Title="@SiteResources.StaffSignIn" Context="item">
+    <TemplateColumn Title="@SiteResources.StaffSignIn" Sortable="true" SortBy="@(GridSort<Row>.ByAscending(item => item.Locked ? 0 : item.Confirmed ? 2 : 1))" Context="item">
         <QuickFilter Url="@StaffFilterUrl.Set(Navigation.Uri, nameof(LoginState), item.Locked ? "blocked" : item.Confirmed ? "allowed" : "unconfirmed")" Label="@SiteResources.StaffSignIn" Value="@SignInLabel(item.Locked ? "blocked" : item.Confirmed ? "allowed" : "unconfirmed")"><span class="badge @(item.Locked ? "text-bg-danger" : item.Confirmed ? "text-bg-success" : "text-bg-warning")">@SignInLabel(item.Locked ? "blocked" : item.Confirmed ? "allowed" : "unconfirmed")</span></QuickFilter>
     </TemplateColumn>
 </StaffGrid>

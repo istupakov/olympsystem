@@ -114,6 +114,18 @@ else
                 <option value="">@SiteResources.StaffAll</option><option value="True">@SiteResources.StaffYes</option><option value="False">@SiteResources.StaffNo</option>
             </InputSelect>
         </div>
+        <div class="col-md-6">
+            <label for="participant-has-login" class="form-label">@SiteResources.StaffLoginAssigned</label>
+            <InputSelect id="participant-has-login" class="form-select" @bind-Value="_filters.HasLogin">
+                <option value="">@SiteResources.StaffAll</option><option value="True">@SiteResources.StaffYes</option><option value="False">@SiteResources.StaffNo</option>
+            </InputSelect>
+        </div>
+        <div class="col-md-6">
+            <label for="participant-hidden" class="form-label">@SiteResources.StaffVisibility</label>
+            <InputSelect id="participant-hidden" class="form-select" @bind-Value="_filters.Hidden">
+                <option value="">@SiteResources.StaffAll</option><option value="True">@SiteResources.StaffHiddenAccounts</option><option value="False">@SiteResources.StaffVisibleAccounts</option>
+            </InputSelect>
+        </div>
         <div class="col-12 d-flex flex-wrap gap-2">
             <button class="btn btn-primary">@SiteResources.StaffFind</button>
             <a class="btn btn-outline-secondary" href="@ListUrl">@SiteResources.StaffReset</a>
@@ -121,6 +133,8 @@ else
         </div>
     </EditForm>
     <div class="d-flex flex-wrap gap-2 mb-3">
+        <ActiveFilter Name="HasLogin" Label="@SiteResources.StaffLoginAssigned" Value="@(HasLogin is bool hasLogin ? hasLogin ? SiteResources.StaffYes : SiteResources.StaffNo : null)" />
+        <ActiveFilter Name="Hidden" Label="@SiteResources.StaffVisibility" Value="@(Hidden is bool hidden ? hidden ? SiteResources.StaffHiddenAccounts : SiteResources.StaffVisibleAccounts : null)" />
         <ActiveFilter Name="Contest" Label="@SiteResources.StaffContest" Value="@(Contest is int id ? StaffEntityLabel.Format(id, _contests.SingleOrDefault(item => item.Id == id)?.Name) : null)" />
         <ActiveFilter Name="Coach" Label="@SiteResources.StaffCoach" Value="@_coachName" Clear="@(new[] { nameof(CoachSearch) })" />
         <ActiveFilter Name="Member" Label="@SiteResources.StaffMembers" Value="@_memberName" Clear="@(new[] { nameof(MemberSearch) })" />
@@ -157,7 +171,7 @@ else
         </TemplateColumn>
         @if (!ContestId.HasValue)
         {
-            <TemplateColumn Title="@SiteResources.StaffContest" Context="participant">
+            <TemplateColumn Title="@SiteResources.StaffContest" Sortable="true" SortBy="_contestSort" Context="participant">
                 <div class="participant-contest text-wrap">
                     <QuickFilter Url="@StaffFilterUrl.Set(Navigation.Uri, nameof(Contest), participant.ContestId)" Label="@SiteResources.StaffContest" Value="@participant.Contest.Name"><a class="text-wrap" href="jury/contests/@participant.ContestId">@participant.Contest.Name</a></QuickFilter>
                 </div>
@@ -177,7 +191,7 @@ else
                 </div>
             }
         </TemplateColumn>
-        <TemplateColumn Title="@SiteResources.StaffOrganization" Context="participant">
+        <TemplateColumn Title="@SiteResources.StaffOrganization" Sortable="true" SortBy="_organizationSort" Context="participant">
             @if (participant.Organization is { } organization)
             {
                 <QuickFilter Url="@StaffFilterUrl.Set(Navigation.Uri, nameof(Organization), organization.Id)" Label="@SiteResources.StaffOrganization" Value="@organization.Name">
@@ -186,7 +200,7 @@ else
                 </QuickFilter>
             }
         </TemplateColumn>
-        <TemplateColumn Title="@SiteResources.StaffCoach" Context="participant">
+        <TemplateColumn Title="@SiteResources.StaffCoach" Sortable="true" SortBy="_coachSort" Context="participant">
             @if (participant.Coach is { } coach)
             {
                 <QuickFilter Url="@StaffFilterUrl.Set(Navigation.Uri, nameof(Coach), coach.Id, nameof(CoachSearch))" Label="@SiteResources.StaffCoach" Value="@coach.Name">
@@ -194,7 +208,9 @@ else
                 </QuickFilter>
             }
         </TemplateColumn>
-        <PropertyColumn Property="@(item => item.UserName)" Title="@SiteResources.StaffLogin" Sortable="true" />
+        <TemplateColumn Title="@SiteResources.StaffLogin" Sortable="true" SortBy="@(GridSort<Competitor>.ByAscending(item => item.UserName))" Context="participant">
+            <QuickFilter Url="@StaffFilterUrl.Set(Navigation.Uri, nameof(HasLogin), !string.IsNullOrEmpty(participant.UserName))" Label="@SiteResources.StaffLoginAssigned" Value="@(!string.IsNullOrEmpty(participant.UserName) ? SiteResources.StaffYes : SiteResources.StaffNo)">@(participant.UserName ?? "–")</QuickFilter>
+        </TemplateColumn>
         <PropertyColumn Property="@(item => item.PasswordHash)" Title="@SiteResources.StaffPassword" />
         <TemplateColumn Title="@SiteResources.StaffStatus" Context="participant">
             <div class="d-flex flex-column align-items-start gap-1">
@@ -204,7 +220,7 @@ else
                 {
                     <QuickFilter Url="@StaffFilterUrl.Set(Navigation.Uri, nameof(Disqualified), true)" Label="@SiteResources.StaffDisqualified" Value="@SiteResources.StaffYes"><span class="badge text-bg-danger">@SiteResources.StaffDisqualified</span></QuickFilter>
                 }
-                @if (participant.IsHidden) { <span class="badge text-bg-secondary">@SiteResources.StaffHiddenAccount</span> }
+                @if (participant.IsHidden) { <QuickFilter Url="@StaffFilterUrl.Set(Navigation.Uri, nameof(Hidden), true)" Label="@SiteResources.StaffVisibility" Value="@SiteResources.StaffHiddenAccounts"><span class="badge text-bg-secondary">@SiteResources.StaffHiddenAccount</span></QuickFilter> }
             </div>
         </TemplateColumn>
         <TemplateColumn Title="@SiteResources.StaffRegistrationDate" SortBy="_dateSort" Sortable="true" Context="participant">@participant.RegistrationDate?.ToLocalTime().ToString("g")</TemplateColumn>

@@ -36,6 +36,8 @@ public partial class ParticipantList
     [SupplyParameterFromQuery] public bool? Approved { get; set; }
     [SupplyParameterFromQuery] public bool? Unofficial { get; set; }
     [SupplyParameterFromQuery] public bool? Disqualified { get; set; }
+    [SupplyParameterFromQuery] public bool? HasLogin { get; set; }
+    [SupplyParameterFromQuery] public bool? Hidden { get; set; }
     private Filters _filters = new();
     private List<Organization> _organizations = [];
     private int _gridVersion;
@@ -52,7 +54,10 @@ public partial class ParticipantList
     private readonly GridSort<Competitor> _idSort = GridSort<Competitor>.ByAscending(item => item.Id);
     private readonly GridSort<Competitor> _nameSort = GridSort<Competitor>.ByAscending(item => item.Name);
     private readonly GridSort<Competitor> _dateSort = GridSort<Competitor>.ByAscending(item => item.RegistrationDate);
-    private ParticipantQuery Selection => new(SelectedContest, Search, Organization, Approved, Unofficial, Disqualified, Coach, Member, Coach.HasValue ? null : CoachSearch, Member.HasValue ? null : MemberSearch);
+    private readonly GridSort<Competitor> _contestSort = GridSort<Competitor>.ByAscending(item => item.Contest.Name);
+    private readonly GridSort<Competitor> _organizationSort = GridSort<Competitor>.ByAscending(item => item.Organization == null ? "" : item.Organization.Name);
+    private readonly GridSort<Competitor> _coachSort = GridSort<Competitor>.ByAscending(item => item.Coach == null ? "" : item.Coach.Name);
+    private ParticipantQuery Selection => new(SelectedContest, Search, Organization, Approved, Unofficial, Disqualified, Coach, Member, Coach.HasValue ? null : CoachSearch, Member.HasValue ? null : MemberSearch, HasLogin, Hidden);
     internal IQueryable<Competitor> Query(OlympContext db) => Selection.Apply(db)
         .Include(item => item.Contest).Include(item => item.Organization).Include(item => item.Coach).Include(item => item.Members).AsSplitQuery()
         .OrderByDescending(item => item.Contest.StartTime).ThenBy(item => item.RegistrationDate).ThenBy(item => item.Id);
@@ -64,10 +69,13 @@ public partial class ParticipantList
         query.TryGetValue("sort", out var column);
         query.TryGetValue("direction", out var direction);
         string sortKey = column == "ID" ? "ID" : column == SiteResources.StaffName ? "Name"
-            : column == SiteResources.StaffLogin ? "Login" : "Date";
+            : column == SiteResources.StaffLogin ? "Login" : column == SiteResources.StaffContest ? "Contest"
+            : column == SiteResources.StaffOrganization ? "Organization" : column == SiteResources.StaffCoach ? "Coach" : "Date";
         return QueryHelpers.AddQueryString($"/jury/contests/{ContestId}/participants/export", new Dictionary<string, string?>
         {
             ["search"] = Search,
+            ["hasLogin"] = HasLogin?.ToString(),
+            ["hidden"] = Hidden?.ToString(),
             ["coach"] = Coach?.ToString(System.Globalization.CultureInfo.InvariantCulture),
             ["member"] = Member?.ToString(System.Globalization.CultureInfo.InvariantCulture),
             ["coachSearch"] = Coach.HasValue ? null : CoachSearch,
@@ -83,6 +91,8 @@ public partial class ParticipantList
     private void ApplyFilters() => Navigation.NavigateTo(Navigation.GetUriWithQueryParameters(new Dictionary<string, object?>
     {
         [nameof(Search)] = _filters.Search,
+        [nameof(HasLogin)] = ParseFlag(_filters.HasLogin),
+        [nameof(Hidden)] = ParseFlag(_filters.Hidden),
         [nameof(Contest)] = ContestId.HasValue ? null : _filters.Contest,
         [nameof(CoachSearch)] = Coach.HasValue ? null : _filters.CoachSearch,
         [nameof(MemberSearch)] = Member.HasValue ? null : _filters.MemberSearch,
@@ -95,6 +105,8 @@ public partial class ParticipantList
     private static bool? ParseFlag(string? value) => bool.TryParse(value, out bool flag) ? flag : null;
     private sealed class Filters
     {
+        public string? HasLogin { get; set; }
+        public string? Hidden { get; set; }
         public int? Contest { get; set; }
         public string? CoachSearch { get; set; }
         public string? MemberSearch { get; set; }
@@ -116,7 +128,7 @@ public partial class ParticipantList
 
     protected override async Task OnParametersSetAsync()
     {
-        _filters = new() { Contest = Contest, CoachSearch = CoachSearch, MemberSearch = MemberSearch, Search = Search, Organization = Organization, Approved = Approved?.ToString(), Unofficial = Unofficial?.ToString(), Disqualified = Disqualified?.ToString() };
+        _filters = new() { HasLogin = HasLogin?.ToString(), Hidden = Hidden?.ToString(), Contest = Contest, CoachSearch = CoachSearch, MemberSearch = MemberSearch, Search = Search, Organization = Organization, Approved = Approved?.ToString(), Unofficial = Unofficial?.ToString(), Disqualified = Disqualified?.ToString() };
         _pending = null;
         _export = null;
         _names = [];
