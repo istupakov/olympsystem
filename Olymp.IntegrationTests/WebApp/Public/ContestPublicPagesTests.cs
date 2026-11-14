@@ -242,7 +242,7 @@ public class ContestPublicPagesTests(WebAppFactory factory) : IClassFixture<WebA
             await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
         Assert.Contains("Frozen at", document.QuerySelector("caption")!.TextContent);
         Assert.Equal("0", document.QuerySelector("main tbody th")!.TextContent);
-        Assert.Contains("-1", document.QuerySelectorAll("main tbody td")[2].TextContent);
+        Assert.Contains("?2", document.QuerySelectorAll("main tbody td")[2].TextContent);
     }
 
     [Fact]

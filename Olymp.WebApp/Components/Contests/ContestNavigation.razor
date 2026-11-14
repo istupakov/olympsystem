@@ -8,6 +8,10 @@
         {
             <li class="nav-item"><a class="@LinkClass("problems")" href="contests/@Contest.Id/problems" aria-current="@Current("problems")">@SiteResources.Problems</a></li>
         }
+        @if (Contest.IsOpen && Contest.AllowShowStanding)
+        {
+            <li class="nav-item"><a class="@LinkClass("virtual")" href="contests/@Contest.Id/virtual" aria-current="@Current("virtual")">@SiteResources.VirtualContest</a></li>
+        }
         @if (Contest.StartTime > new DateTimeOffset(2010, 1, 1, 0, 0, 0, TimeSpan.Zero) || ActiveSection == "participants")
         {
             <li class="nav-item"><a class="@LinkClass("participants")" href="contests/@Contest.Id/competitors" aria-current="@Current("participants")">@SiteResources.ContestParticipants</a></li>

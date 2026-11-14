@@ -689,4 +689,11 @@
   <data name="StaffAllConfigurationsAdded" xml:space="preserve"><value>Все доступные конфигурации уже добавлены.</value></data>
   <data name="StaffUnaddedConfigurations" xml:space="preserve"><value>Конфигурации, не добавленные на сайт</value></data>
   <data name="StaffNotAddedToSite" xml:space="preserve"><value>Не добавлен на сайт</value></data>
+  <data name="VirtualContest" xml:space="preserve"><value>Тренировка</value></data>
+  <data name="VirtualParticipant" xml:space="preserve"><value>Виртуально</value></data>
+  <data name="VirtualContestHelp" xml:space="preserve"><value>Выберите начало и сохраните ссылку на таблицу. Длительность – как у исходного соревнования, заморозки нет. Отправляйте решения из личного аккаунта на обычной странице задач. Вы соревнуетесь с исходными участниками: их решения появляются с той же задержкой от старта, что и на соревновании.</value></data>
+  <data name="ShowVirtualStanding" xml:space="preserve"><value>Показать таблицу</value></data>
+  <data name="ChangeVirtualStart" xml:space="preserve"><value>Изменить начало</value></data>
+  <data name="VirtualTimeZone" xml:space="preserve"><value>Часовой пояс сайта: {0}</value></data>
+  <data name="StandingAttemptSummary" xml:space="preserve"><value>Успешно / всего</value></data>
 </root>

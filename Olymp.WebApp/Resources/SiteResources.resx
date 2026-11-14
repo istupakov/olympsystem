@@ -689,4 +689,11 @@
   <data name="StaffAllConfigurationsAdded" xml:space="preserve"><value>All available configurations have already been added.</value></data>
   <data name="StaffUnaddedConfigurations" xml:space="preserve"><value>Configurations not added to the site</value></data>
   <data name="StaffNotAddedToSite" xml:space="preserve"><value>Not added to the site</value></data>
+  <data name="VirtualContest" xml:space="preserve"><value>Training</value></data>
+  <data name="VirtualParticipant" xml:space="preserve"><value>Virtual</value></data>
+  <data name="VirtualContestHelp" xml:space="preserve"><value>Choose a start time and save the standings link. The duration matches the original contest; there is no freeze. Submit solutions from your personal account on the regular problem page. You compete against the original participants: their solutions appear after the same time from the start as in the original contest.</value></data>
+  <data name="ShowVirtualStanding" xml:space="preserve"><value>Show standings</value></data>
+  <data name="ChangeVirtualStart" xml:space="preserve"><value>Change start time</value></data>
+  <data name="VirtualTimeZone" xml:space="preserve"><value>Site time zone: {0}</value></data>
+  <data name="StandingAttemptSummary" xml:space="preserve"><value>Successful / total</value></data>
 </root>

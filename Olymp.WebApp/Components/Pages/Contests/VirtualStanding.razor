@@ -1,0 +1,123 @@
+@page "/contests/{Id:int}/virtual"
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.WebUtilities
+@using Microsoft.EntityFrameworkCore
+@using Olymp.Domain
+@using Olymp.WebApp.Components.Contests
+@inject NavigationManager Navigation
+@inject IDbContextFactory<OlympContext> ContextFactory
+
+@if (_contest is not null)
+{
+    <PageTitle>@SiteResources.VirtualContest – @_contest.Name</PageTitle>
+    <ContestHeader Contest="_contest" ActiveSection="virtual" />
+    <h2 class="h4">@SiteResources.VirtualContest</h2>
+    <p class="small text-body-secondary">@SiteResources.VirtualContestHelp</p>
+    @if (_error is not null)
+    {
+        <p class="alert alert-danger" role="alert">@_error</p>
+    }
+    @if (_standing is null)
+    {
+        <EditForm Model="Input" FormName="virtual-contest" OnValidSubmit="ShowStanding" class="mb-4">
+            <DataAnnotationsValidator />
+            <div class="row g-3 align-items-end">
+                <div class="col-sm-8 col-md-5">
+                    <label for="virtual-start" class="form-label">@SiteResources.ContestStart</label>
+                    <InputDate id="virtual-start" Type="InputDateType.DateTimeLocal" step="60" class="form-control" @bind-Value="Input!.StartDate" ParsingErrorMessage="@SiteResources.InvalidDate" />
+                    <ValidationMessage For="() => Input!.StartDate" />
+                </div>
+                <div class="col-sm-auto"><button class="btn btn-primary">@SiteResources.ShowVirtualStanding</button></div>
+            </div>
+            <p class="form-text">@string.Format(SiteResources.VirtualTimeZone, TimeZoneInfo.Local.Id)</p>
+        </EditForm>
+    }
+    else
+    {
+        <dl class="row">
+            <dt class="col-sm-3">@SiteResources.ContestStart</dt>
+            <dd class="col-sm-9"><time datetime="@_start.ToString("O", CultureInfo.InvariantCulture)">@_start.ToLocalTime().ToString("g") @_start.ToLocalTime().ToString("zzz")</time></dd>
+            <dt class="col-sm-3">@SiteResources.ContestEnd</dt>
+            <dd class="col-sm-9"><time datetime="@_end.ToString("O", CultureInfo.InvariantCulture)">@_end.ToLocalTime().ToString("g") @_end.ToLocalTime().ToString("zzz")</time></dd>
+        </dl>
+        <div class="d-flex flex-wrap align-items-start gap-3">
+            <StandingControls BaseUrl="@Navigation.Uri" />
+            <a class="btn btn-outline-secondary mb-3" href="@QueryHelpers.AddQueryString(Navigation.Uri, "edit", "true")">@SiteResources.ChangeVirtualStart</a>
+        </div>
+        <StandingTable Standing="_standing" />
+    }
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+    [SupplyParameterFromQuery(Name = "start")] public string? Start { get; set; }
+    [SupplyParameterFromQuery(Name = "edit")] public bool Edit { get; set; }
+    [SupplyParameterFromForm(FormName = "virtual-contest")] private InputModel? Input { get; set; }
+    private Contest? _contest;
+    private Olymp.Domain.Standing? _standing;
+    private DateTimeOffset _start, _end;
+    private string? _error;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var now = DateTime.Now;
+        bool initializeInput = Input is null;
+        Input ??= new() { StartDate = new DateTime(now.Year, now.Month, now.Day, now.Hour, now.Minute, 0) };
+        _standing = null;
+        _error = null;
+        await using var db = await ContextFactory.CreateDbContextAsync();
+        _contest = await db.Contests.AsNoTracking().SingleOrDefaultAsync(item => item.Id == Id && !item.IsHidden && item.IsOpen);
+        if (_contest is null || !_contest.AllowShowStanding)
+        {
+            _contest = null;
+            Navigation.NotFound();
+            return;
+        }
+        if (Start is null) return;
+        if (!DateTimeOffset.TryParseExact(Start, ["O", "yyyy-MM-dd'T'HH:mm:sszzz", "yyyy-MM-dd'T'HH:mm:ss'Z'"],
+            CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out _start) || !TryGetEnd(_start, out _end))
+        {
+            _error = SiteResources.InvalidDate;
+            return;
+        }
+        if (Edit)
+        {
+            if (initializeInput) Input.StartDate = _start.LocalDateTime;
+            return;
+        }
+
+        _contest = await db.Contests.AsNoTrackingWithIdentityResolution()
+            .Include(item => item.Competitors).ThenInclude(item => item.Members)
+            .Include(item => item.Problems).ThenInclude(item => item.Submissions).ThenInclude(item => item.User)
+            .AsSplitQuery().SingleAsync(item => item.Id == Id);
+        _standing = Olymp.Domain.Standing.Create(_contest, includeAll: true, official: false, notFreeze: true, startTime: _start);
+    }
+
+    private void ShowStanding()
+    {
+        if (Input!.StartDate is not DateTime date || TimeZoneInfo.Local.IsInvalidTime(date))
+        {
+            _error = SiteResources.InvalidDate;
+            return;
+        }
+        var start = new DateTimeOffset(date, TimeZoneInfo.Local.GetUtcOffset(date));
+        if (!TryGetEnd(start, out _))
+        {
+            _error = SiteResources.InvalidDate;
+            return;
+        }
+        Navigation.NavigateTo(QueryHelpers.AddQueryString($"contests/{Id}/virtual", "start", start.ToString("O", CultureInfo.InvariantCulture)));
+    }
+
+    private bool TryGetEnd(DateTimeOffset start, out DateTimeOffset end)
+    {
+        try { end = start + _contest!.Duration; return true; }
+        catch (ArgumentOutOfRangeException) { end = default; return false; }
+    }
+
+    public sealed class InputModel
+    {
+        [Required(ErrorMessageResourceType = typeof(SiteResources), ErrorMessageResourceName = nameof(SiteResources.InvalidDate))]
+        public DateTime? StartDate { get; set; }
+    }
+}
