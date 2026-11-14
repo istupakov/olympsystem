@@ -17,18 +17,8 @@ else
     <StaffContestNavigation ContestId="ContestId" ContestName="@_contest.Name" IsHidden="_contest.IsHidden" />
     <h1 class="h3">@SiteResources.ContestStandings</h1>
     <p class="text-body-secondary">@SiteResources.StaffWithoutFreeze</p>
-    <nav class="d-flex flex-wrap gap-2 mb-3" aria-label="@SiteResources.StandingView">
-        <a class="btn @(!Official ? "btn-primary" : "btn-outline-primary")" aria-current="@(!Official ? "page" : null)" href="jury/contests/@ContestId/standing">@SiteResources.FullStanding</a>
-        @if (_contest.FinalTableId is null || _contest.OfficialTableId is not null)
-        {
-            <a class="btn @(Official ? "btn-primary" : "btn-outline-primary")" aria-current="@(Official ? "page" : null)" href="jury/contests/@ContestId/standing?official=true">@SiteResources.OfficialStanding</a>
-        }
-        <button class="btn btn-outline-secondary" @onclick="LoadAsync">@SiteResources.Refresh</button>
-    </nav>
-    @if (Official)
-    {
-        <p>@SiteResources.OfficialStandingDescription</p>
-    }
+    <StandingControls BaseUrl="@($"jury/contests/{ContestId}/standing")" Official="Official"
+        HasOfficialStanding="@(_contest.FinalTableId is null || _contest.OfficialTableId is not null)" Refresh="LoadAsync" />
     @if (_savedTable is not null)
     {
         <SavedStandingView Html="@_savedTable" />

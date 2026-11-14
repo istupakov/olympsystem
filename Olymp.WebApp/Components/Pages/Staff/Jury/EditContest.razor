@@ -53,7 +53,7 @@ else
                 <label for="contest-description" class="form-label">@SiteResources.StaffDescription</label>
                 <InputTextArea id="contest-description" class="form-control" rows="6" @bind-Value="_input.Description" aria-describedby="description-help" />
                 <div id="description-help" class="form-text">@SiteResources.HtmlSupported</div>
-                <button type="button" class="btn btn-outline-secondary btn-sm mt-2" @onclick="() => _preview = !_preview">@SiteResources.StaffPreview</button>
+                <button type="button" class="btn btn-secondary btn-sm mt-2" @onclick="() => _preview = !_preview">@SiteResources.StaffPreview</button>
             </div>
             @if (_preview)
             {
@@ -139,11 +139,11 @@ else
             <div class="d-flex flex-wrap gap-2">
                 @if (_canRetest)
                 {
-                    <a class="btn btn-outline-secondary" href="jury/contests/@Id/submissions?Retest=true">@SiteResources.StaffRetestFiltered</a>
+                    <a class="btn btn-secondary" href="jury/contests/@Id/submissions?Retest=true">@SiteResources.StaffRetestFiltered</a>
                 }
                 @if (CanPublishTests)
                 {
-                    <button class="btn btn-outline-secondary" disabled="@_saving" @onclick="() => _pendingOperation = ContestOperation.PublishTests">@OperationLabel(ContestOperation.PublishTests)</button>
+                    <button class="btn btn-secondary" disabled="@_saving" @onclick="() => _pendingOperation = ContestOperation.PublishTests">@OperationLabel(ContestOperation.PublishTests)</button>
                 }
                 @if (_hasTestZip)
                 {

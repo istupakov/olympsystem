@@ -82,7 +82,7 @@ else
                 <div class="d-flex flex-wrap gap-2">
                     @if (admin || managed.Contains(contest.Id.ToString(CultureInfo.InvariantCulture)))
                     {
-                        <a class="btn btn-outline-primary btn-sm" href="jury/contests/@contest.Id/edit">@SiteResources.StaffSettings</a>
+                        <a class="btn btn-secondary btn-sm" href="jury/contests/@contest.Id/edit">@SiteResources.StaffSettings</a>
                     }
                     <a class="btn btn-outline-secondary btn-sm" href="jury/contests/@contest.Id/problems">@SiteResources.Problems</a>
                     <a class="btn btn-outline-secondary btn-sm" href="jury/contests/@contest.Id/participants">@SiteResources.ContestParticipants</a>

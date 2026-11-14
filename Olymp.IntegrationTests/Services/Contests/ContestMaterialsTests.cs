@@ -54,13 +54,15 @@ public class ContestMaterialsTests(ContestServiceFixture site) : IClassFixture<C
             .Where(item => item.Id == contest.Id).Select(item => item.TestZip!.Data).SingleAsync(TestContext.Current.CancellationToken);
         using var memory = new MemoryStream(archive);
         using var zip = new ZipArchive(memory);
-        var entry = zip.GetEntry($"Test{contest.Abbr}/1. Новое имя/input01.txt");
+        var entry = zip.GetEntry($"Test{contest.Abbr}/1. Новое имя/input001.txt");
         Assert.NotNull(entry);
+        Assert.NotNull(zip.GetEntry($"Test{contest.Abbr}/1. Новое имя/output001.txt"));
         using var input = entry.Open();
         using var bytes = new MemoryStream();
         await input.CopyToAsync(bytes, TestContext.Current.CancellationToken);
         Assert.Equal(new byte[] { 0, 255, 13, 10 }, bytes.ToArray());
-        Assert.Null(zip.GetEntry($"Test{contest.Abbr}/1. Новое имя/input02.txt"));
+        Assert.Null(zip.GetEntry($"Test{contest.Abbr}/1. Новое имя/input002.txt"));
+        Assert.Null(zip.GetEntry($"Test{contest.Abbr}/1. Новое имя/output002.txt"));
     }
 
     [Fact]

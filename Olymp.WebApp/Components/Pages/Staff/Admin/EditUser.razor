@@ -74,11 +74,11 @@ else {
             </div>
         }
         <fieldset disabled="@_busy" class="d-flex flex-wrap gap-2">
-            <button class="btn btn-outline-primary" @onclick="() => Ask(_roles.Contains(RoleNames.Admin) ? UserAction.RemoveAdmin : UserAction.AddAdmin)">@(_roles.Contains(RoleNames.Admin) ? SiteResources.StaffRemoveAdmin : SiteResources.StaffAddAdmin)</button>
-            <button class="btn btn-outline-primary" @onclick="() => Ask(_roles.Contains(RoleNames.Jury) ? UserAction.RemoveJury : UserAction.AddJury)">@(_roles.Contains(RoleNames.Jury) ? SiteResources.StaffRemoveJury : SiteResources.StaffAddJury)</button>
-            @if (_user.OrganizationId is not null) { <button class="btn btn-outline-primary" @onclick="() => Ask(UserAction.AddCoach)">@SiteResources.StaffAddCoach</button> }
+            <button class="btn btn-secondary" @onclick="() => Ask(_roles.Contains(RoleNames.Admin) ? UserAction.RemoveAdmin : UserAction.AddAdmin)">@(_roles.Contains(RoleNames.Admin) ? SiteResources.StaffRemoveAdmin : SiteResources.StaffAddAdmin)</button>
+            <button class="btn btn-secondary" @onclick="() => Ask(_roles.Contains(RoleNames.Jury) ? UserAction.RemoveJury : UserAction.AddJury)">@(_roles.Contains(RoleNames.Jury) ? SiteResources.StaffRemoveJury : SiteResources.StaffAddJury)</button>
+            @if (_user.OrganizationId is not null) { <button class="btn btn-secondary" @onclick="() => Ask(UserAction.AddCoach)">@SiteResources.StaffAddCoach</button> }
             @if (_coachOrganizations.Count > 0) { <button class="btn btn-outline-warning" @onclick="() => Ask(UserAction.RemoveCoach)">@SiteResources.StaffRemoveCoach</button> }
-            <button class="btn btn-outline-secondary" @onclick="() => Ask(UserAction.ToggleHidden)">@(_user.IsHidden ? SiteResources.StaffShowAccount : SiteResources.StaffHideAccount)</button>
+            <button class="btn btn-secondary" @onclick="() => Ask(UserAction.ToggleHidden)">@(_user.IsHidden ? SiteResources.StaffShowAccount : SiteResources.StaffHideAccount)</button>
             @if (_user.UserName != _user.Email && !string.IsNullOrWhiteSpace(_user.Email)) { <button class="btn btn-outline-warning" @onclick="() => Ask(UserAction.SyncLogin)">@SiteResources.StaffSyncLogin</button> }
             <button class="btn btn-outline-danger" @onclick="() => Ask(Locked ? UserAction.Unban : UserAction.Ban)">@(Locked ? SiteResources.StaffUnban : SiteResources.StaffBan)</button>
         </fieldset>

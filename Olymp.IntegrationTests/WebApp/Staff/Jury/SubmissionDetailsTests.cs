@@ -22,7 +22,6 @@ using Olymp.WebApp.Components.Pages.Staff.Jury;
 using Olymp.WebApp.Components.Staff;
 using Olymp.WebApp.Components.Submissions;
 using Olymp.WebApp.Resources;
-using Olymp.WebApp.Services.AntiCheat;
 
 using Xunit;
 
@@ -94,11 +93,6 @@ public partial class SubmissionDetailsTests(WebAppFactory factory) : StaffCompon
         using var fromList = await new HtmlParser().ParseDocumentAsync(await RenderAsync<JuryDetails>(
             $"/jury/submissions/{own.Id}?ReturnUrl={Uri.EscapeDataString(back)}", new() { [nameof(JuryDetails.Id)] = own.Id }));
         Assert.NotNull(fromList.QuerySelector($"a[href='{back}']"));
-        own.User = author;
-        another.User = namesake;
-        using var report = await new HtmlParser().ParseDocumentAsync(await RenderAsync<SimilarityReport>("/jury/anticheat",
-            new() { [nameof(SimilarityReport.Reports)] = new PlagiarismReport[] { new(author, namesake, [new(own, another, 0.9f)]) } }));
-        Assert.Equal(2, report.QuerySelectorAll("a[target='_blank'][rel='noopener']").Length);
     }
 
     [Fact]

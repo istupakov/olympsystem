@@ -6,7 +6,7 @@
     <label for="@_searchId" class="form-label">@Label</label>
     <div class="input-group mb-2">
         <input id="@_searchId" class="form-control" @bind="_search" placeholder="@SiteResources.StaffUserSearch" />
-        <button type="button" class="btn btn-outline-secondary" @onclick="SearchAsync" disabled="@Disabled">@SiteResources.StaffFind</button>
+        <button type="button" class="btn btn-secondary" @onclick="SearchAsync" disabled="@Disabled">@SiteResources.StaffFind</button>
     </div>
     <label for="@_selectId" class="visually-hidden">@SiteResources.StaffAccount</label>
     <select id="@_selectId" class="form-select" value="@Value" @onchange="SelectAsync" disabled="@Disabled">

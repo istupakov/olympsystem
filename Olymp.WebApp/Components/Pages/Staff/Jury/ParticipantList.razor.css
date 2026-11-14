@@ -1,0 +1,7 @@
+.participant-contest {
+    width: 18rem;
+}
+
+.participant-contest ::deep > span {
+    max-width: 100%;
+}

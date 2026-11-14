@@ -17,9 +17,9 @@
         <StaffGrid @key="FilterKey" TGridItem="SimilarityRow" Items="SimilarRows" ItemKey="@(item => item.Id)" OrderKey="@(item => item.Id)" EmptyText="@SiteResources.StaffNoMatches">
             <TemplateColumn Title="@SiteResources.Problem" Sortable="true" SortBy="_similarityProblemSort" Context="item">@ProblemLink(item.Case.Submission1.Problem)</TemplateColumn>
             <TemplateColumn Title="@SiteResources.StaffFirstAuthor" Sortable="true" SortBy="_firstAuthorSort" Context="item">@AuthorLink(item.Case.Submission1.User)</TemplateColumn>
-            <TemplateColumn Title="@SiteResources.StaffFirstSubmission" Sortable="true" SortBy="_firstSubmissionSort" Context="item"><a target="_blank" rel="noopener" href="jury/submissions/@item.Case.Submission1.Id">#@item.Case.Submission1.Id</a></TemplateColumn>
+            <TemplateColumn Title="@SiteResources.StaffFirstSubmission" Sortable="true" SortBy="_firstSubmissionSort" Context="item">@SubmissionLink(item.Case.Submission1)</TemplateColumn>
             <TemplateColumn Title="@SiteResources.StaffSecondAuthor" Sortable="true" SortBy="_secondAuthorSort" Context="item">@AuthorLink(item.Case.Submission2.User)</TemplateColumn>
-            <TemplateColumn Title="@SiteResources.StaffSecondSubmission" Sortable="true" SortBy="_secondSubmissionSort" Context="item"><a target="_blank" rel="noopener" href="jury/submissions/@item.Case.Submission2.Id">#@item.Case.Submission2.Id</a></TemplateColumn>
+            <TemplateColumn Title="@SiteResources.StaffSecondSubmission" Sortable="true" SortBy="_secondSubmissionSort" Context="item">@SubmissionLink(item.Case.Submission2)</TemplateColumn>
             <TemplateColumn Title="@SiteResources.StaffSimilarity" Sortable="true" SortBy="_similaritySort" IsDefaultSortColumn="true" InitialSortDirection="SortDirection.Descending" Context="item">@item.Case.Similarity.ToString("P2")</TemplateColumn>
         </StaffGrid>
     }
@@ -28,9 +28,9 @@
         <StaffGrid @key="FilterKey" TGridItem="AiRow" Items="AiRows" ItemKey="@(item => item.Id)" OrderKey="@(item => item.Id)" EmptyText="@SiteResources.StaffNoMatches">
             <TemplateColumn Title="@SiteResources.Problem" Sortable="true" SortBy="_aiProblemSort" Context="item">@ProblemLink(item.Case.Submission.Problem)</TemplateColumn>
             <TemplateColumn Title="@SiteResources.SubmissionAuthor" Sortable="true" SortBy="_aiAuthorSort" Context="item">@AuthorLink(item.Case.Submission.User)</TemplateColumn>
-            <TemplateColumn Title="@SiteResources.Submissions" Sortable="true" SortBy="_aiSubmissionSort" Context="item"><a target="_blank" rel="noopener" href="jury/submissions/@item.Case.Submission.Id">#@item.Case.Submission.Id</a></TemplateColumn>
+            <TemplateColumn Title="@SiteResources.Submissions" Sortable="true" SortBy="_aiSubmissionSort" Context="item">@SubmissionLink(item.Case.Submission)</TemplateColumn>
             <TemplateColumn Title="@SiteResources.StaffAiDetection" Sortable="true" SortBy="_aiSort" IsDefaultSortColumn="true" InitialSortDirection="SortDirection.Descending" Context="item">@item.Case.Result.Score.ToString("P2")</TemplateColumn>
-            <TemplateColumn Title="@SiteResources.StaffAnalysisDetails" Context="item"><button class="btn btn-sm btn-outline-secondary" @onclick="() => _selected = item.Case">@SiteResources.StaffAnalysisDetails</button></TemplateColumn>
+            <TemplateColumn Title="@SiteResources.StaffAnalysisDetails" Context="item"><button class="btn btn-sm btn-secondary" @onclick="() => _selected = item.Case">@SiteResources.StaffAnalysisDetails</button></TemplateColumn>
         </StaffGrid>
         @if (_selected is { } selected && AiRows.Any(item => ReferenceEquals(item.Case, selected)))
         {
@@ -78,6 +78,7 @@
     }
     private RenderFragment ProblemLink(Problem problem) => @<div><a target="_blank" rel="noopener" href="jury/contests/@problem.ContestId/problems?problemId=@problem.Id">@problem.NameWithNumber</a><div class="small text-body-secondary">@StaffEntityLabel.Format(problem.ContestId, problem.Contest.Name)</div></div>;
     private RenderFragment AuthorLink(User author) => @<span>@if (author is Competitor participant) { <a target="_blank" rel="noopener" href="jury/contests/@participant.ContestId/participants/@participant.Id">@StaffEntityLabel.Format(author.Id, author.Name)</a> } else { @StaffEntityLabel.Format(author.Id, author.Name) }</span>;
+    private RenderFragment SubmissionLink(Submission submission) => @<a target="_blank" rel="noopener" href="jury/submissions/@submission.Id">#@submission.Id</a>;
     private sealed record SimilarityRow(int Id, PlagiarismCase Case);
     private sealed record AiRow(int Id, AIUsingCase Case);
 }

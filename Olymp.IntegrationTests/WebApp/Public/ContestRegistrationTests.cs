@@ -14,6 +14,7 @@ using Olymp.IntegrationTests.Shared;
 using Olymp.IntegrationTests.WebApp.Shared;
 using Olymp.Tests.Shared;
 using Olymp.WebApp;
+using Olymp.WebApp.Resources;
 
 using Xunit;
 
@@ -227,7 +228,13 @@ public class ContestRegistrationTests(WebAppFactory factory) : IClassFixture<Web
         var user = await AddProfileAsync();
         using var client = await factory.LoginAsync(user.UserName!);
         using var response = await client.GetAsync(Path(reason == "missing" ? int.MaxValue : contest.Id), TestContext.Current.CancellationToken);
-        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.Equal(reason == "ended" ? HttpStatusCode.OK : HttpStatusCode.NotFound, response.StatusCode);
+        if (reason == "ended")
+        {
+            using var closed = await new HtmlParser().ParseDocumentAsync(await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
+            Assert.Contains(SiteResources.RegistrationClosed, closed.QuerySelector("main")!.TextContent);
+            Assert.Null(closed.QuerySelector("main form"));
+        }
         using var check = factory.Services.CreateScope();
         Assert.False(await check.ServiceProvider.GetRequiredService<OlympContext>().Competitors
             .AnyAsync(item => item.ContestId == contest.Id, TestContext.Current.CancellationToken));
@@ -236,7 +243,7 @@ public class ContestRegistrationTests(WebAppFactory factory) : IClassFixture<Web
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task FinishedContestRejectsRegistrationPageAndPreviouslyOpenedForm(bool registered)
+    public async Task FinishedContestShowsReadOnlyParticipationAndRejectsPreviouslyOpenedForm(bool registered)
     {
         var contest = await AddContestAsync();
         var user = await AddProfileAsync();
@@ -258,7 +265,11 @@ public class ContestRegistrationTests(WebAppFactory factory) : IClassFixture<Web
         await SetTimesAsync(contest.Id, DateTimeOffset.UtcNow.AddHours(-6), DateTimeOffset.UtcNow.AddHours(-1));
 
         using var unavailable = await client.GetAsync(Path(contest.Id), TestContext.Current.CancellationToken);
-        Assert.Equal(HttpStatusCode.NotFound, unavailable.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, unavailable.StatusCode);
+        using var closed = await new HtmlParser().ParseDocumentAsync(await unavailable.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
+        Assert.Contains(SiteResources.RegistrationClosed, closed.QuerySelector("main")!.TextContent);
+        Assert.Null(closed.QuerySelector("main form"));
+        Assert.Equal(registered, closed.QuerySelector("main")!.TextContent.Contains("Иван Иванов, Test university, ПМ-01", StringComparison.Ordinal));
         using var content = new FormUrlEncodedContent(fields);
         using var posted = await client.PostAsync(Path(contest.Id), content, TestContext.Current.CancellationToken);
         Assert.False(posted.IsSuccessStatusCode);

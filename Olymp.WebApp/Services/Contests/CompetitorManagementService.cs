@@ -38,7 +38,7 @@ public sealed class CompetitorManagementService(OlympContext context, UserManage
         var contest = await context.Contests.SingleOrDefaultAsync(x => x.Id == contestId, token)
             ?? throw new EntityNotFoundException();
 
-        if (contest.IsHidden || contest.IsAcm || timeProvider.GetLocalNow() > contest.EndTime)
+        if (contest.IsHidden || contest.IsAcm || timeProvider.GetLocalNow() >= contest.EndTime)
             throw new OperationValidationException(SiteResources.RegistrationNotAvailable);
 
         var user = await context.OlympUsers.AsTracking().Include(x => x.Organization)
@@ -100,7 +100,7 @@ public sealed class CompetitorManagementService(OlympContext context, UserManage
         var contest = await context.Contests.SingleOrDefaultAsync(x => x.Id == contestId, token)
             ?? throw new EntityNotFoundException();
 
-        if (contest.IsHidden || !contest.IsAcm || timeProvider.GetLocalNow() > contest.EndTime)
+        if (contest.IsHidden || !contest.IsAcm || timeProvider.GetLocalNow() >= contest.EndTime)
             throw new OperationValidationException(SiteResources.RegistrationNotAvailable);
         if (contest.IsIcpc && !outOfCompetition)
             throw new OperationValidationException(SiteResources.IcpcRegistrationUnofficialOnly);

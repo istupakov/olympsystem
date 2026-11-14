@@ -105,8 +105,8 @@ else
         <div class="col-12 d-flex flex-wrap gap-2">
             <button class="btn btn-primary">@SiteResources.StaffFind</button>
             <a class="btn btn-outline-secondary" href="@BaseUrl">@SiteResources.StaffReset</a>
-            <button type="button" class="btn btn-outline-secondary" @onclick="RefreshGrid">@SiteResources.Refresh</button>
-            <a class="btn btn-outline-secondary" href="@($"jury/anticheat?Selection={Uri.EscapeDataString(new Uri(Navigation.Uri).PathAndQuery)}")">@SiteResources.StaffAnalyzeSelection</a>
+            <button type="button" class="btn btn-secondary" @onclick="RefreshGrid">@SiteResources.Refresh</button>
+            <a class="btn btn-secondary" href="@($"jury/anticheat?Selection={Uri.EscapeDataString(new Uri(Navigation.Uri).PathAndQuery)}")">@SiteResources.StaffAnalyzeSelection</a>
         </div>
     </EditForm>
     <div class="d-flex flex-wrap gap-2 mb-3">

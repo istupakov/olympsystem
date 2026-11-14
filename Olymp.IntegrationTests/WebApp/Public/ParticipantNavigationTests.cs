@@ -5,6 +5,7 @@ using AngleSharp.Html.Parser;
 
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 using Olymp.Domain;
@@ -75,8 +76,8 @@ public class ParticipantNavigationTests(WebAppFactory factory) : IClassFixture<W
             var menu = document.QuerySelector(".contest-header nav")!;
             Assert.Equal(culture == "ru" ? "Мои решения" : "My submissions", menu.QuerySelector("a[href='submissions']")!.TextContent);
             Assert.Equal(state != "upcoming", menu.QuerySelector($"a[href='contests/{contest.Id}/problems']") is not null);
-            Assert.Equal(state != "upcoming", menu.QuerySelector($"a[href='contests/{contest.Id}/standing']") is not null);
-            Assert.Equal($"contests/{contest.Id}/{section}", menu.QuerySelector("a[aria-current='page']")!.GetAttribute("href"));
+            Assert.Equal(state != "upcoming", menu.QuerySelector($"a[href='contests/{contest.Id}/standing?official=true']") is not null);
+            Assert.Equal($"contests/{contest.Id}/{section}" + (section == "standing" ? "?official=true" : ""), menu.QuerySelector("a[aria-current='page']")!.GetAttribute("href"));
             Assert.Equal(state == "running", menu.QuerySelector($"a[href='contests/{contest.Id}/questions']") is not null);
             Assert.Equal(state == "upcoming" ? 2 : state == "running" ? 5 : 4, menu.QuerySelectorAll("a").Length);
             if (section == "rules")
@@ -136,6 +137,39 @@ public class ParticipantNavigationTests(WebAppFactory factory) : IClassFixture<W
         Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
         string expected = returnUrl == "/submissions" ? returnUrl : $"/contests/{contest.Id}/rules";
         Assert.Equal(expected, new Uri(client.BaseAddress!, response.Headers.Location!).PathAndQuery);
+    }
+
+    [Theory]
+    [InlineData(false, false, true, false, true)]
+    [InlineData(true, false, true, false, false)]
+    [InlineData(false, true, true, false, false)]
+    [InlineData(false, false, false, false, false)]
+    [InlineData(false, false, true, true, false)]
+    public async Task StandingLinkUsesCurrentParticipationStatusAndAvailableTable(bool outOfCompetition, bool disqualified, bool approved, bool onlySavedFullTable, bool official)
+    {
+        var token = TestContext.Current.CancellationToken;
+        var contest = TestEntities.CreateContest("Participant standings", DateTimeOffset.UtcNow.AddHours(-2), DateTimeOffset.UtcNow.AddHours(2));
+        if (onlySavedFullTable) contest.FinalTable = new Blob { Data = "<table><tr><td>Saved</td></tr></table>"u8.ToArray() };
+        using (var setup = factory.Services.CreateScope())
+        {
+            var db = setup.ServiceProvider.GetRequiredService<OlympContext>();
+            db.Contests.Add(contest);
+            await db.SaveChangesAsync(token);
+        }
+        var participant = await AddParticipantAsync(contest);
+        using var client = await factory.LoginAsync(participant.UserName!);
+        using (var setup = factory.Services.CreateScope())
+            await setup.ServiceProvider.GetRequiredService<OlympContext>().Competitors.Where(item => item.Id == participant.Id)
+                .ExecuteUpdateAsync(update => update.SetProperty(item => item.IsOutOfCompetition, outOfCompetition)
+                    .SetProperty(item => item.IsDisqualified, disqualified).SetProperty(item => item.IsApproved, approved), token);
+
+        using var response = await client.GetAsync($"/contests/{contest.Id}/rules", token);
+        response.EnsureSuccessStatusCode();
+        using var html = await new HtmlParser().ParseDocumentAsync(await response.Content.ReadAsStringAsync(token), token);
+        string expected = $"contests/{contest.Id}/standing" + (official ? "?official=true" : "");
+        Assert.NotNull(html.QuerySelector($".contest-header a[href='{expected}']"));
+        using var standing = await client.GetAsync("/" + expected, token);
+        standing.EnsureSuccessStatusCode();
     }
 
     private async Task<Competitor> AddParticipantAsync(Contest contest)

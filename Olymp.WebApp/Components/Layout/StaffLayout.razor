@@ -3,23 +3,11 @@
 
 <div class="row g-4">
     <aside class="col-md-3 col-xl-2">
-        <nav class="nav nav-pills flex-column gap-1" aria-label="@SiteResources.StaffNavigation">
-            <AuthorizeView Roles="@($"{RoleNames.Jury},{RoleNames.Admin}")">
-                <div class="small text-body-secondary px-3 py-2">@SiteResources.JurySection</div>
-                <NavLink class="nav-link" href="jury/contests">@SiteResources.Contests</NavLink>
-                <NavLink class="nav-link" href="jury/participants">@SiteResources.ContestParticipants</NavLink>
-                <NavLink class="nav-link" href="jury/submissions">@SiteResources.Submissions</NavLink>
-                <NavLink class="nav-link" href="jury/compilers">@SiteResources.StaffCompilers</NavLink>
-                <NavLink class="nav-link" href="jury/trial-run">@SiteResources.StaffRunCode</NavLink>
-                <NavLink class="nav-link" href="jury/anticheat">@SiteResources.StaffAntiCheatTools</NavLink>
-            </AuthorizeView>
-            <AuthorizeView Roles="@RoleNames.Admin">
-                <div class="small text-body-secondary px-3 py-2">@SiteResources.AdminSection</div>
-                <NavLink class="nav-link" href="admin/news">@SiteResources.News</NavLink>
-                <NavLink class="nav-link" href="admin/users">@SiteResources.StaffUsers</NavLink>
-                <NavLink class="nav-link" href="admin/organizations">@SiteResources.StaffOrganizations</NavLink>
-            </AuthorizeView>
-        </nav>
+        <details class="d-md-none border rounded">
+            <summary class="p-3">@SiteResources.StaffNavigation</summary>
+            <div class="p-2 pt-0"><StaffNavigation /></div>
+        </details>
+        <div class="d-none d-md-block"><StaffNavigation /></div>
     </aside>
     <div class="col-md-9 col-xl-10">
         @Body

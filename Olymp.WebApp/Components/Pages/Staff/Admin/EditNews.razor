@@ -45,7 +45,7 @@ else
                 <InputTextArea id="news-text" class="form-control" rows="12" @bind-Value="_input.Text" aria-describedby="news-text-help" />
                 <div id="news-text-help" class="form-text">@SiteResources.HtmlSupported</div>
                 <ValidationMessage For="() => _input.Text" class="text-danger" />
-                <button type="button" class="btn btn-outline-secondary btn-sm mt-2" @onclick="() => _preview = !_preview">@SiteResources.StaffPreview</button>
+                <button type="button" class="btn btn-secondary btn-sm mt-2" @onclick="() => _preview = !_preview">@SiteResources.StaffPreview</button>
             </div>
             @if (_preview)
             {

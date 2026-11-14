@@ -14,23 +14,7 @@
     {
         <div class="contest-description mb-4 overflow-auto">@((MarkupString)contest.Description)</div>
     }
-    @if (HasOfficialStanding)
-    {
-        <nav class="standing-view" aria-label="@SiteResources.StandingView">
-            <ul class="nav nav-underline mb-3">
-                <li class="nav-item">
-                    <a class="nav-link @(!Official ? "active" : null)" href="contests/@Id/standing" aria-current="@(!Official ? "page" : null)">@SiteResources.FullStanding</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link @(Official ? "active" : null)" href="contests/@Id/standing?official=true" aria-current="@(Official ? "page" : null)">@SiteResources.OfficialStanding</a>
-                </li>
-            </ul>
-        </nav>
-    }
-    @if (Official)
-    {
-        <p class="small text-body-secondary">@SiteResources.OfficialStandingDescription</p>
-    }
+    <StandingControls BaseUrl="@($"contests/{Id}/standing")" Official="Official" HasOfficialStanding="HasOfficialStanding" />
     @if (savedTable is not null)
     {
         <SavedStandingView Html="@savedTable" />
@@ -56,6 +40,8 @@
 
     protected override async Task OnParametersSetAsync()
     {
+        savedTable = null;
+        standing = null;
         await using var context = await ContextFactory.CreateDbContextAsync();
         contest = await context.Contests.AsNoTracking().SingleOrDefaultAsync(item => item.Id == Id && !item.IsHidden);
         if (contest is null || !contest.AllowShowStanding || (Official && !HasOfficialStanding))

@@ -23,7 +23,7 @@ else
     @if (_canManage)
     {
         <StaffActions Title="@SiteResources.StaffTestOperations">
-            <button class="btn btn-outline-secondary" disabled="@_busy" @onclick="() => _confirm = !_confirm">@(_test.IsActive ? SiteResources.StaffDisable : SiteResources.StaffEnable)</button>
+            <button class="btn btn-secondary" disabled="@_busy" @onclick="() => _confirm = !_confirm">@(_test.IsActive ? SiteResources.StaffDisable : SiteResources.StaffEnable)</button>
             @if (_confirm)
             {
                 <div class="alert alert-warning mt-3 mb-0" role="alert">

@@ -167,9 +167,12 @@ sessions, and upstream response bodies are not retained or logged.
 - Contest managers control approval, disqualification, and competition status.
   Registration alone does not imply approval or permission to submit.
 
-Registration pages become unavailable at `now >= EndTime`. The registration
-service rejects requests at `now > EndTime`, so its exact-end boundary differs
-from the pages.
+At `now >= EndTime`, registration pages remain readable under their existing
+account and organization access rules. Users can view their participation and
+coaches can view their organizations' teams, but registration and cancellation
+are unavailable. The team creation URL returns HTTP 403 after the contest ends.
+Registration services also reject requests at this boundary;
+staff management permissions are unchanged.
 
 Sources: [individual registration](../Olymp.WebApp/Components/Pages/Contests/Registration/Individual.razor),
 [team registration](../Olymp.WebApp/Components/Pages/Contests/Registration/Teams.razor),

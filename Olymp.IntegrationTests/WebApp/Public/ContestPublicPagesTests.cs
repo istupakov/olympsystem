@@ -162,15 +162,17 @@ public class ContestPublicPagesTests(WebAppFactory factory) : IClassFixture<WebA
         Assert.DoesNotContain("Hidden", allHtml);
         Assert.DoesNotContain("PRIVATE_SOURCE", allHtml);
         Assert.Null(document.QuerySelector("main form"));
-        Assert.Equal(culture == "ru" ? "Полная таблица" : "Full standings", document.QuerySelector(".standing-view a[aria-current='page']")!.TextContent);
+        Assert.Equal(culture == "ru" ? "Полная" : "Full", document.QuerySelector(".standing-view a[aria-current='page']")!.TextContent);
+        Assert.NotNull(document.QuerySelector($"a.btn[href='contests/{contest.Id}/standing'][data-enhance-nav='false']"));
         var officialLink = document.QuerySelector($"main nav a[href='contests/{contest.Id}/standing?official=true']")!;
-        Assert.Equal(culture == "ru" ? "Официальная таблица" : "Official standings", officialLink.TextContent);
+        Assert.Equal(culture == "ru" ? "Официальная" : "Official", officialLink.TextContent);
         using var official = await client.GetAsync("/" + officialLink.GetAttribute("href"), TestContext.Current.CancellationToken);
         official.EnsureSuccessStatusCode();
         using var officialDocument = await new HtmlParser().ParseDocumentAsync(
             await official.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
         Assert.StartsWith("Alice", Assert.Single(officialDocument.QuerySelectorAll("main tbody tr")).QuerySelectorAll("td")[1].TextContent.Trim());
-        Assert.Equal(culture == "ru" ? "Официальная таблица" : "Official standings", officialDocument.QuerySelector(".standing-view a[aria-current='page']")!.TextContent);
+        Assert.Equal(culture == "ru" ? "Официальная" : "Official", officialDocument.QuerySelector(".standing-view a[aria-current='page']")!.TextContent);
+        Assert.NotNull(officialDocument.QuerySelector($"a.btn[href='contests/{contest.Id}/standing?official=true'][data-enhance-nav='false']"));
         Assert.Contains(culture == "ru" ? "Без внеконкурсных" : "Excludes out-of-competition", officialDocument.QuerySelector("main")!.TextContent);
         var fullLink = officialDocument.QuerySelector($"main nav a[href='contests/{contest.Id}/standing']")!;
         using var fullAgain = await client.GetAsync("/" + fullLink.GetAttribute("href"), TestContext.Current.CancellationToken);

@@ -22,7 +22,11 @@
 {
     <PageTitle>@string.Format(SiteResources.TeamsInContest, contest.Name)</PageTitle>
     <ContestHeader Contest="contest" ActiveSection="registration" />
-    @if (contest.IsIcpc)
+    @if (IsClosed)
+    {
+        <p class="alert alert-info" role="status">@SiteResources.RegistrationClosed</p>
+    }
+    @if (!IsClosed && contest.IsIcpc)
     {
         <p class="alert alert-info">@SiteResources.IcpcRegistrationUnofficialOnly</p>
     }
@@ -31,7 +35,7 @@
         <div class="alert alert-danger" role="alert">@error</div>
     }
     <div class="d-flex flex-wrap gap-2 mb-3">
-        @foreach (var organization in organizations)
+        @foreach (var organization in IsClosed ? [] : organizations)
         {
             <a class="btn btn-primary" href="contests/@Id/registration/teams/create?orgId=@organization.Id">
                 @SiteResources.AddTeam@(organizations.Count > 1 ? $" ({organization.Name})" : "")
@@ -57,7 +61,7 @@
                             <th scope="col">@AccountResources.UserName</th>
                             <th scope="col">@AccountResources.Password</th>
                             <th scope="col">@SiteResources.RegistrationDate</th>
-                            <th scope="col">@SiteResources.TeamActions</th>
+                            @if (!IsClosed) { <th scope="col">@SiteResources.TeamActions</th> }
                         </tr>
                     </thead>
                     <tbody>
@@ -98,12 +102,15 @@
                                 <td>@team.UserName</td>
                                 <td>@(team.CoachId == userId ? team.PasswordHash : null)</td>
                                 <td class="text-nowrap">@team.RegistrationDate?.ToLocalTime().ToString("d", CultureInfo.CurrentCulture)</td>
+                                @if (!IsClosed)
+                                {
                                 <td>
                                     @if (cancellableTeams.Contains(team.Id))
                                     {
                                         <button type="submit" name="CancelTeamId" value="@team.Id" class="btn btn-sm btn-outline-danger">@SiteResources.CancelRegistration</button>
                                     }
                                 </td>
+                                }
                             </tr>
                         }
                     </tbody>
@@ -129,12 +136,13 @@
     private int userId;
     private string? error;
     private readonly HashSet<int> cancellableTeams = [];
+    private bool IsClosed => contest is not null && Clock.GetUtcNow() >= contest.EndTime;
 
     protected override async Task OnParametersSetAsync()
     {
         contest = await Context.Contests.AsNoTracking()
             .SingleOrDefaultAsync(item => item.Id == Id && !item.IsHidden, HttpContext.RequestAborted);
-        if (contest is null || !contest.IsAcm || Clock.GetUtcNow() >= contest.EndTime)
+        if (contest is null || !contest.IsAcm)
         {
             contest = null;
             Navigation.NotFound();
@@ -153,13 +161,14 @@
         cancellableTeams.Clear();
         foreach (var team in teams)
         {
-            if ((await Authorization.AuthorizeAsync(HttpContext.User, team, PolicyNames.CancelRegistration)).Succeeded)
+            if (!IsClosed && (await Authorization.AuthorizeAsync(HttpContext.User, team, PolicyNames.CancelRegistration)).Succeeded)
                 cancellableTeams.Add(team.Id);
         }
     }
 
     private async Task CancelAsync()
     {
+        if (IsClosed) return;
         var team = teams.SingleOrDefault(item => item.Id == CancelTeamId);
         if (team is null)
         {
