@@ -119,6 +119,14 @@ else
                         <input id="participant-name" class="form-control" @bind="_participantName" />
                         <button class="btn btn-primary" @onclick="RenameParticipantAsync">@SiteResources.StaffSave</button>
                     </div>
+                    <label for="participant-organization" class="form-label">@SiteResources.StaffOrganization</label>
+                    <div class="input-group mb-4">
+                        <select id="participant-organization" class="form-select" @bind="_organizationId">
+                            <option value="">@SiteResources.StaffNotSpecified</option>
+                            @foreach (var organizationChoice in _organizations) { <option value="@organizationChoice.Id">@StaffEntityLabel.Format(organizationChoice.Id, organizationChoice.Name)</option> }
+                        </select>
+                        <button class="btn btn-primary" @onclick="SaveOrganizationAsync">@SiteResources.StaffSave</button>
+                    </div>
                     <PermanentAccountPicker Label="@SiteResources.StaffCoach" @bind-Value="_coachId" Disabled="_busy" />
                     <button class="btn btn-primary mb-4" @onclick="SaveCoachAsync">@SiteResources.StaffSaveCoach</button>
                 </fieldset>
@@ -130,14 +138,20 @@ else
                 <fieldset disabled="@_busy">
                     @{ var roster = _participant.GetMembers()?.ToList() ?? _participant.Members.Select(member => (name: member.Name, user: (OlympUser?)member)).ToList(); }
                     <ul class="list-group mb-4">
-                        @foreach (var (name, member) in roster)
+                        @for (int rosterIndex = 0; rosterIndex < roster.Count; rosterIndex++)
                         {
+                            int index = rosterIndex;
+                            var (name, member) = roster[index];
                             <li class="list-group-item d-flex flex-wrap justify-content-between align-items-center gap-2">
                                 <div class="text-break">
-                                    @if (member is null) { @name }
-                                    else
+                                    <label for="@($"roster-name-{index}")" class="form-label">@SiteResources.StaffRosterDisplayName</label>
+                                    <div class="input-group mb-2">
+                                        <input id="@($"roster-name-{index}")" class="form-control" @bind="_rosterNames[index]" />
+                                        <button class="btn btn-primary" @onclick="() => SaveRosterNameAsync(index)">@SiteResources.StaffSave</button>
+                                    </div>
+                                    @if (member is not null)
                                     {
-                                        <a href="admin/users/@member.Id/edit">@name</a>
+                                        <a href="admin/users/@member.Id/edit">@StaffEntityLabel.Format(member.Id, member.Name)</a>
                                         <div class="small text-body-secondary">@member.Email</div>
                                     }
                                 </div>
@@ -145,9 +159,21 @@ else
                                 {
                                     <button class="btn btn-sm btn-outline-danger" @onclick="() => _removeMemberId = member.Id">@SiteResources.StaffUnlinkAccount</button>
                                 }
+                                else
+                                {
+                                    <button class="btn btn-sm btn-outline-danger" @onclick="() => RemoveRosterEntryAsync(index)">@SiteResources.StaffDelete</button>
+                                }
                             </li>
                         }
                     </ul>
+                    @if (roster.Count < 3)
+                    {
+                        <label for="new-roster-name" class="form-label">@SiteResources.StaffAddRosterEntry</label>
+                        <div class="input-group mb-4">
+                            <input id="new-roster-name" class="form-control" @bind="_newRosterName" />
+                            <button class="btn btn-secondary" disabled="@string.IsNullOrWhiteSpace(_newRosterName)" @onclick="AddRosterEntryAsync">@SiteResources.StaffAdd</button>
+                        </div>
+                    }
                     <PermanentAccountPicker Label="@SiteResources.StaffAddLinkedAccount" @bind-Value="_memberId" Disabled="_busy" />
                     <label for="member-slot" class="form-label">@SiteResources.StaffRosterEntry</label>
                     <select id="member-slot" class="form-select mb-2" @bind="_memberSlot">

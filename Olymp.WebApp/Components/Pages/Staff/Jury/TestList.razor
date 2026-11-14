@@ -44,10 +44,10 @@ else
         <TemplateColumn Title="@SiteResources.StaffTestNumber" Sortable="true" SortBy="_numberSort" Context="item">
             <a href="@DetailsUrl(item.Id)">@item.Number</a>
         </TemplateColumn>
-        <TemplateColumn Title="@SiteResources.StaffTestActive" Context="item">
+        <TemplateColumn Title="@SiteResources.StaffTestActive" Sortable="true" SortBy="@(GridSort<TestRow>.ByAscending(item => item.IsActive))" Context="item">
             <QuickFilter Url="@StaffFilterUrl.Set(Navigation.Uri, nameof(Active), item.IsActive)" Label="@SiteResources.StaffTestActive" Value="@(item.IsActive ? SiteResources.StaffYes : SiteResources.StaffNo)"><span class="badge @(item.IsActive ? "text-bg-success" : "text-bg-secondary")">@(item.IsActive ? SiteResources.StaffYes : SiteResources.StaffNo)</span></QuickFilter>
         </TemplateColumn>
-        <TemplateColumn Title="@SiteResources.StaffTestOpen" Context="item">
+        <TemplateColumn Title="@SiteResources.StaffTestOpen" Sortable="true" SortBy="@(GridSort<TestRow>.ByAscending(item => item.IsOpen))" Context="item">
             <QuickFilter Url="@StaffFilterUrl.Set(Navigation.Uri, nameof(Open), item.IsOpen)" Label="@SiteResources.StaffTestOpen" Value="@(item.IsOpen ? SiteResources.StaffYes : SiteResources.StaffNo)"><span class="badge @(item.IsOpen ? "text-bg-info" : "text-bg-secondary")">@(item.IsOpen ? SiteResources.StaffYes : SiteResources.StaffNo)</span></QuickFilter>
         </TemplateColumn>
         <PropertyColumn Property="@(item => item.Score)" Title="@SiteResources.Points" Sortable="true" />

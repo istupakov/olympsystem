@@ -13,6 +13,48 @@ namespace Olymp.WebApp.Services.Contests;
 
 public sealed class AdminParticipantService(OlympContext context, IAuthorizationService authorization, UserManager<User> users)
 {
+    public Task SetOrganizationAsync(ClaimsPrincipal actor, int id, int? organizationId, CancellationToken token = default) => ChangeAsync(actor, id, async participant =>
+    {
+        if (organizationId.HasValue && !await context.Organizations.AnyAsync(item => item.Id == organizationId, token))
+            throw new OperationValidationException(SiteResources.InvalidParticipantValue);
+        participant.OrganizationId = organizationId;
+    }, token);
+
+    public Task RenameRosterEntryAsync(ClaimsPrincipal actor, int id, int index, string name, CancellationToken token = default) => ChangeAsync(actor, id, participant =>
+    {
+        var members = ReadRoster(participant);
+        if (index < 0 || index >= members.Count) throw new OperationValidationException(SiteResources.InvalidParticipantValue);
+        members[index] = (ValidateRosterName(name), members[index].Id);
+        participant.MemberInfos = WriteRoster(members);
+        return Task.CompletedTask;
+    }, token);
+
+    public Task AddRosterEntryAsync(ClaimsPrincipal actor, int id, string name, CancellationToken token = default) => ChangeAsync(actor, id, participant =>
+    {
+        var members = ReadRoster(participant);
+        if (members.Count >= 3) throw new OperationValidationException(SiteResources.StaffRosterFull);
+        members.Add((ValidateRosterName(name), null));
+        participant.MemberInfos = WriteRoster(members);
+        return Task.CompletedTask;
+    }, token);
+
+    public Task RemoveRosterEntryAsync(ClaimsPrincipal actor, int id, int index, CancellationToken token = default) => ChangeAsync(actor, id, participant =>
+    {
+        var members = ReadRoster(participant);
+        if (index < 0 || index >= members.Count || members[index].Id.HasValue)
+            throw new OperationValidationException(SiteResources.InvalidParticipantValue);
+        members.RemoveAt(index);
+        participant.MemberInfos = WriteRoster(members);
+        return Task.CompletedTask;
+    }, token);
+
+    private static string ValidateRosterName(string name)
+    {
+        name = name.Trim();
+        if (string.IsNullOrWhiteSpace(name) || name.Contains(';')) throw new OperationValidationException(SiteResources.InvalidParticipantValue);
+        return name;
+    }
+
     public Task RenameAsync(ClaimsPrincipal actor, int id, string name, CancellationToken token = default) => ChangeAsync(actor, id, async participant =>
     {
         name = name.Trim();

@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 using Olymp.Checker;
 using Olymp.Domain.Models;
+using Olymp.WebApp.Components.Staff;
 using Olymp.WebApp.Resources;
 using Olymp.WebApp.Services.Checker;
 
@@ -13,6 +14,21 @@ namespace Olymp.WebApp.Components.Pages.Staff.Jury;
 public partial class Runners
 {
     [SupplyParameterFromQuery] public Guid? Runner { get; set; }
+    [SupplyParameterFromQuery] public string? SelfTest { get; set; }
+    [SupplyParameterFromQuery] public bool? MissingCompiler { get; set; }
+    private Filters _filters = new();
+    private sealed class Filters { public string? SelfTest { get; set; } public string? MissingCompiler { get; set; } }
+    private sealed record RunnerRow(int Index, Guid Id, string Name, DateTimeOffset Connected, CheckerSelfTestingStatus Status, string Summary, bool MissingCompiler);
+    private IReadOnlyList<RunnerRow> Rows => [.. _runners.Select((runner, index) => new RunnerRow(index, runner.Id, runner.Name, runner.ConnectingTime,
+        runner.SelfTestingStatus, Summary([.. runner.SelfTestingResults]), runner.Compilators?.Any(info => !_compilers.Any(compiler => CompilerMatching.Matches(compiler, info))) ?? false))
+        .Where(row => !Enum.TryParse<CheckerSelfTestingStatus>(SelfTest, out var status) || row.Status == status)
+        .Where(row => MissingCompiler is not bool missing || row.MissingCompiler == missing)];
+    private void ApplyFilters() => Navigation.NavigateTo(Navigation.GetUriWithQueryParameters(new Dictionary<string, object?>
+    {
+        [nameof(SelfTest)] = _filters.SelfTest,
+        [nameof(MissingCompiler)] = bool.TryParse(_filters.MissingCompiler, out bool missing) ? missing : null,
+        ["row"] = null
+    }));
     private readonly CancellationTokenSource _stop = new();
     private Task? _poll;
     private List<ICheckerService> _runners = [];
@@ -23,8 +39,10 @@ public partial class Runners
     private ICheckerService? SelectedRunner => _runners.SingleOrDefault(item => item.Id == _selectedId);
     protected override async Task OnParametersSetAsync()
     {
+        _filters = new() { SelfTest = SelfTest, MissingCompiler = MissingCompiler?.ToString() };
         await RefreshAsync();
-        _selectedId = Runner ?? (_runners.Count > 0 ? _runners[0].Id : null);
+        var rows = Rows;
+        _selectedId = Runner ?? (rows.Count > 0 ? rows[0].Id : null);
     }
 
     protected override Task OnAfterRenderAsync(bool firstRender)
@@ -77,7 +95,10 @@ public partial class Runners
     };
     private static string Summary(CheckerTestResult[] tests) => string.Format(SiteResources.StaffTestsSummary,
         tests.Count(item => item.Result == item.ExpectedResult), tests.Length, tests.Count(item => item.Result is not null && item.Result != item.ExpectedResult));
-    private static string RunnerUrl(Guid id) => $"jury/runners?Runner={id}";
+    private string RunnerUrl(Guid id) => StaffFilterUrl.Set(Navigation.Uri, nameof(Runner), id);
+    private static string ConfigurationStatusClass(CompilatorInfo info, CheckerTestResult[] tests) =>
+        info.Error is not null || tests.Any(test => test.Result is not null && test.Result != test.ExpectedResult) ? "text-bg-danger"
+        : tests.Length > 0 && tests.All(test => test.Result == test.ExpectedResult) ? "text-bg-success" : "text-bg-secondary";
     public async ValueTask DisposeAsync()
     {
         await _stop.CancelAsync(); if (_poll is not null) await _poll;

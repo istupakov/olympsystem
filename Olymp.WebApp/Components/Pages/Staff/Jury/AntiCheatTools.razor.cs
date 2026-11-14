@@ -119,6 +119,8 @@ public partial class AntiCheatTools
         if (_selection.Compiler is int compiler)
             Add(SiteResources.Compiler, StaffEntityLabel.Format(compiler, await db.Compilators.Where(item => item.Id == compiler).Select(item => item.Description ?? item.Name).SingleOrDefaultAsync()));
 
+        Add(SiteResources.StaffHiddenSubmission, _selection.Hidden is bool hidden ? hidden ? SiteResources.StaffYes : SiteResources.StaffNo : null);
+        Add(SiteResources.StaffReferenceSubmission, _selection.Reference is bool reference ? reference ? SiteResources.StaffYes : SiteResources.StaffNo : null);
         Add(SiteResources.StaffLanguage, _selection.Language);
         Add(SiteResources.IpAddress, _selection.IpAddress);
         Add(SiteResources.SubmissionStatus, _selection.StatusCode is int status ? CheckStatusCodes.Description(status) : StaffVerdicts.Label(_selection.Status));

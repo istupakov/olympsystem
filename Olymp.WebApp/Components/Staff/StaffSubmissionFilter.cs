@@ -10,7 +10,7 @@ namespace Olymp.WebApp.Components.Staff;
 
 public sealed record StaffSubmissionFilter(int? Contest = null, int? AuthorId = null, string? Author = null,
     int? Problem = null, string? ProblemSearch = null, int? Compiler = null, string? Language = null,
-    string? IpAddress = null, string? Scope = null, int? StatusCode = null, string? Status = null, DateTime? From = null, DateTime? To = null)
+    string? IpAddress = null, string? Scope = null, int? StatusCode = null, string? Status = null, DateTime? From = null, DateTime? To = null, bool? Hidden = null, bool? Reference = null)
 {
     public IQueryable<Submission> Apply(OlympContext db, int userId)
     {
@@ -39,6 +39,8 @@ public sealed record StaffSubmissionFilter(int? Contest = null, int? AuthorId = 
             string address = IpAddress.Trim();
             query = query.Where(item => item.CommiterInfo == address);
         }
+        if (Hidden is bool hidden) query = query.Where(item => item.IsHidden == hidden);
+        if (Reference is bool reference) query = query.Where(item => item.IsReference == reference);
         query = query.ForAuthors(Scope, userId, db, Contest);
         if (StatusCode is int exactStatus)
             query = query.Where(item => item.StatusCode == exactStatus);
@@ -82,9 +84,10 @@ public sealed record StaffSubmissionFilter(int? Contest = null, int? AuthorId = 
         var query = QueryHelpers.ParseQuery(uri.Query);
         string? Text(string key) => query.TryGetValue(key, out var value) ? value.ToString() : null;
         int? Number(string key) => int.TryParse(Text(key), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value) ? value : null;
+        bool? Flag(string key) => bool.TryParse(Text(key), out bool value) ? value : null;
         DateTime? Date(string key) => Text(key) is string value ? DateTime.Parse(value, CultureInfo.InvariantCulture) : null;
         return new(contest ?? Number("Contest"), Number("AuthorId"), Text("Author"), Number("Problem"), Text("ProblemSearch"),
             Number("Compiler"), Text("Language"), Text("IpAddress"), Text("Scope") ?? (Text("OnlyParticipants") == "true" ? "participants" : null),
-            Number("StatusCode"), Text("Status"), Date("From"), Date("To"));
+            Number("StatusCode"), Text("Status"), Date("From"), Date("To"), Flag("Hidden"), Flag("Reference"));
     }
 }

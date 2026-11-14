@@ -26,6 +26,37 @@ namespace Olymp.IntegrationTests.WebApp.Staff.Jury;
 public partial class ParticipantExportTests(WebAppFactory factory) : StaffComponentTests(factory)
 {
     [Fact]
+    public async Task CsvAndSelectionRespectVisibilityLoginAndOrganizationOrder()
+    {
+        var staff = await _factory.AddUserAsync();
+        await GrantRoleAsync(staff.Id, RoleNames.Jury);
+        await using var scope = _factory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<OlympContext>();
+        var contest = TestEntities.CreateContest("New CSV filters", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddHours(1));
+        var first = TestEntities.CreateCompetitor(contest, "First visible");
+        first.Organization = new Organization { Name = "Alpha", Users = [] };
+        first.UserName = $"csv-{Guid.NewGuid():N}";
+        var second = TestEntities.CreateCompetitor(contest, "Second visible");
+        second.Organization = new Organization { Name = "Zulu", Users = [] };
+        second.UserName = $"csv-{Guid.NewGuid():N}";
+        var hidden = TestEntities.CreateCompetitor(contest, "Hidden participant");
+        hidden.IsHidden = true;
+        hidden.UserName = $"csv-{Guid.NewGuid():N}";
+        var missing = TestEntities.CreateCompetitor(contest, "No login");
+        db.Competitors.AddRange(first, second, hidden, missing);
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var selection = new ParticipantQuery(contest.Id, HasLogin: true, Hidden: false).Apply(db);
+        Assert.Equal(new[] { second.Id, first.Id }, await ParticipantQuery.Order(selection, "Organization", true).Select(item => item.Id).ToArrayAsync(TestContext.Current.CancellationToken));
+        using var client = await _factory.LoginAsync(staff.UserName!);
+        using var response = await client.GetAsync($"/jury/contests/{contest.Id}/participants/export?hasLogin=true&hidden=false&sort=Organization&descending=true", TestContext.Current.CancellationToken);
+        response.EnsureSuccessStatusCode();
+        string csv = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+        Assert.DoesNotContain(hidden.Name, csv);
+        Assert.DoesNotContain(missing.Name, csv);
+        Assert.True(csv.IndexOf(second.Name, StringComparison.Ordinal) < csv.IndexOf(first.Name, StringComparison.Ordinal));
+    }
+
+    [Fact]
     public async Task ParticipantCsvRespectsCoachAndLinkedAccountFilters()
     {
         var staff = await _factory.AddUserAsync();

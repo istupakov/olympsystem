@@ -28,7 +28,10 @@ public partial class ParticipantDetails
     private bool _loaded, _admin, _canManage, _confirmed, _busy, _saved;
     private int _submissionCount, _messageCount;
     private string? _error;
-    private string _participantName = "";
+    private string _participantName = "", _newRosterName = "";
+    private int? _organizationId;
+    private List<Organization> _organizations = [];
+    private List<string> _rosterNames = [];
     private int? _coachId, _memberId, _memberSlot, _removeMemberId;
     private ParticipantAction? _pending;
     private bool Locked => _participant is { LockoutEnabled: true, LockoutEnd: { } until } && until > DateTimeOffset.Now;
@@ -57,6 +60,10 @@ public partial class ParticipantDetails
         _messageCount = await db.Messages.CountAsync(item => item.UserId == Id);
         _participantName = _participant?.Name ?? "";
         _coachId = _participant?.CoachId;
+        _organizationId = _participant?.OrganizationId;
+        _organizations = _admin ? await db.Organizations.AsNoTracking().OrderBy(item => item.Name).ToListAsync() : [];
+        _rosterNames = _participant is null ? [] : [.. _participant.GetMembers()?.Select(item => item.name) ?? _participant.Members.Select(item => item.Name)];
+        _newRosterName = "";
         _memberId = _memberSlot = _removeMemberId = null;
         _confirmed = _participant is not null && await scope.ServiceProvider.GetRequiredService<IUserConfirmation<User>>()
             .IsConfirmedAsync(scope.ServiceProvider.GetRequiredService<UserManager<User>>(), _participant);
@@ -67,6 +74,22 @@ public partial class ParticipantDetails
         string name = _participantName;
         return ChangeParticipantAsync((service, actor, id) => service.RenameAsync(actor, id, name));
     }
+    private Task SaveOrganizationAsync()
+    {
+        int? organizationId = _organizationId;
+        return ChangeParticipantAsync((service, actor, id) => service.SetOrganizationAsync(actor, id, organizationId));
+    }
+    private Task SaveRosterNameAsync(int index)
+    {
+        string name = _rosterNames[index];
+        return ChangeParticipantAsync((service, actor, id) => service.RenameRosterEntryAsync(actor, id, index, name));
+    }
+    private Task AddRosterEntryAsync()
+    {
+        string name = _newRosterName;
+        return ChangeParticipantAsync((service, actor, id) => service.AddRosterEntryAsync(actor, id, name));
+    }
+    private Task RemoveRosterEntryAsync(int index) => ChangeParticipantAsync((service, actor, id) => service.RemoveRosterEntryAsync(actor, id, index));
     private Task SaveCoachAsync()
     {
         int? coachId = _coachId;
