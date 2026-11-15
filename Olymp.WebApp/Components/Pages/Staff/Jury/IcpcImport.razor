@@ -105,11 +105,11 @@
                             <span>ICPC: @row.Source.Status</span>
                             @if (!row.IsApproved)
                             {
-                                <span class="badge text-bg-info ms-1">@SiteResources.PendingApproval</span>
+                                <span class="badge text-bg-warning ms-1">@SiteResources.PendingApproval</span>
                             }
                             @if (row.ExistingTeam is { IsOutOfCompetition: true })
                             {
-                                <span class="badge text-bg-warning ms-1">@SiteResources.OutOfCompetition</span>
+                                <span class="badge text-bg-secondary ms-1">@SiteResources.OutOfCompetition</span>
                             }
                             @if (row.ExistingTeam is { IsDisqualified: true })
                             {

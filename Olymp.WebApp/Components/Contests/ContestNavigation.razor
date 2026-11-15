@@ -2,13 +2,22 @@
     <ul class="nav nav-underline column-gap-3 row-gap-1">
         @if (Contest.AllowShowStanding)
         {
-            <li class="nav-item"><a class="@LinkClass("standing")" href="contests/@Contest.Id/standing" aria-current="@Current("standing")">@SiteResources.ContestStandings</a></li>
+            <li class="nav-item"><a class="@LinkClass("standing")" href="@(StandingUrl ?? $"contests/{Contest.Id}/standing")" aria-current="@Current("standing")">@SiteResources.ContestStandings</a></li>
         }
-        @if (Contest.AllowShowProblems)
+        <AuthorizeView Policy="SignedIn">
+            <Authorized>
+                @if (Contest.AllowShowProblems)
+                {
+                    <li class="nav-item"><a class="@LinkClass("problems")" href="contests/@Contest.Id/problems" aria-current="@Current("problems")">@SiteResources.Problems</a></li>
+                    <li class="nav-item"><a class="@LinkClass("submissions")" href="contests/@Contest.Id/submissions" aria-current="@Current("submissions")">@SiteResources.Submissions</a></li>
+                }
+            </Authorized>
+        </AuthorizeView>
+        @if (Participant && Contest.AllowSendMessage)
         {
-            <li class="nav-item"><a class="@LinkClass("problems")" href="contests/@Contest.Id/problems" aria-current="@Current("problems")">@SiteResources.Problems</a></li>
+            <li class="nav-item"><a class="@LinkClass("questions")" href="contests/@Contest.Id/questions" aria-current="@Current("questions")">@SiteResources.JuryQuestions</a></li>
         }
-        @if (Contest.IsOpen && Contest.AllowShowStanding)
+        @if (!Participant && Contest.IsOpen && Contest.AllowShowStanding)
         {
             <li class="nav-item"><a class="@LinkClass("virtual")" href="contests/@Contest.Id/virtual" aria-current="@Current("virtual")">@SiteResources.VirtualContest</a></li>
         }
@@ -17,7 +26,7 @@
             <li class="nav-item"><a class="@LinkClass("participants")" href="contests/@Contest.Id/competitors" aria-current="@Current("participants")">@SiteResources.ContestParticipants</a></li>
         }
         <li class="nav-item"><a class="@LinkClass("rules")" href="contests/@Contest.Id/rules" aria-current="@Current("rules")">@SiteResources.ContestRules</a></li>
-        @if (Now < Contest.EndTime)
+        @if (!Participant && Now < Contest.EndTime)
         {
             <li class="nav-item">
                 <a class="@LinkClass("registration")" href="@(Contest.IsAcm ? $"contests/{Contest.Id}/registration/teams" : $"contests/{Contest.Id}/registration")" aria-current="@Current("registration")">@SiteResources.ContestRegistration</a>
@@ -27,7 +36,7 @@
         {
             @if (Contest.AllowShowProblems)
             {
-                <li class="nav-item"><a class="nav-link" href="contests/@Contest.Id/downloadproblems" data-enhance-nav="false">@SiteResources.ContestStatements</a></li>
+                <li class="nav-item"><a class="nav-link" href="contests/@Contest.Id/downloadproblems" data-enhance-nav="false">@SiteResources.DownloadStatementsPdf</a></li>
             }
             else
             {
@@ -53,6 +62,12 @@
 
     [Parameter]
     public bool Compact { get; set; }
+
+    [Parameter]
+    public bool Participant { get; set; }
+
+    [Parameter]
+    public string? StandingUrl { get; set; }
 
     private string LinkClass(string section) => ActiveSection == section ? "nav-link active" : "nav-link";
 

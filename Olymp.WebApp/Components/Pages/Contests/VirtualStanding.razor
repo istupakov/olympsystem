@@ -13,6 +13,21 @@
     <ContestHeader Contest="_contest" ActiveSection="virtual" />
     <h2 class="h4">@SiteResources.VirtualContest</h2>
     <p class="small text-body-secondary">@SiteResources.VirtualContestHelp</p>
+    <AuthorizeView Policy="SignedIn">
+        <Authorized>
+            <AuthorizeView Policy="@PolicyNames.PermanentAccount" Context="personalAccount">
+                <Authorized>
+                    <p><a class="btn btn-primary" href="contests/@Id/problems" target="_blank" rel="noopener">@SiteResources.GoToTrainingProblems</a></p>
+                </Authorized>
+                <NotAuthorized>
+                    <p>@SiteResources.TrainingPersonalAccountRequired</p>
+                </NotAuthorized>
+            </AuthorizeView>
+        </Authorized>
+        <NotAuthorized>
+            <p>@SiteResources.TrainingRegistrationHelp</p>
+        </NotAuthorized>
+    </AuthorizeView>
     @if (_error is not null)
     {
         <p class="alert alert-danger" role="alert">@_error</p>

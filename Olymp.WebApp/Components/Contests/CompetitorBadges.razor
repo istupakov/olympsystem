@@ -1,10 +1,10 @@
 @if (User is Competitor { IsApproved: false })
 {
-    <span class="badge text-bg-info ms-1">@SiteResources.PendingApproval</span>
+    <span class="badge text-bg-warning ms-1">@SiteResources.PendingApproval</span>
 }
 @if (User is Competitor { IsOutOfCompetition: true })
 {
-    <span class="badge text-bg-warning ms-1">@SiteResources.OutOfCompetition</span>
+    <span class="badge text-bg-secondary ms-1">@SiteResources.OutOfCompetition</span>
 }
 @if (User.IsDisqualified)
 {

@@ -15,7 +15,7 @@
             }
             <a href="@(ListUrl(selectedScope, Page) + "#submissions")" class="btn btn-sm btn-outline-secondary">@SiteResources.Refresh</a>
         </div>
-        @if (!isParticipant)
+        @if (!isTemporary && AvailableScopes.Skip(1).Any())
         {
             <nav aria-label="@SiteResources.SubmissionScope" class="mb-3">
                 <ul class="nav nav-underline">
@@ -35,7 +35,7 @@
         }
         else
         {
-            <SubmissionTable Items="submissions" ShowAuthor="@(!isParticipant)" ShowProblem="@(!ProblemId.HasValue)"
+            <SubmissionTable Items="submissions" ShowAuthor="@(!isTemporary || selectedScope != SubmissionScope.Own)" ShowProblem="@(!ProblemId.HasValue)"
                              ShowContest="@(!ContestId.HasValue)" ShowScores="ShowScores" ShowSource="ShowSource" />
         }
         <Pagination Page="Page" HasNextPage="hasNextPage" PageUrl="@(number => ListUrl(selectedScope, number) + "#submissions")" Label="@SiteResources.SubmissionPages" />
@@ -67,7 +67,8 @@
     private List<SubmissionListItem> submissions = [];
     private SubmissionScope selectedScope;
     private bool loaded;
-    private bool isParticipant;
+    private bool isTemporary;
+    private bool showOwnScope;
     private bool hasParticipantSubmissions;
     private bool hasCoachedSubmissions;
     private bool hasNextPage;
@@ -79,7 +80,8 @@
     {
         get
         {
-            yield return SubmissionScope.Own;
+            if (showOwnScope)
+                yield return SubmissionScope.Own;
             if (hasParticipantSubmissions)
                 yield return SubmissionScope.Participant;
             if (hasCoachedSubmissions)
@@ -90,9 +92,8 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        if ((!string.IsNullOrEmpty(Scope) && (!Enum.TryParse(Scope, ignoreCase: true, out selectedScope) || !Enum.IsDefined(selectedScope)))
-            || Page < 1 || Page > int.MaxValue / PageSize
-            || (selectedScope == SubmissionScope.All && Page > AllPageLimit))
+        loaded = false;
+        if (Page < 1 || Page > int.MaxValue / PageSize)
         {
             Navigation.NotFound();
             return;
@@ -105,8 +106,11 @@
             return;
         }
         int userId = user.Id;
-        isParticipant = user is Competitor;
-        if (isParticipant && selectedScope != SubmissionScope.Own)
+        isTemporary = user is Competitor;
+        bool isForeignParticipant = user is Competitor participant && ContestId.HasValue && ContestId != participant.ContestId;
+        selectedScope = isForeignParticipant ? SubmissionScope.All : SubmissionScope.Own;
+        if (!isTemporary && !string.IsNullOrEmpty(Scope)
+            && (!Enum.TryParse(Scope, ignoreCase: true, out selectedScope) || !Enum.IsDefined(selectedScope)))
         {
             Navigation.NotFound();
             return;
@@ -122,10 +126,19 @@
         var participantQuery = query.Where(item => context.Competitors.Any(team => team.Id == item.UserId
             && team.ContestId == item.Problem.ContestId && team.Members.Any(member => member.Id == userId)));
         var coachedQuery = query.Where(item => item.User.CoachId == userId);
-        if (!isParticipant)
+        if (!isTemporary)
         {
+            showOwnScope = !ContestId.HasValue || await query.AnyAsync(item => item.UserId == userId, token);
             hasParticipantSubmissions = await participantQuery.AnyAsync(token);
             hasCoachedSubmissions = await coachedQuery.AnyAsync(token);
+            if (string.IsNullOrEmpty(Scope) && !showOwnScope)
+                selectedScope = hasCoachedSubmissions ? SubmissionScope.Coached : SubmissionScope.All;
+        }
+
+        if (selectedScope == SubmissionScope.All && Page > AllPageLimit)
+        {
+            Navigation.NotFound();
+            return;
         }
 
         query = selectedScope switch
@@ -184,7 +197,7 @@
     private string ListUrl(SubmissionScope scope, int page) => Navigation.GetUriWithQueryParameters(
         Navigation.Uri.Split('#')[0], new Dictionary<string, object?>
         {
-            ["scope"] = scope == SubmissionScope.Own ? null : scope.ToString().ToLowerInvariant(),
+            ["scope"] = isTemporary || scope == SubmissionScope.Own ? null : scope.ToString().ToLowerInvariant(),
             ["page"] = page == 1 ? null : page
         });
 

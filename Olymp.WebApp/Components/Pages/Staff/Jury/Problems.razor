@@ -103,8 +103,7 @@ else
                 else
                 {
                     <SubmissionTable Items="_rows" ShowProblem="false" ShowScores="_contest.IsSchool"
-                                     SourceUrl="@(item => SourceUrl(item.Id))"
-                                     DownloadUrl="@(item => $"jury/submissions/{item.Id}/download")" />
+                                     SourceUrl="@(item => SourceUrl(item.Id))" />
                 }
                 <Pagination Page="CurrentPage" HasNextPage="_hasNext" PageUrl="@(page => SubmissionsUrl(CurrentScope, page))" Label="@SiteResources.SubmissionPages" />
             </section>

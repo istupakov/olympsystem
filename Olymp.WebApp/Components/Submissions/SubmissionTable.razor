@@ -28,16 +28,23 @@
             {
                 <tr id="submission-@submission.Id">
                     <td>
-                        <div>@submission.CommitTime.ToLocalTime().ToString("d")</div>
-                        <div class="small text-body-secondary">@submission.CommitTime.ToLocalTime().ToString("t")</div>
+                        @if (ShowContest)
+                        {
+                            <div>@submission.CommitTime.ToLocalTime().ToString("d")</div>
+                            <div class="small text-body-secondary">@submission.CommitTime.ToLocalTime().ToString("t")</div>
+                        }
+                        else
+                        {
+                            @submission.CommitTime.ToLocalTime().ToString("g")
+                        }
                     </td>
                     @if (ShowAuthor)
                     {
                         <td>
                             <span title="@submission.Author">@Shorten(submission.Author, 25)</span>
-                            @if (submission.IsParticipant)
+                            @if (!submission.IsParticipant)
                             {
-                                <div><span class="badge text-bg-secondary">@SiteResources.Competitor</span></div>
+                                <span class="badge bg-info-subtle text-info-emphasis ms-1">@SiteResources.Training</span>
                             }
                         </td>
                     }
@@ -45,7 +52,7 @@
                     {
                         <td>
                             <div>
-                                <a href="@ProblemUrl(submission)" title="@submission.Problem">@Shorten(submission.Problem, 25)</a>
+                                <a href="contests/@submission.ContestId/problems?problemId=@submission.ProblemId" title="@submission.Problem">@Shorten(submission.Problem, 25)</a>
                                 @if (ShowContest)
                                 {
                                     <div class="small text-body-secondary" title="@submission.Contest">@Shorten(submission.Contest, 25)</div>
@@ -86,8 +93,7 @@
                         <td>
                             @if (submission.CanViewSource)
                             {
-                                <div><a href="@SourceUrl(submission)">@SiteResources.ViewSource</a></div>
-                                <div><a href="@DownloadUrl(submission)" data-enhance-nav="false">@SiteResources.DownloadSource</a></div>
+                                <a href="@SourceUrl(submission)">@SiteResources.ViewSource</a>
                             }
                         </td>
                     }
@@ -126,10 +132,4 @@
 
     [Parameter]
     public Func<SubmissionListItem, string> SourceUrl { get; set; } = item => $"submissions/{item.Id}";
-
-    [Parameter]
-    public Func<SubmissionListItem, string> DownloadUrl { get; set; } = item => $"submissions/{item.Id}/download";
-
-    [Parameter]
-    public Func<SubmissionListItem, string> ProblemUrl { get; set; } = item => $"contests/{item.ContestId}/problems?problemId={item.ProblemId}";
 }

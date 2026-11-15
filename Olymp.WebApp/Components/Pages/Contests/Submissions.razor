@@ -1,0 +1,43 @@
+@page "/contests/{ContestId:int}/submissions"
+
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.EntityFrameworkCore
+@using Olymp.Domain
+@using Olymp.WebApp.Components.Contests
+@using Olymp.WebApp.Components.Submissions
+
+@attribute [Authorize]
+@inject IDbContextFactory<OlympContext> ContextFactory
+@inject NavigationManager Navigation
+
+@if (contest is not null)
+{
+    <PageTitle>@($"{SiteResources.Submissions} – {contest.Name}")</PageTitle>
+    <ContestHeader Contest="contest" ActiveSection="submissions" />
+    <SubmissionList ContestId="ContestId" Scope="@Scope" Page="@(Page ?? 1)" ShowHeading="false" />
+}
+
+@code {
+    [Parameter]
+    public int ContestId { get; set; }
+
+    [SupplyParameterFromQuery]
+    public string? Scope { get; set; }
+
+    [SupplyParameterFromQuery]
+    public int? Page { get; set; }
+
+    private Contest? contest;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await using var context = await ContextFactory.CreateDbContextAsync();
+        contest = await context.Contests.AsNoTracking()
+            .SingleOrDefaultAsync(item => item.Id == ContestId && !item.IsHidden);
+        if (contest is null || !contest.AllowShowProblems)
+        {
+            contest = null;
+            Navigation.NotFound();
+        }
+    }
+}

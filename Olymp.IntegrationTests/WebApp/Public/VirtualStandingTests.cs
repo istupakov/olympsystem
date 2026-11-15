@@ -22,6 +22,33 @@ namespace Olymp.IntegrationTests.WebApp.Public;
 public class VirtualStandingTests(WebAppFactory factory) : StaffComponentTests(factory)
 {
     [Theory]
+    [InlineData(false, "ru")]
+    [InlineData(false, "en")]
+    [InlineData(true, "ru")]
+    [InlineData(true, "en")]
+    public async Task TrainingOffersRegistrationTextOrProblemsInNewTab(bool signedIn, string culture)
+    {
+        var contest = Contest();
+        await SaveAsync(contest);
+        using var client = signedIn
+            ? await _factory.LoginAsync((await _factory.AddUserAsync()).UserName!)
+            : _factory.CreateSiteClient();
+        client.DefaultRequestHeaders.AcceptLanguage.ParseAdd(culture);
+        using var page = await GetAsync(client, Url(contest.Id, DateTimeOffset.UtcNow.AddHours(-1)));
+        Assert.Equal(signedIn, page.QuerySelector(".navbar a[href='submissions']") is not null);
+        var button = page.QuerySelector($"main a.btn[href='contests/{contest.Id}/problems']");
+        Assert.Equal(signedIn, button is not null);
+        if (button is not null)
+        {
+            Assert.Equal("_blank", button.GetAttribute("target"));
+            Assert.Equal("noopener", button.GetAttribute("rel"));
+        }
+        else
+            Assert.Contains(culture == "ru" ? "зарегистрируйтесь" : "register", page.QuerySelector("main")!.TextContent);
+        Assert.Null(page.QuerySelector("main a[href^='account/register']"));
+        Assert.Null(page.QuerySelector("main a[href^='account/login']"));
+    }
+    [Theory]
     [InlineData(false, "ru", true)]
     [InlineData(false, "en", true)]
     [InlineData(true, "ru", true)]
@@ -136,7 +163,7 @@ public class VirtualStandingTests(WebAppFactory factory) : StaffComponentTests(f
         using var form = await GetAsync(client, path);
         Assert.NotNull(form.QuerySelector("input[type='datetime-local']"));
         Assert.Contains(culture == "ru" ? "Часовой пояс" : "time zone", form.QuerySelector(".form-text")!.TextContent);
-        Assert.Contains(culture == "ru" ? "личного аккаунта" : "personal account", form.QuerySelector("main")!.TextContent);
+        Assert.Contains(culture == "ru" ? "личный аккаунт" : "personal account", form.QuerySelector("main")!.TextContent);
         Assert.DoesNotContain("<!--Blazor:", form.DocumentElement.OuterHtml);
 
         using var posted = await WebAppFactory.PostFormAsync(client, path, "virtual-contest", new()

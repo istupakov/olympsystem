@@ -75,7 +75,7 @@ public class PublicPagesTests(WebAppFactory factory) : IClassFixture<WebAppFacto
         Assert.Equal(news, document.Title);
         Assert.Equal(news, document.QuerySelector("main h1")!.TextContent);
         Assert.Equal("OlympSystem", document.QuerySelector("header .navbar-brand")!.TextContent.Trim());
-        Assert.Equal([news, contests, culture == "ru" ? "Решения" : "Submissions", culture == "ru" ? "Правила" : "Rules", culture == "ru" ? "Спонсоры" : "Sponsors"],
+        Assert.Equal([news, contests, culture == "ru" ? "Правила" : "Rules", culture == "ru" ? "Спонсоры" : "Sponsors"],
             document.QuerySelectorAll("header ul.nav a").Select(link => link.TextContent));
         Assert.Equal(news, Assert.Single(document.QuerySelectorAll("header ul.nav a.active")).TextContent);
         Assert.Equal("contests", document.QuerySelector("header ul.nav a[href='contests']")!.GetAttribute("href"));

@@ -204,7 +204,7 @@ public class ContestPublicPagesTests(WebAppFactory factory) : IClassFixture<WebA
         using var document = await new HtmlParser().ParseDocumentAsync(
             await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
         var caption = document.QuerySelector("main caption")!;
-        var status = caption.QuerySelector(".text-bg-primary")!.TextContent;
+        var status = caption.QuerySelector(ongoing ? ".text-bg-success" : ".text-bg-secondary")!.TextContent;
         if (ongoing)
         {
             if (culture == "ru")
@@ -454,7 +454,7 @@ public class ContestPublicPagesTests(WebAppFactory factory) : IClassFixture<WebA
                 ? document.QuerySelector($"article:has(a[href='contests/{contest.Id}/rules'])")!
                 : document.QuerySelector(".contest-header")!;
             var link = container.QuerySelector($"a[href='contests/{contest.Id}/problems']");
-            Assert.NotNull(link);
+            Assert.Equal(signedIn, link is not null);
             if (link is not null)
             {
                 var query = QueryHelpers.ParseQuery(new Uri(client.BaseAddress!, link.GetAttribute("href")).Query);

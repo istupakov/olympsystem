@@ -326,6 +326,30 @@ public class ProblemAccessTests(WebAppFactory factory) : IClassFixture<WebAppFac
     }
 
     [Fact]
+    public async Task TemporarySubmissionPaginationDropsScopeAndKeepsOwnRows()
+    {
+        var data = await CreateDataAsync(running: true);
+        var participant = await ParticipantAsync(data.Contest);
+        var ownIds = new List<int>();
+        for (int i = 0; i < 21; i++)
+            ownIds.Add(await AddSubmissionAsync(participant.Id, data.Problem, data.Compiler));
+        int foreignId = await AddSubmissionAsync(data.User.Id, data.Problem, data.Compiler);
+        using var client = await factory.LoginAsync(participant.UserName!);
+        foreach (string path in new[] { "/submissions", $"/contests/{data.Contest.Id}/submissions" })
+        {
+            using var first = await GetAsync(client, $"{path}?scope=all");
+            Assert.Equal(20, first.QuerySelectorAll("#submissions tbody tr").Length);
+            Assert.Null(first.QuerySelector($"#submission-{foreignId}"));
+            string nextUrl = first.QuerySelector("#submissions a[href*='page=2']")!.GetAttribute("href")!;
+            Assert.DoesNotContain("scope=", nextUrl);
+            using var second = await GetAsync(client, nextUrl);
+            var lastRow = Assert.Single(second.QuerySelectorAll("#submissions tbody tr"));
+            Assert.Equal($"submission-{ownIds[0]}", lastRow.Id);
+            Assert.Empty(second.QuerySelectorAll("#submissions a[href*='scope=']"));
+        }
+    }
+
+    [Fact]
     public async Task TemporaryAccountCanReadOtherContestsButOnlySubmitToOwnAndReadOwnSource()
     {
         var data = await CreateDataAsync(running: true);
@@ -338,10 +362,16 @@ public class ProblemAccessTests(WebAppFactory factory) : IClassFixture<WebAppFac
         using var history = await GetAsync(client, "/submissions");
         Assert.Single(history.QuerySelectorAll("#submissions tbody tr"));
         Assert.Null(history.QuerySelector("#submissions .nav"));
-        foreach (string scope in new[] { "all", "participant", "coached" })
+        foreach (string scope in new[] { "all", "participant", "coached", "unknown" })
         {
-            using var deniedScope = await client.GetAsync($"/submissions?scope={scope}", TestContext.Current.CancellationToken);
-            Assert.Equal(HttpStatusCode.NotFound, deniedScope.StatusCode);
+            foreach (string path in new[] { "/submissions", $"/contests/{data.Contest.Id}/submissions" })
+            {
+                using var scoped = await GetAsync(client, $"{path}?scope={scope}");
+                Assert.Single(scoped.QuerySelectorAll("#submissions tbody tr"));
+                Assert.NotNull(scoped.QuerySelector($"#submission-{ownId}"));
+                Assert.Null(scoped.QuerySelector("#submissions nav"));
+                Assert.DoesNotContain("scope=", scoped.QuerySelector("#submissions a.btn")!.GetAttribute("href")!);
+            }
         }
         Assert.NotNull(own.QuerySelector("#submission-code"));
         Assert.Null(own.QuerySelector("header a[href='account/manage']"));
@@ -360,7 +390,12 @@ public class ProblemAccessTests(WebAppFactory factory) : IClassFixture<WebAppFac
         using var foreign = await GetAsync(client, Path(other.Contest, other.Problem));
         Assert.NotNull(foreign.QuerySelector(".statement-html"));
         Assert.Null(foreign.QuerySelector("#submission-code"));
-        Assert.Null(foreign.QuerySelector($"#submission-{foreignId}"));
+        Assert.NotNull(foreign.QuerySelector($"#submission-{foreignId}"));
+        Assert.Null(foreign.QuerySelector("#submissions nav"));
+        Assert.Null(foreign.QuerySelector("#submissions a[href$='/download']"));
+        using var contestFeed = await GetAsync(client, $"/contests/{other.Contest.Id}/submissions?scope=own");
+        Assert.NotNull(contestFeed.QuerySelector($"#submission-{foreignId}"));
+        Assert.Null(contestFeed.QuerySelector($"a[href='submissions/{foreignId}']"));
         using var tests = await client.GetAsync($"/contests/{other.Contest.Id}/downloadtests", TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.Redirect, tests.StatusCode);
         Assert.Equal("/Account/AccessDenied", new Uri(client.BaseAddress!, tests.Headers.Location!).AbsolutePath);

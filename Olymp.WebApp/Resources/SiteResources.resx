@@ -153,13 +153,12 @@
   <data name="RulesForContest" xml:space="preserve"><value>Rules – {0}</value></data>
   <data name="JumpToSubmission" xml:space="preserve"><value>Go to submission ↓</value></data>
   <data name="Submissions" xml:space="preserve"><value>Submissions</value></data>
-  <data name="MySubmissions" xml:space="preserve"><value>My submissions</value></data>
   <data name="Problem" xml:space="preserve"><value>Problem</value></data>
   <data name="SubmissionScope" xml:space="preserve"><value>Submission scope</value></data>
   <data name="OwnSubmissions" xml:space="preserve"><value>My submissions</value></data>
   <data name="ParticipantSubmissions" xml:space="preserve"><value>My contests</value></data>
   <data name="CoachedSubmissions" xml:space="preserve"><value>Coached authors</value></data>
-  <data name="AllSubmissions" xml:space="preserve"><value>Public</value></data>
+  <data name="AllSubmissions" xml:space="preserve"><value>All</value></data>
   <data name="SubmissionRecorded" xml:space="preserve"><value>Submitted</value></data>
   <data name="SubmissionPages" xml:space="preserve"><value>Submission pages</value></data>
   <data name="NextPage" xml:space="preserve"><value>Next</value></data>
@@ -693,12 +692,19 @@
   <data name="StaffUnaddedConfigurations" xml:space="preserve"><value>Configurations not added to the site</value></data>
   <data name="StaffNotAddedToSite" xml:space="preserve"><value>Not added to the site</value></data>
   <data name="VirtualContest" xml:space="preserve"><value>Training</value></data>
-  <data name="VirtualParticipant" xml:space="preserve"><value>Virtual</value></data>
-  <data name="VirtualContestHelp" xml:space="preserve"><value>Choose a start time and save the standings link. The duration matches the original contest; there is no freeze. Submit solutions from your personal account on the regular problem page. You compete against the original participants: their solutions appear after the same time from the start as in the original contest.</value></data>
+  <data name="VirtualContestHelp" xml:space="preserve"><value>Choose a start time and save the standings link. The duration matches the original contest; there is no freeze. You compete against the original participants: their solutions appear after the same time from the start as in the original contest.</value></data>
   <data name="ShowVirtualStanding" xml:space="preserve"><value>Show standings</value></data>
   <data name="ChangeVirtualStart" xml:space="preserve"><value>Change start time</value></data>
   <data name="VirtualTimeZone" xml:space="preserve"><value>Site time zone: {0}</value></data>
   <data name="StandingAttemptSummary" xml:space="preserve"><value>Successful / total</value></data>
   <data name="HighlightSelf" xml:space="preserve"><value>Highlight me</value></data>
   <data name="HighlightSelfAndCoached" xml:space="preserve"><value>Highlight me and my trainees</value></data>
+  <data name="DownloadStatementsPdf" xml:space="preserve"><value>Download statements (PDF)</value></data>
+  <data name="ContestToday" xml:space="preserve"><value>Today's contests</value></data>
+  <data name="ContestUpcoming" xml:space="preserve"><value>Upcoming</value></data>
+  <data name="ContestRunning" xml:space="preserve"><value>Running</value></data>
+  <data name="Training" xml:space="preserve"><value>Practice</value></data>
+  <data name="TrainingRegistrationHelp" xml:space="preserve"><value>To submit solutions in training, register or sign in with your personal account.</value></data>
+  <data name="GoToTrainingProblems" xml:space="preserve"><value>Go to problems and submit solutions</value></data>
+  <data name="TrainingPersonalAccountRequired" xml:space="preserve"><value>Training submissions require a personal account. Sign in with your personal account instead of a contest participant account.</value></data>
 </root>

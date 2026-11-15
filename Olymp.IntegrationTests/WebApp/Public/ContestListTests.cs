@@ -93,9 +93,9 @@ public class ContestListTests(WebAppFactory factory) : IClassFixture<WebAppFacto
         string rules = culture == "ru" ? "Правила" : "Rules";
         Assert.Equal([participants, rules, registration], articles[0].QuerySelectorAll("li").Select(action => action.TextContent.Trim()));
         Assert.NotNull(articles[0].QuerySelector($"a[href='contests/{future.Id}/competitors']"));
-        var pastActions = articles[1].QuerySelectorAll("li");
+        var pastActions = articles[1].QuerySelectorAll("a");
         Assert.Single(pastActions, action => action.TextContent.StartsWith(standings, StringComparison.Ordinal));
-        Assert.Equal(7, pastActions.Length);
+        Assert.Equal(6, pastActions.Length);
         Assert.Contains(statements, pastActions.Select(action => action.TextContent));
         Assert.Contains(tests, pastActions.Select(action => action.TextContent));
         Assert.DoesNotContain(registration, pastActions.Select(action => action.TextContent));
@@ -104,7 +104,6 @@ public class ContestListTests(WebAppFactory factory) : IClassFixture<WebAppFacto
             $"contests/{future.Id}/rules",
             $"contests/{future.Id}/registration",
             $"contests/{past.Id}/standing",
-            $"contests/{past.Id}/problems",
             $"contests/{past.Id}/virtual",
             $"contests/{past.Id}/competitors",
             $"contests/{past.Id}/rules",

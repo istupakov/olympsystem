@@ -46,7 +46,7 @@ public class JuryAnnouncementsTests(WebAppFactory factory) : IClassFixture<WebAp
         }
         using var client = await factory.LoginAsync(participant.UserName!);
         client.DefaultRequestHeaders.AcceptLanguage.ParseAdd(culture);
-        var paths = new List<string> { $"/contests/{contest.Id}/rules", "/submissions" };
+        var paths = new List<string> { $"/contests/{contest.Id}/rules" };
         if (state != "upcoming")
             paths.AddRange([$"/contests/{contest.Id}/problems", $"/contests/{contest.Id}/standing"]);
         foreach (string path in paths)

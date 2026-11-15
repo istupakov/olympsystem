@@ -39,7 +39,7 @@ else
         </dd>
         <dt class="col-sm-4">@SiteResources.StaffRegistrationDate</dt><dd class="col-sm-8">@(_participant.RegistrationDate?.LocalDateTime.ToString("g") ?? "–")</dd>
         <dt class="col-sm-4">@SiteResources.StaffApproval</dt><dd class="col-sm-8"><span class="badge @(_participant.IsApproved ? "text-bg-success" : "text-bg-warning")">@(_participant.IsApproved ? SiteResources.StaffApproved : SiteResources.StaffUnapproved)</span></dd>
-        <dt class="col-sm-4">@SiteResources.StaffParticipation</dt><dd class="col-sm-8"><span class="badge @(_participant.IsOutOfCompetition ? "text-bg-info" : "text-bg-light")">@(_participant.IsOutOfCompetition ? SiteResources.StaffUnofficial : SiteResources.StaffOfficial)</span></dd>
+        <dt class="col-sm-4">@SiteResources.StaffParticipation</dt><dd class="col-sm-8"><span class="badge @(_participant.IsOutOfCompetition ? "text-bg-secondary" : "text-bg-light")">@(_participant.IsOutOfCompetition ? SiteResources.StaffUnofficial : SiteResources.StaffOfficial)</span></dd>
         <dt class="col-sm-4">@SiteResources.StaffDisqualified</dt><dd class="col-sm-8">@(_participant.IsDisqualified ? SiteResources.StaffYes : SiteResources.StaffNo)</dd>
         <dt class="col-sm-4">@SiteResources.StaffHiddenAccount</dt><dd class="col-sm-8">@(_participant.IsHidden ? SiteResources.StaffYes : SiteResources.StaffNo)</dd>
         <dt class="col-sm-4">@SiteResources.StaffAccountConfirmed</dt><dd class="col-sm-8">@(_confirmed ? SiteResources.StaffYes : SiteResources.StaffNo)</dd>

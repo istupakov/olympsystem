@@ -28,7 +28,7 @@ public class ParticipantNavigationTests(WebAppFactory factory) : IClassFixture<W
     [InlineData("en", "running")]
     [InlineData("ru", "ended")]
     [InlineData("en", "ended")]
-    public async Task TemporaryAccountHasContestHeaderAndOwnNavigationWithoutChangingPublicAccess(string culture, string state)
+    public async Task TemporaryAccountHasOwnHeaderAndCanReadOtherPublishedContests(string culture, string state)
     {
         var now = DateTimeOffset.UtcNow;
         var contest = TestEntities.CreateContest($"Own contest {Guid.NewGuid():N}",
@@ -63,23 +63,19 @@ public class ParticipantNavigationTests(WebAppFactory factory) : IClassFixture<W
             Assert.NotNull(navbar.QuerySelector("button[data-theme-toggle]"));
             string homeSection = state == "upcoming" ? "rules" : "problems";
             Assert.Equal($"contests/{contest.Id}/{homeSection}", navbar.QuerySelector(".navbar-brand")!.GetAttribute("href"));
-            Assert.Equal(contest.Name, navbar.QuerySelector($"h1 a[href='contests/{contest.Id}/{homeSection}']")!.TextContent);
-            Assert.Equal(contest.Name, navbar.QuerySelector("h1")!.TextContent.Trim());
-            string countdown = state switch
-            {
-                "upcoming" => culture == "ru" ? "До начала " : "Starts in ",
-                "running" => culture == "ru" ? "До конца " : "Ends in ",
-                _ => culture == "ru" ? "соревнование закончено" : "contest is over"
-            };
-            Assert.StartsWith(countdown, navbar.QuerySelector(".small.text-body-secondary")!.TextContent.Trim());
-            Assert.Null(document.QuerySelector(".contest-header h1"));
+            var banner = document.QuerySelector("header section")!;
+            var contestLink = Assert.Single(banner.QuerySelectorAll("a"));
+            Assert.Equal(contest.Name, contestLink.TextContent);
+            Assert.Equal($"contests/{contest.Id}/{(state == "upcoming" ? "rules" : "standing")}", contestLink.GetAttribute("href"));
+            Assert.DoesNotContain(other.Name, banner.TextContent);
+            Assert.Equal(contest.Name, document.QuerySelector(".contest-header h1")!.TextContent);
             var menu = document.QuerySelector(".contest-header nav")!;
-            Assert.Equal(culture == "ru" ? "Мои решения" : "My submissions", menu.QuerySelector("a[href='submissions']")!.TextContent);
+            Assert.Equal(state != "upcoming", menu.QuerySelector($"a[href='contests/{contest.Id}/submissions']") is not null);
             Assert.Equal(state != "upcoming", menu.QuerySelector($"a[href='contests/{contest.Id}/problems']") is not null);
             Assert.Equal(state != "upcoming", menu.QuerySelector($"a[href='contests/{contest.Id}/standing?highlight=true&official=true']") is not null);
             Assert.Equal($"contests/{contest.Id}/{section}" + (section == "standing" ? "?highlight=true&official=true" : ""), menu.QuerySelector("a[aria-current='page']")!.GetAttribute("href"));
             Assert.Equal(state == "running", menu.QuerySelector($"a[href='contests/{contest.Id}/questions']") is not null);
-            Assert.Equal(state == "upcoming" ? 2 : state == "running" ? 5 : 4, menu.QuerySelectorAll("a").Length);
+            Assert.Equal(state == "upcoming" ? 2 : state == "running" ? 6 : 5, menu.QuerySelectorAll("a").Length);
             if (section == "rules")
                 Assert.DoesNotContain(culture == "ru" ? "Вход для участия" : "Signing In to Participate", document.QuerySelector("main")!.TextContent);
         }
@@ -88,24 +84,15 @@ public class ParticipantNavigationTests(WebAppFactory factory) : IClassFixture<W
         Assert.Equal(HttpStatusCode.OK, history.StatusCode);
         using var historyDocument = await new HtmlParser().ParseDocumentAsync(
             await history.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
-        Assert.Equal($"{(culture == "ru" ? "Мои решения" : "My submissions")} – {contest.Name}", historyDocument.Title);
-        Assert.Equal("submissions", historyDocument.QuerySelector(".contest-header a[aria-current='page']")!.GetAttribute("href"));
-        Assert.Null(historyDocument.QuerySelector("main h1"));
+        Assert.Equal(culture == "ru" ? "Решения" : "Submissions", historyDocument.Title);
+        Assert.Null(historyDocument.QuerySelector("main .contest-header"));
+        Assert.Equal(historyDocument.Title, historyDocument.QuerySelector("main h1")!.TextContent);
         Assert.Null(historyDocument.QuerySelector("#submissions .nav"));
-
-        using var foreign = await client.GetAsync($"/contests/{other.Id}/problems", TestContext.Current.CancellationToken);
-        Assert.Equal(HttpStatusCode.OK, foreign.StatusCode);
-        using var foreignDocument = await new HtmlParser().ParseDocumentAsync(
-            await foreign.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
-        Assert.Equal(other.Name, foreignDocument.QuerySelector(".contest-header h1")!.TextContent);
-        Assert.NotNull(foreignDocument.QuerySelector($".contest-header a[href='contests/{other.Id}/competitors']"));
-        Assert.Null(foreignDocument.QuerySelector(".contest-header a[href='submissions']"));
-        Assert.Null(foreignDocument.QuerySelector("#submission-code"));
-
-        using var foreignRules = await client.GetAsync($"/contests/{other.Id}/rules", TestContext.Current.CancellationToken);
-        using var rulesDocument = await new HtmlParser().ParseDocumentAsync(
-            await foreignRules.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
-        Assert.DoesNotContain(culture == "ru" ? "Вход для участия" : "Signing In to Participate", rulesDocument.QuerySelector("main")!.TextContent);
+        foreach (string section in new[] { "problems", "rules", "standing", "competitors" })
+        {
+            using var foreign = await client.GetAsync($"/contests/{other.Id}/{section}", TestContext.Current.CancellationToken);
+            Assert.Equal(HttpStatusCode.OK, foreign.StatusCode);
+        }
     }
 
     [Theory]
