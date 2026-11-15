@@ -166,7 +166,7 @@ else
                     else if (_canRetest) { <a href="@GridState.DetailUrl(Navigation.Uri, $"admin/users/{item.AuthorId}/edit", item.Id)">@item.Author</a> }
                     else { @item.Author }
                 </QuickFilter>
-                @if (item.IsParticipant) { <span class="badge text-bg-secondary">@(item.IsTeam ? SiteResources.StaffTeam : SiteResources.Competitor)</span> }
+                @if (!item.IsParticipant) { <span class="badge bg-info-subtle text-info-emphasis ms-1">@SiteResources.Training</span> }
             </TemplateColumn>
             <TemplateColumn Title="@SiteResources.Problem" SortBy="_problemSort" Sortable="true" Context="item">
                 <QuickFilter Url="@StaffFilterUrl.Set(Navigation.Uri, nameof(Problem), item.ProblemId, nameof(ProblemSearch))" Label="@SiteResources.Problem" Value="@item.Problem"><a href="jury/contests/@item.ContestId/problems?problemId=@item.ProblemId">@item.Problem</a></QuickFilter>

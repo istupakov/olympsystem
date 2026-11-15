@@ -330,7 +330,8 @@ public partial class PracticeSubmissionTests(WebAppFactory factory) : IClassFixt
         Assert.Contains("Wrong answer on test 3", students.QuerySelector($"#submission-{coachedBefore.Id}")!.TextContent);
         using var personal = await GetAsync(client, path);
         Assert.Contains("Wrong answer on test 3", personal.QuerySelector($"#submission-{own.Id}")!.TextContent);
-        Assert.Single(personal.QuerySelectorAll("#submissions a[href$='/download']"));
+        Assert.Empty(personal.QuerySelectorAll("#submissions a[href$='/download']"));
+        Assert.NotNull(personal.QuerySelector($"#submissions a[href='submissions/{own.Id}']"));
     }
 
     [Theory]
@@ -412,9 +413,11 @@ public partial class PracticeSubmissionTests(WebAppFactory factory) : IClassFixt
         db.Submissions.Add(submission);
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
         using var client = await factory.LoginAsync(data.User.UserName!);
-        using var list = await GetAsync(client, $"/submissions?scope=coached&contestId={data.Contest.Id}");
-        Assert.NotNull(list.QuerySelector($"a[href='submissions/{submission.Id}/download']"));
+        using var list = await GetAsync(client, $"/contests/{data.Contest.Id}/submissions?scope=coached");
+        Assert.Null(list.QuerySelector($"a[href='submissions/{submission.Id}/download']"));
+        Assert.NotNull(list.QuerySelector($"a[href='submissions/{submission.Id}']"));
         using var details = await GetAsync(client, $"/submissions/{submission.Id}");
+        Assert.NotNull(details.QuerySelector($"a[href='submissions/{submission.Id}/download']"));
         Assert.Equal(Source, details.QuerySelector("pre code")!.TextContent);
         Assert.Contains("Compiler diagnostics", details.QuerySelector("#compilation-errors")!.TextContent);
         using var download = await client.GetAsync($"/submissions/{submission.Id}/download", TestContext.Current.CancellationToken);
@@ -442,21 +445,21 @@ public partial class PracticeSubmissionTests(WebAppFactory factory) : IClassFixt
         }
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
         using var client = await factory.LoginAsync(data.User.UserName!);
-        string path = $"/submissions?contestId={data.Contest.Id}";
-        using var first = await GetAsync(client, path + "&scope=all");
+        string path = $"/contests/{data.Contest.Id}/submissions";
+        using var first = await GetAsync(client, path + "?scope=all");
         Assert.EndsWith("#submissions", first.QuerySelector("#submissions > div > a")!.GetAttribute("href"));
         Assert.Equal(20, first.QuerySelectorAll("#submissions tbody tr").Length);
         var ids = first.QuerySelectorAll("#submissions tbody tr").Select(row => int.Parse(row.Id!["submission-".Length..])).ToArray();
         Assert.Equal(ids.OrderDescending(), ids);
-        using var tenth = await GetAsync(client, path + "&scope=all&page=10");
+        using var tenth = await GetAsync(client, path + "?scope=all&page=10");
         Assert.EndsWith("scope=all&page=10#submissions", tenth.QuerySelector("#submissions > div > a")!.GetAttribute("href"));
         Assert.Equal(20, tenth.QuerySelectorAll("#submissions tbody tr").Length);
         Assert.Null(tenth.QuerySelector("a[rel='next']"));
         Assert.Equal(["1", "7", "8", "9"], tenth.QuerySelectorAll(".pagination a").Select(link => link.TextContent));
         Assert.Equal("10", tenth.QuerySelector(".pagination [aria-current='page']")!.TextContent);
-        using var denied = await client.GetAsync(path + "&scope=all&page=11", TestContext.Current.CancellationToken);
+        using var denied = await client.GetAsync(path + "?scope=all&page=11", TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.NotFound, denied.StatusCode);
-        using var own = await GetAsync(client, path + "&page=11");
+        using var own = await GetAsync(client, path + "?page=11");
         Assert.Equal(5, own.QuerySelectorAll("#submissions tbody tr").Length);
     }
 

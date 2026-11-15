@@ -153,13 +153,12 @@
   <data name="RulesForContest" xml:space="preserve"><value>Правила – {0}</value></data>
   <data name="JumpToSubmission" xml:space="preserve"><value>К отправке решения ↓</value></data>
   <data name="Submissions" xml:space="preserve"><value>Решения</value></data>
-  <data name="MySubmissions" xml:space="preserve"><value>Мои решения</value></data>
   <data name="Problem" xml:space="preserve"><value>Задача</value></data>
   <data name="SubmissionScope" xml:space="preserve"><value>Какие решения показывать</value></data>
   <data name="OwnSubmissions" xml:space="preserve"><value>Мои решения</value></data>
   <data name="ParticipantSubmissions" xml:space="preserve"><value>Мои соревнования</value></data>
   <data name="CoachedSubmissions" xml:space="preserve"><value>Подопечные</value></data>
-  <data name="AllSubmissions" xml:space="preserve"><value>Публичные</value></data>
+  <data name="AllSubmissions" xml:space="preserve"><value>Все</value></data>
   <data name="SubmissionRecorded" xml:space="preserve"><value>Отправлено</value></data>
   <data name="SubmissionPages" xml:space="preserve"><value>Страницы решений</value></data>
   <data name="NextPage" xml:space="preserve"><value>Далее</value></data>
@@ -693,12 +692,19 @@
   <data name="StaffUnaddedConfigurations" xml:space="preserve"><value>Конфигурации, не добавленные на сайт</value></data>
   <data name="StaffNotAddedToSite" xml:space="preserve"><value>Не добавлен на сайт</value></data>
   <data name="VirtualContest" xml:space="preserve"><value>Тренировка</value></data>
-  <data name="VirtualParticipant" xml:space="preserve"><value>Виртуально</value></data>
-  <data name="VirtualContestHelp" xml:space="preserve"><value>Выберите начало и сохраните ссылку на таблицу. Длительность – как у исходного соревнования, заморозки нет. Отправляйте решения из личного аккаунта на обычной странице задач. Вы соревнуетесь с исходными участниками: их решения появляются с той же задержкой от старта, что и на соревновании.</value></data>
+  <data name="VirtualContestHelp" xml:space="preserve"><value>Выберите начало и сохраните ссылку на таблицу. Длительность – как у исходного соревнования, заморозки нет. Вы соревнуетесь с исходными участниками: их решения появляются с той же задержкой от старта, что и на соревновании.</value></data>
   <data name="ShowVirtualStanding" xml:space="preserve"><value>Показать таблицу</value></data>
   <data name="ChangeVirtualStart" xml:space="preserve"><value>Изменить начало</value></data>
   <data name="VirtualTimeZone" xml:space="preserve"><value>Часовой пояс сайта: {0}</value></data>
   <data name="StandingAttemptSummary" xml:space="preserve"><value>Успешно / всего</value></data>
   <data name="HighlightSelf" xml:space="preserve"><value>Выделить себя</value></data>
   <data name="HighlightSelfAndCoached" xml:space="preserve"><value>Выделить себя и подопечных</value></data>
+  <data name="DownloadStatementsPdf" xml:space="preserve"><value>Скачать условия (PDF)</value></data>
+  <data name="ContestToday" xml:space="preserve"><value>Соревнования сегодня</value></data>
+  <data name="ContestUpcoming" xml:space="preserve"><value>Скоро начнётся</value></data>
+  <data name="ContestRunning" xml:space="preserve"><value>Идёт</value></data>
+  <data name="Training" xml:space="preserve"><value>Тренировка</value></data>
+  <data name="TrainingRegistrationHelp" xml:space="preserve"><value>Чтобы отправлять решения на тренировке, зарегистрируйтесь или войдите в личный аккаунт.</value></data>
+  <data name="GoToTrainingProblems" xml:space="preserve"><value>Перейти к задачам и отправке решений</value></data>
+  <data name="TrainingPersonalAccountRequired" xml:space="preserve"><value>Для отправки решений на тренировке нужен личный аккаунт. Войдите в него вместо аккаунта участника соревнования.</value></data>
 </root>

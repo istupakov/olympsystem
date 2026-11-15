@@ -19,11 +19,11 @@
             }
             else if (remaining > TimeSpan.Zero)
             {
-                <span class="badge text-bg-primary ms-1">@string.Format(SiteResources.TimeLeft, $"{(int)remaining.TotalHours:D2}:{remaining.Minutes:D2}:{remaining.Seconds:D2}")</span>
+                <span class="badge text-bg-success ms-1">@string.Format(SiteResources.TimeLeft, $"{(int)remaining.TotalHours:D2}:{remaining.Minutes:D2}:{remaining.Seconds:D2}")</span>
             }
             else
             {
-                <span class="badge text-bg-primary ms-1">@SiteResources.ContestOver</span>
+                <span class="badge text-bg-secondary ms-1">@SiteResources.ContestOver</span>
             }
             @if (Standing.IsFrozen)
             {
@@ -65,7 +65,7 @@
                         <span class="fw-semibold @(HighlightedUserIds?.Contains(result.User.Id) == true ? "text-primary-emphasis" : null)">@nameParts[0]</span>
                         <span>
                             <CompetitorBadges User="result.User" />
-                            @if (result.IsVirtual) { <span class="badge text-bg-secondary ms-1">@SiteResources.VirtualParticipant</span> }
+                            @if (result.IsVirtual) { <span class="badge bg-info-subtle text-info-emphasis ms-1">@SiteResources.Training</span> }
                         </span>
                         @if (Standing.Contest.IsAcm && result.User is Competitor team)
                         {

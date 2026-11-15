@@ -14,12 +14,12 @@ agreement.
 | Jury member | An account with the `Jury` role; `contest-manage` grants management access to a particular contest. |
 | Administrator | An account with the `Admin` role. |
 
-Roles can overlap. Coaches and permanent users share the general
-interface. Temporary participant accounts may browse other visible contests and
-published statements under the same publication rules as other viewers. Their
+Roles can overlap. Temporary participant accounts may browse other visible contests
+and published materials under the same publication rules as other viewers. Their
 contest binding restricts participation and submission attribution, not public
-read access. They cannot register as permanent users or read other participants'
-private submissions.
+read access. In another contest, submission lists expose only public information.
+Temporary accounts cannot register as permanent users
+or read other participants' private submissions.
 
 Shared user-facing pages and their endpoints have no jury or
 administrator overrides. Staff accounts follow the same publication, ownership,
@@ -84,7 +84,7 @@ starts. It does not publish HTML statements early.
 
 The problem workspace requires sign-in and shows only active problems in visible,
 started contests (`AllowShowProblems`). Closing submissions does not remove read
-access. Temporary accounts can also read other contests' published materials.
+access. Temporary accounts may read other contests' published materials.
 Submission ownership and permission to submit are separate decisions.
 
 Source: [Domain availability properties](../Olymp.Domain/DomainObjects.cs),
@@ -217,26 +217,27 @@ Sources: [WebApp submission authorization](../Olymp.WebApp/Components/Submission
 
 ## 6. Submission history, source, and diagnostics
 
+Submission history requires a signed-in account. Contest-specific lists are
+unavailable before the contest starts, including to its participant accounts.
+The general list remains available, but exposes only submissions to active
+problems in visible, started contests.
+
 Submission history includes submissions made during the original
 contest, including submissions of teams to which the user is linked. New practice
 submissions must not replace or hide that history.
 
-Use the same scopes in the problem workspace and the
+The same submission visibility rules apply in the problem workspace and the
 general submissions list. A problem or contest filter narrows the selected scope.
-Show the linked-participant and coached-author scope switches only when those
-scopes contain visible submissions after applying the current problem/contest
-filters. An empty scope can still be requested directly and displays an empty
-first page; temporary accounts remain restricted to their own submissions.
-The "Public" scope (`scope=all`) excludes hidden submissions and submissions
+The "All" scope (`scope=all`) excludes hidden submissions and submissions
 whose author has `User.IsHidden` set, including the signed-in author's submissions.
 It also excludes compilation errors unless the result is hidden by freeze; frozen
-submissions retain their submission fact regardless of verdict. Apply these filters
-before pagination. Public rows and result visibility are identical for all viewers
+submissions retain their submission fact regardless of verdict.
+Public rows and result visibility are identical for all viewers
 who can select this scope.
 
 | Account | Available scopes |
 | --- | --- |
-| Temporary `Competitor` | My submissions only, without scope switches. |
+| Temporary `Competitor` | Own submissions in the general list and their bound contest; public submission information in other contests. |
 | Permanent `OlympUser` | My submissions; My contests (linked `Competitor` submissions); Public submissions with uniformly restricted information. |
 | Permanent user with coached authors | The permanent-user scopes plus submissions of authors whose `User.CoachId` equals the viewer's ID. Coached authors may be `Competitor` or `OlympUser`; no coach claim is required for this scope. |
 
@@ -244,15 +245,10 @@ who can select this scope.
 participants are identified by `Competitor.Members`. The coached-author scope
 uses the submission author's own `User.CoachId`; organization membership or a
 relationship inferred through another account is insufficient. Scopes may
-overlap. Choosing "Public" restricts the list to accepted/not accepted results,
+overlap. Choosing "All" restricts the list to accepted/not accepted results,
 without detailed verdicts, scores, or source links, even for owners, members, and
-coaches. Independent details/download permissions remain unchanged. Temporary accounts cannot
-select broader scopes through a direct URL or request parameter.
-
-Submission scopes and pagination are preserved in the URL. Lists use 20 rows per
-page, newest first, with ID descending as the tie-breaker. The default scope is
-"My submissions"; "Public" is limited to the latest 200 matching submissions, including direct
-URL requests.
+coaches. Independent details/download permissions remain unchanged. Request
+parameters do not broaden temporary accounts' access beyond the rules above.
 
 Submission details and source require an active problem in a visible, started
 contest (`AllowShowProblems`) and the following relationship. The details page
@@ -269,8 +265,6 @@ The linked-participant and coached-author lists remain available in closed
 contests. Listing a submission does not grant access to its source or compilation
 errors through the submission page and download endpoint. List result visibility
 is specified separately in section 7.
-
-After a successful submission, the workspace opens page 1 of "My submissions".
 
 Hidden contests and inactive problems expose no shared submission lists, details,
 or downloads, including to staff accounts. Expanded staff access belongs only to

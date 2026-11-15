@@ -10,7 +10,6 @@
 @using Olymp.WebApp.Components.Contests
 
 @attribute [Authorize(Policy = PolicyNames.Coach)]
-@attribute [ExcludeFromInteractiveRouting]
 
 @inject OlympContext Context
 @inject CompetitorManagementService Competitors
@@ -175,7 +174,7 @@
                         <span>@teamName</span>
                         @if (Input.OutOfCompetition)
                         {
-                            <span class="badge text-bg-warning ms-2">@SiteResources.OutOfCompetition</span>
+                            <span class="badge text-bg-secondary ms-2">@SiteResources.OutOfCompetition</span>
                         }
                     </p>
                     <ul>

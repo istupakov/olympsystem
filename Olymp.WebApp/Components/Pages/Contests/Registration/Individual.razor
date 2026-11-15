@@ -10,7 +10,6 @@
 @using Olymp.WebApp.Components.Contests
 
 @attribute [Authorize(Policy = PolicyNames.OlympUser)]
-@attribute [ExcludeFromInteractiveRouting]
 
 @inject OlympContext Context
 @inject CompetitorManagementService Competitors

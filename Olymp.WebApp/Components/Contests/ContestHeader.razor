@@ -1,30 +1,31 @@
+@using System.Security.Claims
+@using Microsoft.EntityFrameworkCore
+@using Olymp.Domain
+@inject IDbContextFactory<OlympContext> ContextFactory
 
-@if (isParticipant)
-{
-    <ParticipantContestHeader Contest="Contest" ActiveSection="@ActiveSection" />
-}
-else
-{
-    <header class="contest-header mb-4">
-        <h1 class="mb-2 text-break">@Contest.Name</h1>
-        <p class="text-body-secondary mb-2">
-            <time datetime="@Contest.StartTime.ToString("O", CultureInfo.InvariantCulture)">@Contest.StartTime.ToString(IsFinished ? "d" : "g", CultureInfo.CurrentCulture)</time>
-            @if (!IsFinished || Contest.StartTime.Date != Contest.EndTime.Date)
-            {
-                <text> – </text><time datetime="@Contest.EndTime.ToString("O", CultureInfo.InvariantCulture)">@Contest.EndTime.ToString(IsFinished ? "d" : Contest.StartTime.Date == Contest.EndTime.Date ? "t" : "g", CultureInfo.CurrentCulture)</time>
-            }
-            · @if (IsFinished)
-            {
-                @SiteResources.ContestOver
-            }
-            else
-            {
-                <span class="fw-semibold text-body text-nowrap"><ContestTimeRemaining Contest="Contest" Now="now" /></span>
-            }
-        </p>
-        <ContestNavigation Contest="Contest" Now="now" ActiveSection="@ActiveSection" />
-    </header>
-}
+<header class="contest-header mb-4">
+    <h1 class="mb-2 text-break">@Contest.Name</h1>
+    <p class="text-body-secondary mb-2">
+        <time datetime="@Contest.StartTime.ToString("O", CultureInfo.InvariantCulture)">@Contest.StartTime.ToString(IsFinished ? "d" : "g", CultureInfo.CurrentCulture)</time>
+        @if (!IsFinished || Contest.StartTime.Date != Contest.EndTime.Date)
+        {
+            <text> – </text><time datetime="@Contest.EndTime.ToString("O", CultureInfo.InvariantCulture)">@Contest.EndTime.ToString(IsFinished ? "d" : Contest.StartTime.Date == Contest.EndTime.Date ? "t" : "g", CultureInfo.CurrentCulture)</time>
+        }
+        · @if (IsFinished)
+        {
+            @SiteResources.ContestOver
+        }
+        else
+        {
+            <span class="fw-semibold text-body text-nowrap"><ContestTimeRemaining Contest="Contest" Now="now" /></span>
+        }
+    </p>
+    <ContestNavigation Contest="Contest" Now="now" ActiveSection="@ActiveSection" Participant="isParticipant" StandingUrl="@standingUrl" />
+    @if (isParticipant)
+    {
+        <JuryAnnouncements Contest="Contest" />
+    }
+</header>
 
 @code {
     [Parameter, EditorRequired]
@@ -37,9 +38,10 @@ else
     private Task<AuthenticationState> AuthenticationState { get; set; } = default!;
 
     private bool isParticipant;
+    private string? standingUrl;
     private readonly DateTimeOffset now = DateTimeOffset.Now;
 
-    private bool IsFinished => now > Contest.EndTime;
+    private bool IsFinished => now >= Contest.EndTime;
 
     protected override async Task OnParametersSetAsync()
     {
@@ -47,5 +49,19 @@ else
         isParticipant = state.User.Identity?.IsAuthenticated == true
             && int.TryParse(state.User.FindFirst(ClaimNames.CompetitorContest)?.Value, out int contestId)
             && contestId == Contest.Id;
+        standingUrl = null;
+        if (!isParticipant)
+            return;
+
+        standingUrl = $"contests/{Contest.Id}/standing?highlight=true";
+        if (!Contest.AllowShowStanding || (Contest.FinalTableId is not null && Contest.OfficialTableId is null))
+            return;
+        if (!int.TryParse(state.User.FindFirstValue(ClaimTypes.NameIdentifier), out int userId))
+            return;
+
+        await using var db = await ContextFactory.CreateDbContextAsync();
+        if (await db.Competitors.AnyAsync(item => item.Id == userId && item.ContestId == Contest.Id
+            && item.IsApproved && !item.IsHidden && !item.IsOutOfCompetition && !item.IsDisqualified))
+            standingUrl += "&official=true";
     }
 }
