@@ -26,7 +26,7 @@ public class VirtualStandingTests(WebAppFactory factory) : StaffComponentTests(f
     [InlineData(false, "en")]
     [InlineData(true, "ru")]
     [InlineData(true, "en")]
-    public async Task TrainingOffersRegistrationTextOrProblemsInNewTab(bool signedIn, string culture)
+    public async Task TrainingOffersRegistrationTextOrProblemsWithTableInNewTab(bool signedIn, string culture)
     {
         var contest = Contest();
         await SaveAsync(contest);
@@ -48,19 +48,52 @@ public class VirtualStandingTests(WebAppFactory factory) : StaffComponentTests(f
         Assert.Null(page.QuerySelector("main a[href^='account/register']"));
         Assert.Null(page.QuerySelector("main a[href^='account/login']"));
     }
+
     [Theory]
-    [InlineData(false, "ru", true)]
-    [InlineData(false, "en", true)]
-    [InlineData(true, "ru", true)]
-    [InlineData(true, "en", true)]
-    [InlineData(false, "ru", false)]
-    [InlineData(false, "en", false)]
-    [InlineData(true, "ru", false)]
-    [InlineData(true, "en", false)]
-    public async Task HighlightUsesCurrentAccountMembershipAndCoachingAndPreservesNavigation(bool virtualContest, string culture, bool coaching)
+    [InlineData("form", false)]
+    [InlineData("table", true)]
+    [InlineData("edit", false)]
+    [InlineData("invalid", false)]
+    public async Task TrainingProblemsOpenInNewTabOnlyWhenTableIsShown(string state, bool tableShown)
     {
+        var contest = Contest();
+        await SaveAsync(contest);
+        using var client = await _factory.LoginAsync((await _factory.AddUserAsync()).UserName!);
+        string path = state switch
+        {
+            "form" => $"/contests/{contest.Id}/virtual",
+            "edit" => QueryHelpers.AddQueryString(Url(contest.Id, DateTimeOffset.UtcNow), "edit", "true"),
+            "invalid" => QueryHelpers.AddQueryString($"/contests/{contest.Id}/virtual", "start", "invalid"),
+            _ => Url(contest.Id, DateTimeOffset.UtcNow)
+        };
+
+        using var page = await GetAsync(client, path);
+
+        Assert.Equal(tableShown, page.QuerySelector("main table") is not null);
+        var button = Assert.Single(page.QuerySelectorAll($"main a[href='contests/{contest.Id}/problems']"),
+            link => link.TextContent.Contains("submit solutions", StringComparison.Ordinal));
+        Assert.Equal(tableShown ? "_blank" : null, button.GetAttribute("target"));
+    }
+
+    [Theory]
+    [InlineData("open", "ru", true)]
+    [InlineData("open", "en", true)]
+    [InlineData("closed", "ru", true)]
+    [InlineData("closed", "en", true)]
+    [InlineData("virtual", "ru", true)]
+    [InlineData("virtual", "en", true)]
+    [InlineData("open", "ru", false)]
+    [InlineData("open", "en", false)]
+    [InlineData("closed", "ru", false)]
+    [InlineData("closed", "en", false)]
+    [InlineData("virtual", "ru", false)]
+    [InlineData("virtual", "en", false)]
+    public async Task HighlightUsesCurrentAccountMembershipAndCoachingAndPreservesNavigation(string mode, string culture, bool coaching)
+    {
+        bool virtualContest = mode == "virtual";
         var viewer = await _factory.AddUserAsync();
         var contest = Contest();
+        contest.IsOpen = mode != "closed";
         var memberTeam = TestEntities.CreateCompetitor(contest, "Member team");
         memberTeam.Members.Add(viewer);
         var coached = TestEntities.CreateCompetitor(contest, "Coached participant");
@@ -92,6 +125,11 @@ public class VirtualStandingTests(WebAppFactory factory) : StaffComponentTests(f
         Assert.Equal(label, initial.QuerySelector($"label[for='{checkbox.Id}']")!.TextContent);
         Assert.False(checkbox.HasAttribute("checked"));
         Assert.Empty(initial.QuerySelectorAll("tbody .text-primary-emphasis"));
+        bool canRefresh = virtualContest || !contest.IsOpen;
+        if (canRefresh)
+            Assert.False(QueryHelpers.ParseQuery(new Uri(client.BaseAddress!, RefreshUrl(initial, culture)).Query).ContainsKey("highlight"));
+        else
+            Assert.DoesNotContain(initial.QuerySelectorAll("main a"), link => link.TextContent.Trim() == (culture == "ru" ? "Обновить" : "Refresh"));
 
         string highlightedUrl = HighlightFormUrl(initial, true);
         using var highlighted = await GetAsync(client, highlightedUrl);
@@ -100,11 +138,18 @@ public class VirtualStandingTests(WebAppFactory factory) : StaffComponentTests(f
         Assert.All(highlighted.QuerySelectorAll("tbody span.text-primary-emphasis"), name => Assert.Same(name.ParentElement!.ParentElement!.Children[1], name.ParentElement));
         Assert.DoesNotContain(highlighted.QuerySelectorAll("tbody span.text-primary-emphasis"), name => name.TextContent.Contains(other.Name));
         Assert.Empty(highlighted.QuerySelectorAll("tbody .table-primary, tbody tr.text-primary-emphasis, tbody td.text-primary-emphasis"));
-        string refresh = HighlightFormUrl(highlighted, true);
-        Assert.Equal("true", QueryHelpers.ParseQuery(new Uri(client.BaseAddress!, refresh).Query)["highlight"]);
+        if (canRefresh)
+        {
+            string refresh = RefreshUrl(highlighted, culture);
+            Assert.Equal("true", QueryHelpers.ParseQuery(new Uri(client.BaseAddress!, refresh).Query)["highlight"]);
+            using var refreshed = await GetAsync(client, refresh);
+            Assert.True(refreshed.QuerySelector("input[name='highlight']")!.HasAttribute("checked"));
+            Assert.Equal(coaching ? 3 : 2, refreshed.QuerySelectorAll("tbody td span.text-primary-emphasis").Length);
+        }
         if (virtualContest)
         {
-            Assert.Equal(start.ToString("O", CultureInfo.InvariantCulture), QueryHelpers.ParseQuery(new Uri(client.BaseAddress!, refresh).Query)["start"]);
+            Assert.Equal(start.ToString("O", CultureInfo.InvariantCulture),
+                QueryHelpers.ParseQuery(new Uri(client.BaseAddress!, RefreshUrl(highlighted, culture)).Query)["start"]);
             string edit = highlighted.QuerySelector("a[href*='edit=true']")!.GetAttribute("href")!;
             Assert.Contains("highlight=true", edit);
             using var edited = await WebAppFactory.PostFormAsync(client, edit, "virtual-contest", new()
@@ -120,6 +165,12 @@ public class VirtualStandingTests(WebAppFactory factory) : StaffComponentTests(f
             using var officialPage = await GetAsync(client, official);
             Assert.Equal(coaching ? 2 : 1, officialPage.QuerySelectorAll("tbody span.text-primary-emphasis").Length);
             Assert.Contains("highlight=true", officialPage.QuerySelector(".standing-view a:first-child")!.GetAttribute("href"));
+            if (canRefresh)
+            {
+                var refreshQuery = QueryHelpers.ParseQuery(new Uri(client.BaseAddress!, RefreshUrl(officialPage, culture)).Query);
+                Assert.Equal("true", refreshQuery["official"]);
+                Assert.Equal("true", refreshQuery["highlight"]);
+            }
             string unhighlightedOfficial = HighlightFormUrl(officialPage, false);
             Assert.Equal("true", QueryHelpers.ParseQuery(new Uri(client.BaseAddress!, unhighlightedOfficial).Query)["official"]);
             using var officialWithoutHighlight = await GetAsync(client, unhighlightedOfficial);
@@ -127,6 +178,8 @@ public class VirtualStandingTests(WebAppFactory factory) : StaffComponentTests(f
         }
         using var disabled = await GetAsync(client, HighlightFormUrl(highlighted, false));
         Assert.Empty(disabled.QuerySelectorAll("tbody .text-primary-emphasis"));
+        if (canRefresh)
+            Assert.False(QueryHelpers.ParseQuery(new Uri(client.BaseAddress!, RefreshUrl(disabled, culture)).Query).ContainsKey("highlight"));
 
         using var anonymous = _factory.CreateSiteClient();
         using var anonymousPage = await GetAsync(anonymous, highlightedUrl);
@@ -136,6 +189,15 @@ public class VirtualStandingTests(WebAppFactory factory) : StaffComponentTests(f
         using var strangerPage = await GetAsync(stranger, highlightedUrl);
         Assert.Null(strangerPage.QuerySelector("input[name='highlight']"));
         Assert.Empty(strangerPage.QuerySelectorAll("tbody .text-primary-emphasis"));
+    }
+
+    private static string RefreshUrl(AngleSharp.Dom.IDocument page, string culture)
+    {
+        var link = Assert.Single(page.QuerySelectorAll("main a"),
+            item => item.TextContent.Trim() == (culture == "ru" ? "Обновить" : "Refresh"));
+        Assert.Null(link.Closest("form"));
+        Assert.Null(link.GetAttribute("data-enhance-nav"));
+        return link.GetAttribute("href")!;
     }
 
     private static string HighlightFormUrl(AngleSharp.Dom.IDocument page, bool highlight)
