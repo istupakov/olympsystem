@@ -12,13 +12,12 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Extensions.Logging;
 
 using Olymp.Domain;
 using Olymp.Domain.Models;
+using Olymp.IntegrationTests.Shared;
 using Olymp.WebApp.Components;
 using Olymp.WebApp.Services.Mail;
 
@@ -47,19 +46,7 @@ public sealed class WebAppFactory : WebApplicationFactory<App>, IAsyncLifetime
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
-        builder.UseEnvironment("Development");
-        builder.ConfigureLogging(logging => logging.ClearProviders());
-        builder.ConfigureAppConfiguration((_, configuration) => configuration.AddInMemoryCollection(
-            new Dictionary<string, string?>
-            {
-                ["ConnectionStrings:DefaultConnection"] = _connectionString,
-                ["Checker:FakeRunners"] = "false",
-                ["MailService:From"] = "tests@example.test",
-                ["MailService:SmtpServer"] = "localhost",
-                ["MailService:Port"] = "587",
-                ["MailService:UserName"] = "unused",
-                ["MailService:Password"] = "unused"
-            }));
+        TestHostConfiguration.Configure(builder, _connectionString);
         builder.ConfigureTestServices(services =>
         {
             services.RemoveAll<IDbContextOptionsConfiguration<OlympContext>>();

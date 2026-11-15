@@ -2,11 +2,14 @@ using System.Net;
 
 using AngleSharp.Html.Parser;
 
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 using Olymp.Domain.Models;
+using Olymp.IntegrationTests.Shared;
 using Olymp.IntegrationTests.WebApp.Shared;
 
 using Xunit;
@@ -151,8 +154,12 @@ public class PasswordTests(WebAppFactory factory) : IClassFixture<WebAppFactory>
     public async Task PasswordChangeRefreshesCurrentSessionAndRevokesOtherSession()
     {
         var user = await factory.AddUserAsync();
+        var clock = new ManualTimeProvider(new DateTimeOffset(2030, 1, 1, 0, 0, 0, TimeSpan.Zero));
         await using var site = factory.WithWebHostBuilder(builder => builder.ConfigureTestServices(services =>
-            services.Configure<SecurityStampValidatorOptions>(options => options.ValidationInterval = TimeSpan.Zero)));
+        {
+            services.Configure<SecurityStampValidatorOptions>(options => options.TimeProvider = clock);
+            services.Configure<CookieAuthenticationOptions>(IdentityConstants.ApplicationScheme, options => options.TimeProvider = clock);
+        }));
         using var current = site.CreateClient(new() { BaseAddress = new Uri("https://localhost"), AllowAutoRedirect = false });
         using var other = site.CreateClient(new() { BaseAddress = new Uri("https://localhost"), AllowAutoRedirect = false });
         foreach (var client in new[] { current, other })
@@ -172,6 +179,8 @@ public class PasswordTests(WebAppFactory factory) : IClassFixture<WebAppFactory>
         });
 
         Assert.Equal("/Account/Manage/ChangePassword", RedirectTarget(response).AbsolutePath);
+        clock.UtcNow += site.Services.GetRequiredService<IOptions<SecurityStampValidatorOptions>>().Value.ValidationInterval
+            + TimeSpan.FromSeconds(1);
         using var authorized = await current.GetAsync("/test/auth", TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.OK, authorized.StatusCode);
         using var revoked = await other.GetAsync("/test/auth", TestContext.Current.CancellationToken);
