@@ -3,13 +3,18 @@
 @using Olymp.Domain
 @inject IDbContextFactory<OlympContext> ContextFactory
 
+@{
+    var start = Contest.StartTime.ToLocalTime();
+    var end = Contest.EndTime.ToLocalTime();
+}
+
 <header class="contest-header mb-4">
     <h1 class="mb-2 text-break">@Contest.Name</h1>
     <p class="text-body-secondary mb-2">
-        <time datetime="@Contest.StartTime.ToString("O", CultureInfo.InvariantCulture)">@Contest.StartTime.ToString(IsFinished ? "d" : "g", CultureInfo.CurrentCulture)</time>
-        @if (!IsFinished || Contest.StartTime.Date != Contest.EndTime.Date)
+        <time datetime="@Contest.StartTime.ToString("O", CultureInfo.InvariantCulture)">@start.ToString(IsFinished ? "d" : "g", CultureInfo.CurrentCulture)</time>
+        @if (!IsFinished || start.Date != end.Date)
         {
-            <text> – </text><time datetime="@Contest.EndTime.ToString("O", CultureInfo.InvariantCulture)">@Contest.EndTime.ToString(IsFinished ? "d" : Contest.StartTime.Date == Contest.EndTime.Date ? "t" : "g", CultureInfo.CurrentCulture)</time>
+            <text> – </text><time datetime="@Contest.EndTime.ToString("O", CultureInfo.InvariantCulture)">@end.ToString(IsFinished ? "d" : start.Date == end.Date ? "t" : "g", CultureInfo.CurrentCulture)</time>
         }
         · @if (IsFinished)
         {
@@ -20,6 +25,10 @@
             <span class="fw-semibold text-body text-nowrap"><ContestTimeRemaining Contest="Contest" Now="now" /></span>
         }
     </p>
+    @if (!Contest.IsOpen && !string.IsNullOrWhiteSpace(Contest.Description))
+    {
+        <div class="mb-3 text-break overflow-auto">@((MarkupString)Contest.Description)</div>
+    }
     <ContestNavigation Contest="Contest" Now="now" ActiveSection="@ActiveSection" Participant="isParticipant" StandingUrl="@standingUrl" />
     @if (isParticipant)
     {

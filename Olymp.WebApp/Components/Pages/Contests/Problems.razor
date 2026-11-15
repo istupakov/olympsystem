@@ -13,6 +13,7 @@
 @inject NavigationManager Navigation
 @inject IDbContextFactory<OlympContext> ContextFactory
 @inject IAuthorizationService Authorization
+@inject ClosedContestRestriction Restriction
 @inject UserManager<User> Users
 
 @if (contest is not null)
@@ -29,14 +30,17 @@
                 <p><a href="@ProblemUrl(selected.Id)#submit-heading">@SiteResources.JumpToSubmission</a></p>
             }
             <ProblemStatementView Problem="selected" Examples="examples" Clarifications="clarifications" />
-            @if (canSubmit)
-            {
-                <SubmitSolutionForm Problem="selected" Action="@FormUrl" />
-            }
-            else
-            {
-                <p class="text-body-secondary">@SiteResources.SubmissionNotAllowed</p>
-            }
+            <section class="mt-4" aria-labelledby="submit-heading">
+                <h2 id="submit-heading" class="h4">@SiteResources.SubmitSolution</h2>
+                @if (canSubmit)
+                {
+                    <SubmitSolutionForm Problem="selected" Action="@FormUrl" />
+                }
+                else
+                {
+                    <p class="text-body-secondary">@submissionUnavailable</p>
+                }
+            </section>
             <SubmissionList ContestId="ContestId" ProblemId="selected.Id" Scope="@EffectiveScope" Page="@(SubmissionPage ?? 1)" />
         </ProblemWorkspace>
     }
@@ -69,6 +73,7 @@
     private List<Message> clarifications = [];
     private IReadOnlyList<Olymp.Domain.Standing.UserProblemResult> progress = [];
     private bool canSubmit;
+    private string? submissionUnavailable;
     private string? EffectiveScope => HttpContext.User.HasClaim(claim => claim.Type == ClaimNames.CompetitorContest) ? null : Scope;
 
     private string ProblemUrl(int problemId)
@@ -136,5 +141,7 @@
 
         canSubmit = (await Authorization.AuthorizeAsync(HttpContext.User, selected,
             new SubmitSolutionRequirement())).Succeeded;
+        submissionUnavailable = !canSubmit && await Restriction.IsActiveAsync(HttpContext.User, token)
+            ? SiteResources.ClosedContestRestriction : SiteResources.SubmissionNotAllowed;
     }
 }

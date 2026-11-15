@@ -7,19 +7,16 @@
 @inject UserManager<User> Users
 @inject NavigationManager Navigation
 
-<section class="mt-4" aria-labelledby="submit-heading">
-    <h2 id="submit-heading" class="h4">@SiteResources.SubmitSolution</h2>
-    <p class="small"><a href="rules" target="_blank" rel="noopener">@SiteResources.SubmissionRulesLink</a></p>
-    @if (error is not null)
-    {
-        <p class="text-danger" role="alert">@error</p>
-    }
-    <EditForm Model="Input" method="post" action="@Action" FormName="submit-solution" OnValidSubmit="SubmitAsync">
-        <DataAnnotationsValidator />
-        <ValidationSummary class="text-danger" role="alert" />
-        <SubmissionFields Input="Input!" Compilers="compilers" />
-    </EditForm>
-</section>
+<p class="small"><a href="rules" target="_blank" rel="noopener">@SiteResources.SubmissionRulesLink</a></p>
+@if (error is not null)
+{
+    <p class="text-danger" role="alert">@error</p>
+}
+<EditForm Model="Input" method="post" action="@(Action + "#submit-heading")" FormName="submit-solution" OnValidSubmit="SubmitAsync">
+    <DataAnnotationsValidator />
+    <ValidationSummary class="text-danger" role="alert" />
+    <SubmissionFields Input="Input!" Compilers="compilers" />
+</EditForm>
 
 @code {
     [Parameter, EditorRequired]

@@ -63,7 +63,7 @@
             .ThenByDescending(contest => contest.Id)
             .ToListAsync();
 
-        active = contests.Where(contest => contest.EndTime >= now).OrderBy(contest => contest.StartTime).ToList();
-        archive = contests.Where(contest => contest.EndTime < now).GroupBy(contest => contest.StartTime.Year).ToList();
+        active = contests.Where(contest => !contest.IsOpen || contest.EndTime >= now).OrderBy(contest => contest.StartTime).ToList();
+        archive = contests.Where(contest => contest.IsOpen && contest.EndTime < now).GroupBy(contest => contest.StartTime.Year).ToList();
     }
 }

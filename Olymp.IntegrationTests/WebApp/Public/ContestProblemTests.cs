@@ -154,7 +154,7 @@ public class ContestProblemTests(WebAppFactory factory) : IClassFixture<WebAppFa
         Assert.Equal("get", mobile.GetAttribute("method"));
         Assert.Equal(Path(contest, second).TrimStart('/') + "#problem-detail", mobile.GetAttribute("action"));
         Assert.Equal("problemId", mobile.QuerySelector("select")!.GetAttribute("name"));
-        Assert.Equal(Path(contest, second).TrimStart('/'), selected.QuerySelector("#submission-code")!.Closest("form")!.GetAttribute("action"));
+        Assert.Equal(Path(contest, second).TrimStart('/') + "#submit-heading", selected.QuerySelector("#submission-code")!.Closest("form")!.GetAttribute("action"));
         foreach (var (page, problem) in new[] { (document, first), (selected, second) })
         {
             var baseUri = new Uri(client.BaseAddress!, page.QuerySelector("base")!.GetAttribute("href")!);

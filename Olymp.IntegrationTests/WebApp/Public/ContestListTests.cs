@@ -23,16 +23,19 @@ public class ContestListTests(WebAppFactory factory) : IClassFixture<WebAppFacto
     {
         var now = DateTimeOffset.UtcNow;
         var current = CreateContest("Current", now.AddHours(-1), now.AddHours(1));
+        var endedClosed = CreateContest("Ended closed", now.AddHours(-4), now.AddHours(-2));
         var future = CreateContest("Future", now.AddDays(10), now.AddDays(11));
         future.Description = "<p>Registration announcement</p>";
         var recent = CreateContest("Recent <em>contest</em>", new(2025, 6, 1, 10, 0, 0, TimeSpan.FromHours(7)));
         recent.Description = "<p><strong>Results</strong> <a href='../legacy/results?official=true'>Original link</a></p>";
         recent.IsOpen = true;
         var earlier = CreateContest("Earlier", new(2025, 1, 1, 10, 0, 0, TimeSpan.FromHours(7)));
+        earlier.IsOpen = true;
         var oldest = CreateContest("Oldest", new(2024, 6, 1, 10, 0, 0, TimeSpan.FromHours(7)));
+        oldest.IsOpen = true;
         var hidden = CreateContest("Hidden", now.AddDays(1));
         hidden.IsHidden = true;
-        await SeedAsync(oldest, earlier, recent, future, current, hidden);
+        await SeedAsync(oldest, earlier, recent, future, current, endedClosed, hidden);
 
         using var client = factory.CreateSiteClient();
         client.DefaultRequestHeaders.AcceptLanguage.ParseAdd(culture);
@@ -44,19 +47,27 @@ public class ContestListTests(WebAppFactory factory) : IClassFixture<WebAppFacto
         Assert.Equal(title, document.QuerySelector("main h1")!.TextContent);
         Assert.Equal(title, document.QuerySelector("header ul.nav a.active")!.TextContent);
         Assert.Equal([upcoming, archive], document.QuerySelectorAll("main section > h2").Select(heading => heading.TextContent));
-        Assert.Equal([current.Name, future.Name, recent.Name, earlier.Name, oldest.Name],
+        Assert.Equal([endedClosed.Name, current.Name, future.Name, recent.Name, earlier.Name, oldest.Name],
             document.QuerySelectorAll("main article h3").Select(heading => heading.TextContent));
         var items = document.QuerySelectorAll("main article");
-        Assert.StartsWith(culture == "ru" ? "До конца " : "Ends in ", items[0].QuerySelector("p.small")!.TextContent);
-        Assert.StartsWith(culture == "ru" ? "До начала " : "Starts in ", items[1].QuerySelector("p.small")!.TextContent);
-        Assert.All(items.Skip(2), item => Assert.Null(item.QuerySelector("p.small")));
+        Assert.Equal([endedClosed.Name, current.Name, future.Name],
+            document.QuerySelectorAll("section[aria-labelledby='active-contests'] article h3").Select(heading => heading.TextContent));
+        Assert.Null(items[0].QuerySelector("p.small"));
+        Assert.StartsWith(culture == "ru" ? "До конца " : "Ends in ", items[1].QuerySelector("p.small")!.TextContent);
+        Assert.StartsWith(culture == "ru" ? "До начала " : "Starts in ", items[2].QuerySelector("p.small")!.TextContent);
+        Assert.All(items.Skip(3), item => Assert.Null(item.QuerySelector("p.small")));
         Assert.Null(document.QuerySelector("main article h3 em"));
         Assert.Equal(["contests-2025", "contests-2024"], document.QuerySelectorAll("main details[name='contest-years']").Select(group => group.Id));
         Assert.True(document.QuerySelector("#contests-2025")!.HasAttribute("open"));
         Assert.False(document.QuerySelector("#contests-2024")!.HasAttribute("open"));
         Assert.Null(document.QuerySelector("main article strong"));
-        Assert.Contains("Registration announcement", document.QuerySelector("main")!.TextContent);
+        Assert.DoesNotContain("Registration announcement", document.QuerySelector("main")!.TextContent);
         Assert.Null(document.QuerySelector("main a[href='../legacy/results?official=true']"));
+        using var rules = await client.GetAsync($"/contests/{future.Id}/rules", TestContext.Current.CancellationToken);
+        rules.EnsureSuccessStatusCode();
+        using var rulesPage = await new HtmlParser().ParseDocumentAsync(
+            await rules.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
+        Assert.Contains("Registration announcement", rulesPage.QuerySelector(".contest-header")!.TextContent);
         using var standings = await client.GetAsync($"/contests/{recent.Id}/standing", TestContext.Current.CancellationToken);
         standings.EnsureSuccessStatusCode();
         using var results = await new HtmlParser().ParseDocumentAsync(
@@ -65,7 +76,33 @@ public class ContestListTests(WebAppFactory factory) : IClassFixture<WebAppFacto
         Assert.NotNull(results.QuerySelector(".contest-description a[href='../legacy/results?official=true']"));
         Assert.DoesNotContain("<!--Blazor:", html);
         using var scope = factory.Services.CreateScope();
-        Assert.Equal(6, await scope.ServiceProvider.GetRequiredService<OlympContext>().Contests.CountAsync(TestContext.Current.CancellationToken));
+        Assert.Equal(7, await scope.ServiceProvider.GetRequiredService<OlympContext>().Contests.CountAsync(TestContext.Current.CancellationToken));
+    }
+
+    [Theory]
+    [InlineData(-12)]
+    [InlineData(14)]
+    public async Task ContestDatesUseServerTimeRegardlessOfStoredOffset(int offsetHours)
+    {
+        var start = new DateTimeOffset(new DateTime(2024, 1, 1, 0, 30, 0));
+        var contest = CreateContest("New year contest", start.ToOffset(TimeSpan.FromHours(offsetHours)),
+            start.AddHours(1).ToOffset(TimeSpan.FromHours(offsetHours)));
+        contest.IsOpen = true;
+        await SeedAsync(contest);
+        using var client = factory.CreateSiteClient();
+        client.DefaultRequestHeaders.AcceptLanguage.ParseAdd("en");
+        using var response = await client.GetAsync("/contests", TestContext.Current.CancellationToken);
+        response.EnsureSuccessStatusCode();
+        using var list = await new HtmlParser().ParseDocumentAsync(
+            await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
+        Assert.NotNull(list.QuerySelector($"#contests-{contest.StartTime.Year}"));
+        Assert.Equal("2024-01-01", list.QuerySelector("main article time")!.GetAttribute("datetime"));
+        using var rulesResponse = await client.GetAsync($"/contests/{contest.Id}/rules", TestContext.Current.CancellationToken);
+        rulesResponse.EnsureSuccessStatusCode();
+        using var rules = await new HtmlParser().ParseDocumentAsync(
+            await rulesResponse.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
+        Assert.Equal(start.ToString("d", System.Globalization.CultureInfo.GetCultureInfo("en")),
+            rules.QuerySelector(".contest-header time")!.TextContent);
     }
 
     [Theory]

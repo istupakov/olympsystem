@@ -10,12 +10,14 @@
             {
                 bool upcoming = now < contest.StartTime;
                 bool running = !upcoming && now < contest.EndTime;
+                var start = contest.StartTime.ToLocalTime();
+                var end = contest.EndTime.ToLocalTime();
                 <div class="d-flex flex-wrap align-items-baseline gap-2">
                     <a class="fw-semibold text-break" href="@($"contests/{contest.Id}/{(upcoming ? "rules" : "standing")}")">@contest.Name</a>
                     <span class="badge @(upcoming ? "text-bg-primary" : running ? "text-bg-success" : "text-bg-secondary")">@(upcoming ? SiteResources.ContestUpcoming : running ? SiteResources.ContestRunning : SiteResources.ContestOver)</span>
                     <span class="small text-body-secondary">
-                        <time datetime="@contest.StartTime.ToString("O", CultureInfo.InvariantCulture)">@contest.StartTime.ToString("g", CultureInfo.CurrentCulture)</time>
-                        – <time datetime="@contest.EndTime.ToString("O", CultureInfo.InvariantCulture)">@contest.EndTime.ToString(contest.StartTime.Date == contest.EndTime.Date ? "t" : "g", CultureInfo.CurrentCulture)</time>
+                        <time datetime="@contest.StartTime.ToString("O", CultureInfo.InvariantCulture)">@start.ToString("g", CultureInfo.CurrentCulture)</time>
+                        – <time datetime="@contest.EndTime.ToString("O", CultureInfo.InvariantCulture)">@end.ToString(start.Date == end.Date ? "t" : "g", CultureInfo.CurrentCulture)</time>
                         @if (now < contest.EndTime)
                         {
                             <text> · </text><ContestTimeRemaining Contest="contest" Now="now" />
@@ -39,12 +41,12 @@
         var actor = (await AuthenticationState).User;
         int? participantContestId = int.TryParse(actor.FindFirst(ClaimNames.CompetitorContest)?.Value, out int id) ? id : null;
         await using var db = await ContextFactory.CreateDbContextAsync();
-        var today = now.Date;
-        var tomorrow = today.AddDays(1);
+        var today = new DateTimeOffset(now.Date);
+        var tomorrow = new DateTimeOffset(now.Date.AddDays(1));
         contests = await db.Contests.AsNoTracking()
             .Where(item => !item.IsHidden)
             .Where(item => participantContestId.HasValue ? item.Id == participantContestId.Value
-                : item.StartTime.Date < tomorrow && item.EndTime.Date >= today)
+                : item.StartTime < tomorrow && item.EndTime >= today)
             .OrderBy(item => item.StartTime).ThenBy(item => item.Id).ToListAsync();
     }
 }

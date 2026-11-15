@@ -61,7 +61,7 @@ public class ParticipantNavigationTests(WebAppFactory factory) : IClassFixture<W
             Assert.NotNull(navbar.QuerySelector("form[action='account/logout']"));
             Assert.NotNull(navbar.QuerySelector("form[action='language']"));
             Assert.NotNull(navbar.QuerySelector("button[data-theme-toggle]"));
-            string homeSection = state == "upcoming" ? "rules" : "problems";
+            string homeSection = state == "upcoming" ? "rules" : "standing";
             Assert.Equal($"contests/{contest.Id}/{homeSection}", navbar.QuerySelector(".navbar-brand")!.GetAttribute("href"));
             var banner = document.QuerySelector("header section")!;
             var contestLink = Assert.Single(banner.QuerySelectorAll("a"));

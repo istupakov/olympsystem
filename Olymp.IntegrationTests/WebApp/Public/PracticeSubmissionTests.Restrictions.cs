@@ -79,7 +79,7 @@ public partial class PracticeSubmissionTests
             "end" => closed.EndTime,
             _ => start.AddMinutes(30)
         };
-        string message = culture == "ru" ? "Во время закрытого соревнования" : "while a closed contest is running";
+        string message = culture == "ru" ? "Во время соревнования" : "while a contest is running";
         foreach (int id in ids)
         {
             foreach (string endpoint in new[] { $"/submissions/{id}", $"/submissions/{id}/download" })
@@ -114,6 +114,7 @@ public partial class PracticeSubmissionTests
         Assert.NotNull(history.QuerySelector($"a[href='submissions/{ids[0]}']"));
         using var workspace = await GetAsync(client, path);
         Assert.Equal(!blocked, workspace.QuerySelector("#submission-code") is not null);
+        Assert.Equal(blocked, workspace.QuerySelector("section[aria-labelledby='submit-heading']")!.TextContent.Contains(message, StringComparison.Ordinal));
         using var content = new FormUrlEncodedContent(fields);
         using var posted = await client.PostAsync(path, content, TestContext.Current.CancellationToken);
         Assert.Equal(blocked ? HttpStatusCode.BadRequest : HttpStatusCode.Redirect, posted.StatusCode);

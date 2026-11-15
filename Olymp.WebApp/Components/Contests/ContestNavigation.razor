@@ -8,7 +8,7 @@
             <Authorized>
                 @if (Contest.AllowShowProblems)
                 {
-                    <li class="nav-item"><a class="@LinkClass("problems")" href="contests/@Contest.Id/problems" aria-current="@Current("problems")">@SiteResources.Problems</a></li>
+                    <li class="nav-item"><a class="@LinkClass("problems")" href="contests/@Contest.Id/problems" aria-current="@Current("problems")">@(Participant ? SiteResources.ProblemsAndSubmissions : SiteResources.Problems)</a></li>
                     <li class="nav-item"><a class="@LinkClass("submissions")" href="contests/@Contest.Id/submissions" aria-current="@Current("submissions")">@SiteResources.Submissions</a></li>
                 }
             </Authorized>

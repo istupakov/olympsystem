@@ -130,7 +130,7 @@
   <data name="SourceCodeRequired" xml:space="preserve"><value>Enter the source code.</value></data>
   <data name="SourceCodeLength" xml:space="preserve"><value>Source code must contain between 10 and 32768 characters.</value></data>
   <data name="SourceCodeEncoding" xml:space="preserve"><value>The source contains characters that cannot be stored in Windows-1251. Replace them and try again.</value></data>
-  <data name="SubmissionNotAllowed" xml:space="preserve"><value>You are not allowed to submit solutions.</value></data>
+  <data name="SubmissionNotAllowed" xml:space="preserve"><value>Submitting solutions is currently unavailable.</value></data>
   <data name="CompilerUnavailable" xml:space="preserve"><value>The selected compiler is unavailable. Select an active compiler.</value></data>
   <data name="SubmissionDiagnosticsUnavailable" xml:space="preserve"><value>Compilation diagnostics are unavailable.</value></data>
   <data name="SubmitSolution" xml:space="preserve"><value>Submit solution</value></data>
@@ -197,7 +197,7 @@
   <data name="StaffCancel" xml:space="preserve"><value>Cancel</value></data>
   <data name="StaffSaved" xml:space="preserve"><value>Changes saved.</value></data>
   <data name="StaffSaveFailed" xml:space="preserve"><value>Could not save the changes. Please try again.</value></data>
-  <data name="StaffAccessDenied" xml:space="preserve"><value>You do not have permission to manage this item.</value></data>
+  <data name="StaffAccessDenied" xml:space="preserve"><value>You do not have permission to perform this action.</value></data>
   <data name="StaffPreview" xml:space="preserve"><value>Preview</value></data>
   <data name="HtmlSupported" xml:space="preserve"><value>HTML is supported.</value></data>
   <data name="CreateContest" xml:space="preserve"><value>Create contest</value></data>
@@ -707,5 +707,6 @@
   <data name="TrainingRegistrationHelp" xml:space="preserve"><value>To submit solutions in training, register or sign in with your personal account.</value></data>
   <data name="GoToTrainingProblems" xml:space="preserve"><value>Go to problems and submit solutions</value></data>
   <data name="TrainingPersonalAccountRequired" xml:space="preserve"><value>Training submissions require a personal account. Sign in with your personal account instead of a contest participant account.</value></data>
-  <data name="ClosedContestRestriction" xml:space="preserve"><value>Submitting solutions and viewing or downloading source code from personal accounts are temporarily unavailable while a closed contest is running.</value></data>
+  <data name="ClosedContestRestriction" xml:space="preserve"><value>Submitting solutions and viewing or downloading source code are temporarily unavailable for personal accounts while a contest is running.</value></data>
+  <data name="ProblemsAndSubmissions" xml:space="preserve"><value>Problems and solution submission</value></data>
 </root>
