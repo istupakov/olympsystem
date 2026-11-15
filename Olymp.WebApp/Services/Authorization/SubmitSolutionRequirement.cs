@@ -3,14 +3,15 @@ using Microsoft.AspNetCore.Identity;
 
 using Olymp.Domain.Models;
 
-namespace Olymp.WebApp.Components.Submissions;
+namespace Olymp.WebApp.Services.Authorization;
 
 public sealed class SubmitSolutionRequirement : IAuthorizationRequirement
 {
     public bool ForJury { get; init; }
 }
 
-internal sealed class SubmitSolutionHandler(UserManager<User> users) : AuthorizationHandler<SubmitSolutionRequirement, Problem>
+internal sealed class SubmitSolutionHandler(UserManager<User> users, ClosedContestRestriction restriction)
+    : AuthorizationHandler<SubmitSolutionRequirement, Problem>
 {
     protected override async Task HandleRequirementAsync(AuthorizationHandlerContext context,
         SubmitSolutionRequirement requirement, Problem problem)
@@ -40,7 +41,7 @@ internal sealed class SubmitSolutionHandler(UserManager<User> users) : Authoriza
             OlympUser => contest.IsOpen,
             _ => false
         };
-        if (allowed)
+        if (allowed && !await restriction.IsActiveAsync(context.User))
             context.Succeed(requirement);
     }
 }

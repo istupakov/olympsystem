@@ -15,16 +15,27 @@ using Olymp.Domain.Models;
 using Olymp.IntegrationTests.WebApp.Shared;
 using Olymp.Tests.Shared;
 using Olymp.WebApp;
-using Olymp.WebApp.Components.Submissions;
+using Olymp.WebApp.Services.Authorization;
 
 using Xunit;
 
 namespace Olymp.IntegrationTests.WebApp.Public;
 
 [Trait("Category", "Integration")]
-public class ProblemAccessTests(WebAppFactory factory) : IClassFixture<WebAppFactory>
+public sealed class ProblemAccessTests(WebAppFactory factory) : IClassFixture<WebAppFactory>, IAsyncLifetime
 {
     private const string Source = "// Submitted source\nclass Program { static void Main() {} }";
+
+    public ValueTask InitializeAsync() => ValueTask.CompletedTask;
+
+    public async ValueTask DisposeAsync()
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<OlympContext>();
+        var now = DateTimeOffset.UtcNow;
+        await db.Contests.Where(contest => !contest.IsOpen && contest.EndTime > now)
+            .ExecuteUpdateAsync(update => update.SetProperty(contest => contest.EndTime, now), CancellationToken.None);
+    }
 
     [Theory]
     [InlineData(true, true, "user", true)]

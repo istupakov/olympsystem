@@ -18,6 +18,7 @@ using Olymp.IntegrationTests.WebApp.Shared;
 using Olymp.Tests.Shared;
 using Olymp.WebApp;
 using Olymp.WebApp.Components.Submissions;
+using Olymp.WebApp.Services.Authorization;
 
 using Xunit;
 
@@ -168,6 +169,8 @@ public partial class PracticeSubmissionTests(WebAppFactory factory) : IClassFixt
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
         using var removed = await client.GetAsync($"/submissions/{teamSubmission.Id}", TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.NotFound, removed.StatusCode);
+        using var removedDownload = await client.GetAsync($"/submissions/{teamSubmission.Id}/download", TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.NotFound, removedDownload.StatusCode);
     }
 
     [Theory]

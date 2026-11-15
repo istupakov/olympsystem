@@ -707,4 +707,5 @@
   <data name="TrainingRegistrationHelp" xml:space="preserve"><value>To submit solutions in training, register or sign in with your personal account.</value></data>
   <data name="GoToTrainingProblems" xml:space="preserve"><value>Go to problems and submit solutions</value></data>
   <data name="TrainingPersonalAccountRequired" xml:space="preserve"><value>Training submissions require a personal account. Sign in with your personal account instead of a contest participant account.</value></data>
+  <data name="ClosedContestRestriction" xml:space="preserve"><value>Submitting solutions and viewing or downloading source code from personal accounts are temporarily unavailable while a closed contest is running.</value></data>
 </root>

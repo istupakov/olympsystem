@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.WebUtilities;
 
 using Olymp.Domain.Models;
 
-namespace Olymp.WebApp.Components.Account;
+namespace Olymp.WebApp.Services.Authorization;
 
 internal sealed class EmailAsLoginRequirement : IAuthorizationRequirement
 {
