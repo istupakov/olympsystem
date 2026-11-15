@@ -51,12 +51,7 @@
                 </li>
                 <AuthorizeView Roles="@($"{RoleNames.Jury},{RoleNames.Admin}")">
                     <li class="nav-item">
-                        <NavLink class="nav-link" href="jury/contests">@SiteResources.JurySection</NavLink>
-                    </li>
-                </AuthorizeView>
-                <AuthorizeView Roles="@RoleNames.Admin">
-                    <li class="nav-item">
-                        <NavLink class="nav-link" href="admin/news">@SiteResources.AdminSection</NavLink>
+                        <a class="nav-link @(IsManagementRoute ? "active" : null)" href="jury/contests" aria-current="@(IsManagementRoute ? "true" : null)">@SiteResources.StaffManagement</a>
                     </li>
                 </AuthorizeView>
             </ul>
@@ -117,6 +112,9 @@
     }
 
     private string CurrentUrl => NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+
+    private bool IsManagementRoute => CurrentUrl.StartsWith("jury/", StringComparison.OrdinalIgnoreCase)
+        || CurrentUrl.StartsWith("admin/", StringComparison.OrdinalIgnoreCase);
 
     private string HomeUrl => participantContest is null ? ""
         : $"contests/{participantContest.Id}/{(participantContest.AllowShowProblems ? "problems" : "rules")}";

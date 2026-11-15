@@ -7,7 +7,7 @@
 @inject NavigationManager Navigation
 @inject IServiceScopeFactory ScopeFactory
 
-<PageTitle>@SiteResources.StaffTest</PageTitle>
+<StaffPageTitle Title="@(_test is null ? SiteResources.StaffTest : $"{SiteResources.StaffTest} {_test.Number}")" Context="@_problem?.NameWithNumber" />
 @if (!_loaded) { <p role="status">@SiteResources.StaffLoading</p> }
 else if (_test is null || _problem is null) { <p>@SiteResources.PageNotFoundMessage</p> }
 else

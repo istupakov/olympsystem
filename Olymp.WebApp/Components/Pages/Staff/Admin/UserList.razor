@@ -4,7 +4,7 @@
 @inject StaffGridState GridState
 @inject IDbContextFactory<OlympContext> ContextFactory
 
-<PageTitle>@SiteResources.StaffUsers</PageTitle>
+<StaffPageTitle Title="@SiteResources.StaffUsers" />
 <h1 class="mb-4">@SiteResources.StaffUsers</h1>
 <UnconfirmedUserCleanup OnDeleted="@(() => _gridVersion++)" />
 <EditForm Model="_filters" OnValidSubmit="ApplyFilters" class="row g-3 mb-4">

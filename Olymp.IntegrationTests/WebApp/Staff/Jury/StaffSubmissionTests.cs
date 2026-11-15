@@ -25,10 +25,11 @@ namespace Olymp.IntegrationTests.WebApp.Staff.Jury;
 public class StaffSubmissionTests(WebAppFactory factory) : IClassFixture<WebAppFactory>
 {
     [Theory]
-    [InlineData(RoleNames.Jury, -24)]
-    [InlineData(RoleNames.Jury, 24)]
-    [InlineData(RoleNames.Admin, -24)]
-    public async Task AnyStaffCanSubmitToHiddenInactiveProblemWithoutAssignmentOrContestTimeRestrictions(string role, int hours)
+    [InlineData(RoleNames.Jury, -24, "203.0.113.42")]
+    [InlineData(RoleNames.Jury, 24, "2001:db8::42")]
+    [InlineData(RoleNames.Admin, -24, "192.0.2.42")]
+    [InlineData(RoleNames.Jury, -24, null)]
+    public async Task AnyStaffCanSubmitToHiddenInactiveProblemWithoutAssignmentOrContestTimeRestrictions(string role, int hours, string? address)
     {
         var author = await factory.AddUserAsync();
         await using var scope = factory.Services.CreateAsyncScope();
@@ -44,7 +45,7 @@ public class StaffSubmissionTests(WebAppFactory factory) : IClassFixture<WebAppF
         var actor = Principal(author.Id, role);
         var service = scope.ServiceProvider.GetRequiredService<SubmissionService>();
         var input = new SubmissionInput { CompilatorId = compiler.Id, Code = "// Привет\nclass Program { static void Main() {} }" };
-        var result = await service.SubmitJuryAsync(actor, contest.Id, problem.Id, input, TestContext.Current.CancellationToken);
+        var result = await service.SubmitAsync(actor, contest.Id, problem.Id, input, address, forJury: true, TestContext.Current.CancellationToken);
         Assert.NotNull(result.Id);
         Assert.Null(result.Error);
         var submission = await db.Submissions.SingleAsync(item => item.Id == result.Id, TestContext.Current.CancellationToken);
@@ -56,9 +57,9 @@ public class StaffSubmissionTests(WebAppFactory factory) : IClassFixture<WebAppF
         Assert.Equal(submission.CommitTime, submission.LastModification);
         Assert.False(submission.IsReference);
         Assert.False(submission.IsHidden);
-        Assert.Null(submission.CommiterInfo);
+        Assert.Equal(address, submission.CommiterInfo);
         Assert.Empty(await db.UserClaims.Where(item => item.UserId == author.Id).ToListAsync(TestContext.Current.CancellationToken));
-        var publicResult = await service.SubmitPublicAsync(actor, contest.Id, problem.Id, input, null, TestContext.Current.CancellationToken);
+        var publicResult = await service.SubmitAsync(actor, contest.Id, problem.Id, input, null, forJury: false, TestContext.Current.CancellationToken);
         Assert.False(publicResult.NotFound);
         Assert.Null(publicResult.Id);
         Assert.NotNull(publicResult.Error);
@@ -90,9 +91,7 @@ public class StaffSubmissionTests(WebAppFactory factory) : IClassFixture<WebAppF
         var service = guardedScope.ServiceProvider.GetRequiredService<SubmissionService>();
         var actor = Principal(author.Id, RoleNames.Jury);
         var input = new SubmissionInput { CompilatorId = compiler.Id, Code = "// Valid source code" };
-        var result = jury
-            ? await service.SubmitJuryAsync(actor, contest.Id, problem.Id, input, TestContext.Current.CancellationToken)
-            : await service.SubmitPublicAsync(actor, contest.Id, problem.Id, input, null, TestContext.Current.CancellationToken);
+        var result = await service.SubmitAsync(actor, contest.Id, problem.Id, input, null, forJury: jury, TestContext.Current.CancellationToken);
 
         Assert.Equal(jury, gate.ForJury);
         Assert.False(result.NotFound);
@@ -129,8 +128,8 @@ public class StaffSubmissionTests(WebAppFactory factory) : IClassFixture<WebAppF
             CompilatorId = compiler.Id,
             Code = reason == "length" ? "short" : reason == "encoding" ? "// Unsupported 🙂" : "// Valid source code"
         };
-        var result = await scope.ServiceProvider.GetRequiredService<SubmissionService>().SubmitJuryAsync(actor,
-            reason == "foreign-contest" ? int.MaxValue : contest.Id, problem.Id, input, TestContext.Current.CancellationToken);
+        var result = await scope.ServiceProvider.GetRequiredService<SubmissionService>().SubmitAsync(actor,
+            reason == "foreign-contest" ? int.MaxValue : contest.Id, problem.Id, input, null, forJury: true, TestContext.Current.CancellationToken);
         Assert.Null(result.Id);
         Assert.True(result.NotFound || result.Error is not null);
         Assert.Empty(await db.Submissions.Where(item => item.ProblemId == problem.Id).ToListAsync(TestContext.Current.CancellationToken));

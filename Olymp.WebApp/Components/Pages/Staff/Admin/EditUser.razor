@@ -5,7 +5,7 @@
 @inject IServiceScopeFactory ScopeFactory
 @inject ILogger<EditUser> Logger
 
-<PageTitle>@SiteResources.StaffAccount</PageTitle>
+<StaffPageTitle Title="@SiteResources.StaffAccount" Context="@_user?.Name" />
 <BackToList ReturnTo="@ReturnTo" Fallback="admin/users" />
 @if (_user is null) { <p role="status">@(_loaded ? SiteResources.StaffUserNotFound : SiteResources.StaffLoading)</p> }
 else {

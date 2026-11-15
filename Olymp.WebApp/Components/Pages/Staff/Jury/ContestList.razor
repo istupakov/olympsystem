@@ -7,7 +7,7 @@
 @inject StaffGridState GridState
 @inject TimeProvider Clock
 
-<PageTitle>@SiteResources.JurySection – @SiteResources.Contests</PageTitle>
+<StaffPageTitle Title="@(Archive ? SiteResources.StaffArchiveContests : SiteResources.Contests)" />
 
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
     <h1 class="mb-0">@SiteResources.Contests</h1>

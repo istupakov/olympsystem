@@ -5,7 +5,7 @@
 @inject IServiceScopeFactory ScopeFactory
 @inject ILogger<AntiCheatTools> Logger
 
-<PageTitle>@SiteResources.StaffAntiCheatTools</PageTitle>
+<StaffPageTitle Title="@SiteResources.StaffAntiCheatTools" Context="@(_contextSubmission is not null ? $"{SiteResources.SubmissionSource} #{_contextSubmission.Id}" : _contextAuthor?.Name ?? _contest?.Name)" />
 @if (_contest is not null) { <StaffContestNavigation ContestId="_contest.Id" ContestName="@_contest.Name" IsHidden="_contest.IsHidden" /> }
 <h1 class="h3">@SiteResources.StaffAntiCheatTools</h1>
 <p>@SiteResources.StaffCombinedAnalysisScope</p>

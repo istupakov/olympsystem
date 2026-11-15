@@ -183,8 +183,11 @@
   <data name="QuestionProblemUnavailable" xml:space="preserve"><value>The selected problem is unavailable. Select an active problem from this contest.</value></data>
   <data name="QuestionRequired" xml:space="preserve"><value>Enter your question.</value></data>
   <data name="QuestionLength" xml:space="preserve"><value>A question must contain between 10 and 4096 characters.</value></data>
+  <data name="StaffManagement" xml:space="preserve"><value>Management</value></data>
+  <data name="StaffArchiveContests" xml:space="preserve"><value>Contest archive</value></data>
   <data name="JurySection" xml:space="preserve"><value>Jury</value></data>
-  <data name="AdminSection" xml:space="preserve"><value>Admin</value></data>
+  <data name="StaffAllParticipants" xml:space="preserve"><value>All participants</value></data>
+  <data name="StaffAllSubmissions" xml:space="preserve"><value>All submissions</value></data>
   <data name="StaffNavigation" xml:space="preserve"><value>Staff sections</value></data>
   <data name="StaffLoading" xml:space="preserve"><value>Loading…</value></data>
   <data name="StaffName" xml:space="preserve"><value>Name</value></data>

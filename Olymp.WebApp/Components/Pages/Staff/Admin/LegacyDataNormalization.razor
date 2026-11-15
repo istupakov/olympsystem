@@ -5,7 +5,7 @@
 @inject IServiceScopeFactory ScopeFactory
 @inject ILogger<LegacyDataNormalization> Logger
 
-<PageTitle>@SiteResources.StaffNormalization</PageTitle>
+<StaffPageTitle Title="@SiteResources.StaffNormalization" />
 <h1 class="mb-4">@SiteResources.StaffNormalization</h1>
 <p>@SiteResources.StaffNormalizationIntroduction</p>
 @if (_error is not null) { <p class="alert alert-danger" role="alert">@_error</p> }

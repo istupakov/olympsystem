@@ -6,7 +6,7 @@
 @inject ICheckerManager Checkers
 @inject ILogger<CompilerDetails> Logger
 
-<PageTitle>@SiteResources.Compiler</PageTitle>
+<StaffPageTitle Title="@($"{SiteResources.Compiler} #{Id}")" Context="@(_compiler?.Description ?? _compiler?.Name)" />
 <CompilerNavigation />
 <BackToList ReturnTo="@ReturnTo" Fallback="jury/compilers" />
 @if (_compiler is null) { <p role="status">@(_loaded ? SiteResources.PageNotFoundMessage : SiteResources.StaffLoading)</p> }

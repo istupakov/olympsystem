@@ -1,0 +1,8 @@
+<PageTitle>@(string.IsNullOrWhiteSpace(Context)
+    ? $"{Title} – {SiteResources.StaffManagement}"
+    : $"{Title} – {Context} – {SiteResources.StaffManagement}")</PageTitle>
+
+@code {
+    [Parameter, EditorRequired] public string Title { get; set; } = "";
+    [Parameter] public string? Context { get; set; }
+}

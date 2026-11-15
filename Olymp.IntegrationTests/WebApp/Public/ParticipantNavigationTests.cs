@@ -88,6 +88,7 @@ public class ParticipantNavigationTests(WebAppFactory factory) : IClassFixture<W
         Assert.Equal(HttpStatusCode.OK, history.StatusCode);
         using var historyDocument = await new HtmlParser().ParseDocumentAsync(
             await history.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
+        Assert.Equal($"{(culture == "ru" ? "Мои решения" : "My submissions")} – {contest.Name}", historyDocument.Title);
         Assert.Equal("submissions", historyDocument.QuerySelector(".contest-header a[aria-current='page']")!.GetAttribute("href"));
         Assert.Null(historyDocument.QuerySelector("main h1"));
         Assert.Null(historyDocument.QuerySelector("#submissions .nav"));

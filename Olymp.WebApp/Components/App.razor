@@ -21,14 +21,6 @@
 </head>
 
 <body>
-    @if (IsStaffRoute)
-    {
-        <noscript>
-            <div class="container my-4">
-                <p class="alert alert-warning" role="alert">@SiteResources.StaffJavaScriptRequired</p>
-            </div>
-        </noscript>
-    }
     <Routes />
     <ReconnectModal />
     <script src="@Assets["_framework/blazor.web.js"]"></script>

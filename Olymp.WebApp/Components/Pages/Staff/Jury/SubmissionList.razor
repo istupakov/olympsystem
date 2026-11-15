@@ -9,7 +9,7 @@
 @inject ICheckerManager Checkers
 @inject StaffGridState GridState
 
-<PageTitle>@SiteResources.Submissions</PageTitle>
+<StaffPageTitle Title="@(ContestId is null ? SiteResources.StaffAllSubmissions : SiteResources.Submissions)" Context="@_contest?.Name" />
 @if (!_loaded || (ContestId is not null && _contest is null))
 {
     <p role="status">@(_loaded ? SiteResources.PageNotFoundMessage : SiteResources.StaffLoading)</p>
@@ -20,7 +20,7 @@ else
     {
         <StaffContestNavigation ContestId="_contest.Id" ContestName="@_contest.Name" IsHidden="_contest.IsHidden" />
     }
-    <h1 class="h3">@SiteResources.Submissions</h1>
+    <h1 class="h3">@(ContestId is null ? SiteResources.StaffAllSubmissions : SiteResources.Submissions)</h1>
     <EditForm Model="_filters" OnValidSubmit="ApplyFilters" class="row g-3 mb-4">
         @if (ContestId is null)
         {

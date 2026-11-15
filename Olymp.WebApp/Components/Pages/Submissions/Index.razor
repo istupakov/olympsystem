@@ -10,7 +10,7 @@
 @attribute [ExcludeFromInteractiveRouting]
 @inject IDbContextFactory<OlympContext> ContextFactory
 
-<PageTitle>@SiteResources.Submissions</PageTitle>
+<PageTitle>@(participantContest is null ? SiteResources.Submissions : $"{SiteResources.MySubmissions} – {participantContest.Name}")</PageTitle>
 @if (participantContest is not null)
 {
     <ParticipantContestHeader Contest="participantContest" ActiveSection="submissions" />

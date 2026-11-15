@@ -10,7 +10,7 @@
 @inject StaffGridState GridState
 @inject TimeProvider Clock
 
-<PageTitle>@SiteResources.ContestParticipants</PageTitle>
+<StaffPageTitle Title="@(ContestId is null ? SiteResources.StaffAllParticipants : SiteResources.ContestParticipants)" Context="@_contest?.Name" />
 @if (!_loaded || (ContestId.HasValue && _contest is null))
 {
     <p role="status">@(_loaded ? SiteResources.PageNotFoundMessage : SiteResources.StaffLoading)</p>
@@ -18,7 +18,7 @@
 else
 {
     @if (_contest is not null) { <StaffContestNavigation ContestId="_contest.Id" ContestName="@_contest.Name" IsHidden="_contest.IsHidden" /> }
-    <h1 class="h3">@SiteResources.ContestParticipants</h1>
+    <h1 class="h3">@(ContestId is null ? SiteResources.StaffAllParticipants : SiteResources.ContestParticipants)</h1>
     @if (_error is not null) { <div class="alert alert-danger" role="alert">@_error</div> }
     @if (_status is not null) { <div class="alert alert-success" role="status">@_status</div> }
     @if (_canManage && _contest is not null)

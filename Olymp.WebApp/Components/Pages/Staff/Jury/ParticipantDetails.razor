@@ -5,7 +5,7 @@
 @inject NavigationManager Navigation
 @inject ILogger<ParticipantDetails> Logger
 
-<PageTitle>@SiteResources.Competitor</PageTitle>
+<StaffPageTitle Title="@SiteResources.Competitor" Context="@_participant?.Name" />
 @if (_participant is null)
 {
     <p role="status">@(_loaded ? SiteResources.PageNotFoundMessage : SiteResources.StaffLoading)</p>
