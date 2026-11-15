@@ -15,6 +15,7 @@
         <div class="contest-description mb-4 overflow-auto">@((MarkupString)contest.Description)</div>
     }
     <StandingControls BaseUrl="@($"contests/{Id}/standing")" Official="Official" HasOfficialStanding="HasOfficialStanding"
+                      ShowRefresh="@(!contest.IsOpen)"
                       Highlight="Highlight" CanHighlight="@(relatedUserIds.Count > 0)"
                       IsCoach="@StandingHighlights.IsCoach(standing?.Results.Select(row => row.User) ?? [], HttpContext.User)" />
     @if (savedTable is not null)

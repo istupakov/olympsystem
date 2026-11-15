@@ -130,7 +130,7 @@
   <data name="SourceCodeRequired" xml:space="preserve"><value>Введите исходный код.</value></data>
   <data name="SourceCodeLength" xml:space="preserve"><value>Исходный код должен содержать от 10 до 32768 символов.</value></data>
   <data name="SourceCodeEncoding" xml:space="preserve"><value>В коде есть символы, которые нельзя сохранить в Windows-1251. Замените их и повторите отправку.</value></data>
-  <data name="SubmissionNotAllowed" xml:space="preserve"><value>Вам недоступна отправка решений.</value></data>
+  <data name="SubmissionNotAllowed" xml:space="preserve"><value>Отправка решений пока недоступна.</value></data>
   <data name="CompilerUnavailable" xml:space="preserve"><value>Выбранный компилятор недоступен. Выберите активный компилятор.</value></data>
   <data name="SubmissionDiagnosticsUnavailable" xml:space="preserve"><value>Диагностика компиляции недоступна.</value></data>
   <data name="SubmitSolution" xml:space="preserve"><value>Отправить решение</value></data>
@@ -197,7 +197,7 @@
   <data name="StaffCancel" xml:space="preserve"><value>Отмена</value></data>
   <data name="StaffSaved" xml:space="preserve"><value>Изменения сохранены.</value></data>
   <data name="StaffSaveFailed" xml:space="preserve"><value>Не удалось сохранить изменения. Повторите попытку.</value></data>
-  <data name="StaffAccessDenied" xml:space="preserve"><value>У вас нет права управлять этой записью.</value></data>
+  <data name="StaffAccessDenied" xml:space="preserve"><value>У вас недостаточно прав для этого действия.</value></data>
   <data name="StaffPreview" xml:space="preserve"><value>Предпросмотр</value></data>
   <data name="HtmlSupported" xml:space="preserve"><value>Поддерживается HTML.</value></data>
   <data name="CreateContest" xml:space="preserve"><value>Создать соревнование</value></data>
@@ -707,5 +707,6 @@
   <data name="TrainingRegistrationHelp" xml:space="preserve"><value>Чтобы отправлять решения на тренировке, зарегистрируйтесь или войдите в личный аккаунт.</value></data>
   <data name="GoToTrainingProblems" xml:space="preserve"><value>Перейти к задачам и отправке решений</value></data>
   <data name="TrainingPersonalAccountRequired" xml:space="preserve"><value>Для отправки решений на тренировке нужен личный аккаунт. Войдите в него вместо аккаунта участника соревнования.</value></data>
-  <data name="ClosedContestRestriction" xml:space="preserve"><value>Во время закрытого соревнования отправка решений, просмотр и скачивание исходного кода из личного аккаунта временно недоступны.</value></data>
+  <data name="ClosedContestRestriction" xml:space="preserve"><value>Во время соревнования отправка решений, просмотр и скачивание исходного кода временно недоступны для личных аккаунтов.</value></data>
+  <data name="ProblemsAndSubmissions" xml:space="preserve"><value>Задачи и отправка решений</value></data>
 </root>

@@ -13,7 +13,7 @@
             {
                 <h2 id="submissions-heading" class="h4 mb-0">@SiteResources.Submissions</h2>
             }
-            <a href="@(ListUrl(selectedScope, Page) + "#submissions")" class="btn btn-sm btn-outline-secondary">@SiteResources.Refresh</a>
+            <a href="@ListUrl(selectedScope, Page)" class="btn btn-sm btn-outline-secondary">@SiteResources.Refresh</a>
         </div>
         @if (!isTemporary && AvailableScopes.Skip(1).Any())
         {

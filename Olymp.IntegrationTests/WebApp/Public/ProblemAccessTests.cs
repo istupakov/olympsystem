@@ -15,6 +15,7 @@ using Olymp.Domain.Models;
 using Olymp.IntegrationTests.WebApp.Shared;
 using Olymp.Tests.Shared;
 using Olymp.WebApp;
+using Olymp.WebApp.Components.Submissions;
 using Olymp.WebApp.Services.Authorization;
 
 using Xunit;
@@ -95,6 +96,7 @@ public sealed class ProblemAccessTests(WebAppFactory factory) : IClassFixture<We
             string path = Path(data.Contest, data.Problem);
             using var page = await GetAsync(client, path);
             Assert.Equal(allowed, page.QuerySelector("#submission-code") is not null);
+            Assert.NotNull(page.QuerySelector("h2#submit-heading"));
             Assert.Equal(allowed, page.QuerySelector("a[href$='#submit-heading']") is not null);
             using var posted = await PostAsync(client, path, page, data.Compiler.Id);
             Assert.Equal(allowed ? HttpStatusCode.Redirect : HttpStatusCode.BadRequest, posted.StatusCode);
@@ -105,6 +107,90 @@ public sealed class ProblemAccessTests(WebAppFactory factory) : IClassFixture<We
                 Assert.Equal(expectedUserId, Assert.Single(submissions).UserId);
             else
                 Assert.Empty(submissions);
+        }
+    }
+
+    [Theory]
+    [InlineData(-12, false, false)]
+    [InlineData(0, false, false)]
+    [InlineData(14, false, false)]
+    [InlineData(-12, false, true)]
+    [InlineData(0, false, true)]
+    [InlineData(14, false, true)]
+    [InlineData(-12, true, false)]
+    [InlineData(0, true, false)]
+    [InlineData(14, true, false)]
+    [InlineData(-12, true, true)]
+    [InlineData(0, true, true)]
+    [InlineData(14, true, true)]
+    public async Task PublicationAndSubmissionFollowInstantsRegardlessOfStoredOffsets(int offsetHours, bool open, bool temporary)
+    {
+        var data = await CreateDataAsync(open);
+        User actor = temporary ? await ParticipantAsync(data.Contest) : data.User;
+        using var client = await factory.LoginAsync(actor.UserName!);
+        var claims = new List<Claim> { new(ClaimTypes.NameIdentifier, actor.Id.ToString()) };
+        if (temporary)
+            claims.Add(new(ClaimNames.CompetitorContest, data.Contest.Id.ToString()));
+        var principal = new ClaimsPrincipal(new ClaimsIdentity(claims, "Test"));
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<OlympContext>();
+        var service = scope.ServiceProvider.GetRequiredService<SubmissionService>();
+        int expectedCount = 0;
+        Dictionary<string, string>? staleFields = null;
+        foreach (string state in new[] { "before", "running", "ended" })
+        {
+            var now = DateTimeOffset.UtcNow;
+            var start = now.AddHours(state == "before" ? 1 : -2).ToOffset(TimeSpan.FromHours(offsetHours));
+            var end = now.AddHours(state == "ended" ? -1 : 2).ToOffset(TimeSpan.FromHours(-offsetHours));
+            await db.Contests.Where(contest => contest.Id == data.Contest.Id).ExecuteUpdateAsync(update => update
+                .SetProperty(contest => contest.StartTime, start)
+                .SetProperty(contest => contest.EndTime, end), TestContext.Current.CancellationToken);
+            bool published = state != "before";
+            bool allowed = published && (temporary ? state == "running" : open);
+            string path = Path(data.Contest, data.Problem);
+            foreach (string url in new[] { path, $"/contests/{data.Contest.Id}/standing", $"/contests/{data.Contest.Id}/downloadproblems" })
+            {
+                using var response = await client.GetAsync(url, TestContext.Current.CancellationToken);
+                Assert.Equal(published ? HttpStatusCode.OK : HttpStatusCode.NotFound, response.StatusCode);
+            }
+            if (published)
+            {
+                using var page = await GetAsync(client, path);
+                Assert.Equal(allowed, page.QuerySelector("#submission-code") is not null);
+                if (state == "running" && allowed)
+                {
+                    staleFields = page.QuerySelector("form:has(#submission-code)")!.QuerySelectorAll("input[type='hidden'][name]")
+                        .ToDictionary(input => input.GetAttribute("name")!, input => input.GetAttribute("value") ?? "");
+                    staleFields["_handler"] = "submit-solution";
+                    staleFields["Input.CompilatorId"] = data.Compiler.Id.ToString();
+                    staleFields["Input.Code"] = Source;
+                }
+                using var posted = await PostAsync(client, path, page, data.Compiler.Id);
+                Assert.Equal(allowed ? HttpStatusCode.Redirect : HttpStatusCode.BadRequest, posted.StatusCode);
+                if (allowed) expectedCount++;
+            }
+            if (state == "ended" && staleFields is not null)
+            {
+                using var content = new FormUrlEncodedContent(staleFields);
+                using var stalePost = await client.PostAsync(path, content, TestContext.Current.CancellationToken);
+                Assert.Equal(allowed ? HttpStatusCode.Redirect : HttpStatusCode.BadRequest, stalePost.StatusCode);
+                if (allowed) expectedCount++;
+            }
+            var beforeSubmit = DateTimeOffset.UtcNow;
+            var result = await service.SubmitAsync(principal, data.Contest.Id, data.Problem.Id,
+                new SubmissionInput { CompilatorId = data.Compiler.Id, Code = Source }, null,
+                forJury: false, TestContext.Current.CancellationToken);
+            Assert.Equal(allowed, result.Id.HasValue);
+            Assert.Equal(!allowed, result.Error is not null);
+            if (allowed)
+            {
+                expectedCount++;
+                var saved = await db.Submissions.SingleAsync(item => item.Id == result.Id, TestContext.Current.CancellationToken);
+                Assert.Equal(actor.Id, saved.UserId);
+                Assert.InRange(saved.CommitTime, beforeSubmit, DateTimeOffset.UtcNow);
+            }
+            Assert.Equal(expectedCount, await db.Submissions.Where(item => item.ProblemId == data.Problem.Id)
+                .CountAsync(TestContext.Current.CancellationToken));
         }
     }
 

@@ -26,16 +26,16 @@
                     <input type="hidden" name="@parameter.Key" value="@value" />
                 }
             }
-            <button type="submit" class="btn btn-outline-secondary">@SiteResources.Refresh</button>
+            <button type="submit" class="btn btn-outline-secondary">@(ShowRefresh ? SiteResources.Refresh : SiteResources.Show)</button>
             <div class="form-check mb-0 col-12 col-md-auto ms-md-auto">
                 <input class="form-check-input" type="checkbox" id="standing-highlight" name="highlight" value="true" checked="@Highlight" />
                 <label class="form-check-label" for="standing-highlight">@(IsCoach ? SiteResources.HighlightSelfAndCoached : SiteResources.HighlightSelf)</label>
             </div>
         </form>
     }
-    else
+    else if (ShowRefresh)
     {
-        <a class="btn btn-outline-secondary" href="@Url(Official, Highlight)" data-enhance-nav="false">@SiteResources.Refresh</a>
+        <a class="btn btn-outline-secondary" href="@Url(Official, Highlight)">@SiteResources.Refresh</a>
     }
 </div>
 @if (Official)
@@ -48,6 +48,7 @@
     [Parameter] public bool Official { get; set; }
     [Parameter] public bool HasOfficialStanding { get; set; }
     [Parameter] public EventCallback Refresh { get; set; }
+    [Parameter] public bool ShowRefresh { get; set; } = true;
     [Parameter] public bool Highlight { get; set; }
     [Parameter] public bool CanHighlight { get; set; }
     [Parameter] public bool IsCoach { get; set; }

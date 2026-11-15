@@ -2,6 +2,18 @@ h1:focus {
     outline: none;
 }
 
+.sponsor-logo-dark {
+    display: none;
+}
+
+[data-bs-theme="dark"] .sponsor-logo-light {
+    display: none;
+}
+
+[data-bs-theme="dark"] .sponsor-logo-dark {
+    display: inline;
+}
+
 .valid.modified:not([type=checkbox]) {
     outline: 1px solid #26b050;
 }

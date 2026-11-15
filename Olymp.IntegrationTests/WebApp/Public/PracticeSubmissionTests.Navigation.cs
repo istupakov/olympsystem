@@ -34,8 +34,11 @@ public partial class PracticeSubmissionTests
         Assert.Null(rules.QuerySelector($"a[href^='contests/{contest.Id}/submissions']"));
     }
 
-    [Fact]
-    public async Task DailyBannerShowsAllTodaysContestsInStartOrderAndExcludesHiddenAndOtherDays()
+    [Theory]
+    [InlineData(-12)]
+    [InlineData(0)]
+    [InlineData(14)]
+    public async Task DailyBannerShowsAllTodaysContestsInStartOrderAndExcludesHiddenAndOtherDays(int offsetHours)
     {
         var data = await SeedAsync();
         using var scope = factory.Services.CreateScope();
@@ -52,8 +55,14 @@ public partial class PracticeSubmissionTests
         db.AddRange(finished, upcoming, hidden,
             TestEntities.CreateContest("Yesterday", today.AddDays(-1), today.AddTicks(-1)),
             TestEntities.CreateContest("Tomorrow", today.AddDays(1), today.AddDays(1).AddHours(1)));
+        foreach (var entry in db.ChangeTracker.Entries<Contest>())
+        {
+            entry.Entity.StartTime = entry.Entity.StartTime.ToOffset(TimeSpan.FromHours(offsetHours));
+            entry.Entity.EndTime = entry.Entity.EndTime.ToOffset(TimeSpan.FromHours(offsetHours));
+        }
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
         using var client = factory.CreateSiteClient();
+        client.DefaultRequestHeaders.AcceptLanguage.ParseAdd("en");
         using var page = await GetAsync(client, "/");
         Assert.Equal([
             $"contests/{finished.Id}/standing",
@@ -62,6 +71,8 @@ public partial class PracticeSubmissionTests
         ], page.QuerySelectorAll("header section a").Select(link => link.GetAttribute("href")));
         Assert.Equal(["badge text-bg-secondary", "badge text-bg-success", "badge text-bg-primary"],
             page.QuerySelectorAll("header section .badge").Select(badge => badge.ClassName));
+        Assert.Equal(today.ToString("g", System.Globalization.CultureInfo.GetCultureInfo("en")),
+            page.QuerySelector("header section time")!.TextContent);
     }
 
     [Theory]

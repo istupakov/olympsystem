@@ -163,7 +163,9 @@ public class ContestPublicPagesTests(WebAppFactory factory) : IClassFixture<WebA
         Assert.DoesNotContain("PRIVATE_SOURCE", allHtml);
         Assert.Null(document.QuerySelector("main form"));
         Assert.Equal(culture == "ru" ? "Полная" : "Full", document.QuerySelector(".standing-view a[aria-current='page']")!.TextContent);
-        Assert.NotNull(document.QuerySelector($"a.btn[href='contests/{contest.Id}/standing'][data-enhance-nav='false']"));
+        var refresh = Assert.Single(document.QuerySelectorAll("main div.d-flex > a.btn"));
+        Assert.Equal($"contests/{contest.Id}/standing", refresh.GetAttribute("href"));
+        Assert.Null(refresh.GetAttribute("data-enhance-nav"));
         var officialLink = document.QuerySelector($"main nav a[href='contests/{contest.Id}/standing?official=true']")!;
         Assert.Equal(culture == "ru" ? "Официальная" : "Official", officialLink.TextContent);
         using var official = await client.GetAsync("/" + officialLink.GetAttribute("href"), TestContext.Current.CancellationToken);
@@ -172,7 +174,9 @@ public class ContestPublicPagesTests(WebAppFactory factory) : IClassFixture<WebA
             await official.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
         Assert.StartsWith("Alice", Assert.Single(officialDocument.QuerySelectorAll("main tbody tr")).QuerySelectorAll("td")[1].TextContent.Trim());
         Assert.Equal(culture == "ru" ? "Официальная" : "Official", officialDocument.QuerySelector(".standing-view a[aria-current='page']")!.TextContent);
-        Assert.NotNull(officialDocument.QuerySelector($"a.btn[href='contests/{contest.Id}/standing?official=true'][data-enhance-nav='false']"));
+        var officialRefresh = Assert.Single(officialDocument.QuerySelectorAll("main div.d-flex > a.btn"));
+        Assert.Equal($"contests/{contest.Id}/standing?official=true", officialRefresh.GetAttribute("href"));
+        Assert.Null(officialRefresh.GetAttribute("data-enhance-nav"));
         Assert.Contains(culture == "ru" ? "Без внеконкурсных" : "Excludes out-of-competition", officialDocument.QuerySelector("main")!.TextContent);
         var fullLink = officialDocument.QuerySelector($"main nav a[href='contests/{contest.Id}/standing']")!;
         using var fullAgain = await client.GetAsync("/" + fullLink.GetAttribute("href"), TestContext.Current.CancellationToken);
@@ -204,6 +208,7 @@ public class ContestPublicPagesTests(WebAppFactory factory) : IClassFixture<WebA
         using var document = await new HtmlParser().ParseDocumentAsync(
             await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
         var caption = document.QuerySelector("main caption")!;
+        Assert.Equal(ongoing, document.QuerySelector("main div.d-flex > a.btn") is not null);
         var status = caption.QuerySelector(ongoing ? ".text-bg-success" : ".text-bg-secondary")!.TextContent;
         if (ongoing)
         {
@@ -364,15 +369,15 @@ public class ContestPublicPagesTests(WebAppFactory factory) : IClassFixture<WebA
         {
             Assert.Null(document.QuerySelector(".contest-header .fw-semibold"));
             Assert.Equal(spansDays ? 2 : 1, times.Length);
-            Assert.Equal(contest.StartTime.ToString("d", formatting), times[0].TextContent);
+            Assert.Equal(contest.StartTime.ToLocalTime().ToString("d", formatting), times[0].TextContent);
             if (spansDays)
-                Assert.Equal(contest.EndTime.ToString("d", formatting), times[1].TextContent);
+                Assert.Equal(contest.EndTime.ToLocalTime().ToString("d", formatting), times[1].TextContent);
         }
         else
         {
             Assert.Equal(2, times.Length);
-            Assert.Equal(contest.StartTime.ToString("g", formatting), times[0].TextContent);
-            Assert.Equal(contest.EndTime.ToString("t", formatting), times[1].TextContent);
+            Assert.Equal(contest.StartTime.ToLocalTime().ToString("g", formatting), times[0].TextContent);
+            Assert.Equal(contest.EndTime.ToLocalTime().ToString("t", formatting), times[1].TextContent);
         }
     }
 
@@ -407,7 +412,7 @@ public class ContestPublicPagesTests(WebAppFactory factory) : IClassFixture<WebA
     [InlineData(false, false)]
     [InlineData(true, true)]
     [InlineData(false, true)]
-    public async Task DescriptionIsPublishedAboveStandingsOnlyWhenOpen(bool open, bool savedTable)
+    public async Task DescriptionAppearsInHeaderWhenClosedAndAboveStandingsWhenOpen(bool open, bool savedTable)
     {
         var contest = CreateContest();
         contest.IsOpen = open;
@@ -427,7 +432,8 @@ public class ContestPublicPagesTests(WebAppFactory factory) : IClassFixture<WebA
             Assert.True(html.IndexOf("Prize places", StringComparison.Ordinal) < html.IndexOf("<table", StringComparison.Ordinal));
         }
         else
-            Assert.DoesNotContain("Prize places", html);
+            Assert.Equal("Prize places", document.QuerySelector(".contest-header strong")!.TextContent);
+        Assert.Single(document.QuerySelectorAll("main strong"), item => item.TextContent == "Prize places");
     }
 
     [Theory]

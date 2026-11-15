@@ -178,7 +178,9 @@ public class VirtualStandingTests(WebAppFactory factory) : StaffComponentTests(f
         Assert.Equal(TimeZoneInfo.Local.GetUtcOffset(start.DateTime), start.Offset);
         using var table = await GetAsync(client, url.PathAndQuery);
         Assert.Null(table.QuerySelector(".standing-view"));
-        Assert.Equal(url.AbsoluteUri, table.QuerySelector("a[data-enhance-nav='false']")!.GetAttribute("href"));
+        var refresh = Assert.Single(table.QuerySelectorAll("main div.d-flex > a.btn:not([href*='edit=true'])"));
+        Assert.Equal(url.AbsoluteUri, refresh.GetAttribute("href"));
+        Assert.Null(refresh.GetAttribute("data-enhance-nav"));
         using var edit = await GetAsync(client, QueryHelpers.AddQueryString(url.PathAndQuery, "edit", "true"));
         Assert.StartsWith("2026-12-01T10:30", edit.QuerySelector("#virtual-start")!.GetAttribute("value"));
         Assert.Null(edit.QuerySelector("main table"));
@@ -220,7 +222,9 @@ public class VirtualStandingTests(WebAppFactory factory) : StaffComponentTests(f
         Assert.Null(page.QuerySelector("caption .text-bg-warning"));
         Assert.Null(page.QuerySelector(".standing-view"));
         Assert.Equal(["2/2", "0/0"], page.QuerySelectorAll("tfoot td").Take(2).Select(cell => cell.TextContent));
-        var refresh = page.QuerySelector("a[data-enhance-nav='false']")!.GetAttribute("href")!;
+        var refreshLink = Assert.Single(page.QuerySelectorAll("main div.d-flex > a.btn:not([href*='edit=true'])"));
+        Assert.Null(refreshLink.GetAttribute("data-enhance-nav"));
+        var refresh = refreshLink.GetAttribute("href")!;
         Assert.Equal(start, DateTimeOffset.ParseExact(QueryHelpers.ParseQuery(new Uri(client.BaseAddress!, refresh).Query)["start"]!, "O", CultureInfo.InvariantCulture));
         Assert.Equal(2, page.QuerySelectorAll("main time").Count(item => item.GetAttribute("datetime") is string value && value.StartsWith(start.Year.ToString(CultureInfo.InvariantCulture), StringComparison.Ordinal)));
     }

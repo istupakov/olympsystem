@@ -95,7 +95,7 @@
             participantContestStarted = await context.Contests.AnyAsync(contest => contest.Id == id && !contest.IsHidden && contest.StartTime <= DateTimeOffset.Now);
     }
 
-    private string HomeUrl => participantContestId is int id ? $"contests/{id}/{(participantContestStarted ? "problems" : "rules")}" : "";
+    private string HomeUrl => participantContestId is int id ? $"contests/{id}/{(participantContestStarted ? "standing" : "rules")}" : "";
 
     private string CurrentUrl => NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
 
