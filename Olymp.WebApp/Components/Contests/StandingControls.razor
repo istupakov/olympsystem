@@ -16,26 +16,29 @@
     {
         <button type="button" class="btn btn-secondary" @onclick="Refresh">@SiteResources.Refresh</button>
     }
-    else if (CanHighlight)
+    else
     {
-        <form action="@RefreshUri.GetLeftPart(UriPartial.Path)" method="get" class="d-flex flex-wrap flex-grow-1 align-items-center gap-3">
-            @foreach (var parameter in QueryHelpers.ParseQuery(RefreshUri.Query))
-            {
-                @foreach (var value in parameter.Value)
+        @if (ShowRefresh)
+        {
+            <a class="btn btn-outline-secondary" href="@Url(Official, Highlight)">@SiteResources.Refresh</a>
+        }
+        @if (CanHighlight)
+        {
+            <form action="@RefreshUri.GetLeftPart(UriPartial.Path)" method="get" class="d-flex flex-wrap flex-grow-1 align-items-center gap-3">
+                @foreach (var parameter in QueryHelpers.ParseQuery(RefreshUri.Query))
                 {
-                    <input type="hidden" name="@parameter.Key" value="@value" />
+                    @foreach (var value in parameter.Value)
+                    {
+                        <input type="hidden" name="@parameter.Key" value="@value" />
+                    }
                 }
-            }
-            <button type="submit" class="btn btn-outline-secondary">@(ShowRefresh ? SiteResources.Refresh : SiteResources.Show)</button>
-            <div class="form-check mb-0 col-12 col-md-auto ms-md-auto">
-                <input class="form-check-input" type="checkbox" id="standing-highlight" name="highlight" value="true" checked="@Highlight" />
-                <label class="form-check-label" for="standing-highlight">@(IsCoach ? SiteResources.HighlightSelfAndCoached : SiteResources.HighlightSelf)</label>
-            </div>
-        </form>
-    }
-    else if (ShowRefresh)
-    {
-        <a class="btn btn-outline-secondary" href="@Url(Official, Highlight)">@SiteResources.Refresh</a>
+                <div class="form-check mb-0 col-12 col-md-auto ms-md-auto">
+                    <input class="form-check-input" type="checkbox" id="standing-highlight" name="highlight" value="true" checked="@Highlight" />
+                    <label class="form-check-label" for="standing-highlight">@(IsCoach ? SiteResources.HighlightSelfAndCoached : SiteResources.HighlightSelf)</label>
+                </div>
+                <button type="submit" class="btn btn-outline-secondary">@SiteResources.Show</button>
+            </form>
+        }
     }
 </div>
 @if (Official)
