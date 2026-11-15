@@ -696,4 +696,33 @@
   <data name="ChangeVirtualStart" xml:space="preserve"><value>Изменить начало</value></data>
   <data name="VirtualTimeZone" xml:space="preserve"><value>Часовой пояс сайта: {0}</value></data>
   <data name="StandingAttemptSummary" xml:space="preserve"><value>Успешно / всего</value></data>
+  <data name="StaffNormalization" xml:space="preserve"><value>Нормализация старых данных</value></data>
+  <data name="StaffNormalizationIntroduction" xml:space="preserve"><value>Временный инструмент администратора. Общий предпросмотр включает имена участников, названия и описания компиляторов, пять согласованных объединений и удаление пустых неактивных компиляторов. Все изменения применяются одной транзакцией после одного подтверждения. Предпросмотр не меняет данные.</value></data>
+  <data name="StaffNormalizationCompilers" xml:space="preserve"><value>Приведение названий и описаний известных старых компиляторов к единому виду. Команды и конфигурации сохраняются. Записи, показанные ниже для объединения или удаления, не переименовываются.</value></data>
+  <data name="StaffNormalizationParticipants" xml:space="preserve"><value>Нормализация отображаемых имён участников НГТУ 2010, Новосибирск 2010 и ФПМИ 05.10.2010. Имя отделяется от вуза или группы запятой. Постоянные учётные записи и сохранённые HTML-таблицы не меняются.</value></data>
+  <data name="StaffNormalizationChanged" xml:space="preserve"><value>После предпросмотра данные изменились. Подготовьте новый предпросмотр перед применением.</value></data>
+  <data name="StaffNormalizationCount" xml:space="preserve"><value>Записей к изменению: {0}.</value></data>
+  <data name="StaffNormalizationApplied" xml:space="preserve"><value>Изменено записей: {0}.</value></data>
+  <data name="StaffNormalizationUnrecognized" xml:space="preserve"><value>Записей, не подходящих для переименования: {0}. Согласованных пар, не подходящих для объединения: {1}. Также проверьте отдельный список удаления пустых записей.</value></data>
+  <data name="StaffNormalizationOrderChanged" xml:space="preserve"><value>Хотя бы в одной общей или официальной таблице меняется порядок строк. Баллы и штраф сохраняются; имена используются для сортировки равных результатов.</value></data>
+  <data name="StaffNormalizationOrderPreserved" xml:space="preserve"><value>Порядок строк в общей и официальной таблицах сохраняется, с учётом заморозки и без неё.</value></data>
+  <data name="StaffNormalizationBefore" xml:space="preserve"><value>Имя до</value></data>
+  <data name="StaffNormalizationAfter" xml:space="preserve"><value>Имя после</value></data>
+  <data name="StaffNormalizationDescriptionBefore" xml:space="preserve"><value>Описание до</value></data>
+  <data name="StaffNormalizationDescriptionAfter" xml:space="preserve"><value>Описание после</value></data>
+  <data name="StaffNormalizationConfirm" xml:space="preserve"><value>Применить всё: переименовать участников ({0}) и компиляторы ({1}), объединить пары компиляторов ({2}) с переносом решений ({3}), удалить пустые компиляторы ({4})? Исходные записи объединяемых пар также будут удалены. Все изменения применяются одной транзакцией после повторной проверки предпросмотра. Если данные изменились, операция не будет выполнена.</value></data>
+  <data name="StaffNormalizationApply" xml:space="preserve"><value>Применить изменения</value></data>
+  <data name="StaffNormalizationRefresh" xml:space="preserve"><value>Обновить предпросмотр</value></data>
+  <data name="StaffNormalizationMerges" xml:space="preserve"><value>Объединение компиляторов</value></data>
+  <data name="StaffNormalizationMergeDescription" xml:space="preserve"><value>Все решения из левой записи переносятся на правую, затем левая запись удаляется. ID решений, исходный код, результаты и история проверок сохраняются. Целевой компилятор и его доступность сохраняются. Пять согласованных пар можно объединить до или после нормализации названий.</value></data>
+  <data name="StaffNormalizationRemove" xml:space="preserve"><value>Удаляемый компилятор</value></data>
+  <data name="StaffNormalizationKeep" xml:space="preserve"><value>Остающийся компилятор</value></data>
+  <data name="StaffNormalizationMoveSubmissions" xml:space="preserve"><value>Переносимых решений</value></data>
+  <data name="StaffNormalizationEmptyCompilers" xml:space="preserve"><value>Удаление пустых компиляторов</value></data>
+  <data name="StaffNormalizationEmptyDescription" xml:space="preserve"><value>Удаляются неактивные компиляторы без решений. Активные записи и пять целевых компиляторов объединения сохраняются, даже если решений нет. Объединяемые дубли показаны только в предыдущем разделе.</value></data>
+  <data name="StaffNormalizationSkipped" xml:space="preserve"><value>Пропущенные изменения</value></data>
+  <data name="StaffNormalizationOperation" xml:space="preserve"><value>Операция</value></data>
+  <data name="StaffNormalizationRename" xml:space="preserve"><value>Переименование</value></data>
+  <data name="StaffNormalizationField" xml:space="preserve"><value>Отличающееся поле</value></data>
+  <data name="StaffNormalizationRecord" xml:space="preserve"><value>Наличие записи</value></data>
 </root>

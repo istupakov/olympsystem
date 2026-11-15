@@ -1,0 +1,91 @@
+namespace Olymp.WebApp.Services.Administration;
+
+internal static class LegacyCompilerNames
+{
+    internal sealed record Rule(int Id, string OldName, string Name, string Description, string Language, string Extension, string Configuration, string Command);
+
+    internal sealed record MergeRule(int SourceId, int DestinationId, string Name, string Description);
+
+    internal static readonly MergeRule[] Merges =
+    [
+        new(64, 109, "Pascal", "Pascal (Free Pascal 3.2)"),
+        new(96, 104, "C# .NET", "C# 14 (.NET 10)"),
+        new(97, 102, "MSVC C", "C (MSVC 2026)"),
+        new(99, 105, "MSVC C++20", "C++20 (MSVC 2026)"),
+        new(100, 103, "C# .NET Framework", "C# (.NET Framework 4.8)")
+    ];
+
+    internal static readonly Rule[] Rules =
+    [
+        new(1, "Microsoft Visual C++ 2008", "MSVC C++", "C++ (MSVC 2008)", "C++", ".cpp", "VC2008", "cl /O2 /EHs /TP !.!"),
+        new(2, "Microsoft Visual C++ 2010", "MSVC C++", "C++ (MSVC 2010)", "C++", ".cpp", "VC2010", "cl /O2 /EHs /TP !.!"),
+        new(3, "Java SE 6 update 22", "Java", "Java 6u22 (Java SE)", "Java", ".java", "Java", "javac Main.java"),
+        new(4, "Microsoft Visual C# 2008", "C# .NET Framework", "C# (VS 2008)", "C#", ".cs", "VC2008", "csc /o !.!"),
+        new(5, "Microsoft Visual C# 2010", "C# .NET Framework", "C# (VS 2010)", "C#", ".cs", "VC2010", "csc /o /r:System.Numerics.dll !.!"),
+        new(6, "Free Pascal 2.6.2", "Pascal", "Pascal (Free Pascal 2.6.2)", "Pascal", ".pas", "Pascal", "fpc -Sd -Sc -Sg -Sh -O3 -FE. !.!"),
+        new(11, "GNU C++ 4.6.2 (MinGW)", "GCC C++", "C++ (GCC 4.6.2)", "C++", ".cpp", "GCC46", "g++ -O2 -Wl,--stack=67108864 -x c++ !.! -o!"),
+        new(12, "GNU C 4.6.2 (MinGW)", "GCC C", "C (GCC 4.6.2)", "C", ".c", "GCC46", "gcc -O2 -Wl,--stack=67108864 -x c !.! -o!"),
+        new(13, "Microsoft Visual C 2010", "MSVC C", "C (MSVC 2010)", "C", ".c", "VC2010", "cl /O2 /TC !.!"),
+        new(16, "Microsoft Visual C 2008", "MSVC C", "C (MSVC 2008)", "C", ".c", "VC2008", "cl /O2 /TC !.!"),
+        new(17, "Java SE 7 update 40", "Java", "Java 7u40 (Java SE)", "Java", ".java", "Java7_40", "javac Main.java"),
+        new(20, "GNU C++ 4.8.1 (MinGW)", "GCC C++11", "C++11 (GCC 4.8.1)", "C++", ".cpp", "GCC48", "g++ -O2 -Wl,--stack=67108864 -std=c++11 -x c++ !.! -o!"),
+        new(21, "GNU C 4.8.1 (MinGW)", "GCC C", "C (GCC 4.8.1)", "C", ".c", "GCC48", "gcc -O2 -Wl,--stack=67108864 -x c !.! -o!"),
+        new(22, "Microsoft Visual C++ 2013", "MSVC C++", "C++ (MSVC 2013)", "C++", ".cpp", "VC2013", "cl /O2 /EHs /TP !.!"),
+        new(23, "Microsoft Visual C++ 2012", "MSVC C++", "C++ (MSVC 2012)", "C++", ".cpp", "VC2012", "cl /O2 /EHs /TP !.!"),
+        new(24, "Microsoft Visual C 2012", "MSVC C", "C (MSVC 2012)", "C", ".c", "VC2012", "cl /O2 /TC !.!"),
+        new(25, "Microsoft Visual C# 2012", "C# .NET Framework", "C# (VS 2012)", "C#", ".cs", "VC2012", "csc /o /r:System.Numerics.dll !.!"),
+        new(26, "GNU C++ 4.7.2 (MinGW)", "GCC C++", "C++ (GCC 4.7.2)", "C++", ".cpp", "GCC47", "g++ -O2 -Wl,--stack=67108864 -x c++ !.! -o!"),
+        new(27, "GNU C 4.7.2 (MinGW)", "GCC C", "C (GCC 4.7.2)", "C", ".c", "GCC47", "gcc -O2 -Wl,--stack=67108864 -x c !.! -o!"),
+        new(28, "Java SE 7 update 25", "Java", "Java 7u25 (Java SE)", "Java", ".java", "Java7_25", "javac Main.java"),
+        new(29, "GNU Fortran 4.7.2 (MinGW)", "GCC Fortran", "Fortran (GCC 4.7.2)", "Fortran", ".for", "GCC47", "gfortran !.! -o!"),
+        new(30, "Free Pascal 2.6.4", "Pascal", "Pascal (Free Pascal 2.6.4)", "Pascal", ".pas", "Pascal", "fpc -Sd -Sc -Sg -Sh -O3 -FE. !.!"),
+        new(31, "Microsoft Visual C# 2013", "C# .NET Framework", "C# (VS 2013)", "C#", ".cs", "VC2013", "csc /o /r:System.Numerics.dll !.!"),
+        new(32, "Microsoft Visual C 2013", "MSVC C", "C (MSVC 2013)", "C", ".c", "VC2013", "cl /O2 /TC !.!"),
+        new(33, "Java SE 8 update 112", "Java", "Java 8u112 (Java SE)", "Java", ".java", "Java8", "javac Main.java"),
+        new(34, "Java SE 7 update 71", "Java", "Java 7u71 (Java SE)", "Java", ".java", "Java7_71", "javac Main.java"),
+        new(37, "Python 3.5.2", "Python", "Python 3.5.2", "Python", ".py", "Python3", "python -m compileall -b !.!"),
+        new(38, "Microsoft Visual C++ 2015", "MSVC C++", "C++ (MSVC 2015)", "C++", ".cpp", "VC2015", "cl /O2 /EHs /TP !.!"),
+        new(39, "Microsoft Visual C 2015", "MSVC C", "C (MSVC 2015)", "C", ".c", "VC2015", "cl /O2 /TC !.!"),
+        new(40, "Microsoft Visual C# 2015", "C# .NET Framework", "C# (VS 2015)", "C#", ".cs", "VC2015", "csc /o /r:System.Numerics.dll /utf8output !.!"),
+        new(41, "GNU C++ 6.2", "GCC C++", "C++ (GCC 6.2)", "C++", ".cpp", "MSYSGCC", "g++ -O2 -Wl,--stack=67108864 -x c++ !.! -o!"),
+        new(42, "GNU C 6.2", "GCC C", "C (GCC 6.2)", "C", ".c", "MSYSGCC", "gcc -O2 -Wl,--stack=67108864 -x c !.! -o!"),
+        new(43, "Python 2.7.17", "Python", "Python 2.7.17", "Python", ".py", "Python2", "python -m compileall !.!"),
+        new(44, "Free Pascal 3.0.4", "Pascal", "Pascal (Free Pascal 3.0.4)", "Pascal", ".pas", "Pascal", "fpc -Sd -Sc -Sg -Sh -O3 -FE. !.!"),
+        new(46, "Python 3.8.0", "Python", "Python 3.8.0", "Python", ".py", "Python3", "python -m compileall -b !.!"),
+        new(48, "Java 13.0.1", "Java", "Java 13.0.1", "Java", ".java", "Java13", "javac Main.java"),
+        new(53, "Microsoft Visual C 2019", "MSVC C", "C (MSVC 2019)", "C", ".c", "VC2019", "cl /O2 /TC !.!"),
+        new(54, "Microsoft Visual C++ 2019", "MSVC C++", "C++ (MSVC 2019)", "C++", ".cpp", "VC2019", "cl /O2 /EHs /TP !.!"),
+        new(57, "Microsoft Visual C# 2019", "C# .NET Framework", "C# (VS 2019)", "C#", ".cs", "VC2019", "csc /o /r:System.Numerics.dll /utf8output !.!"),
+        new(58, "GNU C 9.1", "GCC C", "C (GCC 9.1)", "C", ".c", "msys2", "gcc -O2 -Wl,--stack=67108864 -x c !.! -o!"),
+        new(59, "GNU C++ 9.1", "GCC C++", "C++ (GCC 9.1)", "C++", ".cpp", "msys2", "g++ -O2 -Wl,--stack=67108864 -x c++ !.! -o!"),
+        new(60, "Kotlin 1.3.50", "Kotlin", "Kotlin 1.3.50", "Kotlin", ".kt", "Kotlin", "kotlinc !.!"),
+        new(61, "Microsoft Visual C 2017", "MSVC C", "C (MSVC 2017)", "C", ".c", "VC2017", "cl /O2 /TC !.!"),
+        new(62, "Microsoft Visual C++ 2017", "MSVC C++", "C++ (MSVC 2017)", "C++", ".cpp", "VC2017", "cl /O2 /EHs /TP !.!"),
+        new(64, "Free Pascal 3.2.2", "Pascal", "Pascal (Free Pascal 3.2.2)", "Pascal", ".pas", "pascal", "fpc -Sd -Sc -Sg -Sh -O3 -FE. !.!"),
+        new(65, "Python 3.11", "Python", "Python 3.11", "Python", ".py", "Python3", "python -m compileall -b !.!"),
+        new(66, "Java 19.0", "Java", "Java 19.0", "Java", ".java", "Java19", "javac Main.java"),
+        new(73, "MS C++ (VS 2022)", "MSVC C++", "C++ (MSVC 2022)", "C++", ".cpp", "VC2022", "cl /O2 /EHs /TP !.!"),
+        new(77, "MS C (VS 2022)", "MSVC C", "C (MSVC 2022)", "C", ".c", "VC2022", "cl /O2 /TC !.!"),
+        new(78, "GCC C 12.2", "GCC C", "C (GCC 12.2)", "C", ".c", "msys2", "gcc -O2 -Wl,--stack=67108864 -x c !.! -o!"),
+        new(79, "GCC C++ 12.2", "GCC C++17", "C++17 (GCC 12.2)", "C++", ".cpp", "msys2", "g++ -O2 -Wl,--stack=67108864 -x c++ -std=c++17 !.! -o!"),
+        new(80, "MS C# (VS 2022, .NET Framework)", "C# .NET Framework", "C# (VS 2022)", "C#", ".cs", "VC2022", "csc /o /r:System.Numerics.dll /utf8output !.!"),
+        new(81, "PyPy 3.9", "PyPy", "Python 3.9 (PyPy)", "Python", ".py", "PyPy", "pypy3 !.!"),
+        new(82, "Python 3.12", "Python", "Python 3.12", "Python", ".py", "Python3", "python -m compileall -b !.!"),
+        new(83, "Java (OpenJDK 21.0)", "Java", "Java 21.0 (OpenJDK 21.0)", "Java", ".java", "Java21", "javac Main.java"),
+        new(84, "MS C# (.NET 8)", "C# .NET", "C# (.NET 8)", "C#", ".cs", "dotnet8", "dotnet-csc.cmd !.!"),
+        new(85, "GCC C 13.2", "GCC C", "C (GCC 13.2)", "C", ".c", "msys2", "gcc -O2 -Wl,--stack=67108864 -x c !.! -o!"),
+        new(86, "GCC C++ 13.2 (std c++20)", "GCC C++20", "C++20 (GCC 13.2)", "C++", ".cpp", "msys2", "g++ -O2 -Wl,--stack=67108864 -x c++ -std=c++20 !.! -o!"),
+        new(88, "MS C++ (VS 2022, std c++ 20)", "MSVC C++20", "C++20 (MSVC 2022)", "C++", ".cpp", "VC2022", "cl /O2 /EHs /TP /std:c++20 !.!"),
+        new(89, "GCC C 14.2", "GCC C", "C (GCC 14.2)", "C", ".c", "msys2", "gcc -O2 -Wl,--stack=67108864 -x c !.! -o!"),
+        new(90, "GCC C++ 14.2 (std c++20)", "GCC C++20", "C++20 (GCC 14.2)", "C++", ".cpp", "msys2", "g++ -O2 -Wl,--stack=67108864 -x c++ -std=c++20 !.! -o!"),
+        new(91, "Python 3.14", "Python", "Python 3.14", "Python", ".py", "python", "python -m compileall -b !.!"),
+        new(93, "Java 25", "Java", "Java 25", "Java", ".java", "java", "javac Main.java"),
+        new(94, "GCC C 15.2", "GCC C", "C (GCC 15.2)", "C", ".c", "mingw", "gcc -O2 -Wl,--stack=67108864 -x c !.! -o!"),
+        new(95, "GCC C++ 15.2 (std c++20)", "GCC C++20", "C++20 (GCC 15.2)", "C++", ".cpp", "mingw", "g++ -O2 -Wl,--stack=67108864 -x c++ -std=c++20 !.! -o!"),
+        new(96, "MS C# (.NET 10)", "C# .NET", "C# (.NET 10)", "C#", ".cs", "dotnet", "dotnet-csc.cmd !.!"),
+        new(97, "MS C (VS 2026)", "MSVC C", "C (MSVC 2026)", "C", ".c", "vs2026", "cl /O2 /TC !.!"),
+        new(98, "MS C++ (VS 2026)", "MSVC C++", "C++ (MSVC 2026)", "C++", ".cpp", "vs2026", "cl /O2 /EHs /TP !.!"),
+        new(99, "MS C++ (VS 2026, std c++20)", "MSVC C++20", "C++20 (MSVC 2026)", "C++", ".cpp", "vs2026", "cl /O2 /EHs /TP /std:c++20 !.!"),
+        new(100, "MS C# (VS 2026, .NET Framework)", "C# .NET Framework", "C# (VS 2026)", "C#", ".cs", "vs2026", "csc /o /r:System.Numerics.dll /utf8output !.!"),
+    ];
+}
