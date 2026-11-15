@@ -10,7 +10,7 @@
 @inject IDbContextFactory<OlympContext> ContextFactory
 @inject IAuthorizationService Authorization
 
-<PageTitle>@SiteResources.SubmissionSource</PageTitle>
+<PageTitle>@SiteResources.SubmissionSource #@Id</PageTitle>
 
 @if (submission is not null)
 {

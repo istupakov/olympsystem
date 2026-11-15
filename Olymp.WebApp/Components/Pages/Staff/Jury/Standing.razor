@@ -3,7 +3,7 @@
 @using Olymp.WebApp.Components.Contests
 @inject IDbContextFactory<OlympContext> ContextFactory
 
-<PageTitle>@SiteResources.ContestStandings</PageTitle>
+<StaffPageTitle Title="@SiteResources.ContestStandings" Context="@_contest?.Name" />
 @if (!_loaded)
 {
     <p role="status">@SiteResources.StaffLoading</p>

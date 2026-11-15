@@ -183,8 +183,11 @@
   <data name="QuestionProblemUnavailable" xml:space="preserve"><value>Выбранная задача недоступна. Выберите действующую задачу этого соревнования.</value></data>
   <data name="QuestionRequired" xml:space="preserve"><value>Введите вопрос.</value></data>
   <data name="QuestionLength" xml:space="preserve"><value>Вопрос должен содержать от 10 до 4096 символов.</value></data>
+  <data name="StaffManagement" xml:space="preserve"><value>Управление</value></data>
+  <data name="StaffArchiveContests" xml:space="preserve"><value>Архив соревнований</value></data>
   <data name="JurySection" xml:space="preserve"><value>Жюри</value></data>
-  <data name="AdminSection" xml:space="preserve"><value>Админ</value></data>
+  <data name="StaffAllParticipants" xml:space="preserve"><value>Все участники</value></data>
+  <data name="StaffAllSubmissions" xml:space="preserve"><value>Все решения</value></data>
   <data name="StaffNavigation" xml:space="preserve"><value>Разделы управления</value></data>
   <data name="StaffLoading" xml:space="preserve"><value>Загрузка…</value></data>
   <data name="StaffName" xml:space="preserve"><value>Название</value></data>

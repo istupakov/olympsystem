@@ -8,7 +8,7 @@
 @inject ILogger<Runners> Logger
 @implements IAsyncDisposable
 
-<PageTitle>@SiteResources.StaffRunner</PageTitle>
+<StaffPageTitle Title="@SiteResources.StaffRunner" />
 <CompilerNavigation />
 <h1 class="h3">@SiteResources.StaffRunner</h1>
 @if (!_loaded) { <p role="status">@SiteResources.StaffLoading</p> }

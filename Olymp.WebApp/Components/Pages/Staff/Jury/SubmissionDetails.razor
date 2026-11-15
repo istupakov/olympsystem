@@ -5,7 +5,7 @@
 @inject StaffGridState GridState
 @inject NavigationManager Navigation
 
-<PageTitle>@SiteResources.SubmissionSource</PageTitle>
+<StaffPageTitle Title="@($"{SiteResources.SubmissionSource} #{Id}")" />
 @if (_submission is null)
 {
     <p role="status">@(_loaded ? SiteResources.PageNotFoundMessage : SiteResources.StaffLoading)</p>

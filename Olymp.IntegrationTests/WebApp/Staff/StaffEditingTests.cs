@@ -3,6 +3,8 @@ using System.Globalization;
 using System.Net;
 using System.Security.Claims;
 
+using AngleSharp.Html.Parser;
+
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
@@ -48,12 +50,35 @@ public class StaffEditingTests(WebAppFactory factory) : IClassFixture<WebAppFact
             using var response = await client.GetAsync(path, TestContext.Current.CancellationToken);
             bool allowed = role == RoleNames.Admin || (role == RoleNames.Jury && path.StartsWith("/jury/", StringComparison.Ordinal) && path != "/jury/compilers/add");
             Assert.Equal(allowed ? HttpStatusCode.OK : HttpStatusCode.Redirect, response.StatusCode);
+            if (allowed)
+            {
+                using var document = await new HtmlParser().ParseDocumentAsync(
+                    await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
+                var management = Assert.Single(document.QuerySelectorAll("header a[href='jury/contests']"));
+                Assert.Contains("active", management.ClassList);
+                Assert.Equal("true", management.GetAttribute("aria-current"));
+                Assert.Null(document.QuerySelector("header a[href='admin/news']"));
+                Assert.Single(document.QuerySelectorAll("noscript"));
+                Assert.NotNull(document.QuerySelector("main noscript"));
+                Assert.NotEmpty(document.QuerySelectorAll("main nav a[href='jury/participants']"));
+                Assert.Equal(role == RoleNames.Admin, document.QuerySelector("main nav a[href='admin/users']") is not null);
+                Assert.Empty(document.QuerySelectorAll("main nav > div"));
+            }
             if (!allowed)
             {
                 Assert.Contains(user is null ? "/Account/Login" : "/Account/AccessDenied", response.Headers.Location!.OriginalString);
                 using var deniedPage = await client.GetAsync(response.Headers.Location, TestContext.Current.CancellationToken);
                 Assert.Equal(HttpStatusCode.OK, deniedPage.StatusCode);
             }
+        }
+        if (role is RoleNames.Jury or RoleNames.Admin)
+        {
+            using var response = await client.GetAsync("/", TestContext.Current.CancellationToken);
+            using var document = await new HtmlParser().ParseDocumentAsync(
+                await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
+            var management = Assert.Single(document.QuerySelectorAll("header a[href='jury/contests']"));
+            Assert.DoesNotContain("active", management.ClassList);
+            Assert.Null(management.GetAttribute("aria-current"));
         }
     }
 

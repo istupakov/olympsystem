@@ -7,11 +7,12 @@
 @using Olymp.WebApp.Services.Contests
 @inject IDbContextFactory<OlympContext> ContextFactory
 @inject SubmissionService Submissions
+@inject ClientConnection Connection
 @inject NavigationManager Navigation
 @inject ILogger<Problems> Logger
 @inject IServiceScopeFactory ScopeFactory
 
-<PageTitle>@SiteResources.Problems</PageTitle>
+<StaffPageTitle Title="@(_selected?.NameWithNumber ?? SiteResources.Problems)" Context="@_contest?.Name" />
 @if (!_loaded)
 {
     <p role="status">@SiteResources.StaffLoading</p>
@@ -271,7 +272,8 @@ else
         int contestId = ContestId, problemId = _selected.Id;
         try
         {
-            var result = await Submissions.SubmitJuryAsync((await AuthenticationState).User, contestId, problemId, _input);
+            var result = await Submissions.SubmitAsync((await AuthenticationState).User, contestId, problemId, _input,
+                Connection.RemoteIpAddress, forJury: true);
             if (ContestId != contestId || _selected?.Id != problemId) return;
             if (result.NotFound) { Navigation.NotFound(); return; }
             _error = result.Error;

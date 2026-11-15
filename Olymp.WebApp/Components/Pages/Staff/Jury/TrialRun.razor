@@ -10,7 +10,7 @@
 @inject ILogger<TrialRun> Logger
 @inject NavigationManager Navigation
 
-<PageTitle>@SiteResources.StaffRunCode</PageTitle>
+<StaffPageTitle Title="@SiteResources.StaffRunCode" />
 <h1 class="h3">@SiteResources.StaffRunCode</h1>
 @if (Submission is int submission) { <p><a href="jury/submissions/@submission">@SiteResources.Submissions #@submission</a></p> }
 @if (_error is not null) { <p class="alert alert-danger" role="alert">@_error</p> }

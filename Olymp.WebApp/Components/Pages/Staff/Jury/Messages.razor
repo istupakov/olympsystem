@@ -8,7 +8,7 @@
 @inject ILogger<Messages> Logger
 @implements IAsyncDisposable
 
-<PageTitle>@SiteResources.StaffMessages</PageTitle>
+<StaffPageTitle Title="@SiteResources.StaffMessages" Context="@_contest?.Name" />
 @if (!_loaded)
 {
     <p role="status">@SiteResources.StaffLoading</p>

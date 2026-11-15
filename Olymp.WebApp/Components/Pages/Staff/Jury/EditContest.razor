@@ -8,7 +8,7 @@
 @inject ILogger<EditContest> Logger
 @inject TimeProvider TimeProvider
 
-<PageTitle>@Title</PageTitle>
+<StaffPageTitle Title="@Title" Context="@(Id.HasValue ? _input.Name : null)" />
 @if (Id is { } contestId)
 {
     <StaffContestNavigation ContestId="contestId" ContestName="@_input.Name" IsHidden="_isHidden" />

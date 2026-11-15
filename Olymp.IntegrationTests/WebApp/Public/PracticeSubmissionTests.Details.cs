@@ -33,6 +33,7 @@ public partial class PracticeSubmissionTests
 
         using var client = await factory.LoginAsync(user.UserName!);
         using var page = await GetAsync(client, $"/submissions/{submission.Id}");
+        Assert.Equal($"Submission #{submission.Id}", page.Title);
         var metadata = page.QuerySelector("main dl")!;
         Assert.Contains(user.Name, metadata.TextContent);
         Assert.Contains(contest.Name, metadata.TextContent);

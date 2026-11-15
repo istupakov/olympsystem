@@ -2,7 +2,7 @@
 @rendermode @(new InteractiveServerRenderMode(prerender: false))
 @inject IDbContextFactory<OlympContext> ContextFactory
 
-<PageTitle>@SiteResources.StaffContestDetails</PageTitle>
+<StaffPageTitle Title="@SiteResources.StaffContestDetails" Context="@_contest?.Name" />
 <BackToList ReturnTo="@ReturnTo" Fallback="jury/contests" />
 @if (!_loaded) { <p role="status">@SiteResources.StaffLoading</p> }
 else if (_contest is null) { <p>@SiteResources.PageNotFoundMessage</p> }
