@@ -16,7 +16,7 @@
         }
         else
         {
-            <form action="@ProblemUrl(Selected?.Id ?? 0)" method="get" data-enhance class="d-lg-none mb-3">
+            <form action="@(ProblemUrl(Selected?.Id ?? 0) + "#problem-detail")" method="get" data-enhance class="d-lg-none mb-3">
                 @if (!string.IsNullOrEmpty(Scope))
                 {
                     <input type="hidden" name="scope" value="@Scope" />
@@ -40,7 +40,7 @@
             {
                 var problem = result.Problem;
                 <a class="list-group-item list-group-item-action d-flex justify-content-between gap-2 @ResultClass(result) @(Selected?.Id == problem.Id ? "active" : null)"
-                   href="@ProblemUrl(problem.Id)" aria-current="@(Selected?.Id == problem.Id ? "page" : null)">
+                   href="@(ProblemUrl(problem.Id) + "#problem-detail")" aria-current="@(Selected?.Id == problem.Id ? "page" : null)">
                     <span>@problem.NameWithNumber
                         @if (!problem.IsActive) { <span class="badge text-bg-secondary ms-1">@SiteResources.StaffInactiveProblem</span> }
                     </span>

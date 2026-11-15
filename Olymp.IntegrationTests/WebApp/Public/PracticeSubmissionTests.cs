@@ -444,10 +444,12 @@ public partial class PracticeSubmissionTests(WebAppFactory factory) : IClassFixt
         using var client = await factory.LoginAsync(data.User.UserName!);
         string path = $"/submissions?contestId={data.Contest.Id}";
         using var first = await GetAsync(client, path + "&scope=all");
+        Assert.EndsWith("#submissions", first.QuerySelector("#submissions > div > a")!.GetAttribute("href"));
         Assert.Equal(20, first.QuerySelectorAll("#submissions tbody tr").Length);
         var ids = first.QuerySelectorAll("#submissions tbody tr").Select(row => int.Parse(row.Id!["submission-".Length..])).ToArray();
         Assert.Equal(ids.OrderDescending(), ids);
         using var tenth = await GetAsync(client, path + "&scope=all&page=10");
+        Assert.EndsWith("scope=all&page=10#submissions", tenth.QuerySelector("#submissions > div > a")!.GetAttribute("href"));
         Assert.Equal(20, tenth.QuerySelectorAll("#submissions tbody tr").Length);
         Assert.Null(tenth.QuerySelector("a[rel='next']"));
         Assert.Equal(["1", "7", "8", "9"], tenth.QuerySelectorAll(".pagination a").Select(link => link.TextContent));

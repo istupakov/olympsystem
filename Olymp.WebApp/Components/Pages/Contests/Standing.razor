@@ -14,14 +14,16 @@
     {
         <div class="contest-description mb-4 overflow-auto">@((MarkupString)contest.Description)</div>
     }
-    <StandingControls BaseUrl="@($"contests/{Id}/standing")" Official="Official" HasOfficialStanding="HasOfficialStanding" />
+    <StandingControls BaseUrl="@($"contests/{Id}/standing")" Official="Official" HasOfficialStanding="HasOfficialStanding"
+                      Highlight="Highlight" CanHighlight="@(relatedUserIds.Count > 0)"
+                      IsCoach="@StandingHighlights.IsCoach(standing?.Results.Select(row => row.User) ?? [], HttpContext.User)" />
     @if (savedTable is not null)
     {
         <SavedStandingView Html="@savedTable" />
     }
     else if (standing is not null)
     {
-        <StandingTable Standing="standing" />
+        <StandingTable Standing="standing" HighlightedUserIds="@(Highlight ? relatedUserIds : null)" />
     }
 }
 
@@ -31,6 +33,10 @@
 
     [SupplyParameterFromQuery]
     public bool Official { get; set; }
+
+    [SupplyParameterFromQuery] public bool Highlight { get; set; }
+    [CascadingParameter] private HttpContext HttpContext { get; set; } = default!;
+    private HashSet<int> relatedUserIds = [];
 
     private Contest? contest;
     private Olymp.Domain.Standing? standing;
@@ -42,6 +48,7 @@
     {
         savedTable = null;
         standing = null;
+        relatedUserIds = [];
         await using var context = await ContextFactory.CreateDbContextAsync();
         contest = await context.Contests.AsNoTracking().SingleOrDefaultAsync(item => item.Id == Id && !item.IsHidden);
         if (contest is null || !contest.AllowShowStanding || (Official && !HasOfficialStanding))
@@ -65,5 +72,6 @@
             .AsSplitQuery()
             .SingleAsync(item => item.Id == Id);
         standing = Olymp.Domain.Standing.Create(contest, includeAll: !Official, official: Official, notFreeze: false, startTime: null);
+        relatedUserIds = StandingHighlights.GetUserIds(standing.Results.Select(row => row.User), HttpContext.User);
     }
 }

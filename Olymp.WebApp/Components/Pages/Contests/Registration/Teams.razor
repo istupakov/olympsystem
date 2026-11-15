@@ -52,7 +52,7 @@
         <form method="post" @formname="cancel-team" @onsubmit="CancelAsync">
             <AntiforgeryToken />
             <div class="table-responsive">
-                <table class="table table-hover">
+                <table class="table table-hover text-nowrap">
                     <thead>
                         <tr>
                             <th scope="col">@SiteResources.Team</th>
@@ -69,7 +69,7 @@
                         {
                             <tr>
                                 <td>
-                                    <div class="d-flex flex-wrap align-items-center gap-2">
+                                    <div class="d-flex align-items-center gap-2">
                                         <span class="fw-semibold">@team.Name</span>
                                         <CompetitorBadges User="team" />
                                     </div>

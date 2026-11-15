@@ -76,8 +76,8 @@ public class ParticipantNavigationTests(WebAppFactory factory) : IClassFixture<W
             var menu = document.QuerySelector(".contest-header nav")!;
             Assert.Equal(culture == "ru" ? "Мои решения" : "My submissions", menu.QuerySelector("a[href='submissions']")!.TextContent);
             Assert.Equal(state != "upcoming", menu.QuerySelector($"a[href='contests/{contest.Id}/problems']") is not null);
-            Assert.Equal(state != "upcoming", menu.QuerySelector($"a[href='contests/{contest.Id}/standing?official=true']") is not null);
-            Assert.Equal($"contests/{contest.Id}/{section}" + (section == "standing" ? "?official=true" : ""), menu.QuerySelector("a[aria-current='page']")!.GetAttribute("href"));
+            Assert.Equal(state != "upcoming", menu.QuerySelector($"a[href='contests/{contest.Id}/standing?highlight=true&official=true']") is not null);
+            Assert.Equal($"contests/{contest.Id}/{section}" + (section == "standing" ? "?highlight=true&official=true" : ""), menu.QuerySelector("a[aria-current='page']")!.GetAttribute("href"));
             Assert.Equal(state == "running", menu.QuerySelector($"a[href='contests/{contest.Id}/questions']") is not null);
             Assert.Equal(state == "upcoming" ? 2 : state == "running" ? 5 : 4, menu.QuerySelectorAll("a").Length);
             if (section == "rules")
@@ -166,10 +166,16 @@ public class ParticipantNavigationTests(WebAppFactory factory) : IClassFixture<W
         using var response = await client.GetAsync($"/contests/{contest.Id}/rules", token);
         response.EnsureSuccessStatusCode();
         using var html = await new HtmlParser().ParseDocumentAsync(await response.Content.ReadAsStringAsync(token), token);
-        string expected = $"contests/{contest.Id}/standing" + (official ? "?official=true" : "");
+        string expected = $"contests/{contest.Id}/standing?highlight=true" + (official ? "&official=true" : "");
         Assert.NotNull(html.QuerySelector($".contest-header a[href='{expected}']"));
         using var standing = await client.GetAsync("/" + expected, token);
         standing.EnsureSuccessStatusCode();
+        if (approved && !onlySavedFullTable)
+        {
+            using var results = await new HtmlParser().ParseDocumentAsync(await standing.Content.ReadAsStringAsync(token), token);
+            Assert.True(results.QuerySelector("input[name='highlight']")!.HasAttribute("checked"));
+            Assert.Equal(participant.Name, Assert.Single(results.QuerySelectorAll("tbody span.text-primary-emphasis")).TextContent);
+        }
     }
 
     private async Task<Competitor> AddParticipantAsync(Contest contest)

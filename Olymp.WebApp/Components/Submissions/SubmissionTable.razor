@@ -1,5 +1,5 @@
 <div class="table-responsive">
-    <table class="table table-striped table-hover">
+    <table class="table table-striped table-hover text-nowrap align-middle">
         <thead>
             <tr>
                 <th scope="col">@SiteResources.SubmissionTime</th>
@@ -15,7 +15,7 @@
                 <th scope="col">@SiteResources.SubmissionStatus</th>
                 @if (ShowScores)
                 {
-                    <th scope="col">@SiteResources.Points</th>
+                    <th scope="col" class="text-center">@SiteResources.Points</th>
                 }
                 @if (ShowSource)
                 {
@@ -27,26 +27,28 @@
             @foreach (var submission in Items)
             {
                 <tr id="submission-@submission.Id">
-                    <td>@submission.CommitTime.ToLocalTime().ToString("g")</td>
+                    <td>
+                        <div>@submission.CommitTime.ToLocalTime().ToString("d")</div>
+                        <div class="small text-body-secondary">@submission.CommitTime.ToLocalTime().ToString("t")</div>
+                    </td>
                     @if (ShowAuthor)
                     {
                         <td>
-                            @submission.Author
+                            <span title="@submission.Author">@Shorten(submission.Author, 25)</span>
                             @if (submission.IsParticipant)
                             {
-                                <span class="badge text-bg-secondary ms-1">@SiteResources.Competitor</span>
+                                <div><span class="badge text-bg-secondary">@SiteResources.Competitor</span></div>
                             }
                         </td>
                     }
                     @if (ShowProblem)
                     {
-                        <td class="w-25">
-                            <div class="d-grid">
-                                <a href="@ProblemUrl(submission)"
-                                   class="text-truncate" title="@submission.Problem">@submission.Problem</a>
+                        <td>
+                            <div>
+                                <a href="@ProblemUrl(submission)" title="@submission.Problem">@Shorten(submission.Problem, 25)</a>
                                 @if (ShowContest)
                                 {
-                                    <div class="small text-body-secondary text-truncate" title="@submission.Contest">@submission.Contest</div>
+                                    <div class="small text-body-secondary" title="@submission.Contest">@Shorten(submission.Contest, 25)</div>
                                 }
                             </div>
                         </td>
@@ -77,15 +79,15 @@
                     </td>
                     @if (ShowScores)
                     {
-                        <td>@submission.Score</td>
+                        <td class="text-center">@submission.Score</td>
                     }
                     @if (ShowSource)
                     {
                         <td>
                             @if (submission.CanViewSource)
                             {
-                                <a href="@SourceUrl(submission)">@SiteResources.ViewSource</a>
-                                <a href="@DownloadUrl(submission)" class="ms-2" data-enhance-nav="false">@SiteResources.DownloadSource</a>
+                                <div><a href="@SourceUrl(submission)">@SiteResources.ViewSource</a></div>
+                                <div><a href="@DownloadUrl(submission)" data-enhance-nav="false">@SiteResources.DownloadSource</a></div>
                             }
                         </td>
                     }
@@ -96,6 +98,14 @@
 </div>
 
 @code {
+    private static string Shorten(string text, int maxLength)
+    {
+        if (text.Length <= maxLength) return text;
+
+        var characters = StringInfo.ParseCombiningCharacters(text);
+        return characters.Length <= maxLength ? text : text[..characters[maxLength - 1]] + "…";
+    }
+
     [Parameter, EditorRequired]
     public IReadOnlyList<SubmissionListItem> Items { get; set; } = [];
 
