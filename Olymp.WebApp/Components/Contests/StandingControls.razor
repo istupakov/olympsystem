@@ -1,11 +1,14 @@
-<div class="d-flex flex-wrap align-items-center gap-3 mb-3">
+@using Microsoft.AspNetCore.WebUtilities
+@inject NavigationManager Navigation
+
+<div class="d-flex flex-wrap flex-grow-1 align-items-center gap-3 mb-3">
     @if (HasOfficialStanding)
     {
         <span>@SiteResources.StandingResultsLabel</span>
         <nav class="standing-view" aria-label="@SiteResources.StandingView">
             <div class="btn-group" role="group" aria-label="@SiteResources.StandingView">
-                <a class="btn @(!Official ? "btn-primary" : "btn-outline-secondary")" href="@BaseUrl" aria-current="@(!Official ? "page" : null)">@SiteResources.FullStandingShort</a>
-                <a class="btn @(Official ? "btn-primary" : "btn-outline-secondary")" href="@(BaseUrl + "?official=true")" aria-current="@(Official ? "page" : null)">@SiteResources.OfficialStandingShort</a>
+                <a class="btn @(!Official ? "btn-primary" : "btn-outline-secondary")" href="@Url(false, Highlight)" aria-current="@(!Official ? "page" : null)">@SiteResources.FullStandingShort</a>
+                <a class="btn @(Official ? "btn-primary" : "btn-outline-secondary")" href="@Url(true, Highlight)" aria-current="@(Official ? "page" : null)">@SiteResources.OfficialStandingShort</a>
             </div>
         </nav>
     }
@@ -13,9 +16,26 @@
     {
         <button type="button" class="btn btn-secondary" @onclick="Refresh">@SiteResources.Refresh</button>
     }
+    else if (CanHighlight)
+    {
+        <form action="@RefreshUri.GetLeftPart(UriPartial.Path)" method="get" class="d-flex flex-wrap flex-grow-1 align-items-center gap-3">
+            @foreach (var parameter in QueryHelpers.ParseQuery(RefreshUri.Query))
+            {
+                @foreach (var value in parameter.Value)
+                {
+                    <input type="hidden" name="@parameter.Key" value="@value" />
+                }
+            }
+            <button type="submit" class="btn btn-outline-secondary">@SiteResources.Refresh</button>
+            <div class="form-check mb-0 col-12 col-md-auto ms-md-auto">
+                <input class="form-check-input" type="checkbox" id="standing-highlight" name="highlight" value="true" checked="@Highlight" />
+                <label class="form-check-label" for="standing-highlight">@(IsCoach ? SiteResources.HighlightSelfAndCoached : SiteResources.HighlightSelf)</label>
+            </div>
+        </form>
+    }
     else
     {
-        <a class="btn btn-outline-secondary" href="@(Official ? BaseUrl + "?official=true" : BaseUrl)" data-enhance-nav="false">@SiteResources.Refresh</a>
+        <a class="btn btn-outline-secondary" href="@Url(Official, Highlight)" data-enhance-nav="false">@SiteResources.Refresh</a>
     }
 </div>
 @if (Official)
@@ -28,4 +48,12 @@
     [Parameter] public bool Official { get; set; }
     [Parameter] public bool HasOfficialStanding { get; set; }
     [Parameter] public EventCallback Refresh { get; set; }
+    [Parameter] public bool Highlight { get; set; }
+    [Parameter] public bool CanHighlight { get; set; }
+    [Parameter] public bool IsCoach { get; set; }
+
+    private Uri RefreshUri => Navigation.ToAbsoluteUri(Url(Official, false));
+
+    private string Url(bool official, bool highlight) => QueryHelpers.AddQueryString(BaseUrl,
+        new Dictionary<string, string?> { ["official"] = official ? "true" : null, ["highlight"] = highlight ? "true" : null });
 }

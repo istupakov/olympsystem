@@ -696,6 +696,8 @@
   <data name="ChangeVirtualStart" xml:space="preserve"><value>Изменить начало</value></data>
   <data name="VirtualTimeZone" xml:space="preserve"><value>Часовой пояс сайта: {0}</value></data>
   <data name="StandingAttemptSummary" xml:space="preserve"><value>Успешно / всего</value></data>
+  <data name="HighlightSelf" xml:space="preserve"><value>Выделить себя</value></data>
+  <data name="HighlightSelfAndCoached" xml:space="preserve"><value>Выделить себя и подопечных</value></data>
   <data name="StaffNormalization" xml:space="preserve"><value>Нормализация старых данных</value></data>
   <data name="StaffNormalizationIntroduction" xml:space="preserve"><value>Временный инструмент администратора. Общий предпросмотр включает имена участников, названия и описания компиляторов, пять согласованных объединений и удаление пустых неактивных компиляторов. Все изменения применяются одной транзакцией после одного подтверждения. Предпросмотр не меняет данные.</value></data>
   <data name="StaffNormalizationCompilers" xml:space="preserve"><value>Приведение названий и описаний известных старых компиляторов к единому виду. Команды и конфигурации сохраняются. Записи, показанные ниже для объединения или удаления, не переименовываются.</value></data>

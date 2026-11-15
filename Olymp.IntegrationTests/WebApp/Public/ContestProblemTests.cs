@@ -144,7 +144,7 @@ public class ContestProblemTests(WebAppFactory factory) : IClassFixture<WebAppFa
         using var client = await LoginAsync();
         using var document = await GetAsync(client, Path(contest));
         string link = document.QuerySelectorAll(".problem-list .list-group-item")[1].GetAttribute("href")!;
-        Assert.Equal(Path(contest, second).TrimStart('/'), link);
+        Assert.Equal(Path(contest, second).TrimStart('/') + "#problem-detail", link);
         using var selected = await GetAsync(client, "/" + link);
         Assert.Equal($"{second.NameWithNumber} – {contest.Name}", selected.Title);
         Assert.Equal(second.NameWithNumber, selected.QuerySelector("#problem-detail h2")!.TextContent);
@@ -152,6 +152,7 @@ public class ContestProblemTests(WebAppFactory factory) : IClassFixture<WebAppFa
         Assert.Equal(second.Id.ToString(), selected.QuerySelector("#workspace-problem option[selected]")!.GetAttribute("value"));
         var mobile = selected.QuerySelector(".problem-list form")!;
         Assert.Equal("get", mobile.GetAttribute("method"));
+        Assert.Equal(Path(contest, second).TrimStart('/') + "#problem-detail", mobile.GetAttribute("action"));
         Assert.Equal("problemId", mobile.QuerySelector("select")!.GetAttribute("name"));
         Assert.Equal(Path(contest, second).TrimStart('/'), selected.QuerySelector("#submission-code")!.Closest("form")!.GetAttribute("action"));
         foreach (var (page, problem) in new[] { (document, first), (selected, second) })

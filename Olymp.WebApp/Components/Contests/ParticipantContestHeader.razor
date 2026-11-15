@@ -39,7 +39,7 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        StandingUrl = $"contests/{Contest.Id}/standing";
+        StandingUrl = $"contests/{Contest.Id}/standing?highlight=true";
         if (!Contest.AllowShowStanding || (Contest.FinalTableId is not null && Contest.OfficialTableId is null)) return;
         var actor = (await AuthenticationState).User;
         if (!int.TryParse(actor.FindFirstValue(ClaimTypes.NameIdentifier), out int userId)) return;
@@ -47,7 +47,7 @@
         await using var db = await ContextFactory.CreateDbContextAsync();
         if (await db.Competitors.AnyAsync(item => item.Id == userId && item.ContestId == Contest.Id
             && item.IsApproved && !item.IsHidden && !item.IsOutOfCompetition && !item.IsDisqualified))
-            StandingUrl += "?official=true";
+            StandingUrl += "&official=true";
     }
 
     private string LinkClass(string section) => ActiveSection == section ? "nav-link active" : "nav-link";

@@ -696,6 +696,8 @@
   <data name="ChangeVirtualStart" xml:space="preserve"><value>Change start time</value></data>
   <data name="VirtualTimeZone" xml:space="preserve"><value>Site time zone: {0}</value></data>
   <data name="StandingAttemptSummary" xml:space="preserve"><value>Successful / total</value></data>
+  <data name="HighlightSelf" xml:space="preserve"><value>Highlight me</value></data>
+  <data name="HighlightSelfAndCoached" xml:space="preserve"><value>Highlight me and my trainees</value></data>
   <data name="StaffNormalization" xml:space="preserve"><value>Legacy data normalization</value></data>
   <data name="StaffNormalizationIntroduction" xml:space="preserve"><value>Temporary administrator tool. One preview covers participant names, compiler names/descriptions, five agreed compiler merges and unused inactive compiler removal. All changes require one confirmation and are applied in one transaction. Preview does not change data.</value></data>
   <data name="StaffNormalizationCompilers" xml:space="preserve"><value>Normalize names and descriptions of known legacy compilers. Commands and configurations are preserved. Records shown below for merging or deletion are not renamed.</value></data>

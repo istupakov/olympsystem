@@ -41,10 +41,12 @@
             <dd class="col-sm-9"><time datetime="@_end.ToString("O", CultureInfo.InvariantCulture)">@_end.ToLocalTime().ToString("g") @_end.ToLocalTime().ToString("zzz")</time></dd>
         </dl>
         <div class="d-flex flex-wrap align-items-start gap-3">
-            <StandingControls BaseUrl="@Navigation.Uri" />
             <a class="btn btn-outline-secondary mb-3" href="@QueryHelpers.AddQueryString(Navigation.Uri, "edit", "true")">@SiteResources.ChangeVirtualStart</a>
+            <StandingControls BaseUrl="@Navigation.GetUriWithQueryParameter("highlight", (string?)null)"
+                              Highlight="Highlight" CanHighlight="@(_relatedUserIds.Count > 0)"
+                              IsCoach="@StandingHighlights.IsCoach(_standing.Results.Select(row => row.User), HttpContext.User)" />
         </div>
-        <StandingTable Standing="_standing" />
+        <StandingTable Standing="_standing" HighlightedUserIds="@(Highlight ? _relatedUserIds : null)" />
     }
 }
 
@@ -52,6 +54,9 @@
     [Parameter] public int Id { get; set; }
     [SupplyParameterFromQuery(Name = "start")] public string? Start { get; set; }
     [SupplyParameterFromQuery(Name = "edit")] public bool Edit { get; set; }
+    [SupplyParameterFromQuery] public bool Highlight { get; set; }
+    [CascadingParameter] private HttpContext HttpContext { get; set; } = default!;
+    private HashSet<int> _relatedUserIds = [];
     [SupplyParameterFromForm(FormName = "virtual-contest")] private InputModel? Input { get; set; }
     private Contest? _contest;
     private Olymp.Domain.Standing? _standing;
@@ -64,6 +69,7 @@
         bool initializeInput = Input is null;
         Input ??= new() { StartDate = new DateTime(now.Year, now.Month, now.Day, now.Hour, now.Minute, 0) };
         _standing = null;
+        _relatedUserIds = [];
         _error = null;
         await using var db = await ContextFactory.CreateDbContextAsync();
         _contest = await db.Contests.AsNoTracking().SingleOrDefaultAsync(item => item.Id == Id && !item.IsHidden && item.IsOpen);
@@ -91,6 +97,7 @@
             .Include(item => item.Problems).ThenInclude(item => item.Submissions).ThenInclude(item => item.User)
             .AsSplitQuery().SingleAsync(item => item.Id == Id);
         _standing = Olymp.Domain.Standing.Create(_contest, includeAll: true, official: false, notFreeze: true, startTime: _start);
+        _relatedUserIds = StandingHighlights.GetUserIds(_standing.Results.Select(row => row.User), HttpContext.User);
     }
 
     private void ShowStanding()
@@ -106,7 +113,8 @@
             _error = SiteResources.InvalidDate;
             return;
         }
-        Navigation.NavigateTo(QueryHelpers.AddQueryString($"contests/{Id}/virtual", "start", start.ToString("O", CultureInfo.InvariantCulture)));
+        string url = QueryHelpers.AddQueryString($"contests/{Id}/virtual", "start", start.ToString("O", CultureInfo.InvariantCulture));
+        Navigation.NavigateTo(Highlight ? QueryHelpers.AddQueryString(url, "highlight", "true") : url);
     }
 
     private bool TryGetEnd(DateTimeOffset start, out DateTimeOffset end)

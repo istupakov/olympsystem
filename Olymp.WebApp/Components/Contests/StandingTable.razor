@@ -1,8 +1,8 @@
 @using Olymp.Domain
 
 <div class="table-responsive">
-    <table class="table caption-top table-sm table-hover table-striped table-bordered">
-        <caption>
+    <table class="table caption-top table-sm table-hover table-striped table-bordered text-nowrap align-middle">
+        <caption class="text-wrap">
             @{
                 var now = DateTimeOffset.Now;
                 var start = Standing.VirtualStartTime ?? Standing.Contest.StartTime;
@@ -32,14 +32,14 @@
         </caption>
         <thead>
             <tr>
-                <th scope="col">@SiteResources.Rank</th>
+                <th scope="col" class="text-center">@SiteResources.Rank</th>
                 <th scope="col">@SiteResources.Competitor</th>
                 @foreach (var problem in Standing.Contest.Problems.OrderBy(item => item.Number))
                 {
                     <th scope="col" class="text-center"><abbr title="@problem.NameWithNumber">@problem.Number</abbr></th>
                 }
                 <th scope="col" class="text-center">@(Standing.Contest.IsSchool ? SiteResources.Points : "=")</th>
-                <th scope="col">@SiteResources.Time</th>
+                <th scope="col" class="text-center">@SiteResources.Time</th>
             </tr>
         </thead>
         <tbody>
@@ -58,14 +58,22 @@
                     rank = number;
                 }
                 previous = result;
+                var nameParts = Standing.Contest.IsAcm ? [result.User.Name] : result.User.Name.Split(',', 2, StringSplitOptions.TrimEntries);
                 <tr>
                     <td class="text-center">@rank</td>
                     <td>
-                        <span class="fw-semibold">@result.User.Name</span><CompetitorBadges User="result.User" />
-                        @if (result.IsVirtual) { <span class="badge text-bg-secondary ms-1">@SiteResources.VirtualParticipant</span> }
+                        <span class="fw-semibold @(HighlightedUserIds?.Contains(result.User.Id) == true ? "text-primary-emphasis" : null)">@nameParts[0]</span>
+                        <span>
+                            <CompetitorBadges User="result.User" />
+                            @if (result.IsVirtual) { <span class="badge text-bg-secondary ms-1">@SiteResources.VirtualParticipant</span> }
+                        </span>
                         @if (Standing.Contest.IsAcm && result.User is Competitor team)
                         {
                             <div class="small text-body-secondary">@string.Join(", ", team.MemberNames ?? [])</div>
+                        }
+                        else if (nameParts.Length > 1 && !string.IsNullOrWhiteSpace(nameParts[1]))
+                        {
+                            <div class="small text-body-secondary">@nameParts[1]</div>
                         }
                     </td>
                     @foreach (var item in result.ProblemResults)
@@ -100,7 +108,7 @@
                         </td>
                     }
                     <th class="text-center">@result.Score</th>
-                    <td>@($"{(int)result.SummaryTime.TotalHours:D2}:{result.SummaryTime.Minutes:D2}:{result.SummaryTime.Seconds:D2}")</td>
+                    <td class="text-center">@($"{(int)result.SummaryTime.TotalHours:D2}:{result.SummaryTime.Minutes:D2}:{result.SummaryTime.Seconds:D2}")</td>
                 </tr>
             }
         </tbody>
@@ -121,4 +129,7 @@
 @code {
     [Parameter, EditorRequired]
     public Standing Standing { get; set; } = default!;
+
+    [Parameter]
+    public IReadOnlySet<int>? HighlightedUserIds { get; set; }
 }
