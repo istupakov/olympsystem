@@ -26,6 +26,7 @@ namespace Olymp.IntegrationTests.WebApp.Public;
 public sealed class ProblemAccessTests(WebAppFactory factory) : IClassFixture<WebAppFactory>, IAsyncLifetime
 {
     private const string Source = "// Submitted source\nclass Program { static void Main() {} }";
+    private readonly List<int> _contestIds = [];
 
     public ValueTask InitializeAsync() => ValueTask.CompletedTask;
 
@@ -34,8 +35,26 @@ public sealed class ProblemAccessTests(WebAppFactory factory) : IClassFixture<We
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<OlympContext>();
         var now = DateTimeOffset.UtcNow;
-        await db.Contests.Where(contest => !contest.IsOpen && contest.EndTime > now)
+        await db.Contests.Where(contest => _contestIds.Contains(contest.Id) && !contest.IsOpen && contest.EndTime > now)
             .ExecuteUpdateAsync(update => update.SetProperty(contest => contest.EndTime, now), CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task CleanupLeavesOtherScenariosContestsRunning()
+    {
+        await using var otherScenario = new ProblemAccessTests(factory);
+        var other = await otherScenario.CreateDataAsync(open: false, running: true);
+        var own = await CreateDataAsync(open: false, running: true);
+
+        await DisposeAsync();
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<OlympContext>();
+        var now = DateTimeOffset.UtcNow;
+        Assert.True(await db.Contests.AnyAsync(contest => contest.Id == own.Contest.Id && contest.EndTime <= now,
+            TestContext.Current.CancellationToken));
+        Assert.True(await db.Contests.AnyAsync(contest => contest.Id == other.Contest.Id && contest.EndTime > now,
+            TestContext.Current.CancellationToken));
     }
 
     [Theory]
@@ -607,6 +626,7 @@ public sealed class ProblemAccessTests(WebAppFactory factory) : IClassFixture<We
         db.Attach(user);
         db.AddRange(contest, compiler);
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        _contestIds.Add(contest.Id);
         return (user, other, contest, problem, compiler, team);
     }
 

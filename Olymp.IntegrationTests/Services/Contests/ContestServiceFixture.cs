@@ -4,13 +4,12 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Extensions.Logging;
 
 using Olymp.Domain;
 using Olymp.Domain.Models;
+using Olymp.IntegrationTests.Shared;
 using Olymp.WebApp;
 using Olymp.WebApp.Services.Contests;
 
@@ -22,6 +21,7 @@ public sealed class ContestServiceFixture : WebApplicationFactory<Olymp.WebApp.C
 {
     public const string Password = "ValidTest123";
     private readonly string _connection;
+    private bool _databaseCreated;
 
     public ContestServiceFixture()
     {
@@ -37,19 +37,7 @@ public sealed class ContestServiceFixture : WebApplicationFactory<Olymp.WebApp.C
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
-        builder.UseEnvironment("Development");
-        builder.ConfigureAppConfiguration((_, configuration) => configuration.AddInMemoryCollection(new Dictionary<string, string?>
-        {
-            ["ConnectionStrings:DefaultConnection"] = _connection,
-            ["MailService:From"] = "tests@example.test",
-            ["MailService:SmtpServer"] = "localhost",
-            ["MailService:Port"] = "587",
-            ["MailService:UserName"] = "unused",
-            ["MailService:Password"] = "unused",
-            ["Logging:LogLevel:Default"] = "Warning",
-            ["Logging:LogLevel:Microsoft.EntityFrameworkCore"] = "None"
-        }));
-        builder.ConfigureLogging(logging => logging.ClearProviders());
+        TestHostConfiguration.Configure(builder, _connection);
         builder.ConfigureServices(services =>
         {
             services.AddOptions<ContestImportOptions>();
@@ -67,7 +55,8 @@ public sealed class ContestServiceFixture : WebApplicationFactory<Olymp.WebApp.C
         var db = scope.ServiceProvider.GetRequiredService<OlympContext>();
         // This fixture only creates/deletes its own randomly named database.
         Assert.StartsWith("OlympTests_", db.Database.GetDbConnection().Database);
-        await db.Database.EnsureCreatedAsync();
+        _databaseCreated = true;
+        await db.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
         var roles = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole<int>>>();
         foreach (var name in new[] { RoleNames.Admin, RoleNames.Jury })
             Assert.True((await roles.CreateAsync(new(name))).Succeeded);
@@ -76,13 +65,21 @@ public sealed class ContestServiceFixture : WebApplicationFactory<Olymp.WebApp.C
 
     public override async ValueTask DisposeAsync()
     {
-        using (var scope = Services.CreateScope())
+        try
         {
-            var db = scope.ServiceProvider.GetRequiredService<OlympContext>();
-            if (db.Database.GetDbConnection().Database == new SqlConnectionStringBuilder(_connection).InitialCatalog)
-                await db.Database.EnsureDeletedAsync();
+            if (_databaseCreated)
+            {
+                using var scope = Services.CreateScope();
+                var db = scope.ServiceProvider.GetRequiredService<OlympContext>();
+                if (db.Database.GetDbConnection().Database == new SqlConnectionStringBuilder(_connection).InitialCatalog)
+                    await db.Database.EnsureDeletedAsync(CancellationToken.None);
+                _databaseCreated = false;
+            }
         }
-        await base.DisposeAsync();
+        finally
+        {
+            await base.DisposeAsync();
+        }
     }
 
     public async Task<OlympUser> AddUserAsync(string? role = null)
