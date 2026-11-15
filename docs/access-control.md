@@ -56,7 +56,7 @@ separate sign-in restriction.
 
 Sources: [policy and claim names](../Olymp.WebApp/Names.cs),
 [WebApp policies](../Olymp.WebApp/Program.cs),
-[email migration](../Olymp.WebApp/Components/Account/EmailAsLoginRequirement.cs),
+[email migration](../Olymp.WebApp/Services/Authorization/EmailAsLoginRequirement.cs),
 [account confirmation](../Olymp.WebApp/Services/Identity/OlympUserConfirmation.cs).
 
 ## 2. Contest state and publication
@@ -198,6 +198,21 @@ account (`Submission.UserId`). Never substitute a linked participant ID. To subm
 as a participant or team, sign in with that account. Permanent accounts may submit
 only when `IsOpen` is true, both during the contest and after its end.
 
+While any visible, closed contest is running (`!IsHidden && !IsOpen` and
+`StartTime <= now < EndTime`), permanent accounts cannot submit solutions or
+view or download any submission source, including their own and related authors'
+submissions, regardless of submission time or target contest. This restriction
+also applies to jury and administrator accounts using the shared interface.
+Temporary participant accounts and the separate staff operations in section 10
+are unaffected.
+Access is restored automatically when no qualifying contest remains.
+Submission lists, submission metadata, and status visibility remain available
+under their ordinary relationship and publication rules. Source code and
+compilation diagnostics are withheld from restricted accounts.
+
+Restricted source downloads return HTTP 403. Ordinary missing, unpublished,
+or unauthorized resources retain their HTTP 404 behavior.
+
 Submission requests recheck the stored account, approval, disqualification,
 contest availability, and contest binding. Membership does not authorize
 submitting as another account. Unsent drafts are not recovered after access is
@@ -211,7 +226,7 @@ Contest rules show participant sign-in instructions only before the contest end.
 Team credentials come from the coach or organizer; individual out-of-competition
 participants can obtain assigned credentials on their registration page.
 
-Sources: [WebApp submission authorization](../Olymp.WebApp/Components/Submissions/SubmitSolutionRequirement.cs),
+Sources: [WebApp submission authorization](../Olymp.WebApp/Services/Authorization/SubmitSolutionRequirement.cs),
 [attribution](../Olymp.WebApp/Components/Pages/Contests/Problems.razor),
 [submission form](../Olymp.WebApp/Components/Submissions/SubmitSolutionForm.razor).
 
@@ -253,6 +268,8 @@ parameters do not broaden temporary accounts' access beyond the rules above.
 Submission details and source require an active problem in a visible, started
 contest (`AllowShowProblems`) and the following relationship. The details page
 and source download use the same permission; downloads contain code only.
+The temporary closed-contest restriction in section 5 additionally blocks source
+code, compilation diagnostics, and downloads, while retaining submission metadata.
 
 | Viewer relationship | Submission page and source download |
 | --- | --- |
@@ -275,7 +292,7 @@ Permission to submit and permission to read are separate. Disqualification block
 new submissions under section 5; it does not by itself make a problem invisible.
 Existing authentication and account-lockout restrictions still apply.
 
-Sources: [WebApp submission authorization](../Olymp.WebApp/Components/Submissions/ViewSolutionRequirement.cs),
+Sources: [WebApp submission authorization](../Olymp.WebApp/Services/Authorization/ViewSolutionRequirement.cs),
 [shared list](../Olymp.WebApp/Components/Submissions/SubmissionList.razor),
 [general list page](../Olymp.WebApp/Components/Pages/Submissions/Index.razor),
 [source page](../Olymp.WebApp/Components/Pages/Submissions/Details.razor),
@@ -464,7 +481,7 @@ Sources: [policies](../Olymp.WebApp/Program.cs),
 [contest management](../Olymp.WebApp/Services/Authorization/ManageContestRequirement.cs),
 [registration cancellation](../Olymp.WebApp/Services/Authorization/CancelRegistrationRequirement.cs),
 [participant operations](../Olymp.WebApp/Services/Contests/CompetitorManagementService.cs),
-[submission permission](../Olymp.WebApp/Components/Submissions/SubmitSolutionRequirement.cs).
+[submission permission](../Olymp.WebApp/Services/Authorization/SubmitSolutionRequirement.cs).
 
 ### Known limitation: revocation in an open staff page
 

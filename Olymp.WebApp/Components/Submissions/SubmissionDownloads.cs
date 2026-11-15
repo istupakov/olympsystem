@@ -7,6 +7,8 @@ using Microsoft.EntityFrameworkCore;
 
 using Olymp.Domain;
 using Olymp.Domain.Models;
+using Olymp.WebApp.Resources;
+using Olymp.WebApp.Services.Authorization;
 
 namespace Olymp.WebApp.Components.Submissions;
 
@@ -29,7 +31,8 @@ internal static class SubmissionDownloads
     }
 
     private static async Task<IResult> DownloadAsync(int id,
-        HttpContext http, IDbContextFactory<OlympContext> factory, IAuthorizationService authorization, CancellationToken token)
+        HttpContext http, IDbContextFactory<OlympContext> factory, IAuthorizationService authorization,
+        ClosedContestRestriction restriction, CancellationToken token)
     {
         await using var context = await factory.CreateDbContextAsync(token);
         var submission = await context.Submissions.AsNoTracking()
@@ -39,6 +42,9 @@ internal static class SubmissionDownloads
         if (submission is null || !(await authorization.AuthorizeAsync(http.User, submission,
             new ViewSolutionRequirement())).Succeeded)
             return Results.NotFound();
+        if (await restriction.IsActiveAsync(http.User, token))
+            return Results.Problem(detail: SiteResources.ClosedContestRestriction,
+                statusCode: StatusCodes.Status403Forbidden);
 
         return SourceFile(submission);
     }

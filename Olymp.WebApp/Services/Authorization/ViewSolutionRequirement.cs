@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Olymp.Domain;
 using Olymp.Domain.Models;
 
-namespace Olymp.WebApp.Components.Submissions;
+namespace Olymp.WebApp.Services.Authorization;
 
 public sealed class ViewSolutionRequirement : IAuthorizationRequirement
 {

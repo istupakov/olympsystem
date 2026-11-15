@@ -9,6 +9,7 @@
 @inject NavigationManager Navigation
 @inject IDbContextFactory<OlympContext> ContextFactory
 @inject IAuthorizationService Authorization
+@inject ClosedContestRestriction Restriction
 
 <PageTitle>@SiteResources.SubmissionSource #@Id</PageTitle>
 
@@ -28,7 +29,14 @@
         <dd class="col-sm-9">@submission.CommitTime.ToLocalTime().ToString("g")</dd>
     </dl>
     <p><SubmissionStatus StatusCode="submission.StatusCode" /></p>
-    <SubmissionView Submission="submission" DownloadUrl="@($"submissions/{submission.Id}/download")" />
+    @if (restricted)
+    {
+        <p role="alert">@SiteResources.ClosedContestRestriction</p>
+    }
+    else
+    {
+        <SubmissionView Submission="submission" DownloadUrl="@($"submissions/{submission.Id}/download")" />
+    }
 }
 
 @code {
@@ -39,6 +47,7 @@
     private HttpContext HttpContext { get; set; } = default!;
 
     private Submission? submission;
+    private bool restricted;
 
     protected override async Task OnParametersSetAsync()
     {
@@ -56,5 +65,6 @@
             Navigation.NotFound();
             return;
         }
+        restricted = await Restriction.IsActiveAsync(HttpContext.User, token);
     }
 }

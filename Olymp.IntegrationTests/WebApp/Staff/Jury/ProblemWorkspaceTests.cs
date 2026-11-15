@@ -3,33 +3,20 @@ using System.Security.Claims;
 
 using AngleSharp.Html.Parser;
 
-using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Authorization;
-using Microsoft.AspNetCore.Components.HtmlRendering.Infrastructure;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Extensions.Logging;
 
 using Olymp.Domain;
 using Olymp.Domain.Models;
 using Olymp.IntegrationTests.WebApp.Shared;
 using Olymp.Tests.Shared;
 using Olymp.WebApp;
-using Olymp.WebApp.Components.Staff;
 using Olymp.WebApp.Components.Submissions;
 using Olymp.WebApp.Resources;
-using Olymp.WebApp.Services.AntiCheat;
 
 using Xunit;
 
-using JuryDetails = Olymp.WebApp.Components.Pages.Staff.Jury.SubmissionDetails;
 using JuryProblems = Olymp.WebApp.Components.Pages.Staff.Jury.Problems;
-using JurySubmissions = Olymp.WebApp.Components.Pages.Staff.Jury.SubmissionList;
-using Organizations = Olymp.WebApp.Components.Pages.Staff.Admin.OrganizationList;
-using Users = Olymp.WebApp.Components.Pages.Staff.Admin.UserList;
 
 namespace Olymp.IntegrationTests.WebApp.Staff.Jury;
 
@@ -70,9 +57,7 @@ public partial class ProblemWorkspaceTests(WebAppFactory factory) : StaffCompone
         var storedSubmission = await db.Submissions.Where(item => item.ProblemId == problem.Id).Select(item => item.Id).SingleAsync(TestContext.Current.CancellationToken);
         var source = adminPage.QuerySelectorAll("#submissions a").Single(link => link.TextContent == SiteResources.ViewSource);
         Assert.StartsWith($"jury/submissions/{storedSubmission}?returnUrl=", source.GetAttribute("href"));
-        var download = adminPage.QuerySelectorAll("#submissions a").Single(link => link.TextContent == SiteResources.DownloadSource);
-        Assert.Equal($"jury/submissions/{storedSubmission}/download", download.GetAttribute("href"));
-        Assert.Equal("false", download.GetAttribute("data-enhance-nav"));
+        Assert.DoesNotContain(adminPage.QuerySelectorAll("#submissions a"), link => link.TextContent == SiteResources.DownloadSource);
         var compilerCell = adminPage.QuerySelector("#submissions tbody tr")!.Children[2];
         Assert.Equal(compiler.Name, compilerCell.TextContent.Trim());
         Assert.Equal(compiler.Description, compilerCell.GetAttribute("title"));

@@ -707,4 +707,5 @@
   <data name="TrainingRegistrationHelp" xml:space="preserve"><value>Чтобы отправлять решения на тренировке, зарегистрируйтесь или войдите в личный аккаунт.</value></data>
   <data name="GoToTrainingProblems" xml:space="preserve"><value>Перейти к задачам и отправке решений</value></data>
   <data name="TrainingPersonalAccountRequired" xml:space="preserve"><value>Для отправки решений на тренировке нужен личный аккаунт. Войдите в него вместо аккаунта участника соревнования.</value></data>
+  <data name="ClosedContestRestriction" xml:space="preserve"><value>Во время закрытого соревнования отправка решений, просмотр и скачивание исходного кода из личного аккаунта временно недоступны.</value></data>
 </root>

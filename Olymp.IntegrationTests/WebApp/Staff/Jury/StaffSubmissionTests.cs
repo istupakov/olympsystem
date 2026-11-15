@@ -16,6 +16,7 @@ using Olymp.Tests.Shared;
 using Olymp.WebApp;
 using Olymp.WebApp.Components.Submissions;
 using Olymp.WebApp.Services.AntiCheat;
+using Olymp.WebApp.Services.Authorization;
 
 using Xunit;
 

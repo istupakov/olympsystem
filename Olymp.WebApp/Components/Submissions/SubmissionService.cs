@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Olymp.Domain;
 using Olymp.Domain.Models;
 using Olymp.WebApp.Resources;
+using Olymp.WebApp.Services.Authorization;
 
 namespace Olymp.WebApp.Components.Submissions;
 

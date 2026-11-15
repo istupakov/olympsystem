@@ -135,6 +135,7 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ClientConnection>();
 builder.Services.AddScoped<CircuitHandler>(services => services.GetRequiredService<ClientConnection>());
 builder.Services.AddScoped<IAuthorizationHandler, SubmitSolutionHandler>();
+builder.Services.AddScoped<ClosedContestRestriction>();
 builder.Services.AddScoped<SubmissionService>();
 builder.Services.AddScoped<IAuthorizationHandler, ViewSolutionHandler>();
 builder.Services.AddScoped<IAuthorizationHandler, ManageContestHandler>();
