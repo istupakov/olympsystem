@@ -47,7 +47,11 @@
                                 </ul>
                             </td>
                             <td>@team.Coach?.LastName @team.Coach?.FirstName @team.Coach?.Patronymic</td>
-                            <td><CompetitorBadges User="team" /></td>
+                            <td>
+                                <div class="d-flex flex-column align-items-start gap-1">
+                                    <CompetitorBadges User="team" />
+                                </div>
+                            </td>
                             <td class="text-nowrap">@team.RegistrationDate?.ToLocalTime().ToString("d", CultureInfo.CurrentCulture)</td>
                         </tr>
                     }

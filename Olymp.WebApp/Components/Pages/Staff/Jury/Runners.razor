@@ -51,49 +51,53 @@ else
     </StaffGrid>
     @if (SelectedRunner is { } selected)
     {
-        <section class="mb-4" aria-label="@selected.Name">
-            <h2 class="h4">@selected.Name</h2>
-            <p><span class="badge @StatusClass(selected.SelfTestingStatus)">@StatusText(selected.SelfTestingStatus)</span></p>
-            <dl class="row small"><dt class="col-sm-3">ID</dt><dd class="col-sm-9 text-break">@selected.Id</dd><dt class="col-sm-3">@SiteResources.StaffRunnerConnected</dt><dd class="col-sm-9">@selected.ConnectingTime.ToLocalTime().ToString("g")</dd></dl>
-            @if (selected.Compilators is null) { <p>@SiteResources.StaffLoadingVersions</p> }
-            @foreach (var info in RunnerCompilers(selected))
-            {
-                var tests = selected.SelfTestingResults.Where(item => item.Compilator.Configuration.Name == info.Configuration.Name).ToArray();
-                var record = _compilers.FirstOrDefault(item => CompilerMatching.Matches(item, info));
-                var failed = info.Error is not null || tests.Any(item => item.Result is not null && item.Result != item.ExpectedResult);
-                <details class="card mb-3" open="@failed" @key="info.Configuration.Name">
-                    <summary class="card-header">
-                        @info.DisplayName <span class="badge @ConfigurationStatusClass(info, tests)">@Summary(tests)</span>
-                        @if (record is null) { <span class="badge text-bg-warning">@SiteResources.StaffNotAddedToSite</span> }
-                        else if (!record.IsActive) { <span class="badge text-bg-secondary">@SiteResources.StaffDisabled</span> }
-                    </summary>
-                    <div class="card-body">
-                        <p class="text-break">@SiteResources.StaffConfiguration: @info.Configuration.Name (@info.Configuration.ConfigName)</p>
-                        <p class="text-break">@SiteResources.StaffCommandLine: <code>@info.Configuration.CompileCommand</code></p>
-                        @if (!string.IsNullOrWhiteSpace(info.Description)) { <pre class="overflow-auto">@info.Description</pre> }
-                        @if (info.Error is not null) { <p class="text-danger">@SiteResources.StaffVersionError</p><pre class="overflow-auto text-danger">@info.Error</pre> }
-                        <div class="d-flex flex-wrap gap-2 mb-3">
-                            @if (record is not null) { <a href="jury/compilers/@record.Id">@SiteResources.Compiler · ID @record.Id</a> }
-                                <a href="jury/trial-run?Runner=@selected.Id&Configuration=@Uri.EscapeDataString(info.Configuration.Name)">@SiteResources.StaffRunCode</a>
-                                <AuthorizeView Roles="@RoleNames.Admin">
-                                    @if (record is null && info.Error is null && selected.SelfTestingStatus == CheckerSelfTestingStatus.Success) { <a href="jury/compilers/add?Runner=@selected.Id&Configuration=@Uri.EscapeDataString(info.Configuration.Name)">@SiteResources.StaffAddCompiler</a> }
-                                </AuthorizeView>
+        <section class="card my-4" aria-label="@selected.Name">
+            <header class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
+                <h2 class="h4 mb-0 text-break">@selected.Name</h2>
+                <span class="badge @StatusClass(selected.SelfTestingStatus)">@StatusText(selected.SelfTestingStatus)</span>
+            </header>
+            <div class="card-body">
+                <dl class="row small"><dt class="col-sm-3">ID</dt><dd class="col-sm-9 text-break">@selected.Id</dd><dt class="col-sm-3">@SiteResources.StaffRunnerConnected</dt><dd class="col-sm-9">@selected.ConnectingTime.ToLocalTime().ToString("g")</dd></dl>
+                @if (selected.Compilators is null) { <p>@SiteResources.StaffLoadingVersions</p> }
+                @foreach (var info in RunnerCompilers(selected))
+                {
+                    var tests = selected.SelfTestingResults.Where(item => item.Compilator.Configuration.Name == info.Configuration.Name).ToArray();
+                    var record = _compilers.FirstOrDefault(item => CompilerMatching.Matches(item, info));
+                    var failed = info.Error is not null || tests.Any(item => item.Result is not null && item.Result != item.ExpectedResult);
+                    <details class="card mb-3" open="@failed" @key="info.Configuration.Name">
+                        <summary class="card-header">
+                            @info.DisplayName <span class="badge @ConfigurationStatusClass(info, tests)">@Summary(tests)</span>
+                            @if (record is null) { <span class="badge text-bg-warning">@SiteResources.StaffNotAddedToSite</span> }
+                            else if (!record.IsActive) { <span class="badge text-bg-secondary">@SiteResources.StaffDisabled</span> }
+                        </summary>
+                        <div class="card-body">
+                            <p class="text-break">@SiteResources.StaffConfiguration: @info.Configuration.Name (@info.Configuration.ConfigName)</p>
+                            <p class="text-break">@SiteResources.StaffCommandLine: <code>@info.Configuration.CompileCommand</code></p>
+                            @if (!string.IsNullOrWhiteSpace(info.Description)) { <pre class="overflow-auto">@info.Description</pre> }
+                            @if (info.Error is not null) { <p class="text-danger">@SiteResources.StaffVersionError</p><pre class="overflow-auto text-danger">@info.Error</pre> }
+                            <div class="d-flex flex-wrap gap-2 mb-3">
+                                @if (record is not null) { <a href="jury/compilers/@record.Id">@SiteResources.Compiler · ID @record.Id</a> }
+                                    <a href="jury/trial-run?Runner=@selected.Id&Configuration=@Uri.EscapeDataString(info.Configuration.Name)">@SiteResources.StaffRunCode</a>
+                                    <AuthorizeView Roles="@RoleNames.Admin">
+                                        @if (record is null && info.Error is null && selected.SelfTestingStatus == CheckerSelfTestingStatus.Success) { <a href="jury/compilers/add?Runner=@selected.Id&Configuration=@Uri.EscapeDataString(info.Configuration.Name)">@SiteResources.StaffAddCompiler</a> }
+                                    </AuthorizeView>
+                            </div>
+                            @if (tests.Length > 0)
+                            {
+                                <div class="table-responsive"><table class="table table-sm">
+                                    <thead><tr><th>@SiteResources.StaffTest</th><th>@SiteResources.StaffExpected</th><th>@SiteResources.StaffActual</th></tr></thead><tbody>
+                                        @foreach (var test in tests)
+                                        {
+                                            <tr class="@(test.Result is not null && test.Result != test.ExpectedResult ? "table-danger" : null)"><td>@test.Name</td><td>@test.ExpectedResult</td><td>@test.Result</td></tr>
+                                            @if (!string.IsNullOrEmpty(test.Output)) { <tr><td colspan="3"><details><summary>@SiteResources.StaffLog</summary><pre class="overflow-auto">@test.Output</pre></details></td></tr> }
+                                        }
+                                    </tbody>
+                                </table></div>
+                            }
                         </div>
-                        @if (tests.Length > 0)
-                        {
-                            <div class="table-responsive"><table class="table table-sm">
-                                <thead><tr><th>@SiteResources.StaffTest</th><th>@SiteResources.StaffExpected</th><th>@SiteResources.StaffActual</th></tr></thead><tbody>
-                                    @foreach (var test in tests)
-                                    {
-                                        <tr class="@(test.Result is not null && test.Result != test.ExpectedResult ? "table-danger" : null)"><td>@test.Name</td><td>@test.ExpectedResult</td><td>@test.Result</td></tr>
-                                        @if (!string.IsNullOrEmpty(test.Output)) { <tr><td colspan="3"><details><summary>@SiteResources.StaffLog</summary><pre class="overflow-auto">@test.Output</pre></details></td></tr> }
-                                    }
-                                </tbody>
-                            </table></div>
-                        }
-                    </div>
-                </details>
-            }
+                    </details>
+                }
+            </div>
         </section>
     }
 }

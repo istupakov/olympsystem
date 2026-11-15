@@ -701,33 +701,4 @@
   <data name="StandingAttemptSummary" xml:space="preserve"><value>Successful / total</value></data>
   <data name="HighlightSelf" xml:space="preserve"><value>Highlight me</value></data>
   <data name="HighlightSelfAndCoached" xml:space="preserve"><value>Highlight me and my trainees</value></data>
-  <data name="StaffNormalization" xml:space="preserve"><value>Legacy data normalization</value></data>
-  <data name="StaffNormalizationIntroduction" xml:space="preserve"><value>Temporary administrator tool. One preview covers participant names, compiler names/descriptions, five agreed compiler merges and unused inactive compiler removal. All changes require one confirmation and are applied in one transaction. Preview does not change data.</value></data>
-  <data name="StaffNormalizationCompilers" xml:space="preserve"><value>Normalize names and descriptions of known legacy compilers. Commands and configurations are preserved. Records shown below for merging or deletion are not renamed.</value></data>
-  <data name="StaffNormalizationParticipants" xml:space="preserve"><value>Normalize displayed participant names in NSTU 2010, Novosibirsk 2010 and FPMI 05.10.2010. Separate the name from the institution or group with a comma. Permanent accounts and saved HTML standings are not changed.</value></data>
-  <data name="StaffNormalizationChanged" xml:space="preserve"><value>Data changed since the preview. Prepare a new preview before applying.</value></data>
-  <data name="StaffNormalizationCount" xml:space="preserve"><value>Records to change: {0}.</value></data>
-  <data name="StaffNormalizationApplied" xml:space="preserve"><value>Records changed: {0}.</value></data>
-  <data name="StaffNormalizationUnrecognized" xml:space="preserve"><value>Records not eligible for renaming: {0}. Agreed pairs not eligible for merging: {1}. Review the separate deletion list as well.</value></data>
-  <data name="StaffNormalizationOrderChanged" xml:space="preserve"><value>The row order changes in at least one full or official standing. Scores and penalties are preserved; names are used to order tied results.</value></data>
-  <data name="StaffNormalizationOrderPreserved" xml:space="preserve"><value>The row order is preserved in the full and official standings, with and without freeze.</value></data>
-  <data name="StaffNormalizationBefore" xml:space="preserve"><value>Name before</value></data>
-  <data name="StaffNormalizationAfter" xml:space="preserve"><value>Name after</value></data>
-  <data name="StaffNormalizationDescriptionBefore" xml:space="preserve"><value>Description before</value></data>
-  <data name="StaffNormalizationDescriptionAfter" xml:space="preserve"><value>Description after</value></data>
-  <data name="StaffNormalizationConfirm" xml:space="preserve"><value>Apply everything: rename {0} participants and {1} compilers, merge {2} compiler pairs with {3} submissions moved, and delete {4} unused compilers? The source records in merged pairs will also be deleted. All changes are applied in one transaction after rechecking the preview. If the data changed, nothing is applied.</value></data>
-  <data name="StaffNormalizationApply" xml:space="preserve"><value>Apply changes</value></data>
-  <data name="StaffNormalizationRefresh" xml:space="preserve"><value>Refresh preview</value></data>
-  <data name="StaffNormalizationMerges" xml:space="preserve"><value>Merge compiler duplicates</value></data>
-  <data name="StaffNormalizationMergeDescription" xml:space="preserve"><value>Move all submissions from the left record to the right record, then delete the left record. Submission IDs, source code, results and check history are preserved. The destination compiler and its availability are preserved. The five agreed pairs can be merged before or after name normalization.</value></data>
-  <data name="StaffNormalizationRemove" xml:space="preserve"><value>Delete compiler</value></data>
-  <data name="StaffNormalizationKeep" xml:space="preserve"><value>Keep compiler</value></data>
-  <data name="StaffNormalizationMoveSubmissions" xml:space="preserve"><value>Submissions to move</value></data>
-  <data name="StaffNormalizationEmptyCompilers" xml:space="preserve"><value>Delete unused compilers</value></data>
-  <data name="StaffNormalizationEmptyDescription" xml:space="preserve"><value>Delete inactive compilers with no submissions. Active compilers and the five merge destinations are retained, even if unused. Merged duplicates are listed in the previous section only.</value></data>
-  <data name="StaffNormalizationSkipped" xml:space="preserve"><value>Skipped changes</value></data>
-  <data name="StaffNormalizationOperation" xml:space="preserve"><value>Operation</value></data>
-  <data name="StaffNormalizationRename" xml:space="preserve"><value>Rename</value></data>
-  <data name="StaffNormalizationField" xml:space="preserve"><value>Mismatched field</value></data>
-  <data name="StaffNormalizationRecord" xml:space="preserve"><value>Record exists</value></data>
 </root>
