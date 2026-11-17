@@ -709,4 +709,8 @@
   <data name="TrainingPersonalAccountRequired" xml:space="preserve"><value>Training submissions require a personal account. Sign in with your personal account instead of a contest participant account.</value></data>
   <data name="ClosedContestRestriction" xml:space="preserve"><value>Submitting solutions and viewing or downloading source code are temporarily unavailable for personal accounts while a contest is running.</value></data>
   <data name="ProblemsAndSubmissions" xml:space="preserve"><value>Problems and solution submission</value></data>
+  <data name="StaffExportContest" xml:space="preserve"><value>Export contest (ZIP)</value></data>
+  <data name="StaffExportAllContests" xml:space="preserve"><value>Export all contests (ZIP)</value></data>
+  <data name="StaffExportFailed" xml:space="preserve"><value>Contest export failed</value></data>
+  <data name="StaffExportInvalidPath" xml:space="preserve"><value>Invalid or duplicate archive path '{0}'. Records: {1}.</value></data>
 </root>
