@@ -1,0 +1,123 @@
+@using Microsoft.AspNetCore.WebUtilities
+@implements IDisposable
+@inject IDbContextFactory<OlympContext> ContextFactory
+@inject TimeProvider Clock
+@inject ILogger<UserStatistics> Logger
+
+<p class="small text-body-secondary mb-3">@SiteResources.UserStatisticsScope</p>
+@if (_error is not null)
+{
+    <p class="alert alert-danger" role="alert">@_error</p>
+}
+@if (_loading && _counts is null)
+{
+    <p role="status">@SiteResources.StaffLoading</p>
+}
+<div class="row g-4 mb-4">
+    <section class="col-lg-6" aria-labelledby="user-accounts-heading">
+        <h2 id="user-accounts-heading" class="h5">@SiteResources.UserStatisticsAccounts</h2>
+        @if (_counts is not null)
+        {
+            <ul class="list-unstyled d-flex flex-wrap column-gap-3 row-gap-1 mb-0">
+                <li>@SiteResources.UserStatisticsTotal: @CountLink("all")</li>
+                <li>@SiteResources.UserStatisticsConfirmed: @CountLink("confirmed")</li>
+                <li>@SiteResources.StaffEmailNotConfirmed: @CountLink("unconfirmed")</li>
+                <li>@SiteResources.StaffBanned: @CountLink("blocked")</li>
+            </ul>
+        }
+    </section>
+    <section class="col-lg-6" aria-labelledby="user-activity-heading">
+        <div class="d-flex flex-wrap align-items-start justify-content-between gap-2 mb-2">
+            <div>
+                <h2 id="user-activity-heading" class="h5">@SiteResources.UserStatisticsMonthTitle</h2>
+                <p class="small text-body-secondary mb-0">@string.Format(SiteResources.UserStatisticsPeriod, _from.ToLocalTime().ToString("g"), _until.ToLocalTime().ToString("g"), TimeZoneInfo.Local.Id)</p>
+            </div>
+            <button type="button" class="btn btn-sm btn-outline-secondary" disabled="@_loading" @onclick="LoadAsync">@SiteResources.Refresh</button>
+        </div>
+        @if (_counts is not null)
+        {
+            <table class="table table-sm align-middle mb-0">
+                <caption class="visually-hidden">@SiteResources.UserStatisticsMonthTitle</caption>
+                <tbody>
+                    <tr><th scope="row" class="fw-normal">@SiteResources.UserStatisticsNewShort</th><td class="text-end text-nowrap">@CountLink("new")</td></tr>
+                    <tr>
+                        <th scope="row" class="fw-normal ps-3">@SiteResources.UserStatisticsSubmittedNew</th>
+                        <td class="text-end text-nowrap">
+                            @CountLink("new-active")
+                            <span class="text-body-secondary">(@((_counts["new"] == 0 ? 0d : (double)_counts["new-active"] / _counts["new"]).ToString("P1")))</span>
+                        </td>
+                    </tr>
+                    <tr><th scope="row" class="fw-normal">@SiteResources.UserStatisticsActiveShort</th><td class="text-end text-nowrap">@CountLink("active")</td></tr>
+                </tbody>
+            </table>
+        }
+    </section>
+</div>
+@if (_counts is not null)
+{
+    <section class="mb-4" aria-labelledby="user-migration-heading">
+        <h2 id="user-migration-heading" class="h5">@SiteResources.UserStatisticsMigrationTitle</h2>
+        <div class="table-responsive">
+            <table class="table table-sm align-middle mb-2">
+                <caption class="visually-hidden">@SiteResources.UserStatisticsMigrationTitle</caption>
+                <thead><tr><th scope="col">@SiteResources.StaffLogin</th><th scope="col" class="text-end">@SiteResources.UserStatisticsModernHash</th><th scope="col" class="text-end">@SiteResources.UserStatisticsLegacy</th></tr></thead>
+                <tbody>
+                    <tr><th scope="row" class="fw-normal">@SiteResources.UserStatisticsCurrentLogin</th><td class="text-end">@CountLink("current-modern")</td><td class="text-end">@CountLink("current-legacy")</td></tr>
+                    <tr><th scope="row" class="fw-normal">@SiteResources.UserStatisticsMigrationLogin</th><td class="text-end">@CountLink("migration-modern")</td><td class="text-end">@CountLink("migration-legacy")</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <p class="mb-0">@SiteResources.UserStatisticsNoPassword: @CountLink("no-password")</p>
+    </section>
+    <UnconfirmedUserCleanup CandidateCount="@(_counts["cleanup"])" CandidateUrl="@SelectionUrl("cleanup")" OnDeleted="LoadAsync" />
+}
+
+@code {
+    private readonly CancellationTokenSource _lifetime = new();
+    private Dictionary<string, int>? _counts;
+    private DateTimeOffset _from, _until;
+    private bool _loading;
+    private string? _error;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        if (_loading) return;
+        _loading = true;
+        _error = null;
+        var until = Clock.GetUtcNow();
+        var from = until.AddMonths(-1);
+        if (_counts is null) (_from, _until) = (from, until);
+        var token = _lifetime.Token;
+        try
+        {
+            await using var db = await ContextFactory.CreateDbContextAsync(token);
+            var counts = await UserStatisticsQuery.CountAsync(db, from, until, token);
+            (_counts, _from, _until) = (counts, from, until);
+        }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested) { }
+        catch (System.Data.Common.DbException exception)
+        {
+            Logger.LogError(exception, "Failed to load user statistics");
+            _error = SiteResources.UserStatisticsLoadFailed;
+        }
+        finally { _loading = false; }
+    }
+
+    private string SelectionUrl(string metric) => QueryHelpers.AddQueryString("/admin/users", new Dictionary<string, string?>
+    {
+        ["Metric"] = metric,
+        ["Since"] = _from.UtcDateTime.ToString("O", CultureInfo.InvariantCulture),
+        ["AsOf"] = _until.UtcDateTime.ToString("O", CultureInfo.InvariantCulture)
+    });
+
+    private RenderFragment CountLink(string metric) => @<a href="@SelectionUrl(metric)" aria-label="@($"{UserStatisticsQuery.Label(metric)}: {_counts![metric]:N0}")">@_counts![metric].ToString("N0")</a>;
+
+    public void Dispose()
+    {
+        _lifetime.Cancel();
+        _lifetime.Dispose();
+        GC.SuppressFinalize(this);
+    }
+}

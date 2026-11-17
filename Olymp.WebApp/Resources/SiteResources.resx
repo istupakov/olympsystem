@@ -800,4 +800,34 @@
   <data name="BackupDownloadBundle" xml:space="preserve">
     <value>Download bundle</value>
   </data>
+  <data name="UserStatisticsTitle" xml:space="preserve"><value>Statistics</value></data>
+  <data name="UserStatisticsList" xml:space="preserve"><value>List</value></data>
+  <data name="UserStatisticsPeriod" xml:space="preserve"><value>Period: {0} – {1}. Server time zone: {2}.</value></data>
+  <data name="UserStatisticsScope" xml:space="preserve"><value>All permanent accounts. Activity counts personal submissions.</value></data>
+  <data name="UserStatisticsNew" xml:space="preserve"><value>New users this month</value></data>
+  <data name="UserStatisticsActive" xml:space="preserve"><value>Users with submissions this month</value></data>
+  <data name="UserStatisticsNewActive" xml:space="preserve"><value>New users with submissions</value></data>
+  <data name="UserStatisticsAccounts" xml:space="preserve"><value>Account status</value></data>
+  <data name="UserStatisticsTotal" xml:space="preserve"><value>Total users</value></data>
+  <data name="UserStatisticsConfirmed" xml:space="preserve"><value>Email confirmed</value></data>
+  <data name="UserStatisticsMigrationTitle" xml:space="preserve"><value>Legacy account transition</value></data>
+  <data name="UserStatisticsMigration" xml:space="preserve"><value>Email login transition incomplete</value></data>
+  <data name="UserStatisticsLegacy" xml:space="preserve"><value>Legacy password hash</value></data>
+  <data name="UserStatisticsModernHash" xml:space="preserve"><value>Modern hash</value></data>
+  <data name="UserStatisticsCurrentLogin" xml:space="preserve"><value>Login matches email</value></data>
+  <data name="UserStatisticsMigrationLogin" xml:space="preserve"><value>Email login transition needed</value></data>
+  <data name="UserStatisticsCurrentModern" xml:space="preserve"><value>Email login, modern hash</value></data>
+  <data name="UserStatisticsCurrentLegacy" xml:space="preserve"><value>Email login, legacy hash</value></data>
+  <data name="UserStatisticsMigrationModern" xml:space="preserve"><value>Email login transition needed, modern hash</value></data>
+  <data name="UserStatisticsMigrationLegacy" xml:space="preserve"><value>Email login transition needed, legacy hash</value></data>
+  <data name="UserStatisticsNoPassword" xml:space="preserve"><value>No password</value></data>
+  <data name="UserStatisticsCleanup" xml:space="preserve"><value>Eligible for cleanup</value></data>
+  <data name="UserStatisticsCleanupTitle" xml:space="preserve"><value>Unconfirmed account cleanup</value></data>
+  <data name="UserStatisticsFilter" xml:space="preserve"><value>Statistics selection</value></data>
+  <data name="UserStatisticsFilterPeriod" xml:space="preserve"><value>Selection period: {0} – {1}.</value></data>
+  <data name="UserStatisticsLoadFailed" xml:space="preserve"><value>Could not load user statistics. Try refreshing.</value></data>
+  <data name="UserStatisticsMonthTitle" xml:space="preserve"><value>Last month</value></data>
+  <data name="UserStatisticsNewShort" xml:space="preserve"><value>New users</value></data>
+  <data name="UserStatisticsSubmittedNew" xml:space="preserve"><value>Of these, with submissions</value></data>
+  <data name="UserStatisticsActiveShort" xml:space="preserve"><value>Users with submissions</value></data>
 </root>

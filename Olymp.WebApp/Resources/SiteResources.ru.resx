@@ -800,4 +800,34 @@
   <data name="BackupDownloadBundle" xml:space="preserve">
     <value>Скачать комплект</value>
   </data>
+  <data name="UserStatisticsTitle" xml:space="preserve"><value>Статистика</value></data>
+  <data name="UserStatisticsList" xml:space="preserve"><value>Список</value></data>
+  <data name="UserStatisticsPeriod" xml:space="preserve"><value>Период: {0} – {1}. Часовой пояс сервера: {2}.</value></data>
+  <data name="UserStatisticsScope" xml:space="preserve"><value>Все постоянные аккаунты. Активность – личные отправки.</value></data>
+  <data name="UserStatisticsNew" xml:space="preserve"><value>Новые пользователи за месяц</value></data>
+  <data name="UserStatisticsActive" xml:space="preserve"><value>Пользователи с отправками за месяц</value></data>
+  <data name="UserStatisticsNewActive" xml:space="preserve"><value>Новые пользователи с отправками</value></data>
+  <data name="UserStatisticsAccounts" xml:space="preserve"><value>Состояние аккаунтов</value></data>
+  <data name="UserStatisticsTotal" xml:space="preserve"><value>Всего пользователей</value></data>
+  <data name="UserStatisticsConfirmed" xml:space="preserve"><value>Email подтверждён</value></data>
+  <data name="UserStatisticsMigrationTitle" xml:space="preserve"><value>Переход со старых аккаунтов</value></data>
+  <data name="UserStatisticsMigration" xml:space="preserve"><value>Не завершён переход на email как логин</value></data>
+  <data name="UserStatisticsLegacy" xml:space="preserve"><value>Старый хеш пароля</value></data>
+  <data name="UserStatisticsModernHash" xml:space="preserve"><value>Современный хеш</value></data>
+  <data name="UserStatisticsCurrentLogin" xml:space="preserve"><value>Логин соответствует email</value></data>
+  <data name="UserStatisticsMigrationLogin" xml:space="preserve"><value>Нужен переход на email</value></data>
+  <data name="UserStatisticsCurrentModern" xml:space="preserve"><value>Email как логин, современный хеш</value></data>
+  <data name="UserStatisticsCurrentLegacy" xml:space="preserve"><value>Email как логин, старый хеш</value></data>
+  <data name="UserStatisticsMigrationModern" xml:space="preserve"><value>Нужен переход на email, современный хеш</value></data>
+  <data name="UserStatisticsMigrationLegacy" xml:space="preserve"><value>Нужен переход на email, старый хеш</value></data>
+  <data name="UserStatisticsNoPassword" xml:space="preserve"><value>Без пароля</value></data>
+  <data name="UserStatisticsCleanup" xml:space="preserve"><value>Подходят для очистки</value></data>
+  <data name="UserStatisticsCleanupTitle" xml:space="preserve"><value>Очистка неподтверждённых аккаунтов</value></data>
+  <data name="UserStatisticsFilter" xml:space="preserve"><value>Выборка из статистики</value></data>
+  <data name="UserStatisticsFilterPeriod" xml:space="preserve"><value>Период выборки: {0} – {1}.</value></data>
+  <data name="UserStatisticsLoadFailed" xml:space="preserve"><value>Не удалось загрузить статистику пользователей. Попробуйте обновить.</value></data>
+  <data name="UserStatisticsMonthTitle" xml:space="preserve"><value>За последний месяц</value></data>
+  <data name="UserStatisticsNewShort" xml:space="preserve"><value>Новые пользователи</value></data>
+  <data name="UserStatisticsSubmittedNew" xml:space="preserve"><value>Из них с отправками</value></data>
+  <data name="UserStatisticsActiveShort" xml:space="preserve"><value>Пользователи с отправками</value></data>
 </root>

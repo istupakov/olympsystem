@@ -6,7 +6,18 @@
 
 <StaffPageTitle Title="@SiteResources.StaffUsers" />
 <h1 class="mb-4">@SiteResources.StaffUsers</h1>
-<UnconfirmedUserCleanup OnDeleted="@(() => _gridVersion++)" />
+<nav class="mb-4" aria-label="@SiteResources.StaffUsers">
+    <ul class="nav nav-underline">
+        <li class="nav-item"><a class="nav-link @(Tab != "statistics" ? "active" : null)" aria-current="@(Tab != "statistics" ? "page" : null)" href="@TabUrl(null)">@SiteResources.UserStatisticsList</a></li>
+        <li class="nav-item"><a class="nav-link @(Tab == "statistics" ? "active" : null)" aria-current="@(Tab == "statistics" ? "page" : null)" href="@TabUrl("statistics")">@SiteResources.UserStatisticsTitle</a></li>
+    </ul>
+</nav>
+@if (Tab == "statistics")
+{
+    <UserStatistics />
+}
+else
+{
 <EditForm Model="_filters" OnValidSubmit="ApplyFilters" class="row g-3 mb-4">
     <div class="col-12">
         <label for="user-search" class="form-label">@SiteResources.StaffUserSearch</label>
@@ -52,6 +63,7 @@
     </div>
 </EditForm>
 <div class="d-flex flex-wrap gap-2 mb-3">
+    <ActiveFilter Name="Metric" Label="@SiteResources.UserStatisticsFilter" Value="@UserStatisticsQuery.Label(Metric)" Clear="@(new[] { nameof(Since), nameof(AsOf) })" />
     <ActiveFilter Name="Search" Label="@SiteResources.StaffUserSearch" Value="@Search" />
     <ActiveFilter Name="Role" Label="@SiteResources.StaffRoles" Value="@(Role == "admin" ? SiteResources.StaffAdministrator : Role == "jury" ? SiteResources.JurySection : Role == "coach" ? SiteResources.StaffCoach : null)" />
     <ActiveFilter Name="Visibility" Label="@SiteResources.StaffVisibility" Value="@(Visibility == "hidden" ? SiteResources.StaffHiddenAccounts : Visibility == "visible" ? SiteResources.StaffVisibleAccounts : null)" />
@@ -60,7 +72,11 @@
     <ActiveFilter Name="CoachOrganization" Label="@SiteResources.StaffOrganizationCoaches" Value="@_relations.GetValueOrDefault(nameof(CoachOrganization))" />
     <ActiveFilter Name="Coach" Label="@SiteResources.StaffCoachedAccounts" Value="@_relations.GetValueOrDefault(nameof(Coach))" />
 </div>
-<StaffGrid @key="(Navigation.Uri, _gridVersion)" TGridItem="Row" Query="Query" ItemKey="@(item => item.Id)" OrderKey="@(item => item.Id)" EmptyText="@SiteResources.StaffNoUsers">
+@if (UserStatisticsQuery.Label(Metric) is not null)
+{
+    <p class="small text-body-secondary">@string.Format(SiteResources.UserStatisticsFilterPeriod, SelectionFrom.ToLocalTime().ToString("g"), SelectionUntil.ToLocalTime().ToString("g"))</p>
+}
+<StaffGrid @key="Navigation.Uri" TGridItem="Row" Query="Query" ItemKey="@(item => item.Id)" OrderKey="@(item => item.Id)" EmptyText="@SiteResources.StaffNoUsers">
     <TemplateColumn Title="ID" SortBy="_idSort" Sortable="true" Context="item">
         <a href="@DetailUrl(item.Id)">@item.Id</a>
     </TemplateColumn>
@@ -88,8 +104,18 @@
         <QuickFilter Url="@StaffFilterUrl.Set(Navigation.Uri, nameof(LoginState), item.Locked ? "blocked" : item.Confirmed ? "allowed" : "unconfirmed")" Label="@SiteResources.StaffSignIn" Value="@SignInLabel(item.Locked ? "blocked" : item.Confirmed ? "allowed" : "unconfirmed")"><span class="badge @(item.Locked ? "text-bg-danger" : item.Confirmed ? "text-bg-success" : "text-bg-warning")">@SignInLabel(item.Locked ? "blocked" : item.Confirmed ? "allowed" : "unconfirmed")</span></QuickFilter>
     </TemplateColumn>
 </StaffGrid>
+}
 
 @code {
+    [SupplyParameterFromQuery] public string? Tab { get; set; }
+    [SupplyParameterFromQuery] public string? Metric { get; set; }
+    [SupplyParameterFromQuery] public DateTime? Since { get; set; }
+    [SupplyParameterFromQuery] public DateTime? AsOf { get; set; }
+    private DateTimeOffset SelectionUntil => AsOf is DateTime until ? ToUtc(until) : DateTimeOffset.UtcNow;
+    private DateTimeOffset SelectionFrom => Since is DateTime from ? ToUtc(from) : SelectionUntil.AddMonths(-1);
+    private static DateTimeOffset ToUtc(DateTime value) => value.Kind == DateTimeKind.Unspecified
+        ? new(DateTime.SpecifyKind(value, DateTimeKind.Utc)) : new DateTimeOffset(value).ToUniversalTime();
+    private string TabUrl(string? tab) => Navigation.GetUriWithQueryParameter(nameof(Tab), tab);
     [SupplyParameterFromQuery] public string? Search { get; set; }
     [SupplyParameterFromQuery] public string? Role { get; set; }
     [SupplyParameterFromQuery] public string? LoginState { get; set; }
@@ -100,7 +126,6 @@
     [SupplyParameterFromQuery] public int? CoachOrganization { get; set; }
     [SupplyParameterFromQuery] public int? Coach { get; set; }
     private Filters _filters = new();
-    private int _gridVersion;
     private List<Organization> _organizations = [];
     private readonly Dictionary<string, string> _relations = [];
     private readonly GridSort<Row> _idSort = GridSort<Row>.ByAscending(item => item.Id);
@@ -125,7 +150,7 @@
 
     internal IQueryable<Row> Query(OlympContext db)
     {
-        var query = db.OlympUsers.AsNoTracking();
+        var query = UserStatisticsQuery.Apply(db.OlympUsers.AsNoTracking(), db, Metric, SelectionFrom, SelectionUntil);
         string? selectedRole = Role;
         if (!string.IsNullOrWhiteSpace(Search)) {
             string search = Search.Trim();
