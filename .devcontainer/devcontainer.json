@@ -7,7 +7,16 @@
   "service": "site",
   "runServices": ["site"],
   "workspaceFolder": "/workspaces/OlympSystem",
-  "remoteUser": "vscode",
+  "remoteUser": "ubuntu",
+  "features": {
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "username": "ubuntu",
+      "installZsh": false,
+      "installOhMyZsh": false,
+      "installOhMyZshConfig": false,
+      "upgradePackages": false
+    }
+  },
   "forwardPorts": [5000, 5001, 5002, 5003],
   "portsAttributes": {
     "5000": {

@@ -16,12 +16,11 @@ Programming contest system with automated judging and standings. Used at [olymp.
 - `Olymp.Tests` and `Olymp.IntegrationTests` – unit and SQL Server integration tests.
 
 `Olymp.Manager` is a Windows contest preparation application outside the solution.
-The web preparation interface is not available; see [ideas](docs/webapp-ideas.md).
 
 ## Development
 
-The supported development setup uses VS Code with Dev Containers and Docker Compose.
-The container provides the SDK pinned in [global.json](global.json) and starts SQL Server.
+Development uses VS Code Dev Containers with Docker Compose, providing the .NET SDK
+and SQL Server.
 
 ### Setup
 
@@ -85,7 +84,7 @@ Check formatting and code style:
 dotnet format --verify-no-changes --no-restore --severity info
 ```
 
-Tests use Microsoft.Testing.Platform. Run unit tests without SQL Server:
+Run unit tests without SQL Server:
 
 ```bash
 dotnet test --project Olymp.Tests --no-restore
@@ -95,12 +94,6 @@ Run all tests:
 
 ```bash
 dotnet test --no-restore
-```
-
-Run one integration test class:
-
-```bash
-dotnet test --project Olymp.IntegrationTests --filter-class 'Olymp.IntegrationTests.WebApp.Public.ContestProblemTests' --no-restore
 ```
 
 Integration tests use the connection supplied by Compose and create temporary

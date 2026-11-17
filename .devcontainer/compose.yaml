@@ -1,6 +1,6 @@
 services:
   site:
-    image: mcr.microsoft.com/devcontainers/dotnet:11.0-resolute
+    image: mcr.microsoft.com/dotnet/sdk:11.0-resolute
     security_opt:
       - seccomp=unconfined
       - apparmor=unconfined
@@ -13,7 +13,8 @@ services:
       - .:/workspaces/OlympSystem
     environment:
       ASPNETCORE_HTTP_PORTS: ""
+      NUGET_XMLDOC_MODE: ""
       DOTNET_WATCH_SUPPRESS_LAUNCH_BROWSER: "true"
       DOTNET_WATCH_AUTO_RELOAD_WS_PORT: "5002"
       DOTNET_WATCH_AUTO_RELOAD_WSS_PORT: "5003"
-      SSL_CERT_DIR: /home/vscode/.aspnet/dev-certs/trust:/usr/lib/ssl/certs
+      SSL_CERT_DIR: /home/ubuntu/.aspnet/dev-certs/trust:/usr/lib/ssl/certs
