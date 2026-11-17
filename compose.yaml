@@ -30,8 +30,14 @@ services:
       dockerfile: ./Olymp.WebApp/Dockerfile
     environment:
       ConnectionStrings__DefaultConnection: Server=sqlserver;Database=olympdb;TrustServerCertificate=true;User Id=SA;Password=${DB_PASSWORD:-YourStrong!Passw0rd}
+      DatabaseBackups__LocalPath: /app/backup
+      DatabaseBackups__SqlPath: /var/opt/mssql/backup
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_HTTP_PORTS: "5000"
       TZ: Asia/Novosibirsk
+    volumes:
+      - ./backup:/app/backup
+    group_add:
+      - "${BACKUP_GROUP_ID:-1000}"
     ports:
       - "5000:5000"

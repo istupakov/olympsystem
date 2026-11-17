@@ -30,6 +30,7 @@ using Olymp.WebApp.Services.Authentication;
 using Olymp.WebApp.Services.Authorization;
 using Olymp.WebApp.Services.Checker;
 using Olymp.WebApp.Services.Contests;
+using Olymp.WebApp.Services.DatabaseMaintenance;
 using Olymp.WebApp.Services.Identity;
 using Olymp.WebApp.Services.Mail;
 
@@ -118,6 +119,12 @@ builder.Services.AddWebEncoders(options =>
 builder.Services.AddScoped<CompetitorManagementService>();
 builder.Services.AddScoped<ContestProblemService>();
 builder.Services.AddScoped<ContestExportService>();
+builder.Services.AddOptions<DatabaseBackupOptions>()
+    .Bind(builder.Configuration.GetSection(DatabaseBackupOptions.SectionName))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+builder.Services.AddSingleton<DatabaseBackupService>();
+builder.Services.AddHostedService(services => services.GetRequiredService<DatabaseBackupService>());
 builder.Services.AddScoped<AdminParticipantService>();
 builder.Services.AddScoped<UnconfirmedUserCleanupService>();
 builder.Services.AddScoped<StaffGridState>();

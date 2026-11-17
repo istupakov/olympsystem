@@ -45,6 +45,8 @@ jobs:
           MSSQL_SA_PASSWORD: Test!Password123
         ports:
           - 1433:1433
+        volumes:
+          - /tmp/olymp-backups:/var/opt/mssql/backup
         options: >-
           --health-cmd "SQLCMDPASSWORD=$MSSQL_SA_PASSWORD /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -Q 'SELECT 1' -b"
           --health-interval 10s
@@ -53,11 +55,15 @@ jobs:
           --health-start-period 20s
     env:
       ConnectionStrings__DefaultConnection: Server=localhost,1433;User Id=sa;Password=Test!Password123;TrustServerCertificate=true
+      DatabaseBackups__LocalPath: /tmp/olymp-backups
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-dotnet@v6
         with:
           global-json-file: global.json
+
+      - name: Prepare backup storage
+        run: sudo install -d -o "$(id -u)" -g "$(id -g)" -m 2775 /tmp/olymp-backups
 
       - name: Test site with SQL Server
         run: dotnet test --project Olymp.IntegrationTests -c Release

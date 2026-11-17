@@ -716,4 +716,88 @@
   <data name="StaffLegacyProblemsMoved" xml:space="preserve"><value>Cleanup cancelled: one of the problems no longer belongs to contest ID 1. No problems or tests were deleted.</value></data>
   <data name="SubmissionMine" xml:space="preserve"><value>Mine</value></data>
   <data name="SubmissionKind" xml:space="preserve"><value>Submission type</value></data>
+  <data name="BackupTitle" xml:space="preserve">
+    <value>Archives and backups</value>
+  </data>
+  <data name="BackupDatabase" xml:space="preserve">
+    <value>Database backups</value>
+  </data>
+  <data name="BackupFull" xml:space="preserve">
+    <value>Create full backup</value>
+  </data>
+  <data name="BackupDiff" xml:space="preserve">
+    <value>Create differential backup</value>
+  </data>
+  <data name="BackupRefresh" xml:space="preserve">
+    <value>Refresh</value>
+  </data>
+  <data name="BackupBusy" xml:space="preserve">
+    <value>A backup operation is in progress. Refresh to check its result.</value>
+  </data>
+  <data name="BackupFailed" xml:space="preserve">
+    <value>Backup failed. See application logs for details. If a differential backup has no available base, create a full backup first.</value>
+  </data>
+  <data name="BackupSucceeded" xml:space="preserve">
+    <value>Backup created and verified.</value>
+  </data>
+  <data name="BackupNeedsFull" xml:space="preserve">
+    <value>The base full backup is missing. Create a new full backup.</value>
+  </data>
+  <data name="BackupChanged" xml:space="preserve">
+    <value>The files have changed. Review the deletion list again.</value>
+  </data>
+  <data name="BackupReadFailed" xml:space="preserve">
+    <value>Cannot access the backup storage. Check its configuration, permissions and application logs.</value>
+  </data>
+  <data name="BackupDisk" xml:space="preserve">
+    <value>Disk: {0:N2} GiB free of {1:N2} GiB. Backup files: {2:N2} GiB.</value>
+  </data>
+  <data name="BackupFile" xml:space="preserve">
+    <value>File</value>
+  </data>
+  <data name="BackupType" xml:space="preserve">
+    <value>Type</value>
+  </data>
+  <data name="BackupDate" xml:space="preserve">
+    <value>Created (SQL Server time)</value>
+  </data>
+  <data name="BackupSize" xml:space="preserve">
+    <value>Size, MiB</value>
+  </data>
+  <data name="BackupBase" xml:space="preserve">
+    <value>Base full backup</value>
+  </data>
+  <data name="BackupFullType" xml:space="preserve">
+    <value>Full</value>
+  </data>
+  <data name="BackupDiffType" xml:space="preserve">
+    <value>Differential</value>
+  </data>
+  <data name="BackupCopyType" xml:space="preserve">
+    <value>Full (COPY_ONLY)</value>
+  </data>
+  <data name="BackupUnreadable" xml:space="preserve">
+    <value>Incomplete or unsupported file</value>
+  </data>
+  <data name="BackupMissingBase" xml:space="preserve">
+    <value>Base missing</value>
+  </data>
+  <data name="BackupDownload" xml:space="preserve">
+    <value>Download</value>
+  </data>
+  <data name="BackupDeleteConfirm" xml:space="preserve">
+    <value>Delete these files ({0:N2} MiB)? Dependent differential backups are included. Deleting the current base requires a new full backup before creating another diff.</value>
+  </data>
+  <data name="BackupEmpty" xml:space="preserve">
+    <value>No backup files.</value>
+  </data>
+  <data name="BackupExportDescription" xml:space="preserve">
+    <value>Export of contest materials. Use database backups to restore the complete system.</value>
+  </data>
+  <data name="BackupDescription" xml:space="preserve">
+    <value>A differential backup requires its base full backup. Downloads include both files. Backups are stored on this server; download a copy to another device.</value>
+  </data>
+  <data name="BackupDownloadBundle" xml:space="preserve">
+    <value>Download bundle</value>
+  </data>
 </root>

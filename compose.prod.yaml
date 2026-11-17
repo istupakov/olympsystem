@@ -4,6 +4,8 @@ services:
       MSSQL_SA_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD for production}
   site:
     restart: unless-stopped
+    group_add:
+      - "${BACKUP_GROUP_ID:?Set BACKUP_GROUP_ID to the group ID of the backup directory}"
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_HTTP_PORTS: ""

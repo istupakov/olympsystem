@@ -7,6 +7,7 @@ using Olymp.Domain;
 using Olymp.WebApp.Resources;
 using Olymp.WebApp.Services;
 using Olymp.WebApp.Services.Contests;
+using Olymp.WebApp.Services.DatabaseMaintenance;
 
 namespace Olymp.WebApp.Components.Staff;
 
@@ -14,16 +15,46 @@ internal static class StaffDownloads
 {
     public static void MapStaffDownloads(this IEndpointRouteBuilder endpoints)
     {
-        var group = endpoints.MapGroup("/jury").RequireAuthorization(PolicyNames.JuryOrAdmin);
-        group.MapGet("/contests/export", (HttpContext http, ContestExportService service) => ExportContestAsync(null, http, service));
-        group.MapGet("/contests/{contestId:int}/export", (int contestId, HttpContext http, ContestExportService service) => ExportContestAsync(contestId, http, service));
-        group.MapGet("/problems/{problemId:int}/tests/download", DownloadZipAsync);
-        group.MapGet("/problems/{problemId:int}/tests/{id:int}/input", (int problemId, int id, HttpContext http,
+        var jury = endpoints.MapGroup("/jury").RequireAuthorization(PolicyNames.JuryOrAdmin);
+        jury.MapGet("/contests/{contestId:int}/export", (int contestId, HttpContext http, ContestExportService service) =>
+            ExportContestAsync(contestId, http, service));
+        jury.MapGet("/problems/{problemId:int}/tests/download", DownloadZipAsync);
+        jury.MapGet("/problems/{problemId:int}/tests/{id:int}/input", (int problemId, int id, HttpContext http,
             IDbContextFactory<OlympContext> factory) => DownloadTestAsync(problemId, id, false, http, factory));
-        group.MapGet("/problems/{problemId:int}/tests/{id:int}/output", (int problemId, int id, HttpContext http,
+        jury.MapGet("/problems/{problemId:int}/tests/{id:int}/output", (int problemId, int id, HttpContext http,
             IDbContextFactory<OlympContext> factory) => DownloadTestAsync(problemId, id, true, http, factory));
-        group.MapGet("/contests/{contestId:int}/participants/export", ExportParticipantsAsync);
-        group.MapGet("/contests/{contestId:int}/files/{kind}", DownloadContestFileAsync);
+        jury.MapGet("/contests/{contestId:int}/participants/export", ExportParticipantsAsync);
+        jury.MapGet("/contests/{contestId:int}/files/{kind}", DownloadContestFileAsync);
+
+        var admin = endpoints.MapGroup("/admin").RequireAuthorization(PolicyNames.Admin);
+        admin.MapGet("/contests/export", (HttpContext http, ContestExportService service) =>
+            ExportContestAsync(null, http, service));
+        admin.MapGet("/backups/{name}/download", DownloadBackupAsync);
+    }
+
+    private static async Task<IResult> DownloadBackupAsync(string name, HttpContext http, DatabaseBackupService service)
+    {
+        try
+        {
+            var files = await service.OpenDownloadAsync(http.User, name, http.RequestAborted);
+            foreach (var file in files) http.Response.RegisterForDispose(file);
+            if (files.Length == 1)
+                return Results.File(files[0], "application/octet-stream", Path.GetFileName(files[0].Name));
+            return Results.Stream(async stream =>
+            {
+                await using var archive = new ZipArchive(stream, ZipArchiveMode.Create, leaveOpen: true);
+                foreach (var file in files)
+                {
+                    await using var entry = archive.CreateEntry(Path.GetFileName(file.Name), CompressionLevel.NoCompression).Open();
+                    await file.CopyToAsync(entry, http.RequestAborted);
+                }
+            }, "application/zip", Path.GetFileNameWithoutExtension(name) + ".zip");
+        }
+        catch (EntityNotFoundException) { return Results.NotFound(); }
+        catch (OperationValidationException exception)
+        {
+            return Results.Problem(exception.Message, statusCode: StatusCodes.Status409Conflict);
+        }
     }
 
     private static async Task<IResult> ExportContestAsync(int? contestId, HttpContext http, ContestExportService service)
@@ -31,9 +62,9 @@ internal static class StaffDownloads
         http.Response.Headers.CacheControl = "no-store";
         try
         {
-            var file = await service.ExportAsync(contestId, http.RequestAborted);
-            http.Response.RegisterForDispose(file);
-            return Results.File(file, "application/zip", contestId is int id ? $"contest-{id}-export.zip" : "contests-export.zip");
+            var export = await service.ExportAsync(contestId, http.RequestAborted);
+            http.Response.RegisterForDispose(export.Stream);
+            return Results.File(export.Stream, "application/zip", export.FileName);
         }
         catch (EntityNotFoundException)
         {
@@ -62,7 +93,7 @@ internal static class StaffDownloads
         var data = await db.Blobs.Where(item => item.Id == blobId).Select(item => item.Data).SingleOrDefaultAsync(http.RequestAborted);
         http.Response.Headers.CacheControl = "no-store";
         return data is null ? Results.NotFound() : Results.File(data, "application/octet-stream",
-            $"contest-{contestId}-{kind}." + (kind == "problems" ? "pdf" : kind == "tests" ? "zip" : "html"));
+            $"{contest!.Abbr}-{kind}." + (kind == "problems" ? "pdf" : kind == "tests" ? "zip" : "html"));
     }
 
     private static async Task<IResult> DownloadTestAsync(int problemId, int id, bool output, HttpContext http,
@@ -105,7 +136,8 @@ internal static class StaffDownloads
         HttpContext http, IDbContextFactory<OlympContext> factory)
     {
         await using var db = await factory.CreateDbContextAsync(http.RequestAborted);
-        if (!await db.Contests.AnyAsync(item => item.Id == contestId, http.RequestAborted)) return Results.NotFound();
+        string? abbr = await db.Contests.Where(item => item.Id == contestId).Select(item => item.Abbr).SingleOrDefaultAsync(http.RequestAborted);
+        if (abbr is null) return Results.NotFound();
         var query = new ParticipantQuery(contestId, search, organization, approved, unofficial, disqualified, coach, member, coachSearch, memberSearch, hasLogin, hidden).Apply(db)
             .Where(item => item.UserName != null && item.UserName != "");
         var participants = await ParticipantQuery.Order(query, sort, descending ?? false)
@@ -120,7 +152,7 @@ internal static class StaffDownloads
                 participant.UserName, participant.PasswordHash }.Select(Escape)));
         http.Response.Headers.CacheControl = "no-store";
         return Results.File(Encoding.UTF8.Preamble.ToArray().Concat(Encoding.UTF8.GetBytes(csv.ToString())).ToArray(),
-            "text/csv; charset=utf-8", $"contest-{contestId}-logins.csv");
+            "text/csv; charset=utf-8", $"{abbr}-logins.csv");
     }
 
     private static string Escape(string? value) => "\"" + (value ?? "").Replace("\"", "\"\"", StringComparison.Ordinal) + "\"";

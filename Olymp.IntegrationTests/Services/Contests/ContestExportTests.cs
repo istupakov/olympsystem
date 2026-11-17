@@ -34,7 +34,9 @@ public class ContestExportTests(ContestServiceFixture site) : IClassFixture<Cont
         var probe = new LockProbe(connectionString, contest.Id);
         var options = new DbContextOptionsBuilder<OlympContext>().UseSqlServer(connectionString).AddInterceptors(probe).Options;
         var service = new ContestExportService(new PooledDbContextFactory<OlympContext>(options));
-        await using var file = await service.ExportAsync(contest.Id, token);
+        var export = await service.ExportAsync(contest.Id, token);
+        await using var file = export.Stream;
+        Assert.Equal($"{contest.Abbr}-export.zip", export.FileName);
         Assert.True(probe.Blocked);
         await using var connection = new SqlConnection(connectionString);
         await connection.OpenAsync(token);
@@ -305,7 +307,7 @@ public class ContestExportTests(ContestServiceFixture site) : IClassFixture<Cont
     {
         string temporaryPath;
         var files = new Dictionary<string, byte[]>(StringComparer.Ordinal);
-        await using (var stream = await service.ExportAsync(contestId, TestContext.Current.CancellationToken))
+        await using (var stream = (await service.ExportAsync(contestId, TestContext.Current.CancellationToken)).Stream)
         {
             temporaryPath = stream.Name;
             using var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: true);

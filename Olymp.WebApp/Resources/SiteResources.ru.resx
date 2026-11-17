@@ -716,4 +716,88 @@
   <data name="StaffLegacyProblemsMoved" xml:space="preserve"><value>Очистка отменена: одна из задач больше не принадлежит соревнованию ID 1. Задачи и тесты не удалены.</value></data>
   <data name="SubmissionMine" xml:space="preserve"><value>Мои</value></data>
   <data name="SubmissionKind" xml:space="preserve"><value>Тип решений</value></data>
+  <data name="BackupTitle" xml:space="preserve">
+    <value>Архивы и резервные копии</value>
+  </data>
+  <data name="BackupDatabase" xml:space="preserve">
+    <value>Резервные копии БД</value>
+  </data>
+  <data name="BackupFull" xml:space="preserve">
+    <value>Создать полную копию</value>
+  </data>
+  <data name="BackupDiff" xml:space="preserve">
+    <value>Создать diff</value>
+  </data>
+  <data name="BackupRefresh" xml:space="preserve">
+    <value>Обновить</value>
+  </data>
+  <data name="BackupBusy" xml:space="preserve">
+    <value>Выполняется операция с бекапами. Нажмите «Обновить» для проверки результата.</value>
+  </data>
+  <data name="BackupFailed" xml:space="preserve">
+    <value>Не удалось создать копию. Подробности в журнале приложения. Если база для diff недоступна, сначала создайте полную копию.</value>
+  </data>
+  <data name="BackupSucceeded" xml:space="preserve">
+    <value>Копия создана и проверена.</value>
+  </data>
+  <data name="BackupNeedsFull" xml:space="preserve">
+    <value>Базовая полная копия отсутствует. Создайте новую полную копию.</value>
+  </data>
+  <data name="BackupChanged" xml:space="preserve">
+    <value>Файлы изменились. Повторно проверьте список удаления.</value>
+  </data>
+  <data name="BackupReadFailed" xml:space="preserve">
+    <value>Хранилище бекапов недоступно. Проверьте настройки, права и журнал приложения.</value>
+  </data>
+  <data name="BackupDisk" xml:space="preserve">
+    <value>Диск: свободно {0:N2} ГиБ из {1:N2} ГиБ. Файлы бекапов: {2:N2} ГиБ.</value>
+  </data>
+  <data name="BackupFile" xml:space="preserve">
+    <value>Файл</value>
+  </data>
+  <data name="BackupType" xml:space="preserve">
+    <value>Тип</value>
+  </data>
+  <data name="BackupDate" xml:space="preserve">
+    <value>Создано (время SQL Server)</value>
+  </data>
+  <data name="BackupSize" xml:space="preserve">
+    <value>Размер, МиБ</value>
+  </data>
+  <data name="BackupBase" xml:space="preserve">
+    <value>Базовая полная копия</value>
+  </data>
+  <data name="BackupFullType" xml:space="preserve">
+    <value>Полная</value>
+  </data>
+  <data name="BackupDiffType" xml:space="preserve">
+    <value>Diff</value>
+  </data>
+  <data name="BackupCopyType" xml:space="preserve">
+    <value>Полная (COPY_ONLY)</value>
+  </data>
+  <data name="BackupUnreadable" xml:space="preserve">
+    <value>Незавершённый или неподдерживаемый файл</value>
+  </data>
+  <data name="BackupMissingBase" xml:space="preserve">
+    <value>База отсутствует</value>
+  </data>
+  <data name="BackupDownload" xml:space="preserve">
+    <value>Скачать</value>
+  </data>
+  <data name="BackupDeleteConfirm" xml:space="preserve">
+    <value>Удалить эти файлы ({0:N2} МиБ)? Зависимые diff включены в список. После удаления текущей базы для создания diff потребуется новая полная копия.</value>
+  </data>
+  <data name="BackupEmpty" xml:space="preserve">
+    <value>Файлов бекапов нет.</value>
+  </data>
+  <data name="BackupExportDescription" xml:space="preserve">
+    <value>Экспорт материалов соревнований. Для полного восстановления системы используйте резервные копии БД.</value>
+  </data>
+  <data name="BackupDescription" xml:space="preserve">
+    <value>Для восстановления diff нужна базовая полная копия. Они скачиваются одним комплектом. Бекапы хранятся на этом сервере; скачивайте копии на другое устройство.</value>
+  </data>
+  <data name="BackupDownloadBundle" xml:space="preserve">
+    <value>Скачать комплект</value>
+  </data>
 </root>

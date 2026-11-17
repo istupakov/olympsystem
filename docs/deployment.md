@@ -16,23 +16,6 @@ The production health check uses HTTPS and verifies the application certificate.
 
 ## Application
 
-Create `.env` next to [compose.yaml](../compose.yaml) and
-[compose.prod.yaml](../compose.prod.yaml):
-
-```dotenv
-DB_PASSWORD=replace-with-the-database-password
-ApiKeys__0=replace-with-the-runner-key
-ReverseProxy__KnownProxies__0=192.0.2.10
-MailService__UserName=replace-with-the-smtp-username
-MailService__Password=replace-with-the-smtp-password
-```
-
-Replace the example values and keep `.env` out of Git. The proxy address is the
-immediate peer seen by the application; Docker NAT may change it. If needed,
-enable Debug logging for
-`Microsoft.AspNetCore.HttpOverrides.ForwardedHeadersMiddleware` to identify the
-unknown proxy address.
-
 On the Linux/WSL application host, run the VS Code task
 **Host: Prepare production**, or run from the repository root:
 
@@ -71,6 +54,28 @@ and reapplies permissions. An incomplete or invalid certificate requires explici
 replacement. To replace the certificate deliberately, use
 `bash scripts/prepare-production.sh <server-ip> --force`.
 
+Create `.env` next to [compose.yaml](../compose.yaml) and
+[compose.prod.yaml](../compose.prod.yaml):
+
+```dotenv
+DB_PASSWORD=replace-with-the-database-password
+BACKUP_GROUP_ID=1000
+ApiKeys__0=replace-with-the-runner-key
+ReverseProxy__KnownProxies__0=192.0.2.10
+MailService__UserName=replace-with-the-smtp-username
+MailService__Password=replace-with-the-smtp-password
+```
+
+Set `BACKUP_GROUP_ID` to the group ID from `stat -c '%g' backup` after
+directory preparation. Production requires this setting so the site can read and
+delete files in the shared backup directory. Development defaults to group `1000`.
+
+Replace the example values and keep `.env` out of Git. The proxy address is the
+immediate peer seen by the application; Docker NAT may change it. If needed,
+enable Debug logging for
+`Microsoft.AspNetCore.HttpOverrides.ForwardedHeadersMiddleware` to identify the
+unknown proxy address.
+
 After preparation, build and start the application. It mounts `./tls` read-only.
 
 ```bash
@@ -87,6 +92,37 @@ and account tokens. Before updating, back up the database:
 ```bash
 bash scripts/database-backup.sh -f compose.yaml -f compose.prod.yaml
 ```
+
+## Manual database backups
+
+Administrators use **Archives and backups** to create full and differential
+backups, download or delete them, and check free disk space. The page also
+provides the all-contests ZIP export. Jury members export individual contests
+from their contest pages.
+
+Compose mounts `./backup` at `/var/opt/mssql/backup` in SQL Server and `/app/backup`
+in the site. It supplies the corresponding `DatabaseBackups__SqlPath` and
+`DatabaseBackups__LocalPath` settings. The dev container uses `../backup` relative
+to the application's content root. If changing the mounts or directory group,
+update these settings and `BACKUP_GROUP_ID`, then recreate the site container.
+
+Create a full backup before the first diff. Each diff contains changes since
+its base full backup. The existing [backup command](../scripts/database-backup.sh)
+creates an independent COPY_ONLY full backup and does not change that base.
+
+Creation continues after closing the page; click **Refresh** to see the result.
+Restarting the site may interrupt creation. Incomplete `.pending` files can be
+deleted from the page. Failed operations are recorded in the application log.
+
+A full copy downloads as `.bak`; a diff downloads together with its base full
+copy as a ZIP. Deleting a full copy requires confirmation of its dependent diffs
+as well. After deleting the current base, create a new full copy before the next
+diff. Download copies to another device to protect against loss of the server.
+Database backups do not include Data Protection keys or TLS files.
+
+Restore a pair through SQL Server: restore the full copy with `NORECOVERY`, then
+the selected diff with `RECOVERY`. The existing single-file **Database: Restore**
+task does not restore pairs. Restoration through the site is not available.
 
 ## Caddy
 
