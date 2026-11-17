@@ -4,9 +4,17 @@
 @inject NavigationManager Navigation
 @inject StaffGridState GridState
 
-@if (_error is not null) { <p class="alert alert-danger" role="alert">@_error</p> }
-@if (_result is not null) { <p class="alert alert-success" role="status">@string.Format(SiteResources.StaffCleanupResult, _result.Deleted, _result.Skipped)</p> }
-<StaffActions Title="@SiteResources.StaffUserOperations">
+<details class="card mb-3" aria-labelledby="user-cleanup-heading">
+    <summary id="user-cleanup-heading" class="card-header">
+        @SiteResources.UserStatisticsCleanupTitle
+        @if (CandidateCount is int count)
+        {
+            <span> · <a href="@CandidateUrl" aria-label="@($"{SiteResources.UserStatisticsCleanup}: {count:N0}")">@count.ToString("N0")</a></span>
+        }
+    </summary>
+    <div class="card-body">
+    @if (_error is not null) { <p class="alert alert-danger" role="alert">@_error</p> }
+    @if (_result is not null) { <p class="alert alert-success" role="status">@string.Format(SiteResources.StaffCleanupResult, _result.Deleted, _result.Skipped)</p> }
     <p>@SiteResources.StaffCleanupDescription</p>
     @if (_preview is null)
     {
@@ -29,11 +37,14 @@
         }
         <button type="button" class="btn btn-outline-secondary" disabled="@_busy" @onclick="Cancel">@SiteResources.StaffCancel</button>
     }
-</StaffActions>
+    </div>
+</details>
 
 @code {
     [CascadingParameter] private Task<AuthenticationState> AuthenticationState { get; set; } = default!;
     [Parameter] public EventCallback OnDeleted { get; set; }
+    [Parameter] public int? CandidateCount { get; set; }
+    [Parameter] public string? CandidateUrl { get; set; }
     private UnconfirmedUserCleanupService.Preview? _preview;
     private UnconfirmedUserCleanupService.Result? _result;
     private string? _error;

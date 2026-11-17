@@ -39,7 +39,9 @@ public sealed class UnconfirmedUserCleanupService(OlympContext context, UserMana
         return new(accounts.Count, preview.Ids.Length - accounts.Count);
     }
 
-    private IQueryable<OlympUser> Candidates(DateTimeOffset cutoff) => context.OlympUsers.AsNoTracking()
+    private IQueryable<OlympUser> Candidates(DateTimeOffset cutoff) => Candidates(context, cutoff);
+
+    internal static IQueryable<OlympUser> Candidates(OlympContext context, DateTimeOffset cutoff) => context.OlympUsers.AsNoTracking()
         .Where(item => !item.EmailConfirmed && item.RegistrationDate != null && item.RegistrationDate < cutoff
             && !item.Submissions.Any() && !item.Messages.Any() && !item.Memberships.Any() && !item.Teams.Any()
             && !context.UserRoles.Any(role => role.UserId == item.Id)
