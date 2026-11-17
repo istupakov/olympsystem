@@ -156,7 +156,6 @@
   <data name="Problem" xml:space="preserve"><value>Problem</value></data>
   <data name="SubmissionScope" xml:space="preserve"><value>Submission scope</value></data>
   <data name="OwnSubmissions" xml:space="preserve"><value>My submissions</value></data>
-  <data name="ParticipantSubmissions" xml:space="preserve"><value>My contests</value></data>
   <data name="CoachedSubmissions" xml:space="preserve"><value>Coached authors</value></data>
   <data name="AllSubmissions" xml:space="preserve"><value>All</value></data>
   <data name="SubmissionRecorded" xml:space="preserve"><value>Submitted</value></data>
@@ -715,4 +714,6 @@
   <data name="StaffCleanupLegacyProblemsConfirm" xml:space="preserve"><value>Delete problems ID 3554 and 3582 from contest ID 1 together with all their tests? This cannot be undone. If either problem has submissions or questions, the entire cleanup will be cancelled.</value></data>
   <data name="StaffLegacyProblemsHaveHistory" xml:space="preserve"><value>Cleanup cancelled. Problems with IDs {0} have submissions or questions. No problems or tests were deleted.</value></data>
   <data name="StaffLegacyProblemsMoved" xml:space="preserve"><value>Cleanup cancelled: one of the problems no longer belongs to contest ID 1. No problems or tests were deleted.</value></data>
+  <data name="SubmissionMine" xml:space="preserve"><value>Mine</value></data>
+  <data name="SubmissionKind" xml:space="preserve"><value>Submission type</value></data>
 </root>

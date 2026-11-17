@@ -217,7 +217,6 @@ else
                         Id: item.Id,
                         CommitTime: item.CommitTime,
                         Author: item.User.Name,
-                        IsParticipant: context.Competitors.Any(author => author.Id == item.UserId && author.ContestId == contestId),
                         Compiler: item.Compilator.Name,
                         ContestId: contestId,
                         Contest: contest!.Name,

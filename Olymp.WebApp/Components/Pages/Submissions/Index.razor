@@ -8,11 +8,14 @@
 <PageTitle>@SiteResources.Submissions</PageTitle>
 <h1>@SiteResources.Submissions</h1>
 
-<SubmissionList Scope="@Scope" Page="@(Page ?? 1)" ShowHeading="false" />
+<SubmissionList Scope="@Scope" Kind="@Kind" Page="@(Page ?? 1)" ShowHeading="false" />
 
 @code {
     [SupplyParameterFromQuery]
     public string? Scope { get; set; }
+
+    [SupplyParameterFromQuery]
+    public string? Kind { get; set; }
 
     [SupplyParameterFromQuery]
     public int? Page { get; set; }

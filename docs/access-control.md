@@ -255,11 +255,15 @@ who can select this scope.
 | Account | Available scopes |
 | --- | --- |
 | Temporary `Competitor` | Own submissions in the general list and their bound contest; public submission information in other contests. |
-| Permanent `OlympUser` | My submissions; My contests (linked `Competitor` submissions); Public submissions with uniformly restricted information. |
+| Permanent `OlympUser` | Mine (own and linked `Competitor` submissions); All with uniformly restricted public information. |
 | Permanent user with coached authors | The permanent-user scopes plus submissions of authors whose `User.CoachId` equals the viewer's ID. Coached authors may be `Competitor` or `OlympUser`; no coach claim is required for this scope. |
 
-"My submissions" means `Submission.UserId` equals the signed-in account ID. Linked
-participants are identified by `Competitor.Members`. The coached-author scope
+The public lists (global, contest, and problem) have two independent selectors:
+authors (Mine, Coached, All) and type (Contest, Training). Contest submissions are
+authored by `Competitor` accounts; Training submissions are authored by permanent
+accounts, regardless of submission time. Mine includes submissions whose
+`Submission.UserId` equals the signed-in account ID and submissions by linked
+participants, identified by `Competitor.Members`. The coached-author scope
 uses the submission author's own `User.CoachId`; organization membership or a
 relationship inferred through another account is insufficient. Scopes may
 overlap. Choosing "All" restricts the list to accepted/not accepted results,
@@ -280,7 +284,7 @@ code, compilation diagnostics, and downloads, while retaining submission metadat
 | Author's coach, matching `User.CoachId` | Allowed for a visible problem only when `IsOpen` is true, for both participant and permanent-account authors. |
 | Unrelated viewer | Denied, including in the "Public" scope and open contests. |
 
-The linked-participant and coached-author lists remain available in closed
+The Mine and Coached lists remain available in closed
 contests. Listing a submission does not grant access to its source or compilation
 errors through the submission page and download endpoint. List result visibility
 is specified separately in section 7.
@@ -322,7 +326,7 @@ standings. They include approved, visible original participants and visible pers
 accounts with eligible submissions. Freeze is disabled; ordinary submission access
 rules still apply.
 
-In personal, linked-participant, and coached-author scopes, compute information
+In the Mine and Coached scopes, compute information
 visibility per row based on the viewer's relationship to its author. The Public
 scope shows accepted/not accepted only for completed checks, or the submission fact
 while queued, running, or frozen, without source links or scores. Open contests

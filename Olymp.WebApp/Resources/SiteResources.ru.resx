@@ -156,7 +156,6 @@
   <data name="Problem" xml:space="preserve"><value>Задача</value></data>
   <data name="SubmissionScope" xml:space="preserve"><value>Какие решения показывать</value></data>
   <data name="OwnSubmissions" xml:space="preserve"><value>Мои решения</value></data>
-  <data name="ParticipantSubmissions" xml:space="preserve"><value>Мои соревнования</value></data>
   <data name="CoachedSubmissions" xml:space="preserve"><value>Подопечные</value></data>
   <data name="AllSubmissions" xml:space="preserve"><value>Все</value></data>
   <data name="SubmissionRecorded" xml:space="preserve"><value>Отправлено</value></data>
@@ -715,4 +714,6 @@
   <data name="StaffCleanupLegacyProblemsConfirm" xml:space="preserve"><value>Удалить задачи ID 3554 и 3582 из соревнования ID 1 вместе со всеми их тестами? Это действие необратимо. Если хотя бы у одной задачи есть решения или вопросы, очистка будет отменена целиком.</value></data>
   <data name="StaffLegacyProblemsHaveHistory" xml:space="preserve"><value>Очистка отменена. У задач с ID {0} есть решения или вопросы. Задачи и тесты не удалены.</value></data>
   <data name="StaffLegacyProblemsMoved" xml:space="preserve"><value>Очистка отменена: одна из задач больше не принадлежит соревнованию ID 1. Задачи и тесты не удалены.</value></data>
+  <data name="SubmissionMine" xml:space="preserve"><value>Мои</value></data>
+  <data name="SubmissionKind" xml:space="preserve"><value>Тип решений</value></data>
 </root>
