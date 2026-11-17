@@ -23,17 +23,8 @@ else if (_editContext is null)
 }
 else
 {
-    @if (_error is not null)
-    {
-        <div class="alert alert-danger" role="alert">@_error</div>
-    }
-    @if (_saved)
-    {
-        <div class="alert alert-success" role="status">@SiteResources.StaffSaved</div>
-    }
     <EditForm EditContext="_editContext" OnValidSubmit="SaveAsync" OnInvalidSubmit="ClearSavedStatus">
         <DataAnnotationsValidator />
-        <ValidationSummary class="text-danger" />
         <fieldset disabled="@(_saving || _deleting)">
             <div class="mb-3">
                 <label for="news-title" class="form-label">@SiteResources.NewsTitle</label>
@@ -61,6 +52,7 @@ else
                 <ValidationMessage For="() => _input.PublicationDate" class="text-danger" />
             </div>
             <p class="small text-body-secondary">@SiteResources.NewsPublishesImmediately</p>
+            <StaffFormFeedback Error="@(_confirmDelete ? null : _error)" Saved="_saved" />
             <div class="d-flex flex-wrap gap-2">
                 <button type="submit" class="btn btn-primary">@(_saving ? SiteResources.StaffSaving : Id is null ? SiteResources.CreateNews : SiteResources.StaffSave)</button>
                 <a class="btn btn-outline-secondary" href="@BackUrl">@SiteResources.StaffBackToList</a>
@@ -74,6 +66,7 @@ else
     @if (_confirmDelete)
     {
         <section class="alert alert-warning mt-3" role="alert">
+            @if (_error is not null) { <p class="text-danger" role="alert">@_error</p> }
             <p>@SiteResources.ConfirmDeleteNews</p>
             <div class="d-flex flex-wrap gap-2">
                 <button type="button" class="btn btn-danger" disabled="@(_saving || _deleting)" @onclick="DeleteAsync">@(_deleting ? SiteResources.DeletingNews : SiteResources.DeleteNews)</button>

@@ -73,13 +73,13 @@ else
                     <button class="btn btn-outline-warning" @onclick="() => Ask(_participant.IsDisqualified ? ParticipantAction.Restore : ParticipantAction.Disqualify)">@(_participant.IsDisqualified ? SiteResources.StaffRestoreParticipant : SiteResources.StaffDisqualify)</button>
                     <button class="btn btn-outline-danger" disabled="@(_submissionCount > 0 || _messageCount > 0)" @onclick="() => Ask(ParticipantAction.Delete)">@SiteResources.StaffDelete</button>
                 }
-                @if (_admin) { <button class="btn btn-outline-danger" @onclick="() => Ask(Locked ? ParticipantAction.Unban : ParticipantAction.Ban)">@(Locked ? SiteResources.StaffUnban : SiteResources.StaffBan)</button> }
+                @if (_admin) { <button class="btn @(Locked ? "btn-outline-warning" : "btn-outline-danger")" @onclick="() => Ask(Locked ? ParticipantAction.Unban : ParticipantAction.Ban)">@(Locked ? SiteResources.StaffUnban : SiteResources.StaffBan)</button> }
             </fieldset>
             @if (_pending is { } pending)
             {
                 <div class="alert alert-warning mt-3 mb-0" role="alert">
                     <p>@SiteResources.StaffConfirmOperation <strong>@ActionName(pending)</strong></p>
-                    <button class="btn btn-danger me-2" disabled="@_busy" @onclick="ExecuteAsync">@SiteResources.StaffConfirm</button>
+                    <button class="btn @(pending is ParticipantAction.Delete or ParticipantAction.Ban ? "btn-danger" : "btn-warning") me-2" disabled="@_busy" @onclick="ExecuteAsync">@SiteResources.StaffConfirm</button>
                     <button class="btn btn-outline-secondary" disabled="@_busy" @onclick="() => _pending = null">@SiteResources.StaffCancel</button>
                 </div>
             }

@@ -87,7 +87,7 @@ else
             <ActiveFilter Name="Status" Label="@SiteResources.SubmissionStatus" Value="@(Status == "answered" ? SiteResources.StaffAnswered : Status == "unanswered" ? SiteResources.StaffUnanswered : null)" />
         }
     </div>
-    @if (_error is not null)
+    @if (_error is not null && !_editing)
     {
         <p class="alert alert-danger" role="alert">@_error</p>
     }
@@ -97,7 +97,6 @@ else
             <div class="card-body">
                 <EditForm Model="_editor" OnValidSubmit="SaveAsync">
                     <DataAnnotationsValidator />
-                    <ValidationSummary class="text-danger" />
                     <fieldset disabled="@_busy">
                         <h2 class="h5">@(_isReply ? SiteResources.StaffAnswer : SiteResources.StaffAnnouncements)</h2>
                         @if (_question is not null)
@@ -118,6 +117,7 @@ else
                         <label for="jury-text" class="form-label">@SiteResources.StaffMessageText</label>
                         <InputTextArea id="jury-text" class="form-control mb-2" rows="6" @bind-Value="_editor.Text" />
                         <p class="form-text">@SiteResources.HtmlSupported</p>
+                        <StaffFormFeedback Error="@_error" />
                         <div class="d-flex flex-wrap gap-2">
                             <button class="btn btn-primary">@SiteResources.StaffSave</button>
                             <button type="button" class="btn btn-secondary" @onclick="() => _preview = !_preview">@SiteResources.StaffPreview</button>

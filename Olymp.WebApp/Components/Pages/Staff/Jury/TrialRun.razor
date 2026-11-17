@@ -13,13 +13,11 @@
 <StaffPageTitle Title="@SiteResources.StaffRunCode" />
 <h1 class="h3">@SiteResources.StaffRunCode</h1>
 @if (Submission is int submission) { <p><a href="jury/submissions/@submission">@SiteResources.Submissions #@submission</a></p> }
-@if (_error is not null) { <p class="alert alert-danger" role="alert">@_error</p> }
 @if (!_loaded) { <p role="status">@SiteResources.StaffLoading</p> }
 else
 {
     <EditForm @key="_editContext" EditContext="_editContext" OnValidSubmit="RunAsync">
         <DataAnnotationsValidator />
-        <ValidationSummary class="text-danger" role="alert" />
         <fieldset disabled="@(_cancellation is not null)">
             @if (_problem is not null)
             {
@@ -84,6 +82,7 @@ else
             }
             @if (UnavailableReason is { } reason) { <p id="trial-unavailable" class="text-body-secondary" role="status">@reason</p> }
             @if (InvalidTest) { <p><a href="@Navigation.GetUriWithQueryParameter(nameof(Test), (int?)null)">@SiteResources.StaffAllActiveTests</a></p> }
+            <StaffFormFeedback Error="@_error" />
             <button class="btn btn-primary" disabled="@(UnavailableReason is not null)" aria-describedby="@(UnavailableReason is not null ? "trial-unavailable" : null)">@SiteResources.StaffRun</button>
         </fieldset>
     </EditForm>

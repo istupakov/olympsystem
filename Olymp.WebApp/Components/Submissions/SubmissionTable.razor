@@ -40,18 +40,18 @@
                     </td>
                     @if (ShowAuthor)
                     {
-                        <td>
-                            <span title="@submission.Author">@Shorten(submission.Author, 25)</span>
+                        <td class="submission-text @(ShowProblem ? "submission-author" : null)">
+                            <span class="d-block text-truncate" title="@submission.Author">@submission.Author</span>
                         </td>
                     }
                     @if (ShowProblem)
                     {
-                        <td>
+                        <td class="submission-text @(ShowAuthor ? "submission-problem" : null)">
                             <div>
-                                <a href="contests/@submission.ContestId/problems?problemId=@submission.ProblemId" title="@submission.Problem">@Shorten(submission.Problem, 25)</a>
+                                <a class="d-block text-truncate" href="contests/@submission.ContestId/problems?problemId=@submission.ProblemId" title="@submission.Problem">@submission.Problem</a>
                                 @if (ShowContest)
                                 {
-                                    <div class="small text-body-secondary" title="@submission.Contest">@Shorten(submission.Contest, 25)</div>
+                                    <div class="small text-body-secondary text-truncate" title="@submission.Contest">@submission.Contest</div>
                                 }
                             </div>
                         </td>
@@ -100,14 +100,6 @@
 </div>
 
 @code {
-    private static string Shorten(string text, int maxLength)
-    {
-        if (text.Length <= maxLength) return text;
-
-        var characters = StringInfo.ParseCombiningCharacters(text);
-        return characters.Length <= maxLength ? text : text[..characters[maxLength - 1]] + "…";
-    }
-
     [Parameter, EditorRequired]
     public IReadOnlyList<SubmissionListItem> Items { get; set; } = [];
 

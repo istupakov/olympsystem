@@ -461,7 +461,7 @@
   <data name="ParticipantDeletionHasHistory" xml:space="preserve"><value>Нельзя удалить участника: есть посылки или другие связанные записи.</value></data>
   <data name="ParticipantCleanupAfterEndOnly" xml:space="preserve"><value>Удалять участников без отправок можно только после окончания соревнования.</value></data>
   <data name="ParticipantFileEmpty" xml:space="preserve"><value>Файл не содержит имён участников.</value></data>
-  <data name="ParticipantFileDuplicateNames" xml:space="preserve"><value>В файле повторяются имена участников.</value></data>
+  <data name="ParticipantFileDuplicateNames" xml:space="preserve"><value>В файле повторяются имена участников или названия команд: {0}.</value></data>
   <data name="ParticipantImportIndividualOnly" xml:space="preserve"><value>Импорт списка имён доступен только для личных контестов.</value></data>
   <data name="ParticipantNameAmbiguous" xml:space="preserve"><value>В контесте несколько участников с именем «{0}».</value></data>
   <data name="ParticipantLoginsDuplicate" xml:space="preserve"><value>В файле повторяются логины.</value></data>

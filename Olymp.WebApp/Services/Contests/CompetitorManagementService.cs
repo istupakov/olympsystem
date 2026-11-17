@@ -270,8 +270,11 @@ public sealed class CompetitorManagementService(OlympContext context, UserManage
         await AuthorizeAsync(actor, contestId);
         if (names.Count == 0)
             throw new OperationValidationException(SiteResources.ParticipantFileEmpty);
-        if (names.Distinct(StringComparer.OrdinalIgnoreCase).Count() != names.Count)
-            throw new OperationValidationException(SiteResources.ParticipantFileDuplicateNames);
+        var duplicates = names.GroupBy(name => name, StringComparer.OrdinalIgnoreCase)
+            .Where(group => group.Count() > 1).Select(group => group.Key).ToArray();
+        if (duplicates.Length > 0)
+            throw new OperationValidationException(string.Format(CultureInfo.CurrentCulture,
+                SiteResources.ParticipantFileDuplicateNames, string.Join(", ", duplicates)));
 
         await using var transaction = await context.Database.BeginTransactionAsync(IsolationLevel.Serializable, token);
 

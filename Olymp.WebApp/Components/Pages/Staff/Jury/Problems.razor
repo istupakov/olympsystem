@@ -44,10 +44,10 @@ else
             {
                 <StaffActions Title="@SiteResources.StaffProblemOperations">
                     <div class="d-flex flex-wrap gap-2">
-                        <button class="btn btn-secondary" disabled="@_activityBusy" @onclick="() => _confirmActivity = !_confirmActivity">@(_selected.IsActive ? SiteResources.StaffDisable : SiteResources.StaffEnable)</button>
+                        <button class="btn btn-warning" disabled="@_activityBusy" @onclick="() => _confirmActivity = !_confirmActivity">@(_selected.IsActive ? SiteResources.StaffDisable : SiteResources.StaffEnable)</button>
                         @if (_admin)
                         {
-                            <a class="btn btn-secondary" href="jury/contests/@ContestId/submissions?Problem=@_selected.Id&Retest=true">@SiteResources.StaffRetestFiltered</a>
+                            <a class="btn btn-warning" href="jury/contests/@ContestId/submissions?Problem=@_selected.Id&Retest=true">@SiteResources.StaffRetestFiltered</a>
                         }
                     </div>
                     @if (_activityError is not null) { <p class="text-danger mt-2" role="alert">@_activityError</p> }
@@ -81,11 +81,11 @@ else
             <ProblemStatementView Problem="_selected" Examples="_examples" Clarifications="_clarifications" ShowPdfLink="false" />
             <section class="mt-4" aria-labelledby="submit-heading">
                 <h2 id="submit-heading" class="h4">@SiteResources.SubmitSolution</h2>
-                @if (_error is not null) { <p class="text-danger" role="alert">@_error</p> }
                 <EditForm @key="_input" Model="_input" OnValidSubmit="SubmitAsync">
                     <DataAnnotationsValidator />
-                    <ValidationSummary class="text-danger" role="alert" />
-                    <SubmissionFields Input="_input" Compilers="_compilers" Disabled="_busy" />
+                    <SubmissionFields Input="_input" Compilers="_compilers" Disabled="_busy">
+                        <Feedback><StaffFormFeedback Error="@_error" /></Feedback>
+                    </SubmissionFields>
                 </EditForm>
             </section>
             <section id="submissions" class="mt-4" aria-labelledby="problem-submissions-heading">

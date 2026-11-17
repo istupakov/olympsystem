@@ -12,7 +12,7 @@ namespace Olymp.IntegrationTests.WebApp.Public;
 public partial class PracticeSubmissionTests
 {
     [Fact]
-    public async Task IndependentSelectorsKeepClickedChoiceAndSwitchOtherChoiceOnlyForEmptyCombinations()
+    public async Task IndependentSelectorsPreserveOtherChoiceForEmptyCombinations()
     {
         var data = await SeedAsync();
         using var scope = factory.Services.CreateScope();
@@ -42,19 +42,26 @@ public partial class PracticeSubmissionTests
             Assert.Equal($"submission-{training.Id}", Assert.Single(initial.QuerySelectorAll("#submissions tbody tr")).Id);
             Assert.Empty(initial.QuerySelectorAll("#submissions tbody .badge"));
             string coachedUrl = initial.QuerySelector("#submissions nav a[href*='scope=coached']")!.GetAttribute("href")!;
-            Assert.Contains("kind=contest", coachedUrl);
+            Assert.Contains("kind=training", coachedUrl);
             Assert.DoesNotContain("page=", coachedUrl);
             if (path.Contains("problemId", StringComparison.Ordinal)) Assert.Contains($"problemId={data.Problem.Id}", coachedUrl);
             using var coached = await GetAsync(client, coachedUrl);
-            Assert.Equal($"submission-{competition.Id}", Assert.Single(coached.QuerySelectorAll("#submissions tbody tr")).Id);
-            string trainingUrl = coached.QuerySelector("#submissions nav a[href*='kind=training']")!.GetAttribute("href")!;
-            Assert.Contains("scope=own", trainingUrl);
-            using var own = await GetAsync(client, trainingUrl);
+            Assert.Empty(coached.QuerySelectorAll("#submissions tbody tr"));
+            Assert.Equal(5, coached.QuerySelectorAll("#submissions nav a").Length);
+            Assert.NotNull(coached.QuerySelector("#submissions nav a[aria-current='page'][href*='scope=coached']"));
+            Assert.NotNull(coached.QuerySelector("#submissions nav a[aria-current='page'][href*='kind=training']"));
+            string ownUrl = coached.QuerySelector("#submissions nav a[href*='scope=own']")!.GetAttribute("href")!;
+            Assert.Contains("kind=training", ownUrl);
+            using var own = await GetAsync(client, ownUrl);
             Assert.Equal($"submission-{training.Id}", Assert.Single(own.QuerySelectorAll("#submissions tbody tr")).Id);
+            string contestUrl = coached.QuerySelector("#submissions nav a[href*='kind=contest']")!.GetAttribute("href")!;
+            Assert.Contains("scope=coached", contestUrl);
+            using var contest = await GetAsync(client, contestUrl);
+            Assert.Equal($"submission-{competition.Id}", Assert.Single(contest.QuerySelectorAll("#submissions tbody tr")).Id);
             string allUrl = coached.QuerySelector("#submissions nav a[href*='scope=all']")!.GetAttribute("href")!;
-            Assert.Contains("kind=contest", allUrl);
+            Assert.Contains("kind=training", allUrl);
             using var all = await GetAsync(client, allUrl);
-            Assert.Equal($"submission-{competition.Id}", Assert.Single(all.QuerySelectorAll("#submissions tbody tr")).Id);
+            Assert.Equal($"submission-{training.Id}", Assert.Single(all.QuerySelectorAll("#submissions tbody tr")).Id);
             Assert.Empty(all.QuerySelectorAll("#submissions tbody a[href^='submissions/']"));
         }
     }

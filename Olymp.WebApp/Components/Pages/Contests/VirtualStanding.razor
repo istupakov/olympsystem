@@ -34,18 +34,22 @@
     }
     @if (_standing is null)
     {
-        <EditForm Model="Input" FormName="virtual-contest" OnValidSubmit="ShowStanding" class="mb-4">
-            <DataAnnotationsValidator />
-            <div class="row g-3 align-items-end">
-                <div class="col-sm-8 col-md-5">
-                    <label for="virtual-start" class="form-label">@SiteResources.ContestStart</label>
-                    <InputDate id="virtual-start" Type="InputDateType.DateTimeLocal" step="60" class="form-control" @bind-Value="Input!.StartDate" ParsingErrorMessage="@SiteResources.InvalidDate" />
-                    <ValidationMessage For="() => Input!.StartDate" />
-                </div>
-                <div class="col-sm-auto"><button class="btn btn-primary">@SiteResources.ShowVirtualStanding</button></div>
-            </div>
-            <p class="form-text">@string.Format(SiteResources.VirtualTimeZone, TimeZoneInfo.Local.Id)</p>
-        </EditForm>
+        <AuthorizeView Policy="@PolicyNames.PermanentAccount" Context="startAccount">
+            <Authorized>
+                <EditForm Model="Input" FormName="virtual-contest" OnValidSubmit="ShowStanding" class="mb-4">
+                    <DataAnnotationsValidator />
+                    <div class="row g-3 align-items-end">
+                        <div class="col-sm-8 col-md-5">
+                            <label for="virtual-start" class="form-label">@SiteResources.ContestStart</label>
+                            <InputDate id="virtual-start" Type="InputDateType.DateTimeLocal" step="60" class="form-control" @bind-Value="Input!.StartDate" ParsingErrorMessage="@SiteResources.InvalidDate" />
+                            <ValidationMessage For="() => Input!.StartDate" />
+                        </div>
+                        <div class="col-sm-auto"><button class="btn btn-primary">@SiteResources.ShowVirtualStanding</button></div>
+                    </div>
+                    <p class="form-text">@string.Format(SiteResources.VirtualTimeZone, TimeZoneInfo.Local.Id)</p>
+                </EditForm>
+            </Authorized>
+        </AuthorizeView>
     }
     else
     {
@@ -56,7 +60,11 @@
             <dd class="col-sm-9"><time datetime="@_end.ToString("O", CultureInfo.InvariantCulture)">@_end.ToLocalTime().ToString("g") @_end.ToLocalTime().ToString("zzz")</time></dd>
         </dl>
         <div class="d-flex flex-wrap align-items-start gap-3">
-            <a class="btn btn-outline-secondary mb-3" href="@QueryHelpers.AddQueryString(Navigation.Uri, "edit", "true")">@SiteResources.ChangeVirtualStart</a>
+            <AuthorizeView Policy="@PolicyNames.PermanentAccount" Context="startAccount">
+                <Authorized>
+                    <a class="btn btn-outline-secondary mb-3" href="@QueryHelpers.AddQueryString(Navigation.Uri, "edit", "true")">@SiteResources.ChangeVirtualStart</a>
+                </Authorized>
+            </AuthorizeView>
             <StandingControls BaseUrl="@Navigation.GetUriWithQueryParameter("highlight", (string?)null)"
                               Highlight="Highlight" CanHighlight="@(_relatedUserIds.Count > 0)"
                               IsCoach="@StandingHighlights.IsCoach(_standing.Results.Select(row => row.User), HttpContext.User)" />
