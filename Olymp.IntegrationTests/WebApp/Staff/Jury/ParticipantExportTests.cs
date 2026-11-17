@@ -50,6 +50,7 @@ public partial class ParticipantExportTests(WebAppFactory factory) : StaffCompon
         using var client = await _factory.LoginAsync(staff.UserName!);
         using var response = await client.GetAsync($"/jury/contests/{contest.Id}/participants/export?hasLogin=true&hidden=false&sort=Organization&descending=true", TestContext.Current.CancellationToken);
         response.EnsureSuccessStatusCode();
+        Assert.Equal($"{contest.Abbr}-logins.csv", response.Content.Headers.ContentDisposition!.FileNameStar);
         string csv = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         Assert.DoesNotContain(hidden.Name, csv);
         Assert.DoesNotContain(missing.Name, csv);

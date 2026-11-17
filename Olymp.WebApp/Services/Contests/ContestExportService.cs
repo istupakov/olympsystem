@@ -20,8 +20,10 @@ public sealed class ContestExportService(IDbContextFactory<OlympContext> factory
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase, WriteIndented = true, Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
     private static readonly JsonSerializerOptions JsonLineOptions = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase, Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
 
-    // Ownership passes to the caller. Closing the stream also deletes the temporary archive.
-    public async Task<FileStream> ExportAsync(int? contestId, CancellationToken token = default)
+    public sealed record ExportResult(FileStream Stream, string FileName);
+
+    // Ownership of the stream passes to the caller. Closing it also deletes the temporary archive.
+    public async Task<ExportResult> ExportAsync(int? contestId, CancellationToken token = default)
     {
         await using var db = await factory.CreateDbContextAsync(token);
         await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, token);
@@ -39,7 +41,7 @@ public sealed class ContestExportService(IDbContextFactory<OlympContext> factory
                     await WriteContestAsync(db, archive, contest, token);
             await transaction.CommitAsync(token);
             file.Position = 0;
-            return file;
+            return new(file, contestId is not null ? $"{contests.Single().Abbr}-export.zip" : "contests-export.zip");
         }
         catch
         {

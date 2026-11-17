@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 using Olymp.Domain;
+using Olymp.Domain.Models;
 using Olymp.IntegrationTests.WebApp.Shared;
 using Olymp.Tests.Shared;
 using Olymp.WebApp;
@@ -21,7 +22,34 @@ public class ContestExportDownloadTests(WebAppFactory factory) : StaffComponentT
     [Theory]
     [InlineData(RoleNames.Jury)]
     [InlineData(RoleNames.Admin)]
-    public async Task StaffCanDownloadHiddenContestAndAllContestsWithoutManagementAssignment(string role)
+    public async Task ContestAttachmentNamesUseAbbreviation(string role)
+    {
+        var token = TestContext.Current.CancellationToken;
+        var user = await _factory.AddUserAsync();
+        await GrantRoleAsync(user.Id, role);
+        await using var scope = _factory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<OlympContext>();
+        var contest = TestEntities.CreateContest("Attachment names", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddHours(1));
+        contest.Abbr = "контест-" + Guid.NewGuid().ToString("N");
+        contest.ProblemPdf = new Blob { Data = [1, 2, 3] };
+        contest.TestZip = new Blob { Data = [4, 5, 6] };
+        contest.FinalTableText = "<table>Final</table>";
+        contest.OfficialTableText = "<table>Official</table>";
+        db.Contests.Add(contest);
+        await db.SaveChangesAsync(token);
+        using var client = await _factory.LoginAsync(user.UserName!);
+        foreach (var (kind, extension) in new[] { ("problems", "pdf"), ("tests", "zip"), ("final", "html"), ("official", "html") })
+        {
+            using var response = await client.GetAsync($"/jury/contests/{contest.Id}/files/{kind}", token);
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            Assert.Equal($"{contest.Abbr}-{kind}.{extension}", response.Content.Headers.ContentDisposition!.FileNameStar);
+        }
+    }
+
+    [Theory]
+    [InlineData(RoleNames.Jury)]
+    [InlineData(RoleNames.Admin)]
+    public async Task StaffCanDownloadOneContestAndOnlyAdminCanDownloadAll(string role)
     {
         var token = TestContext.Current.CancellationToken;
         var user = await _factory.AddUserAsync();
@@ -34,13 +62,24 @@ public class ContestExportDownloadTests(WebAppFactory factory) : StaffComponentT
         db.Contests.Add(contest);
         await db.SaveChangesAsync(token);
         using var client = await _factory.LoginAsync(user.UserName!);
-        foreach (string url in new[] { $"/jury/contests/{contest.Id}/export", "/jury/contests/export?Search=missing&Hidden=false" })
+        using var oldExport = await client.GetAsync("/jury/contests/export", token);
+        Assert.NotEqual("application/zip", oldExport.Content.Headers.ContentType?.MediaType);
+        Assert.Null(oldExport.Content.Headers.ContentDisposition);
+        foreach (string url in new[] { $"/jury/contests/{contest.Id}/export", "/admin/contests/export?Search=missing&Hidden=false" })
         {
             using var response = await client.GetAsync(url, token);
+            if (role == RoleNames.Jury && url.Contains("export?", StringComparison.Ordinal))
+            {
+                Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+                Assert.Contains("AccessDenied", response.Headers.Location!.OriginalString);
+                continue;
+            }
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             Assert.Equal("application/zip", response.Content.Headers.ContentType!.MediaType);
             Assert.True(response.Headers.CacheControl!.NoStore);
             Assert.Equal("attachment", response.Content.Headers.ContentDisposition!.DispositionType);
+            Assert.Equal(url.StartsWith("/admin/", StringComparison.Ordinal) ? "contests-export.zip" : $"{contest.Abbr}-export.zip",
+                response.Content.Headers.ContentDisposition.FileNameStar);
             using var zip = new ZipArchive(new MemoryStream(await response.Content.ReadAsByteArrayAsync(token)));
             Assert.NotNull(zip.GetEntry(contest.Abbr + "/contest.json"));
         }
@@ -53,7 +92,7 @@ public class ContestExportDownloadTests(WebAppFactory factory) : StaffComponentT
         {
             using var list = await new HtmlParser().ParseDocumentAsync(await RenderAsync<ContestList>(
                 "/jury/contests/" + view, new() { ["View"] = view.Length == 0 ? null : view }, Staff(user.Id, role)));
-            Assert.NotNull(list.QuerySelector("a[href='jury/contests/export'][data-enhance-nav='false']"));
+            Assert.Null(list.QuerySelector("a[href='jury/contests/export'][data-enhance-nav='false']"));
         }
     }
 
@@ -70,7 +109,7 @@ public class ContestExportDownloadTests(WebAppFactory factory) : StaffComponentT
         await scope.ServiceProvider.GetRequiredService<OlympContext>().Users.Where(item => item.Id == incomplete.Id)
             .ExecuteUpdateAsync(setters => setters.SetProperty(item => item.NormalizedEmail, (string?)null), TestContext.Current.CancellationToken);
         foreach (var client in new[] { anonymous, signedIn, needsMigration })
-            foreach (string url in new[] { "/jury/contests/1/export", "/jury/contests/export" })
+            foreach (string url in new[] { "/jury/contests/1/export", "/admin/contests/export" })
             {
                 using var response = await client.GetAsync(url, TestContext.Current.CancellationToken);
                 Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);

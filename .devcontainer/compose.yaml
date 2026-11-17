@@ -12,6 +12,7 @@ services:
     volumes:
       - .:/workspaces/OlympSystem
     environment:
+      DatabaseBackups__LocalPath: ../backup
       ASPNETCORE_HTTP_PORTS: ""
       NUGET_XMLDOC_MODE: ""
       DOTNET_WATCH_SUPPRESS_LAUNCH_BROWSER: "true"

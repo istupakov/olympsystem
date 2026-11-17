@@ -7,8 +7,13 @@
 - Once agreed, complete the task and necessary checks independently; do not ask again for permission to perform already authorized actions.
 - Preserve existing uncommitted changes and stay within the agreed scope. Discuss new product requirements or access rules before implementing them.
 - Do not commit, rewrite Git history, or push without an explicit instruction.
-- Keep documentation focused on agreed rules and current usage. Update the relevant document when agreed rules change; do not add discussion history or work reports.
 - Access rules are documented in [access-control.md](docs/access-control.md).
+
+## Documentation
+
+- Describe only the current state and agreed rules, briefly and concretely. Do not include change history, discussion history, work reports, or UI descriptions.
+- Respect each document's role: README covers project introduction, development, and checks; deployment documentation covers setup and operation; access-control documentation covers permissions. Keep implementation details in code and avoid duplicating information across documents.
+- Update documentation only when its instructions or rules change; refactoring alone does not require documentation changes. Make the smallest relevant edit and verify the complete procedure, including prerequisites, command order, and differences between development and production.
 
 ## Interface
 
