@@ -713,4 +713,8 @@
   <data name="StaffExportAllContests" xml:space="preserve"><value>Экспорт всех соревнований (ZIP)</value></data>
   <data name="StaffExportFailed" xml:space="preserve"><value>Не удалось экспортировать соревнования</value></data>
   <data name="StaffExportInvalidPath" xml:space="preserve"><value>Некорректный или повторяющийся путь в архиве «{0}». Записи: {1}.</value></data>
+  <data name="StaffCleanupLegacyProblems" xml:space="preserve"><value>Удалить ошибочные задачи 3554 и 3582</value></data>
+  <data name="StaffCleanupLegacyProblemsConfirm" xml:space="preserve"><value>Удалить задачи ID 3554 и 3582 из соревнования ID 1 вместе со всеми их тестами? Это действие необратимо. Если хотя бы у одной задачи есть решения или вопросы, очистка будет отменена целиком.</value></data>
+  <data name="StaffLegacyProblemsHaveHistory" xml:space="preserve"><value>Очистка отменена. У задач с ID {0} есть решения или вопросы. Задачи и тесты не удалены.</value></data>
+  <data name="StaffLegacyProblemsMoved" xml:space="preserve"><value>Очистка отменена: одна из задач больше не принадлежит соревнованию ID 1. Задачи и тесты не удалены.</value></data>
 </root>

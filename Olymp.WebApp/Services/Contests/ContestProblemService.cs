@@ -1,3 +1,5 @@
+using System.Collections.ObjectModel;
+using System.Data;
 using System.IO.Compression;
 using System.Security.Claims;
 
@@ -16,6 +18,29 @@ namespace Olymp.WebApp.Services.Contests;
 public sealed class ContestProblemService(OlympContext context, ICheckerManager checkerManager,
     IEnumerable<ISimpleChecker> checkers, IOptions<ContestImportOptions> options, IAuthorizationService authorization, TimeProvider timeProvider)
 {
+    public const int LegacyCleanupContestId = 1;
+    public static ReadOnlyCollection<int> LegacyCleanupProblemIds { get; } = Array.AsReadOnly<int>([3554, 3582]);
+
+    public async Task CleanupLegacyProblemsAsync(ClaimsPrincipal actor, CancellationToken token = default)
+    {
+        if (!(await authorization.AuthorizeAsync(actor, null, PolicyNames.Admin)).Succeeded)
+            throw new OperationValidationException(SiteResources.StaffAccessDenied);
+
+        using var gate = await checkerManager.EnterAsync(token);
+        await using var transaction = await context.Database.BeginTransactionAsync(IsolationLevel.Serializable, token);
+        int[] ids = [.. LegacyCleanupProblemIds];
+        var problems = context.Problems.Where(item => ids.Contains(item.Id));
+        if (await problems.AnyAsync(item => item.ContestId != LegacyCleanupContestId, token))
+            throw new OperationValidationException(SiteResources.StaffLegacyProblemsMoved);
+        var blocked = await problems.Where(item => item.Submissions.Any() || item.Messages.Any())
+            .OrderBy(item => item.Id).Select(item => item.Id).ToListAsync(token);
+        if (blocked.Count != 0)
+            throw new OperationValidationException(string.Format(SiteResources.StaffLegacyProblemsHaveHistory, string.Join(", ", blocked)));
+
+        await problems.ExecuteDeleteAsync(token);
+        await transaction.CommitAsync(token);
+    }
+
     private async Task AuthorizeAsync(ClaimsPrincipal actor, int contestId)
     {
         if (!(await authorization.AuthorizeAsync(actor, contestId, PolicyNames.ManageContest)).Succeeded)

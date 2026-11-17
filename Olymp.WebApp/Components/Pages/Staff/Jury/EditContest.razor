@@ -153,8 +153,12 @@ else
                 {
                     <button class="btn btn-outline-warning" disabled="@_saving" @onclick="() => _pendingOperation = ContestOperation.Finish">@SiteResources.StaffFinishContest</button>
                 }
+                @if (_canCleanupLegacyProblems)
+                {
+                    <button class="btn btn-outline-danger" disabled="@_saving" @onclick="() => _pendingOperation = ContestOperation.CleanupLegacyProblems">@SiteResources.StaffCleanupLegacyProblems</button>
+                }
             </div>
-            @if (!_canRetest && !CanPublishTests && !_hasTestZip && !_canFinish) { <p class="text-body-secondary mb-0">@SiteResources.StaffNoContestOperations</p> }
+            @if (!_canRetest && !CanPublishTests && !_hasTestZip && !_canFinish && !_canCleanupLegacyProblems) { <p class="text-body-secondary mb-0">@SiteResources.StaffNoContestOperations</p> }
             @if (_pendingOperation is { } operation)
             {
                 <div class="alert alert-warning mt-3 mb-0" role="alert">
