@@ -396,8 +396,11 @@ public class CompetitorManagementServiceTests(ContestServiceFixture site) : ICla
         Assert.Equal(new ParticipantImportSummary(2, 0), first);
         var repeated = await service.ImportAsync(actor, contest.Id, ["first", "Second", "Third"], token);
         Assert.Equal(new ParticipantImportSummary(1, 2), repeated);
-        await Assert.ThrowsAsync<OperationValidationException>(() =>
-            service.ImportAsync(actor, contest.Id, ["Fourth", "fourth"], token));
+        var error = await Assert.ThrowsAsync<OperationValidationException>(() =>
+            service.ImportAsync(actor, contest.Id, ["Fourth", "fourth", "Fifth", "Fifth", "Unique"], token));
+        Assert.Contains("Fourth", error.Message);
+        Assert.Contains("Fifth", error.Message);
+        Assert.DoesNotContain("Unique", error.Message);
         using var final = site.Services.CreateScope();
         var names = await final.ServiceProvider.GetRequiredService<OlympContext>().Competitors
             .Where(x => x.ContestId == contest.Id).Select(x => x.Name).OrderBy(x => x)

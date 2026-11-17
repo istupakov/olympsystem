@@ -18,11 +18,8 @@ else if (_unavailable)
 }
 else
 {
-    @if (_error is not null) { <div class="alert alert-danger" role="alert">@_error</div> }
-    @if (_saved) { <div class="alert alert-success" role="status">@SiteResources.StaffSaved</div> }
     <EditForm Model="_input" OnValidSubmit="SaveAsync" OnInvalidSubmit="ClearSavedStatus">
         <DataAnnotationsValidator />
-        <ValidationSummary class="text-danger" />
         <fieldset disabled="@(_busy || _confirmDelete)">
             <div class="mb-3">
                 <label for="organization-name" class="form-label">@SiteResources.StaffOrganizationName</label>
@@ -37,6 +34,7 @@ else
                 <label for="organization-team-prefix" class="form-label">@SiteResources.StaffTeamPrefix</label>
                 <InputText id="organization-team-prefix" class="form-control" @bind-Value="_input.ACMName" />
             </div>
+            <StaffFormFeedback Error="@(_confirmDelete ? null : _error)" Saved="_saved" />
             <div class="d-flex flex-wrap gap-2">
                 <button class="btn btn-primary">@SiteResources.StaffSave</button>
                 <a class="btn btn-outline-secondary" href="@BackUrl">@SiteResources.StaffBackToList</a>
@@ -65,6 +63,7 @@ else
     @if (_confirmDelete)
     {
         <section class="alert alert-warning mt-3" role="alert">
+            @if (_error is not null) { <p class="text-danger" role="alert">@_error</p> }
             <p>@string.Format(SiteResources.StaffConfirmDeleteOrganization, _storedName)</p>
             <div class="d-flex flex-wrap gap-2">
                 <button type="button" class="btn btn-danger" disabled="@_busy" @onclick="DeleteAsync">@SiteResources.StaffDeleteOrganization</button>

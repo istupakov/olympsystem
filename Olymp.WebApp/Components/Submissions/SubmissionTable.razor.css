@@ -1,0 +1,13 @@
+.submission-text {
+    width: 100%;
+    max-width: 0;
+    min-width: 12rem;
+}
+
+.submission-author {
+    width: 40%;
+}
+
+.submission-problem {
+    width: 60%;
+}

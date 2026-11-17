@@ -199,11 +199,9 @@
         loaded = true;
     }
 
-    private string ScopeUrl(SubmissionScope scope) => ListUrl(scope,
-        available.Contains((scope, selectedKind)) ? selectedKind : available.First(pair => pair.Scope == scope).Kind, 1);
+    private string ScopeUrl(SubmissionScope scope) => ListUrl(scope, selectedKind, 1);
 
-    private string KindUrl(SubmissionKind kind) => ListUrl(
-        available.Contains((selectedScope, kind)) ? selectedScope : AvailableScopes.First(scope => available.Contains((scope, kind))), kind, 1);
+    private string KindUrl(SubmissionKind kind) => ListUrl(selectedScope, kind, 1);
 
     private string ListUrl(SubmissionScope scope, SubmissionKind kind, int page) => Navigation.GetUriWithQueryParameters(
         Navigation.Uri.Split('#')[0], new Dictionary<string, object?>

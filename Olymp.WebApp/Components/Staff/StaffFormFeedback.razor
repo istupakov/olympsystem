@@ -1,0 +1,14 @@
+@if (Error is not null)
+{
+    <div class="alert alert-danger" role="alert">@Error</div>
+}
+@if (Saved)
+{
+    <div class="alert alert-success" role="status">@SiteResources.StaffSaved</div>
+}
+<ValidationSummary class="alert alert-danger ps-4" role="alert" />
+
+@code {
+    [Parameter] public string? Error { get; set; }
+    [Parameter] public bool Saved { get; set; }
+}

@@ -19,6 +19,7 @@
         <InputTextArea @bind-Value="Input.Code" id="submission-code" class="form-control font-monospace" rows="14" spellcheck="false" />
         <ValidationMessage For="() => Input.Code" class="text-danger" />
     </div>
+    @Feedback
     <button type="submit" class="btn btn-primary">@SiteResources.SubmitSolution</button>
 </fieldset>
 
@@ -31,4 +32,7 @@
 
     [Parameter]
     public bool Disabled { get; set; }
+
+    [Parameter]
+    public RenderFragment? Feedback { get; set; }
 }

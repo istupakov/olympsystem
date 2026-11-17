@@ -26,17 +26,8 @@ else if (_editContext is null)
 }
 else
 {
-    @if (_error is not null)
-    {
-        <div class="alert alert-danger" role="alert">@_error</div>
-    }
-    @if (_saved)
-    {
-        <div class="alert alert-success" role="status">@SiteResources.StaffSaved</div>
-    }
     <EditForm EditContext="_editContext" OnSubmit="SaveAsync">
         <DataAnnotationsValidator />
-        <ValidationSummary class="text-danger" />
         <fieldset disabled="@_saving">
             <div class="mb-3">
                 <label for="contest-name" class="form-label">@SiteResources.StaffName</label>
@@ -126,6 +117,7 @@ else
                 <label for="contest-open" class="form-check-label">@SiteResources.OpenContest</label>
                 <ValidationMessage For="() => _input.IsOpen" class="text-danger" />
             </div>
+            <StaffFormFeedback Error="@(_pendingOperation is null ? _error : null)" Saved="_saved" />
             <div class="d-flex flex-wrap gap-2">
                 <button type="submit" class="btn btn-primary">@(_saving ? SiteResources.StaffSaving : Id is null ? SiteResources.CreateContest : SiteResources.StaffSave)</button>
                 <a class="btn btn-outline-secondary" href="jury/contests">@SiteResources.StaffCancel</a>
@@ -139,7 +131,7 @@ else
             <div class="d-flex flex-wrap gap-2">
                 @if (_canRetest)
                 {
-                    <a class="btn btn-secondary" href="jury/contests/@Id/submissions?Retest=true">@SiteResources.StaffRetestFiltered</a>
+                    <a class="btn btn-warning" href="jury/contests/@Id/submissions?Retest=true">@SiteResources.StaffRetestFiltered</a>
                 }
                 @if (CanPublishTests)
                 {
@@ -161,9 +153,10 @@ else
             @if (!_canRetest && !CanPublishTests && !_hasTestZip && !_canFinish && !_canCleanupLegacyProblems) { <p class="text-body-secondary mb-0">@SiteResources.StaffNoContestOperations</p> }
             @if (_pendingOperation is { } operation)
             {
+                @if (_error is not null) { <p class="alert alert-danger" role="alert">@_error</p> }
                 <div class="alert alert-warning mt-3 mb-0" role="alert">
                     <p>@OperationConfirmation(operation)</p>
-                    <button class="btn btn-warning" disabled="@_saving" @onclick="RunOperationAsync">@SiteResources.StaffConfirm</button>
+                    <button class="btn @(operation is ContestOperation.RemoveTests or ContestOperation.CleanupLegacyProblems ? "btn-danger" : "btn-warning")" disabled="@_saving" @onclick="RunOperationAsync">@SiteResources.StaffConfirm</button>
                     <button class="btn btn-outline-secondary ms-2" disabled="@_saving" @onclick="() => _pendingOperation = null">@SiteResources.StaffCancel</button>
                 </div>
             }

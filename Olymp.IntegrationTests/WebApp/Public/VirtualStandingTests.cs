@@ -22,6 +22,27 @@ namespace Olymp.IntegrationTests.WebApp.Public;
 public class VirtualStandingTests(WebAppFactory factory) : StaffComponentTests(factory)
 {
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task StartSelectionRequiresPersonalAccountButSharedTableIsPublic(bool signedIn)
+    {
+        var contest = Contest();
+        await SaveAsync(contest);
+        using var client = signedIn
+            ? await _factory.LoginAsync((await _factory.AddUserAsync()).UserName!)
+            : _factory.CreateSiteClient();
+        string tableUrl = Url(contest.Id, DateTimeOffset.UtcNow.AddHours(-1));
+        foreach (string path in new[] { $"/contests/{contest.Id}/virtual", QueryHelpers.AddQueryString(tableUrl, "edit", "true") })
+        {
+            using var page = await GetAsync(client, path);
+            Assert.Equal(signedIn, page.QuerySelector("#virtual-start") is not null);
+        }
+        using var table = await GetAsync(client, tableUrl);
+        Assert.NotNull(table.QuerySelector("main table"));
+        Assert.Equal(signedIn, table.QuerySelector("main a[href*='edit=true']") is not null);
+    }
+
+    [Theory]
     [InlineData(false, "ru")]
     [InlineData(false, "en")]
     [InlineData(true, "ru")]
@@ -217,7 +238,7 @@ public class VirtualStandingTests(WebAppFactory factory) : StaffComponentTests(f
     {
         var contest = Contest();
         await SaveAsync(contest);
-        using var client = _factory.CreateSiteClient();
+        using var client = await _factory.LoginAsync((await _factory.AddUserAsync()).UserName!);
         client.DefaultRequestHeaders.AcceptLanguage.ParseAdd(culture);
         string path = $"/contests/{contest.Id}/virtual";
         using var rules = await GetAsync(client, $"/contests/{contest.Id}/rules");
@@ -225,7 +246,6 @@ public class VirtualStandingTests(WebAppFactory factory) : StaffComponentTests(f
         using var form = await GetAsync(client, path);
         Assert.NotNull(form.QuerySelector("input[type='datetime-local']"));
         Assert.Contains(culture == "ru" ? "Часовой пояс" : "time zone", form.QuerySelector(".form-text")!.TextContent);
-        Assert.Contains(culture == "ru" ? "личный аккаунт" : "personal account", form.QuerySelector("main")!.TextContent);
         Assert.DoesNotContain("<!--Blazor:", form.DocumentElement.OuterHtml);
 
         using var posted = await WebAppFactory.PostFormAsync(client, path, "virtual-contest", new()
@@ -341,7 +361,7 @@ public class VirtualStandingTests(WebAppFactory factory) : StaffComponentTests(f
     {
         var contest = Contest();
         await SaveAsync(contest);
-        using var client = _factory.CreateSiteClient();
+        using var client = await _factory.LoginAsync((await _factory.AddUserAsync()).UserName!);
         using var page = await GetAsync(client, QueryHelpers.AddQueryString($"/contests/{contest.Id}/virtual", "start", start));
         Assert.Contains("valid date", page.QuerySelector("[role='alert']")!.TextContent);
         Assert.NotNull(page.QuerySelector("form"));

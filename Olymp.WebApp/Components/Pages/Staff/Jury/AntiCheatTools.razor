@@ -42,7 +42,7 @@
     </section>
 }
 <EditForm Model="_input" OnValidSubmit="RunAsync" class="mb-4">
-    <DataAnnotationsValidator /><ValidationSummary class="text-danger" />
+    <DataAnnotationsValidator />
     <fieldset disabled="@(_cancellation is not null)">
         @if (!HasContext)
         {
@@ -100,10 +100,10 @@
             else { <p class="text-body-secondary" role="status">@EmptySelectionText</p> }
         }
         @if (NeedsAnalysis) { <p class="alert alert-warning" role="status">@SiteResources.StaffAnalysisNeedsRun</p> }
+        <StaffFormFeedback Error="@_error" />
         <button class="btn btn-primary" disabled="@(!_scopeValid || (_input.Mode != AnalysisMode.Compare && _problems.All(item => _excluded.Contains(item.Id))))">@SiteResources.StaffRunAnalysis</button>
     </fieldset>
 </EditForm>
 @if (_cancellation is not null) { <p role="status">@SiteResources.StaffAnalyzing</p><button class="btn btn-outline-secondary mb-3" @onclick="Cancel">@SiteResources.StaffCancel</button> }
-@if (_error is not null) { <p class="alert alert-danger" role="alert">@_error</p> }
 @if (Finished && _similarity.Count == 0 && _ai.Count == 0) { <p role="status">@SiteResources.StaffNoMatches</p> }
 <AnalysisReport @key="(_similarity, _ai)" Similarity="_similarity" Ai="_ai" ExcludedProblems="_excluded" PreferredAuthorId="_reportAuthorId" PreferredSubmissionId="_reportSubmissionId" />

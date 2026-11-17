@@ -17,7 +17,7 @@
     <StaffContestNavigation ContestId="ContestId" ContestName="@_contest.Name" IsHidden="_contest.IsHidden" />
     <h1 class="h3">@SiteResources.IcpcImport</h1>
     <p>@SiteResources.IcpcImportHint</p>
-    @if (_error is not null) { <div class="alert alert-danger" role="alert">@_error</div> }
+    @if (_error is not null && _preview is null) { <div class="alert alert-danger" role="alert">@_error</div> }
     @if (_status is not null) { <div class="alert alert-success" role="status">@_status</div> }
     <EditForm Model="_credentials" OnValidSubmit="LoadTeamsAsync">
         <fieldset disabled="@(_busy || _catalogBusy)" class="mb-4">
@@ -169,11 +169,12 @@
                 </section>
             }
             @if (preview.Rows.Count == 0) { <p>@SiteResources.StaffNoParticipants</p> }
+            @if (_error is not null) { <div class="alert alert-danger" role="alert">@_error</div> }
             @if (_confirm)
             {
                 <div class="alert alert-warning" role="alert">
                     <p>@string.Format(SiteResources.IcpcConfirm, SelectedRows.Count)</p>
-                    <button type="button" class="btn btn-danger me-2" @onclick="ImportAsync">@SiteResources.StaffConfirm</button>
+                    <button type="button" class="btn btn-warning me-2" @onclick="ImportAsync">@SiteResources.StaffConfirm</button>
                     <button type="button" class="btn btn-outline-secondary" @onclick="() => _confirm = false">@SiteResources.StaffCancel</button>
                 </div>
             }
