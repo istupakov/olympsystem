@@ -36,7 +36,7 @@ public sealed class ProblemAccessTests(WebAppFactory factory) : IClassFixture<We
         var db = scope.ServiceProvider.GetRequiredService<OlympContext>();
         var now = DateTimeOffset.UtcNow;
         await db.Contests.Where(contest => _contestIds.Contains(contest.Id) && !contest.IsOpen && contest.EndTime > now)
-            .ExecuteUpdateAsync(update => update.SetProperty(contest => contest.EndTime, now), CancellationToken.None);
+            .ExecuteUpdateAsync(update => update.SetProperty(contest => contest.EndTime, now.AddMinutes(-1)), CancellationToken.None);
     }
 
     [Fact]

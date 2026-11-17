@@ -4,6 +4,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.HtmlRendering.Infrastructure;
+using Microsoft.AspNetCore.Components.Rendering;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
@@ -28,7 +29,7 @@ public abstract class StaffComponentTests(WebAppFactory site) : IClassFixture<We
     protected readonly WebAppFactory _factory = site;
 
     protected async Task<string> RenderAsync<T>(string path, Dictionary<string, object?> parameters, ClaimsPrincipal? user = null,
-        Func<T, Task>? action = null, Action<IServiceCollection>? configure = null) where T : IComponent
+        Func<T, Task>? action = null, Action<IServiceCollection>? configure = null, Action<T>? initialize = null) where T : IComponent
     {
         using var host = _factory.WithWebHostBuilder(builder => builder.ConfigureTestServices(services =>
         {
@@ -39,7 +40,8 @@ public abstract class StaffComponentTests(WebAppFactory site) : IClassFixture<We
             configure?.Invoke(services);
         }));
         await using var scope = host.Services.CreateAsyncScope();
-        await using var renderer = new PageRenderer(scope.ServiceProvider, scope.ServiceProvider.GetRequiredService<ILoggerFactory>());
+        await using var renderer = new PageRenderer(scope.ServiceProvider, scope.ServiceProvider.GetRequiredService<ILoggerFactory>(),
+            component => initialize?.Invoke((T)component));
         return await renderer.Dispatcher.InvokeAsync(async () =>
         {
             var component = renderer.BeginRenderingComponent(typeof(T), ParameterView.FromDictionary(parameters));
@@ -64,15 +66,23 @@ public abstract class StaffComponentTests(WebAppFactory site) : IClassFixture<We
         return rows;
     }
 
-    private sealed class PageRenderer(IServiceProvider services, ILoggerFactory loggerFactory) : StaticHtmlRenderer(services, loggerFactory)
+    private sealed class PageRenderer(IServiceProvider services, ILoggerFactory loggerFactory, Action<IComponent> initialize) : StaticHtmlRenderer(services, loggerFactory)
     {
         public IComponent? Root { get; private set; }
         protected override IComponent ResolveComponentForRenderMode(Type componentType, int? parentComponentId,
-            IComponentActivator componentActivator, IComponentRenderMode renderMode)
+            IComponentActivator componentActivator, IComponentRenderMode renderMode) => componentActivator.CreateInstance(componentType);
+
+        protected override ComponentState CreateComponentState(int componentId, IComponent component, ComponentState? parentComponentState)
         {
-            var component = componentActivator.CreateInstance(componentType);
-            if (parentComponentId is null) Root = component;
-            return component;
+            if (parentComponentState is null)
+            {
+                Root = component;
+                initialize(component);
+            }
+            // Test initialization must run after dependency injection and before component initialization.
+#pragma warning disable BL0006
+            return base.CreateComponentState(componentId, component, parentComponentState);
+#pragma warning restore BL0006
         }
     }
 
