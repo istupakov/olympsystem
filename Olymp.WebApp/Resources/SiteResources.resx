@@ -713,4 +713,8 @@
   <data name="StaffExportAllContests" xml:space="preserve"><value>Export all contests (ZIP)</value></data>
   <data name="StaffExportFailed" xml:space="preserve"><value>Contest export failed</value></data>
   <data name="StaffExportInvalidPath" xml:space="preserve"><value>Invalid or duplicate archive path '{0}'. Records: {1}.</value></data>
+  <data name="StaffCleanupLegacyProblems" xml:space="preserve"><value>Delete erroneous problems 3554 and 3582</value></data>
+  <data name="StaffCleanupLegacyProblemsConfirm" xml:space="preserve"><value>Delete problems ID 3554 and 3582 from contest ID 1 together with all their tests? This cannot be undone. If either problem has submissions or questions, the entire cleanup will be cancelled.</value></data>
+  <data name="StaffLegacyProblemsHaveHistory" xml:space="preserve"><value>Cleanup cancelled. Problems with IDs {0} have submissions or questions. No problems or tests were deleted.</value></data>
+  <data name="StaffLegacyProblemsMoved" xml:space="preserve"><value>Cleanup cancelled: one of the problems no longer belongs to contest ID 1. No problems or tests were deleted.</value></data>
 </root>

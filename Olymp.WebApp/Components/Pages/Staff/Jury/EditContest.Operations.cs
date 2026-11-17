@@ -12,6 +12,7 @@ public partial class EditContest
 {
     private ContestOperation? _pendingOperation;
     private bool _hasTestZip, _canFinish, _operationCompleted;
+    private bool _canCleanupLegacyProblems;
     private DateTimeOffset _endTime;
 
     private bool CanPublishTests { get => field && _endTime < TimeProvider.GetUtcNow(); set; }
@@ -19,12 +20,14 @@ public partial class EditContest
     {
         ContestOperation.PublishTests => _hasTestZip ? SiteResources.StaffRebuildTests : SiteResources.StaffPublishTests,
         ContestOperation.RemoveTests => SiteResources.StaffRemoveTests,
+        ContestOperation.CleanupLegacyProblems => SiteResources.StaffCleanupLegacyProblems,
         _ => SiteResources.StaffFinishContest
     };
     private static string OperationConfirmation(ContestOperation operation) => operation switch
     {
         ContestOperation.PublishTests => SiteResources.StaffPublishTestsConfirm,
         ContestOperation.RemoveTests => SiteResources.StaffRemoveTestsConfirm,
+        ContestOperation.CleanupLegacyProblems => SiteResources.StaffCleanupLegacyProblemsConfirm,
         _ => SiteResources.StaffFinishContestConfirm
     };
 
@@ -41,6 +44,8 @@ public partial class EditContest
         _hasTestZip = state.HasZip;
         CanPublishTests = state.ActiveTests;
         _canFinish = _endTime < TimeProvider.GetUtcNow() && state.NeedsFinish;
+        _canCleanupLegacyProblems = _canRetest && id == ContestProblemService.LegacyCleanupContestId
+            && await context.Problems.AnyAsync(item => item.ContestId == id && ContestProblemService.LegacyCleanupProblemIds.Contains(item.Id));
     }
 
     private async Task RunOperationAsync()
@@ -63,6 +68,7 @@ public partial class EditContest
             {
                 var service = scope.ServiceProvider.GetRequiredService<ContestProblemService>();
                 if (operation == ContestOperation.PublishTests) await service.PublishTestZipAsync(actor, id);
+                else if (operation == ContestOperation.CleanupLegacyProblems) await service.CleanupLegacyProblemsAsync(actor);
                 else await service.RemoveTestZipAsync(actor, id);
             }
             await LoadOperationsAsync(scope.ServiceProvider.GetRequiredService<OlympContext>(), id);
@@ -81,5 +87,5 @@ public partial class EditContest
         finally { _saving = false; }
     }
 
-    private enum ContestOperation { PublishTests, RemoveTests, Finish }
+    private enum ContestOperation { PublishTests, RemoveTests, Finish, CleanupLegacyProblems }
 }
