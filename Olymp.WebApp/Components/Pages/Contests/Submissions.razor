@@ -14,7 +14,7 @@
 {
     <PageTitle>@($"{SiteResources.Submissions} – {contest.Name}")</PageTitle>
     <ContestHeader Contest="contest" ActiveSection="submissions" />
-    <SubmissionList ContestId="ContestId" Scope="@Scope" Page="@(Page ?? 1)" ShowHeading="false" />
+    <SubmissionList ContestId="ContestId" Scope="@Scope" Kind="@Kind" Page="@(Page ?? 1)" ShowHeading="false" />
 }
 
 @code {
@@ -23,6 +23,9 @@
 
     [SupplyParameterFromQuery]
     public string? Scope { get; set; }
+
+    [SupplyParameterFromQuery]
+    public string? Kind { get; set; }
 
     [SupplyParameterFromQuery]
     public int? Page { get; set; }

@@ -136,7 +136,9 @@ public partial class PracticeSubmissionTests(WebAppFactory factory) : IClassFixt
         db.Submissions.AddRange(personal, teamSubmission, foreign);
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
         using var client = await factory.LoginAsync(data.User.UserName!);
-        using var page = await GetAsync(client, ProblemPath(data.Contest.Id, problem.Id));
+        using var defaultHistory = await GetAsync(client, ProblemPath(data.Contest.Id, problem.Id));
+        Assert.NotNull(defaultHistory.QuerySelector($"#submission-{teamSubmission.Id}"));
+        using var page = await GetAsync(client, ProblemPath(data.Contest.Id, problem.Id) + "&kind=training");
         Assert.Equal([personal.Id.ToString()], page.QuerySelectorAll("#submissions tbody tr")
             .Select(row => row.Id!["submission-".Length..]));
         using var participantHistory = await GetAsync(client, ProblemPath(data.Contest.Id, problem.Id) + "&scope=participant");
@@ -175,7 +177,7 @@ public partial class PracticeSubmissionTests(WebAppFactory factory) : IClassFixt
     }
 
     [Theory]
-    [InlineData("participant")]
+    [InlineData("own")]
     [InlineData("coached")]
     public async Task RelatedScopesRequireVisibleSubmissionsMatchingCurrentFilters(string listScope)
     {
@@ -307,23 +309,26 @@ public partial class PracticeSubmissionTests(WebAppFactory factory) : IClassFixt
         using var client = await factory.LoginAsync(data.User.UserName!);
         string path = ProblemPath(contest.Id, data.Problem.Id);
         using var page = await GetAsync(client, path + "&scope=all");
-        foreach (var submission in new[] { memberBefore, coachedBefore, otherBefore })
-        {
-            var cells = page.QuerySelector($"#submission-{submission.Id}")!.QuerySelectorAll("td");
-            Assert.Equal("Not accepted", cells[3].TextContent.Trim());
-            Assert.Equal(4, cells.Length);
-        }
-        foreach (var submission in new[] { own, memberAfter, coachedAfter, otherAfter })
-        {
-            var cells = page.QuerySelector($"#submission-{submission.Id}")!.QuerySelectorAll("td");
-            Assert.Equal("Submitted", cells[3].TextContent.Trim());
-            Assert.Equal(4, cells.Length);
-        }
+        var beforeCells = page.QuerySelector($"#submission-{memberBefore.Id}")!.QuerySelectorAll("td");
+        Assert.Equal("Not accepted", beforeCells[3].TextContent.Trim());
+        Assert.Equal(4, beforeCells.Length);
+        var afterCells = page.QuerySelector($"#submission-{memberAfter.Id}")!.QuerySelectorAll("td");
+        Assert.Equal("Submitted", afterCells[3].TextContent.Trim());
+        Assert.Equal(4, afterCells.Length);
         Assert.Empty(page.QuerySelectorAll("#submissions a[href$='/download']"));
         Assert.DoesNotContain("PRIVATE_SOURCE", page.DocumentElement.OuterHtml);
+        using var training = await GetAsync(client, path + "&scope=all&kind=training");
+        foreach (var submission in new[] { coachedBefore, otherBefore })
+            Assert.Contains("Not accepted", training.QuerySelector($"#submission-{submission.Id}")!.TextContent);
+        foreach (var submission in new[] { own, coachedAfter, otherAfter })
+            Assert.Contains("Submitted", training.QuerySelector($"#submission-{submission.Id}")!.TextContent);
+        Assert.Equal(5, training.QuerySelectorAll("#submissions tbody tr").Length);
+        Assert.Empty(training.QuerySelectorAll("#submissions a[href^='submissions/']"));
         using var strangerClient = await factory.LoginAsync(stranger.UserName!);
         using var strangerPage = await GetAsync(strangerClient, path + "&scope=all");
         Assert.Equal(page.QuerySelector("#submissions table")!.OuterHtml, strangerPage.QuerySelector("#submissions table")!.OuterHtml);
+        using var strangerTraining = await GetAsync(strangerClient, path + "&scope=all&kind=training");
+        Assert.Equal(training.QuerySelector("#submissions table")!.OuterHtml, strangerTraining.QuerySelector("#submissions table")!.OuterHtml);
         using var participants = await GetAsync(client, path + "&scope=participant");
         Assert.Equal(2, participants.QuerySelectorAll("#submissions tbody tr").Length);
         Assert.Contains("Wrong answer on test 3", participants.QuerySelector($"#submission-{memberBefore.Id}")!.TextContent);
@@ -332,7 +337,7 @@ public partial class PracticeSubmissionTests(WebAppFactory factory) : IClassFixt
         using var students = await GetAsync(client, path + "&scope=coached");
         Assert.Equal(2, students.QuerySelectorAll("#submissions tbody tr").Length);
         Assert.Contains("Wrong answer on test 3", students.QuerySelector($"#submission-{coachedBefore.Id}")!.TextContent);
-        using var personal = await GetAsync(client, path);
+        using var personal = await GetAsync(client, path + "&scope=own&kind=training");
         Assert.Contains("Wrong answer on test 3", personal.QuerySelector($"#submission-{own.Id}")!.TextContent);
         Assert.Empty(personal.QuerySelectorAll("#submissions a[href$='/download']"));
         Assert.NotNull(personal.QuerySelector($"#submissions a[href='submissions/{own.Id}']"));
@@ -451,13 +456,13 @@ public partial class PracticeSubmissionTests(WebAppFactory factory) : IClassFixt
         using var client = await factory.LoginAsync(data.User.UserName!);
         string path = $"/contests/{data.Contest.Id}/submissions";
         using var first = await GetAsync(client, path + "?scope=all");
-        Assert.Equal(new Uri(client.BaseAddress!, path + "?scope=all").AbsoluteUri,
+        Assert.Equal(new Uri(client.BaseAddress!, path + "?scope=all&kind=training").AbsoluteUri,
             first.QuerySelector("#submissions > div > a")!.GetAttribute("href"));
         Assert.Equal(20, first.QuerySelectorAll("#submissions tbody tr").Length);
         var ids = first.QuerySelectorAll("#submissions tbody tr").Select(row => int.Parse(row.Id!["submission-".Length..])).ToArray();
         Assert.Equal(ids.OrderDescending(), ids);
         using var tenth = await GetAsync(client, path + "?scope=all&page=10");
-        Assert.Equal(new Uri(client.BaseAddress!, path + "?scope=all&page=10").AbsoluteUri,
+        Assert.Equal(new Uri(client.BaseAddress!, path + "?scope=all&page=10&kind=training").AbsoluteUri,
             tenth.QuerySelector("#submissions > div > a")!.GetAttribute("href"));
         Assert.Equal(20, tenth.QuerySelectorAll("#submissions tbody tr").Length);
         Assert.Null(tenth.QuerySelector("a[rel='next']"));

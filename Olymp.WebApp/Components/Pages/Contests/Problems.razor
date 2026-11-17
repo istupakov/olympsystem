@@ -24,7 +24,7 @@
     <ContestHeader Contest="contest" ActiveSection="problems" />
     @if (selected is not null)
     {
-        <ProblemWorkspace Progress="progress" Selected="selected" ProblemUrl="ProblemUrl" Scope="@EffectiveScope">
+        <ProblemWorkspace Progress="progress" Selected="selected" ProblemUrl="ProblemUrl" Scope="@EffectiveScope" Kind="@EffectiveKind">
             @if (canSubmit)
             {
                 <p><a href="@ProblemUrl(selected.Id)#submit-heading">@SiteResources.JumpToSubmission</a></p>
@@ -41,7 +41,7 @@
                     <p class="text-body-secondary">@submissionUnavailable</p>
                 }
             </section>
-            <SubmissionList ContestId="ContestId" ProblemId="selected.Id" Scope="@EffectiveScope" Page="@(SubmissionPage ?? 1)" />
+            <SubmissionList ContestId="ContestId" ProblemId="selected.Id" Scope="@EffectiveScope" Kind="@EffectiveKind" Page="@(SubmissionPage ?? 1)" />
         </ProblemWorkspace>
     }
     else
@@ -60,6 +60,9 @@
     [SupplyParameterFromQuery]
     public string? Scope { get; set; }
 
+    [SupplyParameterFromQuery]
+    public string? Kind { get; set; }
+
     [SupplyParameterFromQuery(Name = "page")]
     public int? SubmissionPage { get; set; }
 
@@ -75,11 +78,13 @@
     private bool canSubmit;
     private string? submissionUnavailable;
     private string? EffectiveScope => HttpContext.User.HasClaim(claim => claim.Type == ClaimNames.CompetitorContest) ? null : Scope;
+    private string? EffectiveKind => HttpContext.User.HasClaim(claim => claim.Type == ClaimNames.CompetitorContest) ? null : Kind;
 
     private string ProblemUrl(int problemId)
     {
         string url = $"contests/{ContestId}/problems?problemId={problemId}";
-        return string.IsNullOrEmpty(EffectiveScope) ? url : QueryHelpers.AddQueryString(url, "scope", EffectiveScope);
+        if (!string.IsNullOrEmpty(EffectiveScope)) url = QueryHelpers.AddQueryString(url, "scope", EffectiveScope);
+        return string.IsNullOrEmpty(EffectiveKind) ? url : QueryHelpers.AddQueryString(url, "kind", EffectiveKind);
     }
 
     private string FormUrl => SubmissionPage is null or 1 ? ProblemUrl(selected!.Id)

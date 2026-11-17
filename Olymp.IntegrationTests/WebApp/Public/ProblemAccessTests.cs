@@ -453,11 +453,12 @@ public sealed class ProblemAccessTests(WebAppFactory factory) : IClassFixture<We
         using var client = await factory.LoginAsync(participant.UserName!);
         foreach (string path in new[] { "/submissions", $"/contests/{data.Contest.Id}/submissions" })
         {
-            using var first = await GetAsync(client, $"{path}?scope=all");
+            using var first = await GetAsync(client, $"{path}?scope=all&kind=training");
             Assert.Equal(20, first.QuerySelectorAll("#submissions tbody tr").Length);
             Assert.Null(first.QuerySelector($"#submission-{foreignId}"));
             string nextUrl = first.QuerySelector("#submissions a[href*='page=2']")!.GetAttribute("href")!;
             Assert.DoesNotContain("scope=", nextUrl);
+            Assert.DoesNotContain("kind=", nextUrl);
             using var second = await GetAsync(client, nextUrl);
             var lastRow = Assert.Single(second.QuerySelectorAll("#submissions tbody tr"));
             Assert.Equal($"submission-{ownIds[0]}", lastRow.Id);
@@ -482,7 +483,7 @@ public sealed class ProblemAccessTests(WebAppFactory factory) : IClassFixture<We
         {
             foreach (string path in new[] { "/submissions", $"/contests/{data.Contest.Id}/submissions" })
             {
-                using var scoped = await GetAsync(client, $"{path}?scope={scope}");
+                using var scoped = await GetAsync(client, $"{path}?scope={scope}&kind=training");
                 Assert.Single(scoped.QuerySelectorAll("#submissions tbody tr"));
                 Assert.NotNull(scoped.QuerySelector($"#submission-{ownId}"));
                 Assert.Null(scoped.QuerySelector("#submissions nav"));

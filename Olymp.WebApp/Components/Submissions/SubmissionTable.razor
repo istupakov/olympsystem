@@ -42,10 +42,6 @@
                     {
                         <td>
                             <span title="@submission.Author">@Shorten(submission.Author, 25)</span>
-                            @if (!submission.IsParticipant)
-                            {
-                                <span class="badge bg-info-subtle text-info-emphasis ms-1">@SiteResources.Training</span>
-                            }
                         </td>
                     }
                     @if (ShowProblem)

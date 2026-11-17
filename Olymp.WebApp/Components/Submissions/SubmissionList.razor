@@ -8,27 +8,33 @@
 @if (loaded)
 {
     <section id="submissions" class="mt-4" aria-labelledby="@(ShowHeading ? "submissions-heading" : null)" aria-label="@(!ShowHeading ? SiteResources.Submissions : null)">
-        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+        <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
             @if (ShowHeading)
             {
                 <h2 id="submissions-heading" class="h4 mb-0">@SiteResources.Submissions</h2>
             }
-            <a href="@ListUrl(selectedScope, Page)" class="btn btn-sm btn-outline-secondary">@SiteResources.Refresh</a>
-        </div>
-        @if (!isTemporary && AvailableScopes.Skip(1).Any())
-        {
-            <nav aria-label="@SiteResources.SubmissionScope" class="mb-3">
-                <ul class="nav nav-underline">
+            @if (!isTemporary && AvailableScopes.Length > 1)
+            {
+                <nav class="btn-group btn-group-sm" aria-label="@SiteResources.SubmissionScope">
                     @foreach (var scope in AvailableScopes)
                     {
-                        <li class="nav-item">
-                            <a class="nav-link @(selectedScope == scope ? "active" : null)" href="@(ListUrl(scope, 1) + "#submissions")"
-                               aria-current="@(selectedScope == scope ? "page" : null)">@ScopeName(scope)</a>
-                        </li>
+                        <a class="btn btn-outline-secondary @(selectedScope == scope ? "active" : null)" href="@(ScopeUrl(scope) + "#submissions")"
+                           aria-current="@(selectedScope == scope ? "page" : null)">@ScopeName(scope)</a>
                     }
-                </ul>
-            </nav>
-        }
+                </nav>
+            }
+            @if (!isTemporary && AvailableKinds.Length > 1)
+            {
+                <nav class="btn-group btn-group-sm" aria-label="@SiteResources.SubmissionKind">
+                    @foreach (var kind in AvailableKinds)
+                    {
+                        <a class="btn btn-outline-secondary @(selectedKind == kind ? "active" : null)" href="@(KindUrl(kind) + "#submissions")"
+                           aria-current="@(selectedKind == kind ? "page" : null)">@(kind == SubmissionKind.Contest ? SiteResources.SubmissionContest : SiteResources.Training)</a>
+                    }
+                </nav>
+            }
+            <a href="@ListUrl(selectedScope, selectedKind, Page)" class="btn btn-sm btn-outline-secondary ms-auto">@SiteResources.Refresh</a>
+        </div>
         @if (submissions.Count == 0)
         {
             <p class="text-body-secondary">@SiteResources.NoSubmissions</p>
@@ -38,7 +44,7 @@
             <SubmissionTable Items="submissions" ShowAuthor="@(!isTemporary || selectedScope != SubmissionScope.Own)" ShowProblem="@(!ProblemId.HasValue)"
                              ShowContest="@(!ContestId.HasValue)" ShowScores="ShowScores" ShowSource="ShowSource" />
         }
-        <Pagination Page="Page" HasNextPage="hasNextPage" PageUrl="@(number => ListUrl(selectedScope, number) + "#submissions")" Label="@SiteResources.SubmissionPages" />
+        <Pagination Page="Page" HasNextPage="hasNextPage" PageUrl="@(number => ListUrl(selectedScope, selectedKind, number) + "#submissions")" Label="@SiteResources.SubmissionPages" />
     </section>
 }
 
@@ -56,6 +62,9 @@
     public string? Scope { get; set; }
 
     [Parameter]
+    public string? Kind { get; set; }
+
+    [Parameter]
     public int Page { get; set; } = 1;
 
     [Parameter]
@@ -66,29 +75,17 @@
 
     private List<SubmissionListItem> submissions = [];
     private SubmissionScope selectedScope;
+    private SubmissionKind selectedKind;
     private bool loaded;
     private bool isTemporary;
-    private bool showOwnScope;
-    private bool hasParticipantSubmissions;
-    private bool hasCoachedSubmissions;
+    private readonly HashSet<(SubmissionScope Scope, SubmissionKind Kind)> available = [];
     private bool hasNextPage;
 
     private bool ShowScores => selectedScope != SubmissionScope.All && submissions.Any(item => item.IsSchool);
     private bool ShowSource => submissions.Any(item => item.CanViewSource);
 
-    private IEnumerable<SubmissionScope> AvailableScopes
-    {
-        get
-        {
-            if (showOwnScope)
-                yield return SubmissionScope.Own;
-            if (hasParticipantSubmissions)
-                yield return SubmissionScope.Participant;
-            if (hasCoachedSubmissions)
-                yield return SubmissionScope.Coached;
-            yield return SubmissionScope.All;
-        }
-    }
+    private SubmissionScope[] AvailableScopes => Enum.GetValues<SubmissionScope>().Where(scope => available.Any(pair => pair.Scope == scope)).ToArray();
+    private SubmissionKind[] AvailableKinds => Enum.GetValues<SubmissionKind>().Where(kind => available.Any(pair => pair.Kind == kind)).ToArray();
 
     protected override async Task OnParametersSetAsync()
     {
@@ -109,8 +106,12 @@
         isTemporary = user is Competitor;
         bool isForeignParticipant = user is Competitor participant && ContestId.HasValue && ContestId != participant.ContestId;
         selectedScope = isForeignParticipant ? SubmissionScope.All : SubmissionScope.Own;
-        if (!isTemporary && !string.IsNullOrEmpty(Scope)
-            && (!Enum.TryParse(Scope, ignoreCase: true, out selectedScope) || !Enum.IsDefined(selectedScope)))
+        bool legacyParticipant = string.Equals(Scope, "participant", StringComparison.OrdinalIgnoreCase);
+        selectedKind = SubmissionKind.Contest;
+        if (!isTemporary && ((!string.IsNullOrEmpty(Scope) && !legacyParticipant
+                && (!Enum.TryParse(Scope, ignoreCase: true, out selectedScope) || !Enum.IsDefined(selectedScope)))
+            || (!string.IsNullOrEmpty(Kind)
+                && (!Enum.TryParse(Kind, ignoreCase: true, out selectedKind) || !Enum.IsDefined(selectedKind)))))
         {
             Navigation.NotFound();
             return;
@@ -123,16 +124,23 @@
             .Where(item => item.Problem.IsActive && !item.Problem.Contest.IsHidden && item.Problem.Contest.StartTime <= now)
             .Where(item => !ContestId.HasValue || item.Problem.ContestId == ContestId)
             .Where(item => !ProblemId.HasValue || item.ProblemId == ProblemId);
-        var participantQuery = query.Where(item => context.Competitors.Any(team => team.Id == item.UserId
+        var ownQuery = query.Where(item => item.UserId == userId || context.Competitors.Any(team => team.Id == item.UserId
             && team.ContestId == item.Problem.ContestId && team.Members.Any(member => member.Id == userId)));
         var coachedQuery = query.Where(item => item.User.CoachId == userId);
+        var publicQuery = query.Where(item => !item.User.IsHidden && !item.IsHidden
+            && (item.StatusCode != -1 || (!item.Problem.Contest.IsOpen
+                && item.Problem.Contest.FreezeTime != null && item.Problem.Contest.FreezeTime < now
+                && item.CommitTime >= item.Problem.Contest.FreezeTime)));
+        available.Clear();
         if (!isTemporary)
         {
-            showOwnScope = !ContestId.HasValue || await query.AnyAsync(item => item.UserId == userId, token);
-            hasParticipantSubmissions = await participantQuery.AnyAsync(token);
-            hasCoachedSubmissions = await coachedQuery.AnyAsync(token);
-            if (string.IsNullOrEmpty(Scope) && !showOwnScope)
-                selectedScope = hasCoachedSubmissions ? SubmissionScope.Coached : SubmissionScope.All;
+            foreach (var (scope, scopedQuery) in new[] { (SubmissionScope.Own, ownQuery), (SubmissionScope.Coached, coachedQuery), (SubmissionScope.All, publicQuery) })
+                foreach (bool isParticipant in await scopedQuery.Select(item => item.User is Competitor).Distinct().ToListAsync(token))
+                    available.Add((scope, isParticipant ? SubmissionKind.Contest : SubmissionKind.Training));
+            if (string.IsNullOrEmpty(Scope))
+                selectedScope = AvailableScopes.FirstOrDefault(SubmissionScope.All);
+            if (string.IsNullOrEmpty(Kind) && !legacyParticipant)
+                selectedKind = available.Contains((selectedScope, SubmissionKind.Contest)) ? SubmissionKind.Contest : SubmissionKind.Training;
         }
 
         if (selectedScope == SubmissionScope.All && Page > AllPageLimit)
@@ -141,16 +149,14 @@
             return;
         }
 
-        query = selectedScope switch
+        query = isTemporary ? (isForeignParticipant ? publicQuery : query.Where(item => item.UserId == userId)) : selectedScope switch
         {
-            SubmissionScope.Own => query.Where(item => item.UserId == userId),
-            SubmissionScope.Participant => participantQuery,
+            SubmissionScope.Own => ownQuery,
             SubmissionScope.Coached => coachedQuery,
-            _ => query.Where(item => !item.User.IsHidden && !item.IsHidden
-                && (item.StatusCode != -1 || (!item.Problem.Contest.IsOpen
-                    && item.Problem.Contest.FreezeTime != null && item.Problem.Contest.FreezeTime < now
-                    && item.CommitTime >= item.Problem.Contest.FreezeTime)))
+            _ => publicQuery
         };
+        if (!isTemporary)
+            query = query.Where(item => (item.User is Competitor) == (selectedKind == SubmissionKind.Contest));
 
         bool lastAllPage = selectedScope == SubmissionScope.All && Page == AllPageLimit;
         submissions = await (from item in query
@@ -167,7 +173,6 @@
                                  Id: item.Id,
                                  CommitTime: item.CommitTime,
                                  Author: item.User.Name,
-                                 IsParticipant: item.User is Competitor,
                                  Compiler: item.Compilator.Name,
                                  ContestId: item.Problem.ContestId,
                                  Contest: item.Problem.Contest.Name,
@@ -194,17 +199,23 @@
         loaded = true;
     }
 
-    private string ListUrl(SubmissionScope scope, int page) => Navigation.GetUriWithQueryParameters(
+    private string ScopeUrl(SubmissionScope scope) => ListUrl(scope,
+        available.Contains((scope, selectedKind)) ? selectedKind : available.First(pair => pair.Scope == scope).Kind, 1);
+
+    private string KindUrl(SubmissionKind kind) => ListUrl(
+        available.Contains((selectedScope, kind)) ? selectedScope : AvailableScopes.First(scope => available.Contains((scope, kind))), kind, 1);
+
+    private string ListUrl(SubmissionScope scope, SubmissionKind kind, int page) => Navigation.GetUriWithQueryParameters(
         Navigation.Uri.Split('#')[0], new Dictionary<string, object?>
         {
-            ["scope"] = isTemporary || scope == SubmissionScope.Own ? null : scope.ToString().ToLowerInvariant(),
+            ["scope"] = isTemporary ? null : scope.ToString().ToLowerInvariant(),
+            ["kind"] = isTemporary ? null : kind.ToString().ToLowerInvariant(),
             ["page"] = page == 1 ? null : page
         });
 
     private static string ScopeName(SubmissionScope scope) => scope switch
     {
-        SubmissionScope.Own => SiteResources.OwnSubmissions,
-        SubmissionScope.Participant => SiteResources.ParticipantSubmissions,
+        SubmissionScope.Own => SiteResources.SubmissionMine,
         SubmissionScope.Coached => SiteResources.CoachedSubmissions,
         _ => SiteResources.AllSubmissions
     };

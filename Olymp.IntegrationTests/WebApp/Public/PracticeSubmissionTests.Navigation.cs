@@ -117,7 +117,7 @@ public partial class PracticeSubmissionTests
         using var filtered = await GetAsync(client, $"/contests/{data.Contest.Id}/submissions");
         Assert.Null(filtered.QuerySelector("#submissions nav"));
         using var general = await GetAsync(client, "/submissions");
-        Assert.Equal(2, general.QuerySelectorAll("#submissions nav a").Length);
+        Assert.Null(general.QuerySelector("#submissions nav"));
     }
 
     [Fact]
@@ -158,7 +158,7 @@ public partial class PracticeSubmissionTests
         using var ownDefault = await GetAsync(client, $"/contests/{data.Contest.Id}/submissions");
         Assert.NotNull(ownDefault.QuerySelector($"#submission-{ownSubmission.Id}"));
         Assert.Null(ownDefault.QuerySelector($"#submission-{submission.Id}"));
-        Assert.DoesNotContain("scope=", ownDefault.QuerySelector("#submissions nav a[aria-current='page']")!.GetAttribute("href")!);
+        Assert.Contains("scope=own", ownDefault.QuerySelector("#submissions nav a[aria-current='page'][href*='scope=own']")!.GetAttribute("href")!);
     }
 
     [Fact]
