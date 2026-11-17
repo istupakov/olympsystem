@@ -5,6 +5,8 @@ using Microsoft.EntityFrameworkCore;
 
 using Olymp.Domain;
 using Olymp.WebApp.Resources;
+using Olymp.WebApp.Services;
+using Olymp.WebApp.Services.Contests;
 
 namespace Olymp.WebApp.Components.Staff;
 
@@ -13,6 +15,8 @@ internal static class StaffDownloads
     public static void MapStaffDownloads(this IEndpointRouteBuilder endpoints)
     {
         var group = endpoints.MapGroup("/jury").RequireAuthorization(PolicyNames.JuryOrAdmin);
+        group.MapGet("/contests/export", (HttpContext http, ContestExportService service) => ExportContestAsync(null, http, service));
+        group.MapGet("/contests/{contestId:int}/export", (int contestId, HttpContext http, ContestExportService service) => ExportContestAsync(contestId, http, service));
         group.MapGet("/problems/{problemId:int}/tests/download", DownloadZipAsync);
         group.MapGet("/problems/{problemId:int}/tests/{id:int}/input", (int problemId, int id, HttpContext http,
             IDbContextFactory<OlympContext> factory) => DownloadTestAsync(problemId, id, false, http, factory));
@@ -20,6 +24,25 @@ internal static class StaffDownloads
             IDbContextFactory<OlympContext> factory) => DownloadTestAsync(problemId, id, true, http, factory));
         group.MapGet("/contests/{contestId:int}/participants/export", ExportParticipantsAsync);
         group.MapGet("/contests/{contestId:int}/files/{kind}", DownloadContestFileAsync);
+    }
+
+    private static async Task<IResult> ExportContestAsync(int? contestId, HttpContext http, ContestExportService service)
+    {
+        http.Response.Headers.CacheControl = "no-store";
+        try
+        {
+            var file = await service.ExportAsync(contestId, http.RequestAborted);
+            http.Response.RegisterForDispose(file);
+            return Results.File(file, "application/zip", contestId is int id ? $"contest-{id}-export.zip" : "contests-export.zip");
+        }
+        catch (EntityNotFoundException)
+        {
+            return Results.NotFound();
+        }
+        catch (OperationValidationException ex)
+        {
+            return Results.Problem(ex.Message, statusCode: StatusCodes.Status400BadRequest, title: SiteResources.StaffExportFailed);
+        }
     }
 
     private static async Task<IResult> DownloadContestFileAsync(int contestId, string kind, HttpContext http,

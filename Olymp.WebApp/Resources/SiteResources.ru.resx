@@ -709,4 +709,8 @@
   <data name="TrainingPersonalAccountRequired" xml:space="preserve"><value>Для отправки решений на тренировке нужен личный аккаунт. Войдите в него вместо аккаунта участника соревнования.</value></data>
   <data name="ClosedContestRestriction" xml:space="preserve"><value>Во время соревнования отправка решений, просмотр и скачивание исходного кода временно недоступны для личных аккаунтов.</value></data>
   <data name="ProblemsAndSubmissions" xml:space="preserve"><value>Задачи и отправка решений</value></data>
+  <data name="StaffExportContest" xml:space="preserve"><value>Экспорт соревнования (ZIP)</value></data>
+  <data name="StaffExportAllContests" xml:space="preserve"><value>Экспорт всех соревнований (ZIP)</value></data>
+  <data name="StaffExportFailed" xml:space="preserve"><value>Не удалось экспортировать соревнования</value></data>
+  <data name="StaffExportInvalidPath" xml:space="preserve"><value>Некорректный или повторяющийся путь в архиве «{0}». Записи: {1}.</value></data>
 </root>
