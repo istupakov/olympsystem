@@ -1,15 +1,20 @@
 @page "/admin/backups"
 @rendermode @(new InteractiveServerRenderMode(prerender: false))
+@implements IDisposable
 @using Olymp.WebApp.Services.DatabaseMaintenance
 @inject DatabaseBackupService BackupsService
 @inject ILogger<Backups> Logger
 
 <StaffPageTitle Title="@SiteResources.BackupTitle" />
 <h1>@SiteResources.BackupTitle</h1>
-@if (_error is not null) { <p class="alert alert-danger" role="alert">@_error</p> }
+@if (_error is not null || _succeeded)
+{
+    <div class="alert @(_error is not null ? "alert-danger" : "alert-success") alert-dismissible" role="@(_error is not null ? "alert" : "status")">
+        @(_error ?? SiteResources.BackupSucceeded)
+        <button type="button" class="btn-close" aria-label="@SiteResources.Dismiss" @onclick="ClearNotification"></button>
+    </div>
+}
 @if (BackupsService.State.Running) { <p class="alert alert-info" role="status">@SiteResources.BackupBusy</p> }
-else if (BackupsService.State.Failed) { <p class="alert alert-danger" role="alert">@SiteResources.BackupFailed</p> }
-else if (BackupsService.State.FileName is not null) { <p class="alert alert-success" role="status">@SiteResources.BackupSucceeded</p> }
 <section class="mb-4">
     <h2>@SiteResources.BackupDatabase</h2>
     <p>@SiteResources.BackupDescription</p>
@@ -19,9 +24,13 @@ else if (BackupsService.State.FileName is not null) { <p class="alert alert-succ
     }
     <div class="d-flex flex-wrap gap-2 mb-3">
         <button class="btn btn-primary" disabled="@(_busy || BackupsService.State.Running || _snapshot is null)" @onclick="() => CreateAsync(false)">@SiteResources.BackupFull</button>
-        <button class="btn btn-outline-primary" disabled="@(_busy || BackupsService.State.Running || _snapshot is null)" @onclick="() => CreateAsync(true)">@SiteResources.BackupDiff</button>
+        <button class="btn btn-outline-primary" disabled="@(_busy || BackupsService.State.Running || _snapshot?.CanCreateDifferential != true)" @onclick="() => CreateAsync(true)">@SiteResources.BackupDiff</button>
         <button class="btn btn-outline-secondary" disabled="@_busy" @onclick="RefreshAsync">@SiteResources.BackupRefresh</button>
     </div>
+    @if (_snapshot is { CanCreateDifferential: false })
+    {
+        <p class="text-body-secondary">@SiteResources.BackupNeedsFull</p>
+    }
     @if (_deletion is not null)
     {
         <div class="alert alert-warning" role="alert">
@@ -52,7 +61,7 @@ else if (BackupsService.State.FileName is not null) { <p class="alert alert-succ
                                     <div class="d-flex flex-wrap gap-2">
                                         @if (file.Readable && (!file.Differential || full is not null) && !BackupsService.State.Running)
                                         {
-                                            <a class="btn btn-sm btn-outline-primary" href="@($"admin/backups/{Uri.EscapeDataString(file.Name)}/download")" data-enhance-nav="false">@(file.Differential ? SiteResources.BackupDownloadBundle : SiteResources.BackupDownload)</a>
+                                            <a class="btn btn-sm btn-outline-primary" href="@($"admin/backups/{Uri.EscapeDataString(file.Name)}/download")" data-enhance-nav="false" @onclick="ClearNotification">@(file.Differential ? SiteResources.BackupDownloadBundle : SiteResources.BackupDownload)</a>
                                         }
                                         <button class="btn btn-sm btn-outline-danger" disabled="@(_busy || BackupsService.State.Running)" @onclick="() => PreviewAsync(file.Name)">@SiteResources.StaffDelete</button>
                                     </div>
@@ -76,36 +85,57 @@ else if (BackupsService.State.FileName is not null) { <p class="alert alert-succ
     private DatabaseBackupService.Snapshot? _snapshot;
     private DatabaseBackupService.Backup[]? _deletion;
     private string? _error;
+    private bool _succeeded;
     private bool _busy;
+    private readonly CancellationTokenSource _lifetime = new();
 
     protected override Task OnInitializedAsync() => RefreshAsync();
     private static double GiB(long size) => size / (1024d * 1024 * 1024);
     private static double MiB(long size) => size / (1024d * 1024);
-    private Task RefreshAsync() => RunAsync(async () =>
+    private Task RefreshAsync() => RunAsync(async token =>
     {
         _deletion = null;
-        _snapshot = await BackupsService.ReadAsync((await AuthenticationState).User);
+        await ReadSnapshotAsync(BackupsService.State.Running, token);
     });
-    private Task CreateAsync(bool differential) => RunAsync(async () =>
+    private Task CreateAsync(bool differential) => RunAsync(async token =>
     {
         _deletion = null;
         await BackupsService.StartAsync((await AuthenticationState).User, differential);
+        await ReadSnapshotAsync(true, token);
     });
-    private Task PreviewAsync(string name) => RunAsync(async () =>
+    private async Task ReadSnapshotAsync(bool waitForBackup, CancellationToken token)
+    {
+        if (waitForBackup)
+            while (BackupsService.State.Running) await Task.Delay(500, token);
+        _snapshot = await BackupsService.ReadAsync((await AuthenticationState).User, token);
+        if (waitForBackup)
+        {
+            if (BackupsService.State.Failed) _error = SiteResources.BackupFailed;
+            else _succeeded = true;
+        }
+    }
+    private Task PreviewAsync(string name) => RunAsync(async _ =>
         _deletion = await BackupsService.PreviewDeleteAsync((await AuthenticationState).User, name));
-    private Task DeleteAsync() => RunAsync(async () =>
+    private Task DeleteAsync() => RunAsync(async token =>
     {
         if (_deletion is null) return;
         await BackupsService.DeleteAsync((await AuthenticationState).User, _deletion);
         _deletion = null;
-        _snapshot = await BackupsService.ReadAsync((await AuthenticationState).User);
+        _snapshot = await BackupsService.ReadAsync((await AuthenticationState).User, token);
     });
-    private async Task RunAsync(Func<Task> action)
+    private void ClearNotification()
     {
-        if (_busy) return;
-        _busy = true;
         _error = null;
-        try { await action(); }
+        _succeeded = false;
+    }
+    private async Task RunAsync(Func<CancellationToken, Task> action)
+    {
+        if (_busy || _lifetime.IsCancellationRequested) return;
+        var token = _lifetime.Token;
+        _busy = true;
+        ClearNotification();
+        try { await action(token); }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested) { }
         catch (UnauthorizedAccessException) { _snapshot = null; _deletion = null; _error = SiteResources.StaffAccessDenied; }
         catch (Olymp.WebApp.Services.OperationValidationException exception) { _error = exception.Message; }
         catch (Exception exception)
@@ -114,5 +144,11 @@ else if (BackupsService.State.FileName is not null) { <p class="alert alert-succ
             _error = SiteResources.BackupReadFailed;
         }
         finally { _busy = false; }
+    }
+    public void Dispose()
+    {
+        _lifetime.Cancel();
+        _lifetime.Dispose();
+        GC.SuppressFinalize(this);
     }
 }

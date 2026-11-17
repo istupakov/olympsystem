@@ -45,7 +45,7 @@ public sealed class DatabaseBackupService : BackgroundService
     {
         public bool Readable => Id.HasValue;
     }
-    public sealed record Snapshot(Backup[] Files, long Free, long Total);
+    public sealed record Snapshot(Backup[] Files, long Free, long Total, bool CanCreateDifferential);
 
     private async Task AuthorizeAsync(ClaimsPrincipal actor)
     {
@@ -63,7 +63,7 @@ public sealed class DatabaseBackupService : BackgroundService
         drive = DriveInfo.GetDrives().Where(item => _localPath == item.Name.TrimEnd(Path.DirectorySeparatorChar)
             || _localPath.StartsWith(item.Name.EndsWith(Path.DirectorySeparatorChar) ? item.Name : item.Name + Path.DirectorySeparatorChar, StringComparison.Ordinal))
             .OrderByDescending(item => item.Name.Length).FirstOrDefault() ?? drive;
-        return new(files, drive.AvailableFreeSpace, drive.TotalSize);
+        return new(files, drive.AvailableFreeSpace, drive.TotalSize, await HasBaseAsync(files, token));
     }
 
     private async Task<Backup[]> ReadFilesAsync(CancellationToken token)
@@ -134,7 +134,8 @@ public sealed class DatabaseBackupService : BackgroundService
             _state = new(true, false, pending);
             try
             {
-                if (differential) await RequireBaseAsync(stoppingToken);
+                if (differential && !await HasBaseAsync(await ReadFilesAsync(stoppingToken), stoppingToken))
+                    throw new OperationValidationException(SiteResources.BackupNeedsFull);
                 await using var connection = new SqlConnection(_connectionString);
                 await connection.OpenAsync(stoppingToken);
                 await using var command = connection.CreateCommand();
@@ -154,9 +155,8 @@ public sealed class DatabaseBackupService : BackgroundService
         }
     }
 
-    private async Task RequireBaseAsync(CancellationToken token)
+    private async Task<bool> HasBaseAsync(Backup[] files, CancellationToken token)
     {
-        var files = await ReadFilesAsync(token);
         await using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync(token);
         await using var command = connection.CreateCommand();
@@ -167,9 +167,9 @@ public sealed class DatabaseBackupService : BackgroundService
         {
             found = true;
             if (reader.IsDBNull(0) || !files.Any(item => item.Readable && !item.Differential && !item.CopyOnly && item.Id == reader.GetGuid(0)))
-                throw new OperationValidationException(SiteResources.BackupNeedsFull);
+                return false;
         }
-        if (!found) throw new OperationValidationException(SiteResources.BackupNeedsFull);
+        return found;
     }
 
     public async Task<Backup[]> PreviewDeleteAsync(ClaimsPrincipal actor, string name)
