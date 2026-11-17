@@ -16,6 +16,7 @@ namespace Olymp.WebApp.Services.Contests;
 
 public sealed record IcpcAccountMatch(string Name, string? Email, int? UserId);
 public sealed record IcpcOrganizationOption(int Id, string Name);
+public sealed record IcpcCoachOption(int Id, string Name, string? Email, IReadOnlyList<IcpcOrganizationOption> Organizations);
 
 public sealed class IcpcImportRow
 {
@@ -25,25 +26,32 @@ public sealed class IcpcImportRow
     public string? ExistingDescription { get; init; }
     public required string Snapshot { get; init; }
     public required IReadOnlyList<IcpcAccountMatch> Members { get; init; }
-    public required IReadOnlyList<IcpcAccountMatch> Coaches { get; init; }
+    public required IReadOnlyList<IcpcCoachOption> Coaches { get; init; }
     public required IReadOnlyList<string> Errors { get; init; }
     public required IReadOnlyList<string> Warnings { get; init; }
-    public required IReadOnlyDictionary<int, int[]> CoachOrganizations { get; init; }
     public int? OrganizationId { get; set; }
-    public int? CoachId { get; set; }
+    public int? CoachId
+    {
+        get;
+        set
+        {
+            field = value;
+            if (!Organizations.Any(org => org.Id == OrganizationId))
+                OrganizationId = Organizations.Count == 1 ? Organizations[0].Id : null;
+        }
+    }
+    public IReadOnlyList<IcpcOrganizationOption> Organizations => Coaches.SingleOrDefault(coach => coach.Id == CoachId)?.Organizations ?? [];
     public bool Selected { get; set; }
     public bool IsApproved => Source.Status == "ACCEPTED";
-    public bool CoachNeedsAccess => CoachId is int coach && OrganizationId is int org
-        && (!CoachOrganizations.TryGetValue(coach, out var organizations) || !organizations.Contains(org));
-    public bool NeedsOrganization => OrganizationId is null;
-    public bool NeedsCoach => CoachId is null && Coaches.Any(coach => coach.UserId.HasValue);
+    public bool NeedsOrganization => !Organizations.Any(org => org.Id == OrganizationId);
+    public bool NeedsCoach => !Coaches.Any(coach => coach.Id == CoachId);
     public bool HasNoRemarks => IsApproved && Errors.Count == 0 && Warnings.Count == 0
-        && !NeedsOrganization && !NeedsCoach && !CoachNeedsAccess
+        && !NeedsOrganization && !NeedsCoach
         && (string.IsNullOrWhiteSpace(Source.EligibilityStatus) || Source.EligibilityStatus == "NO_ISSUES_FOUND")
         && string.IsNullOrWhiteSpace(Source.EligibilityIssue);
 }
 
-public sealed record IcpcImportPreview(IReadOnlyList<IcpcImportRow> Rows, IReadOnlyList<IcpcOrganizationOption> Organizations);
+public sealed record IcpcImportPreview(IReadOnlyList<IcpcImportRow> Rows);
 public sealed record IcpcImportSummary(int Added, int Updated);
 
 /// <summary>Authorizes imports and revalidates the preview before any writes.</summary>
@@ -76,14 +84,18 @@ public sealed class IcpcImportService(OlympContext context, UserManager<User> us
         var existingIds = existing.Select(item => item.Id).ToArray();
         var claims = await context.UserClaims.Where(claim => existingIds.Contains(claim.UserId)
             && claim.ClaimType == ClaimNames.IcpcTeamId).ToListAsync(token);
-        var emails = teams.SelectMany(team => team.Members).Select(member => users.NormalizeEmail(member.Username?.Trim()))
+        var emails = teams.SelectMany(team => team.Members).Where(member => member.IsContestant).Select(member => users.NormalizeEmail(member.Username?.Trim()))
             .Where(value => !string.IsNullOrWhiteSpace(value)).Distinct().ToArray();
         var accounts = await context.OlympUsers.AsNoTracking().Where(user => emails.Contains(user.NormalizedEmail)).ToListAsync(token);
-        var accountIds = accounts.Select(account => account.Id).ToArray();
-        var coachClaims = await context.UserClaims.Where(claim => accountIds.Contains(claim.UserId)
-            && claim.ClaimType == ClaimNames.CoachOrg).ToListAsync(token);
-        var coachOrganizations = coachClaims.GroupBy(claim => claim.UserId).ToDictionary(group => group.Key,
-            group => group.Select(claim => int.TryParse(claim.ClaimValue, out var id) ? id : 0).Where(id => id > 0).Distinct().Order().ToArray());
+        var coachAccounts = await context.OlympUsers.AsNoTracking()
+            .Where(user => context.UserClaims.Any(claim => claim.UserId == user.Id && claim.ClaimType == ClaimNames.CoachOrg))
+            .OrderBy(user => user.Name).ThenBy(user => user.Id).ToListAsync(token);
+        var coachClaims = await context.UserClaims.Where(claim => claim.ClaimType == ClaimNames.CoachOrg).ToListAsync(token);
+        var coachOrganizations = coachClaims.ToLookup(claim => claim.UserId, claim => claim.ClaimValue);
+        var coaches = coachAccounts.Select(account => new IcpcCoachOption(account.Id, account.Name, account.Email,
+            [.. organizations.Where(org => coachOrganizations[account.Id].Contains(org.Id.ToString(CultureInfo.InvariantCulture)))
+                .Select(org => new IcpcOrganizationOption(org.Id, org.Name))]))
+            .Where(coach => coach.Organizations.Count > 0).ToArray();
         var rows = new List<IcpcImportRow>();
         foreach (var team in teams)
         {
@@ -111,20 +123,16 @@ public sealed class IcpcImportService(OlympContext context, UserManager<User> us
             }
 
             var members = team.Members.Where(member => member.IsContestant).Select(Match).ToArray();
-            var coaches = team.Members.Where(member => member.IsCoach).Select(Match).ToArray();
             if (members.Any(member => member.UserId is null))
                 warnings.Add(SiteResources.IcpcUnlinkedMembers);
-            var coachIds = coaches.Where(coach => coach.UserId.HasValue).Select(coach => coach.UserId!.Value).Distinct().ToArray();
-            if (coachIds.Length == 0)
-                warnings.Add(SiteResources.IcpcNoCoach);
+            var coachEmails = team.Members.Where(member => member.IsCoach).Select(member => users.NormalizeEmail(member.Username?.Trim()))
+                .Where(email => !string.IsNullOrWhiteSpace(email)).ToArray();
+            var coachIds = coachAccounts.Where(account => coachEmails.Contains(account.NormalizedEmail) && coaches.Any(coach => coach.Id == account.Id))
+                .Select(account => account.Id).ToArray();
             if (members.Where(member => member.UserId.HasValue).Select(member => member.UserId).Distinct().Count()
                 != members.Count(member => member.UserId.HasValue))
                 errors.Add(SiteResources.ParticipantsMustBeDifferent);
-            var orgs = organizations.Where(org => !string.IsNullOrWhiteSpace(team.InstName)
-                && new[] { org.Name, org.FullName, org.ACMName }.Any(name => string.Equals(name?.Trim(), team.InstName.Trim(), StringComparison.OrdinalIgnoreCase))).ToArray();
             int? coachId = coachIds.Length == 1 ? coachIds[0] : null;
-            int? organizationId = accounts.SingleOrDefault(account => account.Id == coachId)?.OrganizationId
-                ?? (orgs.Length == 1 ? orgs[0].Id : (int?)null);
             string snapshot = JsonSerializer.Serialize(new
             {
                 Current = current is null ? null : new
@@ -137,8 +145,7 @@ public sealed class IcpcImportService(OlympContext context, UserManager<User> us
                     current.IsApproved,
                     Members = current.Members.Select(member => member.Id).Order().ToArray()
                 },
-                Members = members,
-                Coaches = coaches
+                Members = members
             });
             rows.Add(new()
             {
@@ -150,15 +157,13 @@ public sealed class IcpcImportService(OlympContext context, UserManager<User> us
                 Snapshot = snapshot,
                 Members = members,
                 Coaches = coaches,
-                OrganizationId = organizationId,
                 CoachId = coachId,
-                CoachOrganizations = coachOrganizations,
                 Selected = team.Status != "CANCELED" && errors.Count == 0,
                 Errors = errors,
                 Warnings = warnings
             });
         }
-        return new(rows, [.. organizations.Select(org => new IcpcOrganizationOption(org.Id, org.Name))]);
+        return new(rows);
     }
 
     public async Task<IcpcImportSummary> ImportAsync(ClaimsPrincipal actor, int contestId,
@@ -177,11 +182,10 @@ public sealed class IcpcImportService(OlympContext context, UserManager<User> us
                 throw new OperationValidationException(SiteResources.IcpcPreviewChanged);
             if (fresh.Errors.Count != 0)
                 throw new OperationValidationException(string.Join(" ", fresh.Errors));
-            if (row.OrganizationId is null || !refreshed.Organizations.Any(org => org.Id == row.OrganizationId))
+            var coach = fresh.Coaches.SingleOrDefault(coach => coach.Id == row.CoachId)
+                ?? throw new OperationValidationException(SiteResources.IcpcSelectCoach);
+            if (!coach.Organizations.Any(org => org.Id == row.OrganizationId))
                 throw new OperationValidationException(SiteResources.IcpcSelectOrganization);
-            var candidates = fresh.Coaches.Where(coach => coach.UserId.HasValue).Select(coach => coach.UserId!.Value).Distinct().ToArray();
-            if ((candidates.Length > 0 && row.CoachId is null) || (row.CoachId is int id && !candidates.Contains(id)))
-                throw new OperationValidationException(SiteResources.IcpcSelectCoach);
         }
         if (selected.Select(row => row.Source.Name.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).Count() != selected.Length)
             throw new OperationValidationException(SiteResources.TeamNameAlreadyRegistered);

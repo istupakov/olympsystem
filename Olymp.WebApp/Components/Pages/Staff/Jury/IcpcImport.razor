@@ -131,38 +131,30 @@
                         }
                         @foreach (var error in row.Errors) { <p class="text-danger" role="alert">@error</p> }
                         @foreach (var warning in row.Warnings) { <p class="text-warning-emphasis" role="status">@warning</p> }
-                        @if (row.CoachNeedsAccess)
-                        {
-                            <p class="text-warning-emphasis" role="status">@SiteResources.IcpcCoachNeedsAccess</p>
-                        }
                         <div class="row g-3">
-                            <div class="col-lg-6">
-                                <label class="form-label" for="@($"icpc-org-{row.Source.Id}")">@SiteResources.StaffOrganization: @row.Source.InstName</label>
-                                <InputSelect id="@($"icpc-org-{row.Source.Id}")" class="@(row.NeedsOrganization ? "form-select is-invalid" : "form-select")" aria-invalid="@row.NeedsOrganization" aria-describedby="@($"icpc-org-error-{row.Source.Id}")" @bind-Value="row.OrganizationId" @bind-Value:after="PreviewChanged">
-                                    <option value="">@SiteResources.IcpcSelectOrganization</option>
-                                    @foreach (var org in preview.Organizations) { <option value="@org.Id">@org.Name</option> }
-                                </InputSelect>
-                                @if (row.NeedsOrganization)
-                                {
-                                    <div id="@($"icpc-org-error-{row.Source.Id}")" class="invalid-feedback">@SiteResources.IcpcSelectOrganization</div>
-                                }
-                            </div>
                             <div class="col-lg-6">
                                 <label class="form-label" for="@($"icpc-coach-{row.Source.Id}")">@SiteResources.StaffCoach</label>
                                 <InputSelect id="@($"icpc-coach-{row.Source.Id}")" class="@(row.NeedsCoach ? "form-select is-invalid" : "form-select")" aria-invalid="@row.NeedsCoach" aria-describedby="@($"icpc-coach-error-{row.Source.Id}")" @bind-Value="row.CoachId" @bind-Value:after="PreviewChanged">
                                     <option value="">@SiteResources.IcpcSelectCoach</option>
-                                    @foreach (var coach in row.Coaches.Where(coach => coach.UserId.HasValue).DistinctBy(coach => coach.UserId))
+                                    @foreach (var coach in row.Coaches)
                                     {
-                                        <option value="@coach.UserId">@coach.Name (@coach.Email)</option>
+                                        <option value="@coach.Id">@coach.Name (@coach.Email) · ID @coach.Id</option>
                                     }
                                 </InputSelect>
                                 @if (row.NeedsCoach)
                                 {
                                     <div id="@($"icpc-coach-error-{row.Source.Id}")" class="invalid-feedback">@SiteResources.IcpcSelectCoach</div>
                                 }
-                                @foreach (var coach in row.Coaches.Where(coach => coach.UserId is null))
+                            </div>
+                            <div class="col-lg-6">
+                                <label class="form-label" for="@($"icpc-org-{row.Source.Id}")">@SiteResources.StaffOrganization: @row.Source.InstName</label>
+                                <InputSelect id="@($"icpc-org-{row.Source.Id}")" class="@(row.NeedsOrganization ? "form-select is-invalid" : "form-select")" aria-invalid="@row.NeedsOrganization" aria-describedby="@($"icpc-org-error-{row.Source.Id}")" @bind-Value="row.OrganizationId" @bind-Value:after="PreviewChanged" disabled="@row.NeedsCoach">
+                                    <option value="">@SiteResources.IcpcSelectOrganization</option>
+                                    @foreach (var org in row.Organizations) { <option value="@org.Id">@org.Name</option> }
+                                </InputSelect>
+                                @if (row.NeedsOrganization)
                                 {
-                                    <div class="form-text">@coach.Name (@coach.Email) – @SiteResources.AccountNotLinked</div>
+                                    <div id="@($"icpc-org-error-{row.Source.Id}")" class="invalid-feedback">@SiteResources.IcpcSelectOrganization</div>
                                 }
                             </div>
                         </div>

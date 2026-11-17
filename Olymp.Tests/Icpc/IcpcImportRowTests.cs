@@ -34,8 +34,31 @@ public class IcpcImportRowTests
         Assert.False(row.HasNoRemarks);
         row.CoachId = 1;
         row.OrganizationId = 20;
-        Assert.True(row.CoachNeedsAccess);
+        Assert.True(row.NeedsOrganization);
         Assert.False(row.HasNoRemarks);
+    }
+
+    [Fact]
+    public void CoachChangesPreserveOnlyAccessibleOrganizationsAndDefaultOnlySingleOption()
+    {
+        var row = Row(new() { Status = "ACCEPTED" });
+        row.CoachId = 3;
+        Assert.Equal(10, row.OrganizationId);
+        row.OrganizationId = 20;
+        row.CoachId = 1;
+        Assert.Equal(10, row.OrganizationId);
+        row.CoachId = null;
+        Assert.Null(row.OrganizationId);
+        Assert.True(row.NeedsCoach);
+        row.CoachId = 3;
+        Assert.Null(row.OrganizationId);
+        Assert.True(row.NeedsOrganization);
+        row.OrganizationId = 20;
+        Assert.True(row.HasNoRemarks);
+        row.CoachId = 999;
+        Assert.True(row.NeedsCoach);
+        Assert.Empty(row.Organizations);
+        Assert.Null(row.OrganizationId);
     }
 
     [Theory]
@@ -52,10 +75,9 @@ public class IcpcImportRowTests
         Source = source,
         Snapshot = "",
         Members = [new("Member", "member@example.test", 2)],
-        Coaches = [new("Coach", "coach@example.test", 1)],
+        Coaches = [new(1, "Coach", "coach@example.test", [new(10, "First")]), new(3, "Other", "other@example.test", [new(10, "First"), new(20, "Second")])],
         CoachId = 1,
         OrganizationId = 10,
-        CoachOrganizations = new Dictionary<int, int[]> { [1] = [10] },
         Errors = errors ?? [],
         Warnings = warnings ?? []
     };

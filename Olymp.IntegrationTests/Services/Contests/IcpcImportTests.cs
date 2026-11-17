@@ -22,7 +22,7 @@ public class IcpcImportTests(ContestServiceFixture site) : IClassFixture<Contest
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public async Task DefaultsToCoachOrganizationBeforeMatchingIcpcName(bool matchesIcpcName)
+    public async Task DefaultsToCoachAccessIgnoringProfileOrganizationAndIcpcName(bool matchesIcpcName)
     {
         var token = TestContext.Current.CancellationToken;
         var setup = await SetupAsync();
@@ -38,9 +38,8 @@ public class IcpcImportTests(ContestServiceFixture site) : IClassFixture<Contest
 
         var row = Assert.Single((await service.PreviewAsync(setup.Actor, setup.Contest.Id, [source], token)).Rows);
 
-        Assert.Equal(coachOrganization.Id, row.OrganizationId);
-        Assert.DoesNotContain(Olymp.WebApp.Resources.SiteResources.IcpcSelectOrganization, row.Warnings);
-        Assert.True(row.CoachNeedsAccess);
+        Assert.Equal(setup.OrgId, row.OrganizationId);
+        Assert.Equal(setup.OrgId, Assert.Single(row.Organizations).Id);
     }
 
     [Fact]
@@ -60,6 +59,7 @@ public class IcpcImportTests(ContestServiceFixture site) : IClassFixture<Contest
         {
             var service = scope.ServiceProvider.GetRequiredService<IcpcImportService>();
             var preview = await service.PreviewAsync(setup.Actor, setup.Contest.Id, [source, other], token);
+            foreach (var row in preview.Rows) row.CoachId = setup.Coach.Id;
             await Assert.ThrowsAsync<InvalidOperationException>(() => service.ImportAsync(setup.Actor, setup.Contest.Id, preview.Rows, token));
         }
         using var verification = site.Services.CreateScope();
@@ -82,7 +82,7 @@ public class IcpcImportTests(ContestServiceFixture site) : IClassFixture<Contest
             Assert.Equal(setup.Member.Id, Assert.Single(row.Members).UserId);
             Assert.Equal(setup.Coach.Id, row.CoachId);
             Assert.Equal(setup.OrgId, row.OrganizationId);
-            Assert.True(row.CoachNeedsAccess);
+            Assert.False(row.NeedsOrganization);
             Assert.Empty(row.Errors);
             Assert.Equal(new IcpcImportSummary(1, 0), await service.ImportAsync(setup.Actor, setup.Contest.Id, preview.Rows, token));
         }
@@ -127,7 +127,7 @@ public class IcpcImportTests(ContestServiceFixture site) : IClassFixture<Contest
     }
 
     [Fact]
-    public async Task MissingCoachAndMembersProduceWarningsWithoutCreatingPermanentAccounts()
+    public async Task MissingCoachRequiresManualSelectionAndUnmatchedMembersStayUnlinked()
     {
         var token = TestContext.Current.CancellationToken;
         var setup = await SetupAsync();
@@ -143,11 +143,15 @@ public class IcpcImportTests(ContestServiceFixture site) : IClassFixture<Contest
         var row = Assert.Single(preview.Rows);
         Assert.Null(row.CoachId);
         Assert.Null(Assert.Single(row.Members).UserId);
-        Assert.True(row.Warnings.Count >= 2);
+        Assert.Single(row.Warnings);
+        Assert.True(row.NeedsCoach);
+        await Assert.ThrowsAsync<OperationValidationException>(() => service.ImportAsync(setup.Actor, setup.Contest.Id, preview.Rows, token));
+        Assert.False(await db.Competitors.AnyAsync(item => item.ContestId == setup.Contest.Id, token));
+        row.CoachId = setup.Coach.Id;
         await service.ImportAsync(setup.Actor, setup.Contest.Id, preview.Rows, token);
         Assert.Equal(count, await db.OlympUsers.CountAsync(token));
         var team = await db.Competitors.Include(item => item.Members).SingleAsync(item => item.ContestId == setup.Contest.Id, token);
-        Assert.Null(team.CoachId);
+        Assert.Equal(setup.Coach.Id, team.CoachId);
         Assert.Empty(team.Members);
         Assert.Equal("Unknown Contestant", Assert.Single(team.GetMembers()!).name);
     }
@@ -220,6 +224,8 @@ public class IcpcImportTests(ContestServiceFixture site) : IClassFixture<Contest
             Members = [.. setup.Source.Members, new() { TeamId = 12345, Role = "COACH", FirstName = "Other", Username = otherCoach.Email }]
         };
         using var scope = site.Services.CreateScope();
+        var users = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
+        Assert.True((await users.AddClaimAsync(otherCoach, new(ClaimNames.CoachOrg, setup.OrgId.ToString()))).Succeeded);
         var service = scope.ServiceProvider.GetRequiredService<IcpcImportService>();
         var preview = await service.PreviewAsync(setup.Actor, setup.Contest.Id, [source], token);
         var row = Assert.Single(preview.Rows);
@@ -229,6 +235,90 @@ public class IcpcImportTests(ContestServiceFixture site) : IClassFixture<Contest
         await Assert.ThrowsAsync<OperationValidationException>(() => service.ImportAsync(setup.Actor, setup.Contest.Id, preview.Rows, token));
         row.CoachId = otherCoach.Id;
         Assert.Equal(new IcpcImportSummary(1, 0), await service.ImportAsync(setup.Actor, setup.Contest.Id, preview.Rows, token));
+    }
+
+    [Fact]
+    public async Task AnyEligibleCoachCanBeSelectedEvenWhenIcpcEmailMatchesAccountWithoutAccess()
+    {
+        var token = TestContext.Current.CancellationToken;
+        var setup = await SetupAsync();
+        var withoutAccess = await site.AddUserAsync();
+        var source = setup.Source with
+        {
+            Members = [setup.Source.Members[0], new() { TeamId = 12345, Role = "COACH", FirstName = "Other", Username = withoutAccess.Email }]
+        };
+        using var scope = site.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<OlympContext>();
+        var users = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
+        Assert.True((await users.AddClaimAsync(withoutAccess, new(ClaimNames.CoachOrg, int.MaxValue.ToString()))).Succeeded);
+        var service = scope.ServiceProvider.GetRequiredService<IcpcImportService>();
+        var preview = await service.PreviewAsync(setup.Actor, setup.Contest.Id, [source], token);
+        var row = Assert.Single(preview.Rows);
+        Assert.Null(row.CoachId);
+        Assert.DoesNotContain(row.Coaches, coach => coach.Id == withoutAccess.Id);
+        Assert.Contains(row.Coaches, coach => coach.Id == setup.Coach.Id);
+        row.CoachId = withoutAccess.Id;
+        row.OrganizationId = setup.OrgId;
+        await Assert.ThrowsAsync<OperationValidationException>(() => service.ImportAsync(setup.Actor, setup.Contest.Id, preview.Rows, token));
+        row.CoachId = setup.Coach.Id;
+        Assert.Equal(setup.OrgId, row.OrganizationId);
+        await service.ImportAsync(setup.Actor, setup.Contest.Id, preview.Rows, token);
+        var saved = await db.Competitors.SingleAsync(item => item.ContestId == setup.Contest.Id, token);
+        Assert.Equal(setup.Coach.Id, saved.CoachId);
+        Assert.Equal(setup.OrgId, saved.OrganizationId);
+    }
+
+    [Fact]
+    public async Task MultipleOrganizationsRequireSelectionAndRejectAccessRevokedAfterPreview()
+    {
+        var token = TestContext.Current.CancellationToken;
+        var setup = await SetupAsync();
+        using var scope = site.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<OlympContext>();
+        var other = new Organization { Name = "Another organization", Users = [] };
+        db.Organizations.Add(other);
+        await db.SaveChangesAsync(token);
+        Assert.True((await scope.ServiceProvider.GetRequiredService<UserManager<User>>()
+            .AddClaimAsync(setup.Coach, new(ClaimNames.CoachOrg, other.Id.ToString()))).Succeeded);
+        var service = scope.ServiceProvider.GetRequiredService<IcpcImportService>();
+        var preview = await service.PreviewAsync(setup.Actor, setup.Contest.Id, [setup.Source], token);
+        var row = Assert.Single(preview.Rows);
+        Assert.Equal(setup.Coach.Id, row.CoachId);
+        Assert.Equal(2, row.Organizations.Count);
+        Assert.Null(row.OrganizationId);
+        await Assert.ThrowsAsync<OperationValidationException>(() => service.ImportAsync(setup.Actor, setup.Contest.Id, preview.Rows, token));
+        row.OrganizationId = int.MaxValue;
+        await Assert.ThrowsAsync<OperationValidationException>(() => service.ImportAsync(setup.Actor, setup.Contest.Id, preview.Rows, token));
+        row.OrganizationId = setup.OrgId;
+        await db.UserClaims.Where(claim => claim.UserId == setup.Coach.Id && claim.ClaimType == ClaimNames.CoachOrg && claim.ClaimValue == setup.OrgId.ToString())
+            .ExecuteDeleteAsync(token);
+        await Assert.ThrowsAsync<OperationValidationException>(() => service.ImportAsync(setup.Actor, setup.Contest.Id, preview.Rows, token));
+        Assert.False(await db.Competitors.AnyAsync(item => item.ContestId == setup.Contest.Id, token));
+        row.OrganizationId = other.Id;
+        await service.ImportAsync(setup.Actor, setup.Contest.Id, preview.Rows, token);
+        Assert.Equal(other.Id, await db.Competitors.Where(item => item.ContestId == setup.Contest.Id).Select(item => item.OrganizationId).SingleAsync(token));
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task RejectsCoachDeletedOrLosingAllAccessAfterPreview(bool deleteAccount)
+    {
+        var token = TestContext.Current.CancellationToken;
+        var setup = await SetupAsync();
+        using var scope = site.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<OlympContext>();
+        var service = scope.ServiceProvider.GetRequiredService<IcpcImportService>();
+        var preview = await service.PreviewAsync(setup.Actor, setup.Contest.Id, [setup.Source], token);
+        if (deleteAccount)
+        {
+            var users = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
+            Assert.True((await users.DeleteAsync((await users.FindByIdAsync(setup.Coach.Id.ToString()))!)).Succeeded);
+        }
+        else
+            await db.UserClaims.Where(claim => claim.UserId == setup.Coach.Id && claim.ClaimType == ClaimNames.CoachOrg).ExecuteDeleteAsync(token);
+        await Assert.ThrowsAsync<OperationValidationException>(() => service.ImportAsync(setup.Actor, setup.Contest.Id, preview.Rows, token));
+        Assert.False(await db.Competitors.AnyAsync(item => item.ContestId == setup.Contest.Id, token));
     }
 
     [Fact]
@@ -261,6 +351,8 @@ public class IcpcImportTests(ContestServiceFixture site) : IClassFixture<Contest
         var org = new Organization { Name = "University " + Guid.NewGuid().ToString("N"), Users = [] };
         db.Organizations.Add(org);
         await db.SaveChangesAsync(token);
+        Assert.True((await scope.ServiceProvider.GetRequiredService<UserManager<User>>()
+            .AddClaimAsync(coach, new(ClaimNames.CoachOrg, org.Id.ToString()))).Succeeded);
         var source = new IcpcTeam
         {
             Id = 12345,
@@ -271,7 +363,7 @@ public class IcpcImportTests(ContestServiceFixture site) : IClassFixture<Contest
             Members =
             [
                 new() { TeamId = 12345, Role = "CONTESTANT", FirstName = "Alex", LastName = "Smith", Username = member.Email!.ToUpperInvariant() },
-                new() { TeamId = 12345, Role = "COACH", FirstName = "Coach", Username = coach.Email }
+                new() { TeamId = 12345, Role = "COACH", FirstName = "Coach", Username = " " + coach.Email!.ToUpperInvariant() + " " }
             ]
         };
         return (Actor(owner), contest, member, coach, org.Id, source);
