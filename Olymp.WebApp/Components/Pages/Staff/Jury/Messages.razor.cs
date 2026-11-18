@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.JSInterop;
 
+using Olymp.Domain;
 using Olymp.Domain.Models;
 using Olymp.WebApp.Components.Staff;
 using Olymp.WebApp.Resources;
@@ -53,6 +54,8 @@ public partial class Messages
     private string? _originalText;
     private string? _question;
     private string? _error;
+    private string? _refreshError;
+    private bool _parametersPending;
     private bool _loaded;
     private bool _canManage;
     private bool _admin;
@@ -75,24 +78,33 @@ public partial class Messages
             _pending = null;
         }
         _filters = new() { Author = Author, Problem = Problem, Status = Status };
-        await using var db = await ContextFactory.CreateDbContextAsync(_stop.Token);
-        _selectedAuthor = null;
+        _parametersPending = true;
+        await RefreshAsync();
+    }
+
+    private async Task LoadParametersAsync(OlympContext db)
+    {
+        string? selectedAuthor = null;
         if (!Announcements && AuthorId is int authorId)
         {
-            _selectedAuthor = StaffEntityLabel.Format(authorId, await db.Users.AsNoTracking().Where(item => item.Id == authorId)
+            selectedAuthor = StaffEntityLabel.Format(authorId, await db.Users.AsNoTracking().Where(item => item.Id == authorId)
                 .Select(item => item.Name).SingleOrDefaultAsync(_stop.Token));
         }
-        _contest = await db.Contests.AsNoTracking().SingleOrDefaultAsync(item => item.Id == ContestId, _stop.Token);
-        _problems = await db.Problems.AsNoTracking().Where(item => item.ContestId == ContestId)
+        var contest = await db.Contests.AsNoTracking().SingleOrDefaultAsync(item => item.Id == ContestId, _stop.Token);
+        var problems = await db.Problems.AsNoTracking().Where(item => item.ContestId == ContestId)
             .OrderBy(item => item.Number).ToListAsync(_stop.Token);
-        _selectedProblem = Problem is int problemId ? StaffEntityLabel.Format(problemId, await db.Problems.Where(item => item.Id == problemId)
+        string? selectedProblem = Problem is int problemId ? StaffEntityLabel.Format(problemId, await db.Problems.Where(item => item.Id == problemId)
             .Select(item => item.Number.ToString() + ". " + item.Name).SingleOrDefaultAsync(_stop.Token)) : null;
-        await RefreshAsync();
-        _loaded = true;
+        _contest = contest;
+        _problems = problems;
+        _selectedAuthor = selectedAuthor;
+        _selectedProblem = selectedProblem;
+        _parametersPending = false;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        _poll ??= PollAsync();
         if (!_soundInitialized && _contest is not null)
         {
             _soundInitialized = true;
@@ -109,7 +121,6 @@ public partial class Messages
             {
                 Logger.LogWarning(exception, "Could not enable message sound");
             }
-            _poll ??= PollAsync();
         }
     }
 
@@ -136,18 +147,24 @@ public partial class Messages
 
     private async Task RefreshAsync()
     {
-        if (_refreshing || _contest is null)
+        if (_refreshing)
             return;
         _refreshing = true;
         try
         {
             await using var db = await ContextFactory.CreateDbContextAsync(_stop.Token);
+            if (_parametersPending)
+                await LoadParametersAsync(db);
+            if (_contest is null)
+            {
+                _refreshError = null;
+                return;
+            }
             _admin = (await AuthenticationState).User.IsInRole(RoleNames.Admin);
             _canManage = (await Authorization.AuthorizeAsync((await AuthenticationState).User, ContestId, PolicyNames.ManageContest)).Succeeded;
             var questions = await db.Messages.Where(item => item.ContestId == ContestId && item.UserId != null)
                 .Select(item => item.Id).ToHashSetAsync(_stop.Token);
             bool notify = _knownQuestions is not null && questions.Except(_knownQuestions).Any();
-            _knownQuestions = questions;
             var query = db.Messages.AsNoTracking().Where(item => item.ContestId == ContestId
                 && (Announcements ? item.UserId == null : item.UserId != null));
             if (Problem is int problem)
@@ -170,16 +187,28 @@ public partial class Messages
             _hasNext = _messages.Count > 20;
             if (_hasNext)
                 _messages.RemoveAt(20);
+            _knownQuestions = questions;
+            _refreshError = null;
             if (notify && _sound is not null && _soundId is not null)
-                await _sound.InvokeVoidAsync("notify", _soundId);
+            {
+                try
+                {
+                    await _sound.InvokeVoidAsync("notify", _soundId);
+                }
+                catch (Exception exception) when (exception is JSException or JSDisconnectedException)
+                {
+                    Logger.LogWarning(exception, "Could not play message sound");
+                }
+            }
         }
-        catch (Exception exception) when (exception is DbException or JSDisconnectedException)
+        catch (DbException exception)
         {
             Logger.LogWarning(exception, "Could not refresh messages for contest {ContestId}", ContestId);
-            _error = SiteResources.StaffRefreshFailed;
+            _refreshError = SiteResources.StaffRefreshFailed;
         }
         finally
         {
+            _loaded = true;
             _refreshing = false;
         }
     }

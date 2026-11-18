@@ -29,6 +29,42 @@ namespace Olymp.IntegrationTests.WebApp.Staff.Jury;
 public partial class RunnerTests(WebAppFactory factory) : StaffComponentTests(factory)
 {
     [Fact]
+    public async Task RunnerRefreshRecoversFromInitialFailureAndRetainsSelectionAfterLaterFailure()
+    {
+        var author = await _factory.AddUserAsync();
+        var contexts = new RefreshFailureContextFactory(_factory.Services.GetRequiredService<IDbContextFactory<OlympContext>>());
+        var runner = new Olymp.IntegrationTests.Services.Checkers.CheckerTestData.TestRunner();
+        var checker = await Olymp.IntegrationTests.Services.Checkers.CheckerTestData.CreateCheckerAsync(runner, "refresh-recovery");
+        var manager = new Olymp.IntegrationTests.Services.Checkers.CheckerTestData.PageManager(checker);
+        void Configure(IServiceCollection services)
+        {
+            services.RemoveAll<IDbContextFactory<OlympContext>>();
+            services.AddSingleton<IDbContextFactory<OlympContext>>(contexts);
+            services.RemoveAll<ICheckerManager>();
+            services.AddSingleton<ICheckerManager>(manager);
+        }
+        string path = $"/jury/runners?Runner={runner.Id}";
+        using var failed = await new HtmlParser().ParseDocumentAsync(await RenderAsync<JuryRunners>(path, [], Staff(author.Id), configure: Configure));
+        Assert.Contains(SiteResources.StaffRefreshFailed, failed.Body!.TextContent);
+        Assert.DoesNotContain(SiteResources.StaffLoading, failed.Body.TextContent);
+        using var recovered = await new HtmlParser().ParseDocumentAsync(await RenderAsync<JuryRunners>(path, [], Staff(author.Id), async page =>
+        {
+            contexts.Fail = false;
+            await ActAsync(page, "RefreshAsync");
+            var selected = typeof(JuryRunners).GetProperty("SelectedRunner", BindingFlags.Instance | BindingFlags.NonPublic)!;
+            Assert.Same(checker, selected.GetValue(page));
+            contexts.Fail = true;
+            await ActAsync(page, "RefreshAsync");
+            Assert.Same(checker, selected.GetValue(page));
+            contexts.Fail = false;
+            await ActAsync(page, "RefreshAsync");
+        }, Configure));
+        Assert.Contains(runner.Id.ToString(), recovered.Body!.TextContent);
+        Assert.DoesNotContain(SiteResources.StaffRefreshFailed, recovered.Body.TextContent);
+        Assert.DoesNotContain(recovered.QuerySelectorAll("button"), button => button.TextContent == SiteResources.Refresh);
+    }
+
+    [Fact]
     public async Task RunnerViewRetainsDiagnosticsAndLinksToTrialRun()
     {
         var author = await _factory.AddUserAsync();

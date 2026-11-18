@@ -133,6 +133,8 @@ public class IcpcImportTests(ContestServiceFixture site) : IClassFixture<Contest
         var setup = await SetupAsync();
         var source = setup.Source with
         {
+            EligibilityIssue = null,
+            EligibilityStatus = "NO_ISSUES_FOUND",
             Members = [new() { TeamId = 12345, FirstName = "Unknown", LastName = "Contestant", Username = "missing@example.test", Role = "CONTESTANT" }]
         };
         using var scope = site.Services.CreateScope();
@@ -143,11 +145,13 @@ public class IcpcImportTests(ContestServiceFixture site) : IClassFixture<Contest
         var row = Assert.Single(preview.Rows);
         Assert.Null(row.CoachId);
         Assert.Null(Assert.Single(row.Members).UserId);
-        Assert.Single(row.Warnings);
+        Assert.Empty(row.Warnings);
         Assert.True(row.NeedsCoach);
+        Assert.False(row.HasNoRemarks);
         await Assert.ThrowsAsync<OperationValidationException>(() => service.ImportAsync(setup.Actor, setup.Contest.Id, preview.Rows, token));
         Assert.False(await db.Competitors.AnyAsync(item => item.ContestId == setup.Contest.Id, token));
         row.CoachId = setup.Coach.Id;
+        Assert.True(row.HasNoRemarks);
         await service.ImportAsync(setup.Actor, setup.Contest.Id, preview.Rows, token);
         Assert.Equal(count, await db.OlympUsers.CountAsync(token));
         var team = await db.Competitors.Include(item => item.Members).SingleAsync(item => item.ContestId == setup.Contest.Id, token);

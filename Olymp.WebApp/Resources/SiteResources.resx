@@ -412,7 +412,7 @@
   <data name="StaffEnableSound" xml:space="preserve"><value>Enable sound</value></data>
   <data name="StaffDisableSound" xml:space="preserve"><value>Disable sound</value></data>
   <data name="StaffSoundUnavailable" xml:space="preserve"><value>Sound could not be enabled. Check the tab sound settings and try again.</value></data>
-  <data name="StaffRefreshFailed" xml:space="preserve"><value>Could not refresh the list. Try again.</value></data>
+  <data name="StaffRefreshFailed" xml:space="preserve"><value>Could not refresh the data. Retrying automatically.</value></data>
   <data name="StaffRunner" xml:space="preserve"><value>Runner</value></data>
   <data name="StaffCompilers" xml:space="preserve"><value>Compilers</value></data>
   <data name="StaffNoRunners" xml:space="preserve"><value>No connected Runner.</value></data>
@@ -732,8 +732,12 @@
     <value>Refresh</value>
   </data>
   <data name="BackupBusy" xml:space="preserve">
-    <value>A backup operation is in progress. Refresh to check its result.</value>
+    <value>A backup operation is in progress…</value>
   </data>
+  <data name="BackupRefreshing" xml:space="preserve"><value>Refreshing the backup list…</value></data>
+  <data name="BackupCreatingFull" xml:space="preserve"><value>Creating and verifying a full backup…</value></data>
+  <data name="BackupCreatingDiff" xml:space="preserve"><value>Creating and verifying a differential backup…</value></data>
+  <data name="BackupDeleting" xml:space="preserve"><value>Deleting backups…</value></data>
   <data name="BackupFailed" xml:space="preserve">
     <value>Backup failed. See application logs for details. If a differential backup has no available base, create a full backup first.</value>
   </data>

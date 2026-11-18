@@ -37,17 +37,18 @@ public class IcpcImportPageTests(WebAppFactory factory) : StaffComponentTests(fa
         {
             Source = new() { Id = 12345, Name = "Team", Status = "ACCEPTED" },
             Snapshot = "",
-            Members = [],
+            Members = [new("Unknown", "missing@example.test", null)],
             Coaches = [new(1, "One", "one@example.test", [new(10, "First")]), new(2, "Two", "two@example.test", [new(10, "First"), new(20, "Second")])],
             Errors = [],
             Warnings = [],
             Selected = true
         };
         string path = $"/jury/contests/{contest.Id}/participants/icpc";
-        async Task<AngleSharp.Html.Dom.IHtmlDocument> PageAsync(bool confirm = false) =>
+        async Task<AngleSharp.Html.Dom.IHtmlDocument> PageAsync(bool confirm = false, bool selectWithoutRemarks = false) =>
             await new HtmlParser().ParseDocumentAsync(await RenderAsync<IcpcImport>(path, new() { ["ContestId"] = contest.Id }, Staff(admin.Id), component =>
             {
                 typeof(IcpcImport).GetField("_preview", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(component, new IcpcImportPreview([row]));
+                if (selectWithoutRemarks) typeof(IcpcImport).GetMethod("SelectTeams", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(component, [true]);
                 if (confirm) typeof(IcpcImport).GetMethod("ConfirmImport", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(component, null);
                 return Task.CompletedTask;
             }, services => services.AddScoped(_ => new IcpcClient(new HttpClient(new EmptyCatalogHandler())))));
@@ -69,7 +70,10 @@ public class IcpcImportPageTests(WebAppFactory factory) : StaffComponentTests(fa
         Assert.Equal(3, multiple.QuerySelectorAll("#icpc-org-12345 option").Length);
         Assert.DoesNotContain(multiple.QuerySelectorAll("button"), button => button.TextContent == SiteResources.StaffConfirm);
         row.OrganizationId = 20;
-        using var chosen = await PageAsync(true);
+        row.Selected = false;
+        using var chosen = await PageAsync(true, true);
+        Assert.True(row.Selected);
+        Assert.Contains(SiteResources.IcpcUnlinkedMembers, chosen.Body!.TextContent);
         Assert.Contains(chosen.QuerySelectorAll("button"), button => button.TextContent == SiteResources.StaffConfirm);
     }
 
