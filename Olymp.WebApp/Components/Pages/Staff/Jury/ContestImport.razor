@@ -1,0 +1,272 @@
+@page "/jury/contests/{ContestId:int}/import"
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@implements IAsyncDisposable
+@using Olymp.WebApp.Services
+@using Olymp.WebApp.Services.Checker
+@using Olymp.WebApp.Services.Contests
+@inject IServiceScopeFactory ScopeFactory
+@inject IDbContextFactory<OlympContext> ContextFactory
+@inject ICheckerManager Checkers
+@inject NavigationManager Navigation
+@inject ILogger<ContestImport> Logger
+@inject Microsoft.Extensions.Options.IOptions<ContestImportOptions> ImportOptions
+
+<NavigationLock ConfirmExternalNavigation="@(HasPending || _busy)" OnBeforeInternalNavigation="BeforeNavigation" />
+<StaffPageTitle Title="@SiteResources.ImportProblems" Context="@_contest?.Name" />
+@if (_contest is not null)
+{
+    <StaffContestNavigation ContestId="ContestId" ContestName="@_contest.Name" IsHidden="_contest.IsHidden" />
+}
+<h1 class="h3">@SiteResources.ImportProblems</h1>
+@if (_error is not null) { <p class="alert alert-danger" role="alert">@_error</p> }
+@if (_status is not null) { <p class="alert alert-success" role="status">@_status</p> }
+@if (_canManage)
+{
+    <div class="d-flex flex-wrap gap-2 mb-3">
+        <button class="btn btn-outline-secondary" @onclick="Finish">@SiteResources.ImportFinish</button>
+        @if (_busy) { <button class="btn btn-outline-secondary" @onclick="Stop">@(_saving ? SiteResources.ImportCancelSave : SiteResources.ImportStop)</button> }
+    </div>
+    @if (_exitTarget is not null)
+    {
+        <div class="alert alert-warning" role="alert">
+            <p>@SiteResources.ImportLeaveConfirm</p>
+            <button class="btn btn-warning" @onclick="Leave">@SiteResources.ImportFinish</button>
+            <button class="btn btn-outline-secondary ms-2" @onclick="() => _exitTarget = null">@SiteResources.ImportStay</button>
+        </div>
+    }
+    @if (_busy) { <p role="status">@(_saving ? SiteResources.ImportWaiting : SiteResources.StaffChecking)</p> }
+    <fieldset disabled="@(_busy || _confirmSave || _exitTarget is not null)">
+        <div class="mb-3"><label for="import-zip" class="form-label">ZIP</label><InputFile id="import-zip" class="form-control" accept=".zip" OnChange="UploadAsync" /></div>
+        @if (_preview is { } preview)
+        {
+            <div class="mb-4"><label for="import-cpp" class="form-label">@SiteResources.ImportValidatorCompiler</label>
+                <select id="import-cpp" class="form-select" @bind="preview.ValidatorCompilerId" @bind:after="CheckValidatorAsync">
+                    <option value="">@SiteResources.SelectCompiler</option>
+                    @foreach (var c in _compilers.Where(c => c.Language == "C++")) { <option value="@c.Id">@StaffEntityLabel.Format(c.Id, c.Description ?? c.Name)</option> }
+                </select>
+            </div>
+        }
+    </fieldset>
+    @if (_preview is { } package)
+    {
+        <div class="problem-browser row g-4 align-items-start">
+            <nav class="problem-list col-lg-3 text-break" aria-label="@SiteResources.ProblemList">
+                <div class="d-lg-none mb-3"><label for="import-problem" class="form-label">@SiteResources.Problems</label>
+                    <select id="import-problem" class="form-select" value="@_selected?.Folder" @onchange="SelectProblem" disabled="@_busy">
+                        @foreach (var row in package.Rows) { <option value="@row.Folder">@row.Label · @RowStatus(row)</option> }
+                    </select>
+                </div>
+                <div class="list-group d-none d-lg-flex">
+                    @foreach (var row in package.Rows)
+                    {
+                        <a class="list-group-item list-group-item-action @(_selected == row ? "active" : null) @(_busy ? "disabled" : null)" href="@ProblemUrl(row)" aria-current="@(_selected == row ? "page" : null)" aria-disabled="@_busy">
+                            <span class="d-block">@row.Label</span><small>@RowStatus(row)</small>
+                        </a>
+                    }
+                </div>
+            </nav>
+            @if (_selected is { } task)
+            {
+                <section id="problem-detail" class="problem-detail col-lg-9 text-break" aria-label="@SiteResources.ImportProblemDetails" @key="task">
+                    <h2 class="h4">@task.Label</h2>
+                    <p class="text-body-secondary">@task.Folder · @(task.Id is { } id ? $"ID {id}" : SiteResources.ImportNewProblem)</p>
+                    <div class="table-responsive"><table class="table table-sm">
+                        <thead><tr><th>@SiteResources.ImportParameter</th><th>@SiteResources.ImportCurrentValue</th><th>@SiteResources.ImportNewValue</th></tr></thead>
+                        <tbody>
+                            <tr><th scope="row">@SiteResources.StaffTestNumber</th><td>@task.Previous?.Number</td><td>@task.Parameters.Number</td></tr>
+                            <tr><th scope="row">@SiteResources.StaffName</th><td>@task.Previous?.Name</td><td>@task.Parameters.Name</td></tr>
+                            <tr><th scope="row">@SiteResources.TimeLimit (@SiteResources.Seconds)</th><td>@task.Previous?.TimeLimit</td><td>@task.TimeLimit</td></tr>
+                            <tr><th scope="row">@SiteResources.ImportSlowTimeLimit</th><td>@task.Previous?.SlowTimeLimit</td><td>@task.SlowTimeLimit</td></tr>
+                            <tr><th scope="row">@SiteResources.MemoryLimit (@SiteResources.Megabytes)</th><td>@task.Previous?.MemoryLimit</td><td>@task.Parameters.MemoryLimit</td></tr>
+                            <tr><th scope="row">@SiteResources.StaffChecker</th><td>@task.Previous?.CheckerId</td><td>@task.Parameters.CheckerId</td></tr>
+                            <tr><th scope="row">@SiteResources.StaffActive</th><td>@(task.Previous is null ? null : task.Previous.IsActive ? SiteResources.StaffYes : SiteResources.StaffNo)</td><td>@(task.Parameters.IsActive ? SiteResources.StaffYes : SiteResources.StaffNo)</td></tr>
+                        </tbody>
+                    </table></div>
+                    <h3 class="h5">@SiteResources.StaffTests (@task.Tests.Count)</h3>
+                    <p>@SiteResources.ImportAddedTests: @Numbers(task.AddedTests)<br />@SiteResources.ImportChangedTests: @Numbers(task.ChangedTests)<br />@SiteResources.ImportRemovedTests: @Numbers(task.RemovedTests)</p>
+                    <details class="mb-3"><summary>@SiteResources.ImportTestSet</summary>
+                        <div class="table-responsive"><table class="table table-sm">
+                            <thead><tr><th>@SiteResources.StaffTestNumber</th><th>@SiteResources.ImportOpenTest</th><th>@SiteResources.StaffActive</th><th>@SiteResources.StaffScore</th><th>@SiteResources.ImportComment</th></tr></thead>
+                            <tbody>@foreach (var test in task.Tests) { <tr><td>@test.Number</td><td>@(test.IsOpen ? SiteResources.StaffYes : SiteResources.StaffNo)</td><td>@(test.IsActive ? SiteResources.StaffYes : SiteResources.StaffNo)</td><td>@test.Score</td><td>@test.Comment</td></tr> }</tbody>
+                        </table></div>
+                    </details>
+                    @foreach (var message in task.StateErrors) { <p class="text-danger" role="alert">@message</p> }
+                    @foreach (var message in task.StateWarnings) { <p class="text-warning-emphasis">@message</p> }
+                    <h3 class="h5">@SiteResources.ImportValidator</h3>
+                    <p class="@(!task.HasValidator ? "text-warning-emphasis" : null)">@(task.HasValidator ? "validator.cpp" : SiteResources.ImportNoValidator)</p>
+                    @if (task.HasValidator) { <p class="@(task.ValidatorErrors.Count != 0 ? "text-danger" : task.ValidatorWarnings.Count != 0 ? "text-warning-emphasis" : null)" role="status">@(task.ValidatorMessage ?? SiteResources.ImportValidatorNotRun)</p> }
+                    @foreach (var message in task.ValidatorErrors) { <p class="text-danger" role="alert">@message</p> }
+                    @foreach (var message in task.ValidatorWarnings.Where(w => w != task.ValidatorMessage)) { <p class="text-warning-emphasis">@message</p> }
+                    @if (task.ValidatorResult is { } validation) { <details class="mb-3"><summary>@SiteResources.StaffRunOutput</summary><pre class="text-wrap">@validation.Log</pre></details> }
+                    <fieldset disabled="@(_busy || _confirmSave || _exitTarget is not null)">
+                        <legend class="h5">@SiteResources.ImportLimits</legend>
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-6"><label class="form-label" for="import-time">@SiteResources.TimeLimit (@SiteResources.Seconds)</label><input id="import-time" type="number" min="1" class="form-control" @bind="task.TimeLimit" @bind:after="LimitsChanged" /></div>
+                            <div class="col-md-6"><label class="form-label" for="import-slow">@SiteResources.ImportSlowTimeLimit</label><input id="import-slow" type="number" min="1" class="form-control" @bind="task.SlowTimeLimit" @bind:after="LimitsChanged" /></div>
+                        </div>
+                        <h3 class="h5">@SiteResources.ImportSolutions</h3>
+                        @if (task.Solutions.Count == 0) { <p class="text-body-secondary">@SiteResources.ImportNoSolutions</p> }
+                        @for (int i = 0; i < task.Solutions.Count; i++)
+                        {
+                            var solution = task.Solutions[i];
+                            <div class="form-check mb-2"><input id="@($"solution-{i}")" type="checkbox" class="form-check-input" @bind="solution.Selected" /><label for="@($"solution-{i}")" class="form-check-label">@solution.Filename</label></div>
+                        }
+                        @if (task.Solutions.Count != 0) { <button class="btn btn-outline-primary mb-3" disabled="@(!task.Solutions.Any(s => s.Selected))" @onclick="RunSolutionsAsync">@SiteResources.ImportRunSelected</button> }
+                        <ImportRunResults Runs="task.Runs" />
+                        <div class="d-flex flex-wrap gap-2 mt-4">
+                            <button class="btn btn-warning" disabled="@(task.IsSaved || task.StateErrors.Count != 0 || task.ValidatorErrors.Count != 0 || !task.ValidatorChecked)" @onclick="ConfirmSaveAsync">@SiteResources.ImportSaveProblem</button>
+                            @if (task.Id.HasValue)
+                            {
+                                <button class="btn btn-outline-secondary" @onclick="RefreshAsync">@SiteResources.ImportRefresh</button>
+                            }
+                        </div>
+                    </fieldset>
+                    @if (_confirmSave)
+                    {
+                        <div class="alert alert-warning mt-3" role="alert"><p>@string.Format(SiteResources.ImportConfirmProblem, task.Label)</p>
+                            <button class="btn btn-warning" disabled="@_busy" @onclick="SaveAsync">@SiteResources.StaffConfirm</button>
+                            <button class="btn btn-outline-secondary ms-2" disabled="@_busy" @onclick="() => _confirmSave = false">@SiteResources.StaffCancel</button>
+                        </div>
+                    }
+                </section>
+            }
+        </div>
+    }
+}
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState> AuthenticationState { get; set; } = default!;
+    [Parameter] public int ContestId { get; set; }
+    [SupplyParameterFromQuery(Name = "task")] public string? TaskFolder { get; set; }
+    private Olymp.Domain.Models.Contest? _contest;
+    private List<Olymp.Domain.Models.Compilator> _compilers = [];
+    private ContestImportPreview? _preview;
+    private ContestImportRow? _selected;
+    private bool _canManage, _busy, _saving, _confirmSave, _allowExit, _disposed;
+    private string? _error, _status, _exitTarget;
+    private CancellationTokenSource? _operation;
+    private readonly CancellationTokenSource _lifetime = new();
+    private bool HasPending => _preview?.Rows.Any(r => !r.IsSaved) == true;
+    private string ProblemUrl(ContestImportRow row) => Navigation.GetUriWithQueryParameter("task", row.Folder);
+    private static string Numbers(IEnumerable<int> values) => string.Join(", ", values) is { Length: > 0 } text ? text : "–";
+    private static string RowStatus(ContestImportRow row) => row.Errors.Count != 0 ? SiteResources.ImportHasErrors
+        : row.IsSaved ? SiteResources.StaffSaved : row.Id.HasValue ? SiteResources.ImportUpdateProblem : SiteResources.ImportNewProblem;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_contest?.Id != ContestId)
+        {
+            Stop(); _preview = null; _selected = null; _confirmSave = false; _status = null; _error = null; _allowExit = false;
+            await using var db = await ContextFactory.CreateDbContextAsync(_lifetime.Token);
+            _contest = await db.Contests.SingleOrDefaultAsync(c => c.Id == ContestId, _lifetime.Token);
+            _canManage = _contest is not null && (await Authorization.AuthorizeAsync((await AuthenticationState).User, ContestId, PolicyNames.ManageContest)).Succeeded;
+            if (!_canManage) _error = SiteResources.StaffAccessDenied;
+            _compilers = await db.Compilators.Where(c => c.IsActive).OrderBy(c => c.Id).ToListAsync(_lifetime.Token);
+        }
+        if (_preview is not null)
+        {
+            var next = _preview.Rows.FirstOrDefault(r => r.Folder == TaskFolder) ?? _preview.Rows.First();
+            if (next != _selected)
+            {
+                _selected = next; _confirmSave = false; _status = null;
+                await CheckValidatorAsync();
+            }
+        }
+    }
+
+    private void SelectProblem(ChangeEventArgs args)
+    {
+        var row = _preview?.Rows.SingleOrDefault(r => r.Folder == args.Value?.ToString());
+        if (row is not null && !_busy) Navigation.NavigateTo(ProblemUrl(row));
+    }
+    private void LimitsChanged()
+    {
+        _confirmSave = false; _status = null;
+        _selected?.CheckParameters();
+    }
+    private Task UploadAsync(InputFileChangeEventArgs args)
+    {
+        if (args.FileCount == 0) return Task.CompletedTask;
+        return ExecuteAsync(async (service, token) =>
+        {
+            using var input = args.File.OpenReadStream(ImportOptions.Value.MaxZipBytes, token);
+            var preview = await service.PrepareAsync((await AuthenticationState).User, ContestId, input, token);
+            preview.ValidatorCompilerId = _compilers.FirstOrDefault(c => c.Language == "C++" && Checkers.Checkers.Values.Any(r => r.CanCheck(c)))?.Id
+                ?? _compilers.FirstOrDefault(c => c.Language == "C++")?.Id;
+            _preview = preview;
+            _selected = preview.Rows.First();
+            await service.EnsureValidatorAsync((await AuthenticationState).User, preview, _selected, token);
+        }, updateSelection: true);
+    }
+    private Task CheckValidatorAsync() => ExecuteAsync(async (service, token) =>
+    {
+        if (_preview is not null && _selected is not null) await service.EnsureValidatorAsync((await AuthenticationState).User, _preview, _selected, token);
+    });
+    private Task RefreshAsync() => ExecuteAsync(async (service, token) =>
+    {
+        if (_preview is null || _selected is null) return;
+        await service.RefreshAsync((await AuthenticationState).User, _preview, _selected, token);
+        await service.EnsureValidatorAsync((await AuthenticationState).User, _preview, _selected, token);
+    });
+    private Task RunSolutionsAsync() => ExecuteAsync(async (service, token) =>
+    {
+        if (_preview is not null && _selected is not null) await service.RunSolutionsAsync((await AuthenticationState).User, _preview, _selected, token);
+    });
+    private Task ConfirmSaveAsync() => ExecuteAsync(async (service, token) =>
+    {
+        if (_preview is null || _selected is null) return;
+        await service.EnsureValidatorAsync((await AuthenticationState).User, _preview, _selected, token);
+        _confirmSave = _selected.Errors.Count == 0;
+    });
+    private Task SaveAsync() => ExecuteAsync(async (service, token) =>
+    {
+        if (_preview is null || _selected is null || !_confirmSave) return;
+        _saving = true;
+        await service.SaveAsync((await AuthenticationState).User, _preview, _selected, token);
+        _confirmSave = false;
+        _status = string.Format(SiteResources.ImportProblemSaved, _selected.Label);
+    }, keepConfirmation: true);
+
+    private async Task ExecuteAsync(Func<ContestImportService, CancellationToken, Task> action, bool updateSelection = false, bool keepConfirmation = false)
+    {
+        if (_busy || _disposed) return;
+        _busy = true; _error = null; _status = null;
+        if (!keepConfirmation) _confirmSave = false;
+        using var operation = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token);
+        _operation = operation;
+        try
+        {
+            using var scope = ScopeFactory.CreateScope();
+            await action(scope.ServiceProvider.GetRequiredService<ContestImportService>(), operation.Token);
+        }
+        catch (OperationCanceledException) { _confirmSave = false; }
+        catch (Exception ex) when (ex is OperationValidationException or InvalidDataException or System.Text.Json.JsonException or IOException)
+        {
+            _confirmSave = false; _error = ex.Message;
+        }
+        catch (Exception ex) { _confirmSave = false; Logger.LogError(ex, "Contest problem import failed"); _error = SiteResources.ImportFailed; }
+        finally { _busy = false; _saving = false; _operation = null; }
+        if (updateSelection && _selected is not null && !_disposed)
+            Navigation.NavigateTo(ProblemUrl(_selected), replace: true);
+    }
+
+    private void BeforeNavigation(LocationChangingContext context)
+    {
+        bool samePage = Navigation.ToAbsoluteUri(context.TargetLocation).AbsolutePath.Equals($"/jury/contests/{ContestId}/import", StringComparison.OrdinalIgnoreCase);
+        if (_allowExit) return;
+        if (samePage) { if (_busy) context.PreventNavigation(); return; }
+        if (HasPending || _busy) { context.PreventNavigation(); _exitTarget = context.TargetLocation; }
+    }
+    private void Finish()
+    {
+        if (HasPending || _busy) _exitTarget = $"jury/contests/{ContestId}/problems";
+        else { _allowExit = true; Navigation.NavigateTo($"jury/contests/{ContestId}/problems"); }
+    }
+    private void Leave()
+    {
+        Stop(); _allowExit = true;
+        Navigation.NavigateTo(_exitTarget ?? $"jury/contests/{ContestId}/problems");
+    }
+    private void Stop() => _operation?.Cancel();
+    public ValueTask DisposeAsync() { _disposed = true; _lifetime.Cancel(); _lifetime.Dispose(); return ValueTask.CompletedTask; }
+}

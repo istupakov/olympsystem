@@ -129,6 +129,7 @@ else
         <StaffActions Title="@SiteResources.StaffContestOperations" Class="mt-4">
             @if (_operationCompleted) { <p class="alert alert-success" role="status">@SiteResources.StaffOperationCompleted</p> }
             <div class="d-flex flex-wrap gap-2">
+                <a class="btn btn-secondary" href="jury/contests/@Id/import">@SiteResources.ImportProblems</a>
                 @if (_canRetest)
                 {
                     <a class="btn btn-warning" href="jury/contests/@Id/submissions?Retest=true">@SiteResources.StaffRetestFiltered</a>
@@ -150,7 +151,6 @@ else
                     <button class="btn btn-outline-danger" disabled="@_saving" @onclick="() => _pendingOperation = ContestOperation.CleanupLegacyProblems">@SiteResources.StaffCleanupLegacyProblems</button>
                 }
             </div>
-            @if (!_canRetest && !CanPublishTests && !_hasTestZip && !_canFinish && !_canCleanupLegacyProblems) { <p class="text-body-secondary mb-0">@SiteResources.StaffNoContestOperations</p> }
             @if (_pendingOperation is { } operation)
             {
                 @if (_error is not null) { <p class="alert alert-danger" role="alert">@_error</p> }
