@@ -1,8 +1,3 @@
-using System.Diagnostics;
-
-using Google.Protobuf;
-using Google.Protobuf.WellKnownTypes;
-
 using Grpc.Core;
 
 using Microsoft.Extensions.Options;
@@ -14,7 +9,7 @@ namespace Olymp.Runner;
 public class RunnerClientService(RunnerProtocol.Runner.RunnerClient runnerClient,
     IOptions<RunnerClientConfig> options,
     ILogger<RunnerClientService> logger,
-    IRestrictedProcessFactory processFactory) : BackgroundService
+    CommandExecutor commandExecutor) : BackgroundService
 {
     private readonly string _workDirectory = Path.GetFullPath(options.Value.WorkingDirectory);
     private readonly string _envFilesDirectory = Path.GetFullPath(options.Value.EnvFilesDirectory);
@@ -24,8 +19,8 @@ public class RunnerClientService(RunnerProtocol.Runner.RunnerClient runnerClient
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         Directory.CreateDirectory(_workDirectory);
-        await LogWhoami(null, stoppingToken);
-        await LogWhoami(_readOnlyUser, stoppingToken);
+        await commandExecutor.LogWhoami(null, _workDirectory, CreateEnvironmentVariables([]), stoppingToken);
+        await commandExecutor.LogWhoami(_readOnlyUser, _workDirectory, CreateEnvironmentVariables([]), stoppingToken);
 
         while (!stoppingToken.IsCancellationRequested)
         {
@@ -38,7 +33,7 @@ public class RunnerClientService(RunnerProtocol.Runner.RunnerClient runnerClient
                 var metadata = new Metadata
                 {
                     { "runner-id", _id.ToString() },
-                    { "runner-name", "Olymp runner v2.1 beta" },
+                    { "runner-name", "Olymp runner v2.2 beta" },
                     { "runner-envs", string.Join(';', supportedEnvs) }
                 };
 
@@ -94,25 +89,6 @@ public class RunnerClientService(RunnerProtocol.Runner.RunnerClient runnerClient
         }
     }
 
-    private async Task LogWhoami(string? user, CancellationToken token)
-    {
-        using var process = processFactory.Create("whoami", _workDirectory,
-            user, CreateEnvironmentVariables([]),
-            2, ProcessPriorityClass.Normal, TimeSpan.FromSeconds(1), 128_000_000);
-
-        await process.Process.WaitForExitAsync(token);
-
-        logger.LogInformation("""
-            whoami as: {username}
-            exitcode: {exitcode}
-            stdout: {stdout}
-            stderr: {stderr}
-            """,
-            user, process.Process.ExitCode,
-            await process.Process.StandardOutput.ReadToEndAsync(token),
-            await process.Process.StandardError.ReadToEndAsync(token));
-    }
-
     private async Task CreateFile(string filename, ReadOnlyMemory<byte> content, CancellationToken token)
     {
         using var file = File.Create(Path.Combine(_workDirectory, filename));
@@ -154,83 +130,6 @@ public class RunnerClientService(RunnerProtocol.Runner.RunnerClient runnerClient
 
         var envs = CreateEnvironmentVariables(request.EnvFiles);
 
-        var userTimeLimit = request.ResourceLimits.UserTime.ToTimeSpan();
-        nuint memoryLimit = new(request.ResourceLimits.MemoryBytes);
-        using var process = processFactory.Create(request.Command, _workDirectory,
-            request.ReadOnly ? _readOnlyUser : null, envs,
-            5, ProcessPriorityClass.Normal, userTimeLimit, memoryLimit);
-
-        var processInputTask = Task.Run(async () =>
-        {
-            try
-            {
-                await process.Process.StandardInput.BaseStream.WriteAsync(request.Stdin.Memory, token);
-                process.Process.StandardInput.Close();
-            }
-            catch (IOException) { }
-        }, token);
-        async Task<(Memory<byte> memory, bool limit)> ReadToBuffer(Stream stream, int size)
-        {
-            var buffer = new byte[size];
-            int cur = 0;
-            while (await stream.ReadAsync(buffer.AsMemory(cur..), token) is int len and > 0)
-            {
-                cur += len;
-                if (cur == size)
-                    return (buffer, true);
-            }
-            return (buffer.AsMemory(..cur), false);
-        }
-        var processOutputTask = Task.Run(() =>
-            ReadToBuffer(process.Process.StandardOutput.BaseStream,
-            (int)request.ResourceLimits.StdoutBytes), token);
-        var processErrorTask = Task.Run(() =>
-            ReadToBuffer(process.Process.StandardError.BaseStream,
-            (int)request.ResourceLimits.StderrBytes), token);
-
-        var totalTimeLimit = request.ResourceLimits.TotalTime.ToTimeSpan();
-        while (!process.Process.HasExited)
-        {
-            if (process.TotalUserTime > userTimeLimit
-                || DateTime.Now - process.Process.StartTime > totalTimeLimit)
-                process.Terminate(0xffff);
-            using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(50));
-            try
-            {
-                await process.Process.WaitForExitAsync(cts.Token);
-            }
-            catch (TaskCanceledException) { }
-        }
-
-        await Task.WhenAll(processInputTask, processOutputTask, processErrorTask);
-
-        var processTotalTime = process.Process.ExitTime - process.Process.StartTime;
-        return new CommandResponse
-        {
-            Status = (process.Process.ExitCode,
-                process.TotalUserTime > userTimeLimit, processTotalTime > totalTimeLimit,
-                process.PeakJobMemoryUsed > memoryLimit,
-                processOutputTask.Result.limit, processErrorTask.Result.limit) switch
-            {
-                (_, _, _, true, _, _) => CommandStatus.MemoryLimit,
-                (_, _, _, _, true, _) => CommandStatus.StdoutLimit,
-                (_, _, _, _, _, true) => CommandStatus.StderrLimit,
-                (_, true, _, _, _, _) => CommandStatus.UserTimeLimit,
-                (_, _, true, _, _, _) => CommandStatus.TotalTimeLimit,
-                (not 0, _, _, _, _, _) => CommandStatus.Error,
-                (0, _, _, _, _, _) => CommandStatus.Completed,
-            },
-            Stdout = ByteString.CopyFrom(processOutputTask.Result.memory.Span),
-            Stderr = ByteString.CopyFrom(processErrorTask.Result.memory.Span),
-            ExitCode = process.Process.ExitCode,
-            ResourceConsumption = new()
-            {
-                UserTime = Duration.FromTimeSpan(process.TotalUserTime),
-                TotalTime = Duration.FromTimeSpan(processTotalTime),
-                MemoryBytes = process.PeakJobMemoryUsed,
-                StdoutBytes = (ulong)processOutputTask.Result.memory.Length,
-                StderrBytes = (ulong)processErrorTask.Result.memory.Length
-            }
-        };
+        return await commandExecutor.Run(request, _workDirectory, request.ReadOnly ? _readOnlyUser : null, envs, token);
     }
 }

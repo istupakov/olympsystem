@@ -18,4 +18,4 @@ public interface ICompilatorConfiguration
 }
 
 public sealed record CompilatorInfo(ICompilatorConfiguration Configuration,
-    string DisplayName, string? Description, string? Error = null);
+    string FullName, string? Description, string? Error = null);

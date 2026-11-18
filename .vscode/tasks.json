@@ -49,6 +49,13 @@
       "command": "dotnet",
       "args": ["watch", "--project", "Olymp.WebApp"],
       "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "Runner: Run (Linux)",
+      "type": "process",
+      "command": "dotnet",
+      "args": ["run", "--project", "Olymp.Runner", "--launch-profile", "Olymp.Runner (Linux)"],
+      "problemMatcher": "$msCompile"
     }
   ],
   "inputs": [

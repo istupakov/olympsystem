@@ -202,11 +202,11 @@ public class ContestImportTests(ContestServiceFixture site) : IClassFixture<Cont
         var setup = await SetupAsync();
         using var scope = site.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<OlympContext>();
-        var info = new GccCpp23Configuration().ParseInfo("14.2.0") with { DisplayName = Guid.NewGuid().ToString("N") };
+        var info = new GccCpp23Configuration().ParseInfo("14.2.0") with { FullName = Guid.NewGuid().ToString("N") };
         var compiler = new Compilator
         {
             Name = info.Configuration.Name,
-            Description = info.DisplayName,
+            Description = info.FullName,
             Language = "C++",
             ConfigName = info.Configuration.ConfigName,
             SourceExtension = info.Configuration.SourceExtension,
@@ -248,7 +248,7 @@ public class ContestImportTests(ContestServiceFixture site) : IClassFixture<Cont
         await service.RunSolutionsAsync(setup.Actor, preview, row, Token);
         Assert.Equal(TimeSpan.FromSeconds(5), runner.Requests.Last().TimeLimit);
         Assert.Equal(5, row.TimeLimit); Assert.Equal(9, row.SlowTimeLimit);
-        Assert.Equal([1, 5], row.Runs.Where(r => r.File == "main.cpp" && r.Compiler == info.DisplayName).Select(r => r.TimeLimit));
+        Assert.Equal([1, 5], row.Runs.Where(r => r.File == "main.cpp" && r.Compiler == info.FullName).Select(r => r.TimeLimit));
         // Informational solution runs cannot override a failed validator.
         if (!inactive) await Assert.ThrowsAsync<OperationValidationException>(() => service.SaveAsync(setup.Actor, preview, preview.Rows[0], Token));
         else
@@ -269,11 +269,11 @@ public class ContestImportTests(ContestServiceFixture site) : IClassFixture<Cont
         var runners = new List<ImportChecker>();
         foreach (var config in new ICompilatorConfiguration[] { new GccCpp23Configuration(), new CPythonConfiguration(), new PyPyConfiguration() })
         {
-            var info = config.ParseInfo(config.Language == "C++" ? "14.2.0" : config.Name == "PyPy" ? "Python 3.11.0\nPyPy 7.3.17" : "Python 3.13.1") with { DisplayName = Guid.NewGuid().ToString("N") };
+            var info = config.ParseInfo(config.Language == "C++" ? "14.2.0" : config.Name == "PyPy" ? "Python 3.11.0\nPyPy 7.3.17" : "Python 3.13.1") with { FullName = Guid.NewGuid().ToString("N") };
             db.Compilators.Add(new Compilator
             {
                 Name = config.Name,
-                Description = info.DisplayName,
+                Description = info.FullName,
                 Language = config.Language,
                 ConfigName = config.ConfigName,
                 SourceExtension = config.SourceExtension,

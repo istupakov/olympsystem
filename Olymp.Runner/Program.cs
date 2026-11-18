@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Options;
 
 using Olymp.Runner;
+using Olymp.Runner.Linux;
 using Olymp.Runner.Windows;
 using Olymp.RunnerProtocol;
 
@@ -18,6 +19,7 @@ builder.Services.AddOptions<RunnerClientConfig>()
     .ValidateDataAnnotations()
     .ValidateOnStart();
 builder.Services.AddHostedService<RunnerClientService>();
+builder.Services.AddSingleton<CommandExecutor>();
 
 builder.Services.AddGrpcClient<Runner.RunnerClient>((services, options) =>
             options.Address = services.GetRequiredService<IOptions<RunnerConnectionConfig>>().Value.RunnerServerAddress)
@@ -38,6 +40,10 @@ builder.Services.AddGrpcClient<Runner.RunnerClient>((services, options) =>
 
 if (OperatingSystem.IsWindowsVersionAtLeast(5, 1, 2600))
     builder.Services.AddTransient<IRestrictedProcessFactory, RestrictedWindowsProcessFactory>();
+else if (OperatingSystem.IsLinux() && builder.Environment.IsDevelopment())
+    builder.Services.AddTransient<IRestrictedProcessFactory, DevelopmentLinuxProcessFactory>();
+else
+    throw new PlatformNotSupportedException("Runner requires Windows, or Linux in the Development environment.");
 
 var host = builder.Build();
 host.Run();

@@ -6,6 +6,15 @@
       "environmentVariables": {
         "DOTNET_ENVIRONMENT": "Development"
       }
+    },
+    "Olymp.Runner (Linux)": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "Development",
+        "RunnerClient__EnvFilesDirectory": "./envs/linux",
+        "RunnerClient__WorkingDirectory": "./obj/workdir"
+      }
     }
   }
 }

@@ -11,6 +11,7 @@
 
 ## Documentation
 
+- Any change to README requires explicit prior agreement with the user on the specific change.
 - Describe only the current state and agreed rules, briefly and concretely. Do not include change history, discussion history, work reports, or UI descriptions.
 - Respect each document's role: README covers project introduction, development, and checks; deployment documentation covers setup and operation; access-control documentation covers permissions. Keep implementation details in code and avoid duplicating information across documents.
 - Update documentation only when its instructions or rules change; refactoring alone does not require documentation changes. Make the smallest relevant edit and verify the complete procedure, including prerequisites, command order, and differences between development and production.

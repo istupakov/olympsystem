@@ -18,6 +18,6 @@ public sealed record CompilerConfigurationKey(string Name, string? Description, 
     public static CompilerConfigurationKey From(Compilator compiler) => new(compiler.Name, compiler.Description,
         compiler.Language, compiler.ConfigName, compiler.SourceExtension, compiler.CommandLine);
 
-    public static CompilerConfigurationKey From(CompilatorInfo info) => new(info.Configuration.Name, info.DisplayName,
+    public static CompilerConfigurationKey From(CompilatorInfo info) => new(info.Configuration.Name, info.FullName,
         info.Configuration.Language, info.Configuration.ConfigName, info.Configuration.SourceExtension, info.Configuration.CompileCommand);
 }

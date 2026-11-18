@@ -90,7 +90,7 @@ internal static class CheckerTestData
     public sealed class TestConfiguration : ICompilatorConfiguration
     {
         public string Name { get; init; } = "test";
-        public string DisplayName { get; init; } = "Test compiler";
+        public string FullName { get; init; } = "Test compiler";
         public string Language { get; init; } = "C";
         public string ConfigName => "test";
         public string SourceExtension => ".c";
@@ -101,7 +101,7 @@ internal static class CheckerTestData
         public string GetCompileCommand(string name) => "compile";
         public string RunCommand(string name, int memoryMb) => "run";
         public string GetVersionCommand() => "version";
-        public CompilatorInfo ParseInfo(string output) => new(this, DisplayName, "private compiler version");
+        public CompilatorInfo ParseInfo(string output) => new(this, FullName, "private compiler version");
     }
 
     public sealed class SelfTest : ICheckerTest

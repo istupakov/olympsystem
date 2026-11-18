@@ -25,7 +25,7 @@
         <label for="add-configuration" class="form-label">@SiteResources.Compiler</label>
         <InputSelect id="add-configuration" class="form-select" @bind-Value="_input.Configuration" @bind-Value:after="ClearPreview">
             <option value="">@SiteResources.SelectCompiler</option>
-            @foreach (var info in AvailableConfigurations) { <option value="@info.Configuration.Name">@info.DisplayName (@info.Configuration.Name)</option> }
+            @foreach (var info in AvailableConfigurations) { <option value="@info.FullName">@info.FullName (@info.Configuration.Name)</option> }
         </InputSelect>
     </div>
     @if (SelectedRunner is not null && !AvailableConfigurations.Any()) { <p class="col-12 text-body-secondary" role="status">@SiteResources.StaffAllConfigurationsAdded</p> }
@@ -77,7 +77,7 @@
         await using var db = await ContextFactory.CreateDbContextAsync();
         _savedKeys = (await db.Compilators.AsNoTracking().ToListAsync()).Select(CompilerConfigurationKey.From).ToHashSet();
         _input.Runner = Runner;
-        _input.Configuration = AvailableConfigurations.Any(info => info.Configuration.Name == Configuration) ? Configuration : null;
+        _input.Configuration = AvailableConfigurations.Any(info => info.FullName == Configuration) ? Configuration : null;
         ClearPreview();
     }
     private void SelectRunner() { _input.Configuration = null; ClearPreview(); }
@@ -85,7 +85,7 @@
     private async Task PreviewAsync()
     {
         ClearPreview();
-        var info = SelectedRunner?.Compilators?.SingleOrDefault(item => item.Error is null && item.Configuration.Name == _input.Configuration);
+        var info = SelectedRunner?.Compilators?.SingleOrDefault(item => item.Error is null && item.FullName == _input.Configuration);
         if (info is null) { _error = SiteResources.StaffCompilerUnavailable; return; }
         _key = CompilerConfigurationKey.From(info);
         await using var db = await ContextFactory.CreateDbContextAsync();

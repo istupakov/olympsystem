@@ -24,7 +24,7 @@ public sealed class CheckerService : ICheckerService
         _simpleCheckers = simpleCheckers.ToDictionary(x => x.Id);
         Configurations = [.. compilatorConfigurations.Where(x => runner.SupportedEnvs.Contains(x.ConfigName))];
         _versionResults = [.. Configurations.Select(configuration => new CheckerTestResult("Version",
-            new(configuration, configuration.Name, null), CheckerResultStatus.Accepted, null, string.Empty))];
+            new(configuration, $"{configuration.Name} ({configuration.ConfigName})", null), CheckerResultStatus.Accepted, null, string.Empty))];
         _checkerTestResults = CreateTestResults(_versionResults.Select(x => x.Compilator));
     }
 
@@ -84,7 +84,7 @@ public sealed class CheckerService : ICheckerService
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException)
                 {
-                    compilator = new(configuration, configuration.Name, null,
+                    compilator = new(configuration, $"{configuration.Name} ({configuration.ConfigName})", null,
                         $"{command}\n{output}\n{ex.Message}");
                     log += $"\nError:\n{ex.Message}";
                 }
@@ -93,7 +93,7 @@ public sealed class CheckerService : ICheckerService
                     compilator.Error is null ? CheckerResultStatus.Accepted : CheckerResultStatus.InternalError, log);
             }
 
-            var sorted = compilators.OrderBy(x => x.DisplayName, StringComparer.Ordinal).ToArray();
+            var sorted = compilators.OrderBy(x => x.FullName, StringComparer.Ordinal).ToArray();
             _checkerTestResults = CreateTestResults(sorted);
             Compilators = sorted;
         }
@@ -210,7 +210,7 @@ public sealed class CheckerService : ICheckerService
             var log = new StringBuilder();
             log.AppendLine($"""
                 Runner: {Name} ({Id})
-                Compilator: {compilator.DisplayName}
+                Compilator: {compilator.FullName}
                 Configuration: {configuration.Name} ({configuration.ConfigName})
                 Versions: {compilator.Description}
                 """);

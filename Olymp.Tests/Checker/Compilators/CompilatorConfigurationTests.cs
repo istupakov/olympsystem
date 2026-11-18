@@ -13,6 +13,8 @@ public class CompilatorConfigurationTests
     {
         { typeof(GccCConfiguration), "16.2.0\n", "C (GCC 16.2)", "GCC 16.2.0" },
         { typeof(GccCpp23Configuration), "16.2.0\n", "C++23 (GCC 16.2)", "GCC 16.2.0" },
+        { typeof(GccLinuxCConfiguration), "16.2.0\n", "C (GCC 16.2, Linux)", "GCC 16.2.0" },
+        { typeof(GccLinuxCpp23Configuration), "16.2.0\n", "C++23 (GCC 16.2, Linux)", "GCC 16.2.0" },
         { typeof(MsvcCConfiguration), "Microsoft (R) C/C++ Optimizing Compiler Version 19.51.36260 for x64\n",
             "C (MSVC 2026)", "MSVC 19.51.36260; Visual Studio 2026" },
         { typeof(MsvcCpp20Configuration), "Microsoft (R) C/C++ Optimizing Compiler Version 19.51.36260 for x64\n",
@@ -45,15 +47,15 @@ public class CompilatorConfigurationTests
 
     [Theory]
     [MemberData(nameof(VersionExamples))]
-    public void VersionOutputProducesShortDisplayNameAndFullDescription(Type type, string output,
-        string displayName, string description)
+    public void VersionOutputProducesFullNameAndDescription(Type type, string output,
+        string fullName, string description)
     {
         var configuration = Create(type);
 
         var result = configuration.ParseInfo(output);
 
         Assert.Same(configuration, result.Configuration);
-        Assert.Equal(displayName, result.DisplayName);
+        Assert.Equal(fullName, result.FullName);
         Assert.Equal(description, result.Description);
         Assert.Null(result.Error);
         var windowsResult = configuration.ParseInfo(output.Replace("\n", "\r\n"));
@@ -87,13 +89,13 @@ public class CompilatorConfigurationTests
     [InlineData(typeof(CPythonConfiguration), "Python 3.15.1", "Python 3.15.2")]
     [InlineData(typeof(FreePascalConfiguration), "3.2.2", "3.2.4")]
     [InlineData(typeof(PyPyConfiguration), "Python 3.12.15\n[PyPy 8.0.1]", "Python 3.12.16\n[PyPy 8.0.2]")]
-    public void PatchUpdatesPreserveDisplayNameButUpdateDiagnostics(Type type, string before, string after)
+    public void PatchUpdatesPreserveFullNameButUpdateDiagnostics(Type type, string before, string after)
     {
         var configuration = Create(type);
         var oldVersion = configuration.ParseInfo(before);
         var newVersion = configuration.ParseInfo(after);
 
-        Assert.Equal(oldVersion.DisplayName, newVersion.DisplayName);
+        Assert.Equal(oldVersion.FullName, newVersion.FullName);
         Assert.NotEqual(oldVersion.Description, newVersion.Description);
     }
 
@@ -107,7 +109,7 @@ public class CompilatorConfigurationTests
         {
             CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo(culture);
             foreach (var example in VersionExamples)
-                Assert.Equal(example.Data.Item3, Create(example.Data.Item1).ParseInfo(example.Data.Item2).DisplayName);
+                Assert.Equal(example.Data.Item3, Create(example.Data.Item1).ParseInfo(example.Data.Item2).FullName);
         }
         finally
         {
@@ -129,6 +131,7 @@ public class CompilatorConfigurationTests
             KotlinConfiguration => "answer.jar",
             CPythonConfiguration or PyPyConfiguration => "answer.pyc",
             CSharpDotnetConfiguration => "answer.dll",
+            GccLinuxCConfiguration or GccLinuxCpp23Configuration => "answer",
             _ => "answer.exe"
         };
 
@@ -153,6 +156,32 @@ public class CompilatorConfigurationTests
     }
 
     [Fact]
+    public void GccProfilesPreserveWindowsCommandsAndUseLinuxExecutablePaths()
+    {
+        var windowsC = new GccCConfiguration();
+        var windowsCpp = new GccCpp23Configuration();
+        Assert.Equal("GCC C", windowsC.Name);
+        Assert.Equal("GCC C++23", windowsCpp.Name);
+        Assert.Equal("mingw", windowsC.ConfigName);
+        Assert.Equal("mingw", windowsCpp.ConfigName);
+        Assert.Equal("gcc -O2 -Wl,--stack=67108864 -x c answer.c -oanswer", windowsC.GetCompileCommand("answer"));
+        Assert.Equal("g++ -O2 -Wl,--stack=67108864 -x c++ -std=c++23 answer.cpp -oanswer", windowsCpp.GetCompileCommand("answer"));
+        Assert.Equal("answer.exe", windowsC.RunCommand("answer", 128));
+        Assert.Equal("answer.exe", windowsCpp.RunCommand("answer", 128));
+
+        var linuxC = new GccLinuxCConfiguration();
+        var linuxCpp = new GccLinuxCpp23Configuration();
+        Assert.Equal(windowsC.Name, linuxC.Name);
+        Assert.Equal(windowsCpp.Name, linuxCpp.Name);
+        Assert.Equal("gcc", linuxC.ConfigName);
+        Assert.Equal("gcc", linuxCpp.ConfigName);
+        Assert.Equal("gcc -O2 -x c answer.c -oanswer", linuxC.GetCompileCommand("answer"));
+        Assert.Equal("g++ -O2 -x c++ -std=c++23 answer.cpp -oanswer", linuxCpp.GetCompileCommand("answer"));
+        Assert.Equal("./answer", linuxC.RunCommand("answer", 128));
+        Assert.Equal("./answer", linuxCpp.RunCommand("answer", 128));
+    }
+
+    [Fact]
     public void CppStandardsAndSourceEncodingMatchAdvertisedProfiles()
     {
         Assert.Contains("-std=c++23", new GccCpp23Configuration().GetCompileCommand("answer"));
@@ -171,7 +200,8 @@ public class CompilatorConfigurationTests
             .Select(type => (ICheckerTest)Activator.CreateInstance(type)!).ToArray();
 
         Assert.NotEmpty(configurations);
-        Assert.Equal(configurations.Length, configurations.Select(configuration => configuration.Name).Distinct().Count());
+        Assert.Equal(configurations.Length, configurations.Select(configuration => (configuration.Name, configuration.ConfigName)).Distinct().Count());
+        Assert.Equal(VersionExamples.Count, VersionExamples.Select(row => Create(row.Data.Item1).ParseInfo(row.Data.Item2).FullName).Distinct().Count());
         Assert.Equal(configurations.Select(configuration => configuration.GetType()).OrderBy(type => type.Name),
             VersionExamples.Select(row => row.Data.Item1).OrderBy(type => type.Name));
         foreach (var configuration in configurations)

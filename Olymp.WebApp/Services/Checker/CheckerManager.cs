@@ -75,7 +75,7 @@ public sealed class CheckerManager(IServiceProvider provider, IDbContextFactory<
     private static Compilator CreateCompilator(CompilatorInfo info) => new()
     {
         Name = info.Configuration.Name,
-        Description = info.DisplayName,
+        Description = info.FullName,
         Language = info.Configuration.Language,
         ConfigName = info.Configuration.ConfigName,
         SourceExtension = info.Configuration.SourceExtension,
@@ -89,7 +89,7 @@ public sealed class CheckerManager(IServiceProvider provider, IDbContextFactory<
         if (!_checkers.TryGetValue(runnerId, out var runner) || runner.SelfTestingStatus != CheckerSelfTestingStatus.Success)
             throw new InvalidOperationException("The selected runner has not passed self-testing.");
         var info = runner.Compilators?.SingleOrDefault(item => item.Configuration.Name == name
-            && item.DisplayName == description && item.Error is null)
+            && item.FullName == description && item.Error is null)
             ?? throw new InvalidOperationException("The selected compilator is unavailable on this runner.");
         if (expected is not null && expected != CompilerConfigurationKey.From(info))
             throw new InvalidOperationException("The selected configuration has changed. Refresh the preview.");

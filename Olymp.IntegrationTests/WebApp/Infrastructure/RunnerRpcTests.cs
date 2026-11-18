@@ -91,8 +91,10 @@ public class RunnerRpcTests(WebAppFactory factory) : IClassFixture<WebAppFactory
         Assert.Null(response.Headers.Location);
     }
 
-    [Fact]
-    public async Task AuthorizedRunnerRegistersExchangesCommandsAndUnregistersOnDisconnect()
+    [Theory]
+    [InlineData("Olymp runner v2.1 beta")]
+    [InlineData("Olymp runner v2.2 beta")]
+    public async Task AuthorizedRunnerRegistersExchangesCommandsAndUnregistersOnDisconnect(string runnerName)
     {
         var manager = new ConnectedRunnerManager();
         await using var server = factory.WithWebHostBuilder(builder =>
@@ -116,7 +118,7 @@ public class RunnerRpcTests(WebAppFactory factory) : IClassFixture<WebAppFactory
         var headers = new Metadata
         {
             { "authorization", "test-runner-key" }, { "runner-id", id.ToString() },
-            { "runner-name", "RPC test runner" }, { "runner-envs", "test;second" }
+            { "runner-name", runnerName }, { "runner-envs", "test;second" }
         };
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
         timeout.CancelAfter(TimeSpan.FromSeconds(10));
@@ -124,7 +126,7 @@ public class RunnerRpcTests(WebAppFactory factory) : IClassFixture<WebAppFactory
         var nextCommand = call.ResponseStream.MoveNext(timeout.Token);
         var runner = await manager.Connected.Task.WaitAsync(timeout.Token);
         Assert.Equal(id, runner.Id);
-        Assert.Equal("RPC test runner", runner.Name);
+        Assert.Equal(runnerName, runner.Name);
         Assert.True(runner.SupportedEnvs.SetEquals(["test", "second"]));
         var pending = runner.Run(new("compile", "stdin"u8.ToArray(), true, true, ["test"],
             [new("source.c", "source"u8.ToArray())], new(TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(2), 128, 32, 16)), timeout.Token);

@@ -53,7 +53,7 @@ public partial class CompilerManagementTests(WebAppFactory factory) : StaffCompo
         var manager = new Olymp.IntegrationTests.Services.Checkers.CheckerTestData.PageManager(checker);
         using var html = await new HtmlParser().ParseDocumentAsync(await RenderAsync<Olymp.WebApp.Components.Pages.Staff.Jury.AddCompiler>(
             $"/jury/compilers/add?Runner={runner.Id}", [], Staff(staff.Id), configure: services => { services.RemoveAll<ICheckerManager>(); services.AddSingleton<ICheckerManager>(manager); }));
-        Assert.Equal(changedCommand, html.QuerySelector($"#add-configuration option[value='{key.Name}']") is not null);
+        Assert.Equal(changedCommand, html.QuerySelector($"#add-configuration option[value='{key.Description}']") is not null);
         Assert.Equal(!changedCommand, html.Body!.TextContent.Contains(SiteResources.StaffAllConfigurationsAdded, StringComparison.Ordinal));
 
         foreach (bool available in new[] { false, true })
