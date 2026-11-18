@@ -115,10 +115,7 @@
             return;
         }
 
-        _contest = await db.Contests.AsNoTrackingWithIdentityResolution()
-            .Include(item => item.Competitors).ThenInclude(item => item.Members)
-            .Include(item => item.Problems).ThenInclude(item => item.Submissions).ThenInclude(item => item.User)
-            .AsSplitQuery().SingleAsync(item => item.Id == Id);
+        _contest = await StandingQuery.LoadAsync(db, Id, HttpContext.RequestAborted);
         _standing = Olymp.Domain.Standing.Create(_contest, includeAll: true, official: false, notFreeze: true, startTime: _start);
         _relatedUserIds = StandingHighlights.GetUserIds(_standing.Results.Select(row => row.User), HttpContext.User);
     }
