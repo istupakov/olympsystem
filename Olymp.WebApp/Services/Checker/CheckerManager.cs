@@ -12,6 +12,8 @@ namespace Olymp.WebApp.Services.Checker;
 public interface ICheckerManager
 {
     IReadOnlyDictionary<Guid, ICheckerService> Checkers { get; }
+    bool Active { get; }
+    Task SetActiveAsync(bool active, CancellationToken token = default);
     void Register(IRunnerService runner, CancellationToken token);
     void Unregister(IRunnerService runner);
     Task<IDisposable> EnterAsync(CancellationToken token = default);
@@ -26,10 +28,18 @@ public sealed class CheckerManager(IServiceProvider provider, IDbContextFactory<
 {
     private readonly ConcurrentDictionary<Guid, ICheckerService> _checkers = new();
     private readonly SemaphoreSlim _synchronizationSemaphore = new(1);
+    private volatile bool _active = true;
 
     public IReadOnlyDictionary<Guid, ICheckerService> Checkers => _checkers.AsReadOnly();
+    public bool Active => _active;
 
-    // Shared by queue operations, problem imports and retests. Released while running user code.
+    public async Task SetActiveAsync(bool active, CancellationToken token = default)
+    {
+        using (await EnterAsync(token))
+            _active = active;
+    }
+
+    // Shared by judging state, queue operations, problem imports and retests. Released while running user code.
     public async Task<IDisposable> EnterAsync(CancellationToken token = default)
     {
         await _synchronizationSemaphore.WaitAsync(token);
@@ -119,21 +129,21 @@ public sealed class CheckerManager(IServiceProvider provider, IDbContextFactory<
 
     public async Task<bool> TryCheckFromDB(ICheckerService checker, CancellationToken token)
     {
+        if (!_active) return false;
         await using var context = await contextFactory.CreateDbContextAsync(token);
-
-        var available = checker.Compilators!
-            .Where(x => x.Error is null).Select(CompilerConfigurationKey.From).ToHashSet();
-        var records = await context.Compilators.Where(x => x.IsActive)
-            .AsNoTracking().ToListAsync(token);
-        var compilatorIds = records
-            .Where(x => available.Contains(CompilerConfigurationKey.From(x)))
-            .Select(x => x.Id).ToArray();
-        if (compilatorIds.Length == 0)
-            return false;
-
         Submission? submission;
         using (await EnterAsync(token))
         {
+            if (!_active) return false;
+            var available = checker.Compilators!
+                .Where(x => x.Error is null).Select(CompilerConfigurationKey.From).ToHashSet();
+            var records = await context.Compilators.Where(x => x.IsActive)
+                .AsNoTracking().ToListAsync(token);
+            var compilatorIds = records
+                .Where(x => available.Contains(CompilerConfigurationKey.From(x)))
+                .Select(x => x.Id).ToArray();
+            if (compilatorIds.Length == 0) return false;
+
             var span = DateTimeOffset.Now - TimeSpan.FromMinutes(2);
             var staffIds = context.UserRoles.Where(assignment => context.Roles.Any(role => role.Id == assignment.RoleId
                 && (role.Name == RoleNames.Jury || role.Name == RoleNames.Admin))).Select(assignment => assignment.UserId);

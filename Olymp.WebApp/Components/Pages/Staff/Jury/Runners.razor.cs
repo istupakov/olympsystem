@@ -1,6 +1,8 @@
 using System.Data.Common;
 
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.EntityFrameworkCore;
 
 using Olymp.Checker;
@@ -13,6 +15,7 @@ namespace Olymp.WebApp.Components.Pages.Staff.Jury;
 
 public partial class Runners
 {
+    [CascadingParameter] private Task<AuthenticationState> AuthenticationState { get; set; } = default!;
     [SupplyParameterFromQuery] public Guid? Runner { get; set; }
     [SupplyParameterFromQuery] public string? SelfTest { get; set; }
     [SupplyParameterFromQuery] public bool? MissingCompiler { get; set; }
@@ -36,6 +39,7 @@ public partial class Runners
     private Guid? _selectedId;
     private string? _error;
     private bool _loaded, _refreshing;
+    private bool _changingActive;
     private ICheckerService? SelectedRunner => _runners.SingleOrDefault(item => item.Id == _selectedId);
     protected override async Task OnParametersSetAsync()
     {
@@ -49,6 +53,20 @@ public partial class Runners
     {
         if (firstRender) _poll = PollAsync();
         return Task.CompletedTask;
+    }
+
+    private async Task ToggleActiveAsync()
+    {
+        if (_changingActive) return;
+        if (!(await Authorization.AuthorizeAsync((await AuthenticationState).User, PolicyNames.Admin)).Succeeded)
+        {
+            _error = SiteResources.StaffAccessDenied;
+            return;
+        }
+        _changingActive = true;
+        try { await Checkers.SetActiveAsync(!Checkers.Active, _stop.Token); }
+        catch (OperationCanceledException) when (_stop.IsCancellationRequested) { }
+        finally { _changingActive = false; }
     }
 
     private async Task RefreshAsync()

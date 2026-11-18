@@ -28,6 +28,24 @@ namespace Olymp.IntegrationTests.WebApp.Staff.Jury;
 [Trait("Category", "Integration")]
 public partial class RunnerTests(WebAppFactory factory) : StaffComponentTests(factory)
 {
+    [Theory]
+    [InlineData(RoleNames.Admin)]
+    [InlineData(RoleNames.Jury)]
+    public async Task OnlyAnAdminCanPauseJudging(string role)
+    {
+        var author = await _factory.AddUserAsync();
+        var manager = new Olymp.IntegrationTests.Services.Checkers.CheckerTestData.PageManager();
+        using var html = await new HtmlParser().ParseDocumentAsync(await RenderAsync<JuryRunners>("/jury/runners", [], Staff(author.Id, role),
+            page => ActAsync(page, "ToggleActiveAsync"), services =>
+            {
+                services.RemoveAll<ICheckerManager>();
+                services.AddSingleton<ICheckerManager>(manager);
+            }));
+        Assert.Equal(role != RoleNames.Admin, manager.Active);
+        Assert.Equal(role == RoleNames.Admin, html.QuerySelectorAll("button").Any(button => button.TextContent == SiteResources.StaffStartJudging));
+        if (role == RoleNames.Jury) Assert.Contains(SiteResources.StaffAccessDenied, html.Body!.TextContent);
+    }
+
     [Fact]
     public async Task RunnerRefreshRecoversFromInitialFailureAndRetainsSelectionAfterLaterFailure()
     {

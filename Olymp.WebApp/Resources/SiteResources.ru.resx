@@ -451,6 +451,10 @@
   <data name="StaffRunnerDisconnected" xml:space="preserve"><value>Runner отключился или запуск завершился ошибкой. Введённые данные сохранены.</value></data>
   <data name="StaffCancelRun" xml:space="preserve"><value>Отменить запуск</value></data>
   <data name="StaffRunnerRefresh" xml:space="preserve"><value>Состояние Runner обновляется каждые 10 секунд.</value></data>
+  <data name="StaffJudgingActive" xml:space="preserve"><value>Проверка решений включена.</value></data>
+  <data name="StaffJudgingPaused" xml:space="preserve"><value>Проверка новых решений приостановлена.</value></data>
+  <data name="StaffStopJudging" xml:space="preserve"><value>Приостановить проверку</value></data>
+  <data name="StaffStartJudging" xml:space="preserve"><value>Возобновить проверку</value></data>
   <data name="StaffNoCompilers" xml:space="preserve"><value>Компиляторы не найдены.</value></data>
   <data name="StaffWithoutFreeze" xml:space="preserve"><value>Просмотр жюри – результаты без заморозки.</value></data>
   <data name="RegistrationNotAvailable" xml:space="preserve"><value>Регистрация на это соревнование недоступна.</value></data>
@@ -731,6 +735,12 @@
   <data name="BackupRefresh" xml:space="preserve">
     <value>Обновить</value>
   </data>
+  <data name="BackupRestore" xml:space="preserve"><value>Восстановить</value></data>
+  <data name="BackupRestoreConfirm" xml:space="preserve"><value>Заменить dev-БД этими копиями? Убедитесь, что нет выполняющихся проверок. Текущие данные будут потеряны. После восстановления войдите учётной записью из бекапа.</value></data>
+  <data name="BackupRestoring" xml:space="preserve"><value>Проверяются копии и восстанавливается БД…</value></data>
+  <data name="BackupRestored" xml:space="preserve"><value>Dev-БД восстановлена и проверена. Войдите заново учётной записью из бекапа. Миграции не применялись.</value></data>
+  <data name="BackupSignInAgain" xml:space="preserve"><value>Войти заново</value></data>
+  <data name="BackupRestoreFailed" xml:space="preserve"><value>Не удалось восстановить БД. Подробности в журнале приложения.</value></data>
   <data name="BackupBusy" xml:space="preserve">
     <value>Выполняется операция с бекапами…</value>
   </data>

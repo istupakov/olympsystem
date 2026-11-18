@@ -159,9 +159,16 @@ builder.Services.AddAuthentication(options => options.DefaultScheme = IdentityCo
     .AddIdentityCookies();
 builder.Services.AddGrpc();
 
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
-builder.Services.AddDbContextFactory<OlympContext>(options => options.UseSqlServer(connectionString)
-    .EnableSensitiveDataLogging(builder.Environment.IsDevelopment()));
+builder.Services.AddDbContextFactory<OlympContext>((services, options) =>
+{
+    string connectionString = services.GetRequiredService<IConfiguration>().GetConnectionString("DefaultConnection")
+        ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+    bool development = services.GetRequiredService<IHostEnvironment>().IsDevelopment();
+    options.UseSqlServer(connectionString).EnableSensitiveDataLogging(development);
+    if (development)
+        options.UseSeeding((context, _) => DevelopmentSeed.SeedAsync((OlympContext)context, services).GetAwaiter().GetResult())
+            .UseAsyncSeeding((context, _, token) => DevelopmentSeed.SeedAsync((OlympContext)context, services, token));
+});
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 builder.Services.AddHealthChecks().AddDbContextCheck<OlympContext>();
 

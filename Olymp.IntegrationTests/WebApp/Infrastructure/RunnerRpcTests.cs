@@ -165,6 +165,8 @@ public class RunnerRpcTests(WebAppFactory factory) : IClassFixture<WebAppFactory
 
     private sealed class ConnectedRunnerManager : ICheckerManager
     {
+        public bool Active => true;
+        public Task SetActiveAsync(bool active, CancellationToken token = default) => throw new NotSupportedException();
         public TaskCompletionSource<IRunnerService> Connected { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public TaskCompletionSource<Guid> Disconnected { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public IReadOnlyDictionary<Guid, ICheckerService> Checkers => new Dictionary<Guid, ICheckerService>();

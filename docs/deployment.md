@@ -121,8 +121,8 @@ diff. Download copies to another device to protect against loss of the server.
 Database backups do not include Data Protection keys or TLS files.
 
 Restore a pair through SQL Server: restore the full copy with `NORECOVERY`, then
-the selected diff with `RECOVERY`. The existing single-file **Database: Restore**
-task does not restore pairs. Restoration through the site is not available.
+the selected diff with `RECOVERY`. Production restoration through the site is
+not available.
 
 ## Caddy
 

@@ -10,11 +10,17 @@
 
 <StaffPageTitle Title="@SiteResources.StaffRunner" />
 <CompilerNavigation />
-<h1 class="h3">@SiteResources.StaffRunner</h1>
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+    <h1 class="h3 mb-0">@SiteResources.StaffRunner</h1>
+    <AuthorizeView Roles="@RoleNames.Admin">
+        <button class="btn @(Checkers.Active ? "btn-warning" : "btn-primary")" disabled="@(!_loaded || _changingActive)" @onclick="ToggleActiveAsync">@(Checkers.Active ? SiteResources.StaffStopJudging : SiteResources.StaffStartJudging)</button>
+    </AuthorizeView>
+</div>
 @if (!_loaded) { <p role="status">@SiteResources.StaffLoading</p> }
 else
 {
     <p class="small text-body-secondary">@SiteResources.StaffRunnerRefresh</p>
+    <p role="status">@(Checkers.Active ? SiteResources.StaffJudgingActive : SiteResources.StaffJudgingPaused)</p>
     @if (_error is not null) { <p class="alert alert-danger" role="alert">@_error</p> }
     <EditForm Model="_filters" OnValidSubmit="ApplyFilters" class="row g-3 mb-3">
         <div class="col-md-6"><label for="runner-self-test" class="form-label">@SiteResources.StaffSelfTests</label>

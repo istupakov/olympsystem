@@ -71,17 +71,47 @@ public class QueueTests(ServiceFactory factory) : IClassFixture<ServiceFactory>
                 Assert.True(saved.LastModification >= submission.LastModification);
             }
             Assert.False(await manager.TryCheckFromDB(checker, token).WaitAsync(TimeSpan.FromSeconds(10), token));
+            await manager.SetActiveAsync(false, token).WaitAsync(TimeSpan.FromSeconds(10), token);
+            Assert.False(manager.Active);
+            Assert.False(check.IsCompleted);
+            Assert.False(await manager.TryCheckFromDB(checker, token));
+            release.TrySetResult();
+            await check.WaitAsync(TimeSpan.FromSeconds(10), token);
+            await using var stoppedScope = factory.Services.CreateAsyncScope();
+            Assert.Equal(2, await stoppedScope.ServiceProvider.GetRequiredService<OlympContext>().Submissions
+                .Where(item => item.Id == submission.Id).Select(item => item.StatusCode).SingleAsync(token));
         }
         finally
         {
             release.TrySetResult();
             await check.WaitAsync(TimeSpan.FromSeconds(10), CancellationToken.None);
+            await manager.SetActiveAsync(true, CancellationToken.None);
         }
 
         await using var finalScope = factory.Services.CreateAsyncScope();
         var db = finalScope.ServiceProvider.GetRequiredService<OlympContext>();
         Assert.Equal(2, (await db.Submissions.SingleAsync(item => item.Id == submission.Id, token)).StatusCode);
         Assert.Equal(2, await db.CheckResults.CountAsync(result => result.SubmissionId == submission.Id, token));
+    }
+
+    [Fact]
+    public async Task PausedManagerLeavesQueuedSubmissionsUntouchedAndCanResume()
+    {
+        var submission = Assert.Single(await AddSubmissionsAsync(factory, "acm", [0]));
+        var token = TestContext.Current.CancellationToken;
+        var checker = await CreateCheckerAsync(new TestRunner(), submission.Compilator.Name);
+        var manager = factory.Services.GetRequiredService<ICheckerManager>();
+        await manager.SetActiveAsync(false, token);
+        try
+        {
+            Assert.False(await manager.TryCheckFromDB(checker, token));
+            await using var scope = factory.Services.CreateAsyncScope();
+            Assert.Equal(0, await scope.ServiceProvider.GetRequiredService<OlympContext>().Submissions
+                .Where(item => item.Id == submission.Id).Select(item => item.StatusCode).SingleAsync(token));
+        }
+        finally { await manager.SetActiveAsync(true, CancellationToken.None); }
+        Assert.True(manager.Active);
+        Assert.True(await manager.TryCheckFromDB(checker, token));
     }
 
     [Theory]

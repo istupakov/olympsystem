@@ -48,8 +48,9 @@ The corresponding VS Code tasks are available through **Tasks: Run Task**.
    dotnet ef database update --project Olymp.Domain --startup-project Olymp.WebApp
    ```
 
-   To start from a backup, first use the `Database: Restore` task with a `.bak`
-   file in `./backup`, then apply migrations.
+   An empty development database gets `admin@example.test` / `DevAdmin123!`.
+   Restore backups from `./backup` through the admin area; a diff needs its full
+   base. Apply migrations separately after restoration if needed.
 
 ### Run
 

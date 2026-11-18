@@ -418,6 +418,8 @@ details, including to jury members without a contest management assignment.
 | Export assigned participant credentials | Jury or administrator. |
 | Export one contest as ZIP, including hidden and archived contests | Jury or administrator; contest management assignment is not required. |
 | Export all contests as ZIP; view backup storage and disk space; create, download, and delete database backups | Administrator only. Backup deletion requires a preview and confirmation; deleting a full backup includes its dependent differential backups. |
+| Restore a database backup | Administrator only, in Development. Requires preview and confirmation of replacing the development database. |
+| Pause or resume judging for all Runner connections | Administrator only. Pausing stops new checks; current checks finish normally. |
 | Create a contest | Jury or administrator; the creator receives management permission. New contests are hidden. |
 | Edit contest settings, problem and test activity; publish or remove the contest test archive; finish a contest; manage participants and credentials, import ICPC teams, answer questions, manage announcements and clarifications | Administrator or jury member with the stored `contest-manage` assignment for this contest. Archive publication and contest completion are permitted only after the contest ends and require confirmation; archive removal also requires confirmation. |
 | Submit solutions from the staff task page | Jury or administrator, without a contest assignment or public publication, activity, time, or open-contest restrictions. Solutions belong to the signed-in account. |
