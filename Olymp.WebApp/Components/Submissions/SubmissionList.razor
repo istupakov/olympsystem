@@ -124,8 +124,13 @@
             .Where(item => item.Problem.IsActive && !item.Problem.Contest.IsHidden && item.Problem.Contest.StartTime <= now)
             .Where(item => !ContestId.HasValue || item.Problem.ContestId == ContestId)
             .Where(item => !ProblemId.HasValue || item.ProblemId == ProblemId);
-        var ownQuery = query.Where(item => item.UserId == userId || context.Competitors.Any(team => team.Id == item.UserId
-            && team.ContestId == item.Problem.ContestId && team.Members.Any(member => member.Id == userId)));
+        var teamIds = isTemporary ? [] : await context.Competitors
+            .Where(team => (!ContestId.HasValue || team.ContestId == ContestId)
+                && team.Members.Any(member => member.Id == userId))
+            .Select(team => team.Id).ToArrayAsync(token);
+        var ownQuery = teamIds.Length == 0 ? query.Where(item => item.UserId == userId)
+            : query.Where(item => item.UserId == userId || (teamIds.Contains(item.UserId)
+                && ((Competitor)item.User).ContestId == item.Problem.ContestId));
         var coachedQuery = query.Where(item => item.User.CoachId == userId);
         var publicQuery = query.Where(item => !item.User.IsHidden && !item.IsHidden
             && (item.StatusCode != -1 || (!item.Problem.Contest.IsOpen
@@ -134,9 +139,15 @@
         available.Clear();
         if (!isTemporary)
         {
-            foreach (var (scope, scopedQuery) in new[] { (SubmissionScope.Own, ownQuery), (SubmissionScope.Coached, coachedQuery), (SubmissionScope.All, publicQuery) })
-                foreach (bool isParticipant in await scopedQuery.Select(item => item.User is Competitor).Distinct().ToListAsync(token))
-                    available.Add((scope, isParticipant ? SubmissionKind.Contest : SubmissionKind.Training));
+            foreach (bool isParticipant in await ownQuery.Select(item => item.User is Competitor).Distinct().ToListAsync(token))
+                available.Add((SubmissionScope.Own, isParticipant ? SubmissionKind.Contest : SubmissionKind.Training));
+            foreach (var (scope, scopedQuery) in new[] { (SubmissionScope.Coached, coachedQuery), (SubmissionScope.All, publicQuery) })
+            {
+                if (await scopedQuery.AnyAsync(item => item.User is Competitor, token))
+                    available.Add((scope, SubmissionKind.Contest));
+                if (await scopedQuery.AnyAsync(item => item.User is OlympUser, token))
+                    available.Add((scope, SubmissionKind.Training));
+            }
             if (string.IsNullOrEmpty(Scope))
                 selectedScope = AvailableScopes.FirstOrDefault(SubmissionScope.All);
             if (string.IsNullOrEmpty(Kind) && !legacyParticipant)
@@ -161,8 +172,8 @@
         bool lastAllPage = selectedScope == SubmissionScope.All && Page == AllPageLimit;
         submissions = await (from item in query
                              let own = item.UserId == userId
-                             let related = item.User.CoachId == userId || context.Competitors.Any(team => team.Id == item.UserId
-                                 && team.ContestId == item.Problem.ContestId && team.Members.Any(member => member.Id == userId))
+                             let related = item.User.CoachId == userId || (teamIds.Contains(item.UserId)
+                                 && ((Competitor)item.User).ContestId == item.Problem.ContestId)
                              let frozen = !item.Problem.Contest.IsOpen
                                  && item.Problem.Contest.FreezeTime != null && item.Problem.Contest.FreezeTime < now
                                  && item.CommitTime >= item.Problem.Contest.FreezeTime

@@ -12,6 +12,68 @@ namespace Olymp.IntegrationTests.WebApp.Public;
 public partial class PracticeSubmissionTests
 {
     [Fact]
+    public async Task OwnScopeExcludesTeamSubmissionsForAnotherContest()
+    {
+        var data = await SeedAsync();
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<OlympContext>();
+        var token = TestContext.Current.CancellationToken;
+        var team = await db.Competitors.SingleAsync(token);
+        var otherContest = TestEntities.CreateContest("Another contest", DateTimeOffset.UtcNow.AddDays(-2), DateTimeOffset.UtcNow.AddDays(-1));
+        otherContest.IsOpen = true;
+        var otherProblem = TestEntities.CreateProblem(otherContest);
+        var submission = TestEntities.CreateSubmission(team, otherProblem, data.Compiler, DateTimeOffset.UtcNow);
+        submission.Compilator = null!;
+        db.Submissions.Add(submission);
+        await db.SaveChangesAsync(token);
+
+        using var client = await factory.LoginAsync(data.User.UserName!);
+        foreach (string path in new[] { "/submissions", $"/contests/{otherContest.Id}/submissions", ProblemPath(otherContest.Id, otherProblem.Id) })
+        {
+            using var own = await GetAsync(client, path + (path.Contains('?') ? "&" : "?") + "scope=own&kind=contest");
+            Assert.Empty(own.QuerySelectorAll("#submissions tbody tr"));
+            using var all = await GetAsync(client, path + (path.Contains('?') ? "&" : "?") + "scope=all&kind=contest");
+            Assert.Equal($"submission-{submission.Id}", Assert.Single(all.QuerySelectorAll("#submissions tbody tr")).Id);
+        }
+    }
+
+    [Fact]
+    public async Task CoachedScopeOffersBothPersonalAndTeamSubmissionTypes()
+    {
+        var data = await SeedAsync();
+        var student = await factory.AddUserAsync();
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<OlympContext>();
+        var token = TestContext.Current.CancellationToken;
+        var personal = await db.OlympUsers.SingleAsync(item => item.Id == student.Id, token);
+        personal.CoachId = data.User.Id;
+        var team = await db.Competitors.Include(item => item.Members).SingleAsync(token);
+        team.Members.Clear();
+        team.CoachId = data.User.Id;
+        var submissions = new User[] { personal, team }.Select(author =>
+        {
+            var submission = TestEntities.CreateSubmission(author, data.Problem, data.Compiler, DateTimeOffset.UtcNow);
+            submission.Problem = null!;
+            submission.Compilator = null!;
+            return submission;
+        }).ToArray();
+        db.Submissions.AddRange(submissions);
+        await db.SaveChangesAsync(token);
+
+        using var client = await factory.LoginAsync(data.User.UserName!);
+        foreach (string path in new[] { "/submissions", $"/contests/{data.Contest.Id}/submissions", ProblemPath(data.Contest.Id, data.Problem.Id) })
+        {
+            for (int i = 0; i < submissions.Length; i++)
+            {
+                using var page = await GetAsync(client, path + (path.Contains('?') ? "&" : "?") + $"scope=coached&kind={(i == 0 ? "training" : "contest")}");
+                Assert.Equal($"submission-{submissions[i].Id}", Assert.Single(page.QuerySelectorAll("#submissions tbody tr")).Id);
+                var selectors = page.QuerySelectorAll("#submissions nav.btn-group");
+                Assert.Equal(2, selectors[selectors.Length - 1].QuerySelectorAll("a").Length);
+            }
+        }
+    }
+
+    [Fact]
     public async Task IndependentSelectorsPreserveOtherChoiceForEmptyCombinations()
     {
         var data = await SeedAsync();
