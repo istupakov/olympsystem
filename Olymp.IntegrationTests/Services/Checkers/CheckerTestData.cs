@@ -91,7 +91,7 @@ internal static class CheckerTestData
     {
         public string Name { get; init; } = "test";
         public string DisplayName { get; init; } = "Test compiler";
-        public string Language => "C";
+        public string Language { get; init; } = "C";
         public string ConfigName => "test";
         public string SourceExtension => ".c";
         public string CompileCommand => "compile";
@@ -106,7 +106,7 @@ internal static class CheckerTestData
 
     public sealed class SelfTest : ICheckerTest
     {
-        public string Language => "C";
+        public string Language { get; init; } = "C";
         public string Source => "source";
         public string Output => "ok";
         public CheckerResultStatus ExpectedResult => CheckerResultStatus.Accepted;
@@ -135,7 +135,7 @@ internal static class CheckerTestData
             {
                 if (BeforeCompile is not null)
                     await BeforeCompile(token);
-                CompilationSource = Assert.Single(request.Files).Content.ToArray();
+                CompilationSource = Assert.Single(request.Files, file => file.Filename != "testlib.h").Content.ToArray();
             }
             bool run = request.Command == "run";
             var output = run ? FailureTests.Contains(++TestsRun) ? "wrong" : "ok" : "1";

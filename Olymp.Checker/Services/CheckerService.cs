@@ -138,20 +138,23 @@ public sealed class CheckerService : ICheckerService
     {
         var encoding = Encoding.UTF8;
         var result = await RunTest(name, configuration, input, timeLimit, memoryLimitMb, token);
-        var status = result.Status switch
-        {
-            RunnerStatus.UserTimeLimit => CheckerResultStatus.TimeLimit,
-            RunnerStatus.TotalTimeLimit => CheckerResultStatus.IdlenessLimit,
-            RunnerStatus.MemoryLimit => CheckerResultStatus.MemoryLimit,
-            RunnerStatus.StdoutLimit => CheckerResultStatus.PresentationError,
-            RunnerStatus.StderrLimit => CheckerResultStatus.PresentationError,
-            RunnerStatus.Error => CheckerResultStatus.RuntimeError,
-            RunnerStatus.Completed => checker.Check(encoding.GetString(input.Span),
-                encoding.GetString(output.Span), encoding.GetString(result.Stdout.Span)),
-            _ => throw new Exception($"Runner unexpected result {result.Status}")
-        };
+        var status = GetExecutionStatus(result.Status);
+        if (status == CheckerResultStatus.Accepted)
+            status = checker.Check(encoding.GetString(input.Span),
+                encoding.GetString(output.Span), encoding.GetString(result.Stdout.Span));
         return (status, result);
     }
+
+    private static CheckerResultStatus GetExecutionStatus(RunnerStatus status) => status switch
+    {
+        RunnerStatus.Completed => CheckerResultStatus.Accepted,
+        RunnerStatus.UserTimeLimit => CheckerResultStatus.TimeLimit,
+        RunnerStatus.TotalTimeLimit => CheckerResultStatus.IdlenessLimit,
+        RunnerStatus.MemoryLimit => CheckerResultStatus.MemoryLimit,
+        RunnerStatus.Error => CheckerResultStatus.RuntimeError,
+        RunnerStatus.StdoutLimit or RunnerStatus.StderrLimit => CheckerResultStatus.PresentationError,
+        _ => CheckerResultStatus.InternalError
+    };
 
     public async Task<ValidatorResult> Validate(string source, CompilatorInfo compiler,
         IReadOnlyList<ValidatorTest> tests, CancellationToken token)
@@ -306,7 +309,7 @@ public sealed class CheckerService : ICheckerService
         }
     }
 
-    public async Task<string> Run(string source, ICompilatorConfiguration configuration,
+    public async Task<CheckerResult> Run(string source, ICompilatorConfiguration configuration,
         string input, TimeSpan timeLimit, int memoryLimitMb, CancellationToken token)
     {
         await _semaphore.WaitAsync(token);
@@ -317,12 +320,12 @@ public sealed class CheckerService : ICheckerService
             var compileResult = await Compile(name, configuration, source, true, token);
             var compilationLog = GetCompilationLog(configuration.GetCompileCommand(name), compileResult);
             if (compileResult.Status is not RunnerStatus.Completed)
-                return compilationLog;
+                return new(CheckerResultStatus.CompilationError.MakeStatusCode(), compilationLog);
 
             var result = await RunTest(name, configuration, encoding.GetBytes(input),
                 timeLimit, memoryLimitMb, token);
 
-            return $"""
+            var log = $"""
                 {compilationLog}
 
                 Execution:
@@ -336,6 +339,9 @@ public sealed class CheckerService : ICheckerService
                 stderr:
                 {GetTruncatedString(result.Stderr, 4096)}
                 """;
+            var status = GetExecutionStatus(result.Status);
+            return new(status.MakeStatusCode(status == CheckerResultStatus.Accepted ? null : 1), log, MaxUserTime: result.ResourceConsumption.UserTime,
+                MaxTotalTime: result.ResourceConsumption.TotalTime, MaxMemory: result.ResourceConsumption.Memory);
         }
         finally
         {

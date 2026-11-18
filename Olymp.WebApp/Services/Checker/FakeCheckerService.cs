@@ -55,17 +55,26 @@ internal sealed class FakeCheckerService(Guid id, CheckerSelfTestingStatus statu
         return Task.FromResult(new CheckerResult(code, log.ToString(), scores ? score : null, scores ? string.Join(';', results) : null));
     }
 
-    public Task<string> Run(string source, ICompilatorConfiguration configuration, string input, TimeSpan timeLimit, int memoryLimitMb, CancellationToken token)
+    public Task<CheckerResult> Run(string source, ICompilatorConfiguration configuration, string input, TimeSpan timeLimit, int memoryLimitMb, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
         if (!compilers.Any(info => info.Configuration == configuration && info.Error is null))
             throw new InvalidOperationException("The test configuration is unavailable.");
 
-        return Task.FromResult($"TEST RESULT: predefined output, source code was not executed.\nRunner: {Name} ({Id})\nConfiguration: {configuration.Name}\nTime limit: {timeLimit}\nMemory limit: {memoryLimitMb} MB\nInput length: {input.Length}\nstdout:\n42\nstderr:\n");
+        return Task.FromResult(new CheckerResult(2, $"TEST RESULT: predefined output, source code was not executed.\nRunner: {Name} ({Id})\nConfiguration: {configuration.Name}\nTime limit: {timeLimit}\nMemory limit: {memoryLimitMb} MB\nInput length: {input.Length}\nstdout:\n42\nstderr:\n"));
     }
 
     public Task<ValidatorResult> Validate(string source, CompilatorInfo compiler, IReadOnlyList<ValidatorTest> tests, CancellationToken token)
-        => throw new NotSupportedException("The test runner does not execute validators.");
+    {
+        token.ThrowIfCancellationRequested();
+        if (status != CheckerSelfTestingStatus.Success || !compilers.Contains(compiler) || compiler.Configuration.Language != "C++")
+            throw new InvalidOperationException("The test configuration is unavailable.");
+
+        var log = new StringBuilder("TEST RESULT: predefined results, validator source code was not executed.\n");
+        var results = tests.Select(test => new ValidatorTestResult(test.Number, test.Number % 3 != 2)).ToArray();
+        foreach (var test in results) log.AppendLine($"Test {test.Number}: {test.IsValid} (TEST RESULT)");
+        return Task.FromResult(new ValidatorResult(true, log.ToString(), results));
+    }
 
     public static IReadOnlyList<ICheckerService> Create()
     {

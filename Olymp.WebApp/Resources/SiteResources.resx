@@ -912,4 +912,14 @@
   <data name="ImportHasErrors" xml:space="preserve"><value>Errors</value></data>
   <data name="ImportUpdateProblem" xml:space="preserve"><value>Update</value></data>
   <data name="ImportCancelSave" xml:space="preserve"><value>Cancel saving</value></data>
+  <data name="StaffRunMode" xml:space="preserve"><value>Run mode</value></data>
+  <data name="StaffRunSolution" xml:space="preserve"><value>Solution</value></data>
+  <data name="StaffValidatorLimits" xml:space="preserve"><value>Validator limits are fixed. testlib.h is available.</value></data>
+  <data name="StaffRunUserTime" xml:space="preserve"><value>Maximum CPU time</value></data>
+  <data name="StaffRunTotalTime" xml:space="preserve"><value>Maximum elapsed time</value></data>
+  <data name="StaffValidationPassed" xml:space="preserve"><value>Validation passed</value></data>
+  <data name="StaffValidationFailed" xml:space="preserve"><value>Validation failed</value></data>
+  <data name="StaffExecutionCompleted" xml:space="preserve"><value>Executed successfully</value></data>
+  <data name="StaffOutputLimit" xml:space="preserve"><value>Output limit exceeded</value></data>
+  <data name="StaffVerdictInternalError" xml:space="preserve"><value>Internal error</value></data>
 </root>

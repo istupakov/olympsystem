@@ -259,12 +259,72 @@ public class TrialRunTests(WebAppFactory factory) : StaffComponentTests(factory)
         Assert.Equal(calls, setup.Runner.Requests.Count);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ValidatorUsesSelectedInputsAndFixedLimitsWithoutSaving(bool inactiveTest)
+    {
+        var setup = await SetupAsync(cpp: true);
+        int calls = setup.Runner.Requests.Count;
+        using var html = await new HtmlParser().ParseDocumentAsync(await RenderAsync<TrialRun>($"/jury/trial-run?Submission={setup.Submission.Id}{(inactiveTest ? $"&Test={setup.Inactive.Id}" : "")}", [], Staff(setup.Author.Id), async page =>
+        {
+            SetInput(page, "Validator", true);
+            await ActAsync(page, "ChangeMode");
+            SetInput(page, "Source", "validator source");
+            SetInput(page, "Seconds", -1.0);
+            SetInput(page, "Memory", 3);
+            await ActAsync(page, "RunAsync");
+        }, services => { services.RemoveAll<ICheckerManager>(); services.AddSingleton<ICheckerManager>(setup.Manager); }));
+
+        Assert.Null(html.QuerySelector("#trial-time"));
+        Assert.Null(html.QuerySelector("#trial-memory"));
+        Assert.Contains(SiteResources.StaffValidationPassed, html.Body!.TextContent);
+        var requests = setup.Runner.Requests.Skip(calls).ToArray();
+        Assert.Contains(requests[0].Files, file => file.Filename == "testlib.h");
+        Assert.Equal(inactiveTest ? 2 : 3, requests.Length);
+        Assert.All(requests.Skip(1), run => Assert.Equal(requests[0].ResourceLimits, run.ResourceLimits));
+        Assert.Equal(inactiveTest ? setup.Inactive.Input : setup.First.Input, requests[1].Stdin.ToArray());
+        await using var scope = _factory.Services.CreateAsyncScope();
+        var stored = await scope.ServiceProvider.GetRequiredService<OlympContext>().Submissions.AsNoTracking().Include(s => s.CheckResults)
+            .SingleAsync(s => s.Id == setup.Submission.Id, TestContext.Current.CancellationToken);
+        Assert.Equal("original source", stored.Text);
+        Assert.Empty(stored.CheckResults);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task StandaloneValidatorFiltersConfigurationsAndReportsCompilation(bool compilationFails)
+    {
+        var author = await _factory.AddUserAsync();
+        var runner = new CheckerTestData.TestRunner { CompilationFails = compilationFails };
+        var cpp = new CheckerTestData.TestConfiguration { Name = "cpp", Language = "C++" };
+        var other = new CheckerTestData.TestConfiguration { Name = "other" };
+        var checker = new CheckerService(runner, [cpp, other], [], []);
+        await checker.LoadCompilators(TestContext.Current.CancellationToken);
+        var manager = new CheckerTestData.PageManager(checker);
+        int calls = runner.Requests.Count;
+        using var html = await new HtmlParser().ParseDocumentAsync(await RenderAsync<TrialRun>($"/jury/trial-run?Runner={runner.Id}&Configuration=other", [], Staff(author.Id), async page =>
+        {
+            SetInput(page, "Validator", true);
+            await ActAsync(page, "ChangeMode");
+            SetInput(page, "Source", "validator source");
+            SetInput(page, "Input", "  stdin\r\n");
+            await ActAsync(page, "RunAsync");
+        }, services => { services.RemoveAll<ICheckerManager>(); services.AddSingleton<ICheckerManager>(manager); }));
+
+        Assert.DoesNotContain(html.QuerySelectorAll("#trial-configuration option"), o => o.GetAttribute("value") == "other");
+        Assert.Contains(compilationFails ? SiteResources.ImportValidatorCompileFailed : SiteResources.StaffValidationPassed, html.Body!.TextContent);
+        Assert.Equal(calls + (compilationFails ? 1 : 2), runner.Requests.Count);
+        if (!compilationFails) Assert.Equal("  stdin\r\n", Encoding.UTF8.GetString(runner.Requests.Last().Stdin.Span));
+    }
+
     private static void SetInput(TrialRun page, string name, object value)
     {
         var input = typeof(TrialRun).GetField("_input", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(page)!;
         input.GetType().GetProperty(name)!.SetValue(input, value);
     }
-    private async Task<(OlympUser Author, Submission Submission, Test First, Test Inactive, CheckerTestData.TestRunner Runner, CheckerTestData.PageManager Manager)> SetupAsync()
+    private async Task<(OlympUser Author, Submission Submission, Test First, Test Inactive, CheckerTestData.TestRunner Runner, CheckerTestData.PageManager Manager)> SetupAsync(bool cpp = false)
     {
         var author = await _factory.AddUserAsync();
         await using var scope = _factory.Services.CreateAsyncScope();
@@ -275,7 +335,7 @@ public class TrialRunTests(WebAppFactory factory) : StaffComponentTests(factory)
         problem.Tests.Add(first);
         problem.Tests.Add(new Test { Number = 2, Problem = problem, IsActive = true, Input = "second"u8.ToArray(), Output = "ok"u8.ToArray(), Score = 30 });
         problem.Tests.Add(inactive);
-        var config = new CheckerTestData.TestConfiguration();
+        var config = new CheckerTestData.TestConfiguration { Language = cpp ? "C++" : "C" };
         var compiler = TestEntities.CreateCompilator();
         compiler.Name = config.Name; compiler.Language = config.Language; compiler.CommandLine = config.CompileCommand;
         compiler.ConfigName = config.ConfigName; compiler.SourceExtension = config.SourceExtension;
@@ -283,7 +343,7 @@ public class TrialRunTests(WebAppFactory factory) : StaffComponentTests(factory)
         submission.User = null!; submission.StatusCode = 2; db.Submissions.Add(submission);
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
         var runner = new CheckerTestData.TestRunner { FailureTests = [2] };
-        var checker = new CheckerService(runner, [config], [new CheckerTestData.SelfTest()], [new TestChecker(problem.CheckerId)]);
+        var checker = new CheckerService(runner, [config], [new CheckerTestData.SelfTest { Language = config.Language }], [new TestChecker(problem.CheckerId)]);
         await checker.LoadCompilators(TestContext.Current.CancellationToken);
         Assert.True(await checker.RunSelfTests(TestContext.Current.CancellationToken));
         return (author, submission, first, inactive, runner, new(checker));

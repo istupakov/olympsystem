@@ -15,13 +15,17 @@ public class CheckerRunTests
     {
         var runner = new TestRunner { CompilationFails = true };
 
-        var log = await CreateChecker(runner).Run("source", new TestConfiguration(), "input",
+        var result = await CreateChecker(runner).Run("source", new TestConfiguration(), "input",
             TimeSpan.FromSeconds(1), 128, TestContext.Current.CancellationToken);
 
-        Assert.Contains("Compilation:", log);
-        Assert.Contains(runner.CompilerOutput, log);
-        Assert.Contains("exit code: 1", log);
-        Assert.DoesNotContain("Execution:", log);
+        Assert.Equal(-1, result.StatusCode);
+        Assert.Null(result.MaxUserTime);
+        Assert.Null(result.MaxTotalTime);
+        Assert.Null(result.MaxMemory);
+        Assert.Contains("Compilation:", result.Log);
+        Assert.Contains(runner.CompilerOutput, result.Log);
+        Assert.Contains("exit code: 1", result.Log);
+        Assert.DoesNotContain("Execution:", result.Log);
         Assert.Single(runner.Requests);
     }
 
@@ -39,22 +43,47 @@ public class CheckerRunTests
                 : Completed(stderr: "compiler warnings"))
         };
 
-        var log = await CreateChecker(runner).Run(source, new TestConfiguration(), input,
+        var result = await CreateChecker(runner).Run(source, new TestConfiguration(), input,
             TimeSpan.FromSeconds(5), 128, TestContext.Current.CancellationToken);
 
+        Assert.Equal(-3001, result.StatusCode);
+        Assert.Equal(resources.UserTime, result.MaxUserTime);
+        Assert.Equal(resources.TotalTime, result.MaxTotalTime);
+        Assert.Equal(resources.Memory, result.MaxMemory);
+        Assert.Null(result.SlowestTest);
+        Assert.Null(result.Score);
         Assert.Equal(2, runner.Requests.Count);
         Assert.Equal(Encoding.UTF8.GetBytes(source), Assert.Single(runner.Requests[0].Files).Content.ToArray());
         Assert.Equal(Encoding.UTF8.GetBytes(input), runner.Requests[1].Stdin.ToArray());
-        Assert.Contains("compiler warnings", log);
-        Assert.Contains("status: Error", log);
-        Assert.Contains("user time: 00:00:02", log);
-        Assert.Contains("total time: 00:00:03", log);
-        Assert.Contains("peak memory: 32 MB", log);
-        Assert.Contains("exit code: 42", log);
-        Assert.Contains(new string('O', 4096), log);
-        Assert.Contains(new string('E', 4096), log);
-        Assert.DoesNotContain("stdout tail", log);
-        Assert.DoesNotContain("stderr tail", log);
+        Assert.Contains("compiler warnings", result.Log);
+        Assert.Contains("status: Error", result.Log);
+        Assert.Contains("user time: 00:00:02", result.Log);
+        Assert.Contains("total time: 00:00:03", result.Log);
+        Assert.Contains("peak memory: 32 MB", result.Log);
+        Assert.Contains("exit code: 42", result.Log);
+        Assert.Contains(new string('O', 4096), result.Log);
+        Assert.Contains(new string('E', 4096), result.Log);
+        Assert.DoesNotContain("stdout tail", result.Log);
+        Assert.DoesNotContain("stderr tail", result.Log);
+    }
+
+    [Theory]
+    [InlineData(RunnerStatus.Completed, 2)]
+    [InlineData(RunnerStatus.UserTimeLimit, -2001)]
+    [InlineData(RunnerStatus.TotalTimeLimit, -5001)]
+    [InlineData(RunnerStatus.MemoryLimit, -6001)]
+    [InlineData(RunnerStatus.StdoutLimit, -4001)]
+    [InlineData(RunnerStatus.StderrLimit, -4001)]
+    [InlineData(RunnerStatus.Unspecified, -10)]
+    public async Task RunReturnsExecutionStatus(RunnerStatus status, int expected)
+    {
+        var runner = new TestRunner
+        {
+            Handler = (task, _) => Task.FromResult(Completed(status: task.Command == "run" ? status : RunnerStatus.Completed))
+        };
+        var result = await CreateChecker(runner).Run("source", new TestConfiguration(), "input",
+            TimeSpan.FromSeconds(1), 128, TestContext.Current.CancellationToken);
+        Assert.Equal(expected, result.StatusCode);
     }
 
     [Theory]

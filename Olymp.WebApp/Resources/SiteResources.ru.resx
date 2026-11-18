@@ -912,4 +912,14 @@
   <data name="ImportHasErrors" xml:space="preserve"><value>Есть ошибки</value></data>
   <data name="ImportUpdateProblem" xml:space="preserve"><value>Обновление</value></data>
   <data name="ImportCancelSave" xml:space="preserve"><value>Отменить сохранение</value></data>
+  <data name="StaffRunMode" xml:space="preserve"><value>Режим запуска</value></data>
+  <data name="StaffRunSolution" xml:space="preserve"><value>Решение</value></data>
+  <data name="StaffValidatorLimits" xml:space="preserve"><value>Лимиты валидатора фиксированы. Доступен testlib.h.</value></data>
+  <data name="StaffRunUserTime" xml:space="preserve"><value>Максимальное процессорное время</value></data>
+  <data name="StaffRunTotalTime" xml:space="preserve"><value>Максимальное полное время</value></data>
+  <data name="StaffValidationPassed" xml:space="preserve"><value>Валидация пройдена</value></data>
+  <data name="StaffValidationFailed" xml:space="preserve"><value>Валидация не пройдена</value></data>
+  <data name="StaffExecutionCompleted" xml:space="preserve"><value>Успешно выполнено</value></data>
+  <data name="StaffOutputLimit" xml:space="preserve"><value>Превышен лимит вывода</value></data>
+  <data name="StaffVerdictInternalError" xml:space="preserve"><value>Внутренняя ошибка</value></data>
 </root>

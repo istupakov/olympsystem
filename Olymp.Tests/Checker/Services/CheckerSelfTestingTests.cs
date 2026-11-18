@@ -58,9 +58,9 @@ public class CheckerSelfTestingTests
         var output = await checker.Run("source", configuration, "input", TimeSpan.FromSeconds(1), 128,
             TestContext.Current.CancellationToken);
 
-        Assert.Contains("Compilation:", output);
-        Assert.Contains("Execution:", output);
-        Assert.Contains("compiler output", output);
+        Assert.Contains("Compilation:", output.Log);
+        Assert.Contains("Execution:", output.Log);
+        Assert.Contains("compiler output", output.Log);
         Assert.Equal(1, runner.VersionRequests);
         Assert.Equal(1, runner.TestsRun);
     }
