@@ -32,11 +32,11 @@ internal static class StaffDownloads
         admin.MapGet("/backups/{name}/download", DownloadBackupAsync);
     }
 
-    private static async Task<IResult> DownloadBackupAsync(string name, HttpContext http, DatabaseBackupService service)
+    private static async Task<IResult> DownloadBackupAsync(string name, bool? single, HttpContext http, DatabaseBackupService service)
     {
         try
         {
-            var files = await service.OpenDownloadAsync(http.User, name, http.RequestAborted);
+            var files = await service.OpenDownloadAsync(http.User, name, http.RequestAborted, single ?? false);
             foreach (var file in files) http.Response.RegisterForDispose(file);
             if (files.Length == 1)
                 return Results.File(files[0], "application/octet-stream", Path.GetFileName(files[0].Name));

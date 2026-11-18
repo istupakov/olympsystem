@@ -149,6 +149,8 @@ internal static class CheckerTestData
 
     public sealed class PageManager(ICheckerService? checker = null) : ICheckerManager
     {
+        public bool Active { get; private set; } = true;
+        public Task SetActiveAsync(bool active, CancellationToken token = default) { Active = active; return Task.CompletedTask; }
         public Dictionary<Guid, ICheckerService> Connected { get; } = checker is null ? [] : new() { [checker.Id] = checker };
         public IReadOnlyDictionary<Guid, ICheckerService> Checkers => Connected;
         public void Register(IRunnerService runner, CancellationToken token) => throw new NotSupportedException();

@@ -12,7 +12,7 @@ using Olymp.WebApp.Resources;
 
 namespace Olymp.WebApp.Services.DatabaseMaintenance;
 
-public sealed class DatabaseBackupService : BackgroundService
+public sealed partial class DatabaseBackupService : BackgroundService
 {
     private readonly IServiceScopeFactory _scopes;
     private readonly ILogger<DatabaseBackupService> _logger;
@@ -28,6 +28,7 @@ public sealed class DatabaseBackupService : BackgroundService
         IServiceScopeFactory scopes, ILogger<DatabaseBackupService> logger)
     {
         _scopes = scopes;
+        CanRestore = environment.IsDevelopment();
         _logger = logger;
         using var db = factory.CreateDbContext();
         var connection = new SqlConnectionStringBuilder(db.Database.GetConnectionString());
@@ -39,9 +40,11 @@ public sealed class DatabaseBackupService : BackgroundService
     }
 
     public Operation State => _state;
+    public bool CanRestore { get; }
     public sealed record Operation(bool Running, bool Failed, string? FileName);
     public sealed record Backup(string Name, long Size, DateTime Modified, DateTime? Created = null,
-        Guid? Id = null, Guid? BaseId = null, bool Differential = false, bool CopyOnly = false)
+        Guid? Id = null, Guid? BaseId = null, bool Differential = false, bool CopyOnly = false,
+        decimal? CheckpointLsn = null, decimal? BaseLsn = null, bool Checksums = false)
     {
         public bool Readable => Id.HasValue;
     }
@@ -96,7 +99,10 @@ public sealed class DatabaseBackupService : BackgroundService
                             Id = (Guid)reader["BackupSetGUID"],
                             BaseId = reader["DifferentialBaseGUID"] as Guid?,
                             Differential = Convert.ToInt32(reader["BackupType"], CultureInfo.InvariantCulture) == 5,
-                            CopyOnly = (bool)reader["IsCopyOnly"]
+                            CopyOnly = (bool)reader["IsCopyOnly"],
+                            CheckpointLsn = (decimal)reader["CheckpointLSN"],
+                            BaseLsn = reader["DifferentialBaseLSN"] as decimal?,
+                            Checksums = (bool)reader["HasBackupChecksums"]
                         };
                         // Multiple backup sets in one file are outside this interface's format.
                         if (await reader.ReadAsync(token)) backup = new(info.Name, info.Length, info.LastWriteTimeUtc);
@@ -202,7 +208,7 @@ public sealed class DatabaseBackupService : BackgroundService
         finally { _operation.Release(); }
     }
 
-    public async Task<FileStream[]> OpenDownloadAsync(ClaimsPrincipal actor, string name, CancellationToken token)
+    public async Task<FileStream[]> OpenDownloadAsync(ClaimsPrincipal actor, string name, CancellationToken token, bool single = false)
     {
         await AuthorizeAsync(actor);
         if (!await _operation.WaitAsync(0, token)) throw new OperationValidationException(SiteResources.BackupBusy);
@@ -211,7 +217,7 @@ public sealed class DatabaseBackupService : BackgroundService
         {
             var files = await ReadFilesAsync(token);
             var selected = files.SingleOrDefault(item => item.Name == name && item.Readable) ?? throw new EntityNotFoundException();
-            if (selected.Differential)
+            if (selected.Differential && !single)
             {
                 var full = files.FirstOrDefault(item => item.Id == selected.BaseId && !item.Differential && !item.CopyOnly)
                     ?? throw new OperationValidationException(SiteResources.BackupNeedsFull);

@@ -7,6 +7,17 @@
 
 <StaffPageTitle Title="@SiteResources.BackupTitle" />
 <h1>@SiteResources.BackupTitle</h1>
+@if (_restored)
+{
+    <p class="alert alert-success" role="status">@SiteResources.BackupRestored</p>
+    <form method="post" action="Account/Logout" data-enhance="false">
+        <AntiforgeryToken />
+        <input type="hidden" name="returnUrl" value="Account/Login?ReturnUrl=%2Fadmin%2Fbackups" />
+        <button class="btn btn-primary">@SiteResources.BackupSignInAgain</button>
+    </form>
+}
+else
+{
 @if (_error is not null || _succeeded)
 {
     <div class="alert @(_error is not null ? "alert-danger" : "alert-success") alert-dismissible" role="@(_error is not null ? "alert" : "status")">
@@ -46,6 +57,15 @@
             <button class="btn btn-outline-secondary" disabled="@_busy" @onclick="() => _deletion = null">@SiteResources.StaffCancel</button>
         </div>
     }
+    @if (_restoration is not null)
+    {
+        <div class="alert alert-warning" role="alert">
+            <p>@SiteResources.BackupRestoreConfirm</p>
+            <ul>@foreach (var file in _restoration) { <li class="text-break">@file.Name</li> }</ul>
+            <button class="btn btn-danger me-2" disabled="@(_busy || BackupsService.State.Running)" @onclick="RestoreAsync">@SiteResources.StaffConfirm</button>
+            <button class="btn btn-outline-secondary" disabled="@_busy" @onclick="() => _restoration = null">@SiteResources.StaffCancel</button>
+        </div>
+    }
     @if (_snapshot is not null)
     {
         @if (_snapshot.Files.Length == 0) { <p>@SiteResources.BackupEmpty</p> }
@@ -65,11 +85,19 @@
                                 <td class="text-break">@(file.Differential ? full?.Name ?? SiteResources.BackupMissingBase : null)</td>
                                 <td>
                                     <div class="d-flex flex-wrap gap-2">
-                                        @if (file.Readable && (!file.Differential || full is not null) && !BackupsService.State.Running)
+                                        @if (file.Readable && !BackupsService.State.Running)
                                         {
-                                            <a class="btn btn-sm btn-outline-primary" href="@($"admin/backups/{Uri.EscapeDataString(file.Name)}/download")" data-enhance-nav="false" @onclick="ClearNotification">@(file.Differential ? SiteResources.BackupDownloadBundle : SiteResources.BackupDownload)</a>
+                                            <a class="btn btn-sm btn-outline-primary" href="@($"admin/backups/{Uri.EscapeDataString(file.Name)}/download?single=true")" data-enhance-nav="false" @onclick="ClearNotification">@SiteResources.BackupDownload</a>
+                                            @if (file.Differential && full is not null)
+                                            {
+                                                <a class="btn btn-sm btn-outline-primary" href="@($"admin/backups/{Uri.EscapeDataString(file.Name)}/download")" data-enhance-nav="false" @onclick="ClearNotification">@SiteResources.BackupDownloadBundle</a>
+                                            }
                                         }
                                         <button class="btn btn-sm btn-outline-danger" disabled="@(_busy || BackupsService.State.Running)" @onclick="() => PreviewAsync(file.Name)">@SiteResources.StaffDelete</button>
+                                        @if (BackupsService.CanRestore && file.Readable && (!file.Differential || full is not null))
+                                        {
+                                            <button class="btn btn-sm btn-outline-warning" disabled="@(_busy || BackupsService.State.Running)" @onclick="() => PreviewRestoreAsync(file.Name)">@SiteResources.BackupRestore</button>
+                                        }
                                     </div>
                                 </td>
                             </tr>
@@ -85,11 +113,14 @@
     <p>@SiteResources.BackupExportDescription</p>
     <a class="btn btn-outline-secondary" href="admin/contests/export" data-enhance-nav="false">@SiteResources.StaffExportAllContests</a>
 </section>
+}
 
 @code {
     [CascadingParameter] private Task<AuthenticationState> AuthenticationState { get; set; } = default!;
     private DatabaseBackupService.Snapshot? _snapshot;
     private DatabaseBackupService.Backup[]? _deletion;
+    private DatabaseBackupService.Backup[]? _restoration;
+    private bool _restored;
     private string? _error;
     private bool _succeeded;
     private string? _activity;
@@ -102,11 +133,13 @@
     private Task RefreshAsync() => RunAsync(BackupsService.State.Running ? SiteResources.BackupBusy : SiteResources.BackupRefreshing, async token =>
     {
         _deletion = null;
+        _restoration = null;
         await ReadSnapshotAsync(BackupsService.State.Running, token);
     });
     private Task CreateAsync(bool differential) => RunAsync(differential ? SiteResources.BackupCreatingDiff : SiteResources.BackupCreatingFull, async token =>
     {
         _deletion = null;
+        _restoration = null;
         await BackupsService.StartAsync((await AuthenticationState).User, differential);
         await ReadSnapshotAsync(true, token);
     });
@@ -122,7 +155,30 @@
         }
     }
     private Task PreviewAsync(string name) => RunAsync(SiteResources.BackupRefreshing, async _ =>
-        _deletion = await BackupsService.PreviewDeleteAsync((await AuthenticationState).User, name));
+    {
+        _restoration = null;
+        _deletion = await BackupsService.PreviewDeleteAsync((await AuthenticationState).User, name);
+    });
+    private Task PreviewRestoreAsync(string name) => RunAsync(SiteResources.BackupRefreshing, async token =>
+    {
+        _deletion = null;
+        _restoration = await BackupsService.PreviewRestoreAsync((await AuthenticationState).User, name, token);
+    });
+    private Task RestoreAsync() => RunAsync(SiteResources.BackupRestoring, async token =>
+    {
+        if (_restoration is null) return;
+        try
+        {
+            await BackupsService.RestoreAsync((await AuthenticationState).User, _restoration, token);
+            _restoration = null;
+            _restored = true;
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException and not UnauthorizedAccessException and not Olymp.WebApp.Services.OperationValidationException)
+        {
+            Logger.LogError(exception, "Development database restore failed");
+            _error = SiteResources.BackupRestoreFailed;
+        }
+    });
     private Task DeleteAsync() => RunAsync(SiteResources.BackupDeleting, async token =>
     {
         if (_deletion is null) return;

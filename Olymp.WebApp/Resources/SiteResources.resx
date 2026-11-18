@@ -451,6 +451,10 @@
   <data name="StaffRunnerDisconnected" xml:space="preserve"><value>Runner disconnected or execution failed. Your input is retained.</value></data>
   <data name="StaffCancelRun" xml:space="preserve"><value>Cancel execution</value></data>
   <data name="StaffRunnerRefresh" xml:space="preserve"><value>Runner status refreshes every 10 seconds.</value></data>
+  <data name="StaffJudgingActive" xml:space="preserve"><value>Judging is active.</value></data>
+  <data name="StaffJudgingPaused" xml:space="preserve"><value>Judging new submissions is paused.</value></data>
+  <data name="StaffStopJudging" xml:space="preserve"><value>Pause judging</value></data>
+  <data name="StaffStartJudging" xml:space="preserve"><value>Resume judging</value></data>
   <data name="StaffNoCompilers" xml:space="preserve"><value>No compilers found.</value></data>
   <data name="StaffWithoutFreeze" xml:space="preserve"><value>Jury view – freeze restrictions do not apply.</value></data>
   <data name="RegistrationNotAvailable" xml:space="preserve"><value>Registration is not available for this contest.</value></data>
@@ -731,6 +735,12 @@
   <data name="BackupRefresh" xml:space="preserve">
     <value>Refresh</value>
   </data>
+  <data name="BackupRestore" xml:space="preserve"><value>Restore</value></data>
+  <data name="BackupRestoreConfirm" xml:space="preserve"><value>Replace the development database with these backups? Make sure no checks are running. Current data will be lost. Sign in with an account from the backup afterward.</value></data>
+  <data name="BackupRestoring" xml:space="preserve"><value>Verifying backups and restoring the database…</value></data>
+  <data name="BackupRestored" xml:space="preserve"><value>The development database was restored and checked. Sign in again with an account from the backup. Migrations were not applied.</value></data>
+  <data name="BackupSignInAgain" xml:space="preserve"><value>Sign in again</value></data>
+  <data name="BackupRestoreFailed" xml:space="preserve"><value>Could not restore the database. See application logs for details.</value></data>
   <data name="BackupBusy" xml:space="preserve">
     <value>A backup operation is in progress…</value>
   </data>
