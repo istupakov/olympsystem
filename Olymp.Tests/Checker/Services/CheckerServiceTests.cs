@@ -95,6 +95,7 @@ public class CheckerServiceTests
     [InlineData(RunnerStatus.MemoryLimit, -6007, 2)]
     [InlineData(RunnerStatus.StdoutLimit, -4007, 1)]
     [InlineData(RunnerStatus.StderrLimit, -4007, 1)]
+    [InlineData(RunnerStatus.Unspecified, -10, 1)]
     public async Task RunnerFailuresTakePrecedenceOverMatchingOutput(RunnerStatus status,
         int expectedStatus, int attempts)
     {

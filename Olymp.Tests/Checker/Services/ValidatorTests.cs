@@ -64,6 +64,33 @@ public class ValidatorTests
     }
 
     [Fact]
+    public async Task CancelledValidationReleasesRunnerForNextOperation()
+    {
+        using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+        bool cancel = true;
+        var runner = new TestRunner
+        {
+            Handler = (task, token) =>
+            {
+                if (task.Command == "run" && cancel)
+                {
+                    cancel = false;
+                    cancellation.Cancel();
+                    token.ThrowIfCancellationRequested();
+                }
+                return Task.FromResult(Completed());
+            }
+        };
+        var checker = CreateChecker(runner);
+        var compiler = new TestConfiguration { Language = "C++" }.ParseInfo("1");
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => checker.Validate("source", compiler,
+            [new(1, "input"u8.ToArray())], cancellation.Token));
+        var result = await checker.Run("source", new TestConfiguration(), "input", TimeSpan.FromSeconds(1), 128,
+            TestContext.Current.CancellationToken);
+        Assert.Equal(2, result.StatusCode);
+    }
+
+    [Fact]
     public async Task SolutionMetricsIdentifySlowestTestAndPeakMemory()
     {
         var runner = new TestRunner

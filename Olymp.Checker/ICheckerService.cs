@@ -11,7 +11,7 @@ public interface ICheckerService
     IEnumerable<CheckerTestResult> SelfTestingResults { get; }
 
     Task<CheckerResult> Check(CheckRequest request, CancellationToken token);
-    Task<string> Run(string source, ICompilatorConfiguration configuration, string input,
+    Task<CheckerResult> Run(string source, ICompilatorConfiguration configuration, string input,
         TimeSpan timeLimit, int memoryLimitMb, CancellationToken token);
     Task<bool> RunSelfTests(CancellationToken token);
     Task<ValidatorResult> Validate(string source, CompilatorInfo compiler, IReadOnlyList<ValidatorTest> tests, CancellationToken token);

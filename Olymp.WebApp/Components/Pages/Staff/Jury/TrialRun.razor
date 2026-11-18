@@ -19,6 +19,12 @@ else
     <EditForm @key="_editContext" EditContext="_editContext" OnValidSubmit="RunAsync">
         <DataAnnotationsValidator />
         <fieldset disabled="@(_cancellation is not null)">
+            <div class="mb-3"><label for="trial-mode" class="form-label">@SiteResources.StaffRunMode</label>
+                <InputSelect id="trial-mode" class="form-select" @bind-Value="_input.Validator" @bind-Value:after="ChangeMode">
+                    <option value="false">@SiteResources.StaffRunSolution</option>
+                    <option value="true">@SiteResources.ImportValidator</option>
+                </InputSelect>
+            </div>
             @if (_problem is not null)
             {
                 <p><a href="jury/contests/@_problem.ContestId/problems?problemId=@_problem.Id">@StaffEntityLabel.Format(_problem.Id, _problem.NameWithNumber)</a></p>
@@ -33,7 +39,7 @@ else
                     <div class="col-md-6"><label for="trial-compiler" class="form-label">@SiteResources.Compiler</label>
                         <InputSelect id="trial-compiler" class="form-select" @bind-Value="_input.Compiler" @bind-Value:after="SelectCompiler">
                             <option value="">@SiteResources.SelectCompiler</option>
-                            @foreach (var compiler in _compilers) { <option value="@compiler.Id">@StaffEntityLabel.Format(compiler.Id, compiler.Description ?? compiler.Name)</option> }
+                            @foreach (var compiler in AvailableCompilers) { <option value="@compiler.Id">@StaffEntityLabel.Format(compiler.Id, compiler.Description ?? compiler.Name)</option> }
                         </InputSelect>
                         <ValidationMessage For="() => _input.Compiler" class="text-danger" />
                     </div>
@@ -55,15 +61,19 @@ else
                         <ValidationMessage For="() => _input.Configuration" class="text-danger" />
                     </div>
                 }
-                <div class="col-md-6"><label for="trial-time" class="form-label">@SiteResources.TimeLimit (@SiteResources.Seconds)</label><InputNumber id="trial-time" class="form-control" step="1" @bind-Value="_input.Seconds" ParsingErrorMessage="@SiteResources.StaffRunTimeNumber" /><ValidationMessage For="() => _input.Seconds" class="text-danger" /></div>
-                <div class="col-md-6"><label for="trial-memory" class="form-label">@SiteResources.MemoryLimit (@SiteResources.Megabytes)</label>
-                    <InputSelect id="trial-memory" class="form-select" @bind-Value="_input.Memory">@foreach (int memory in MemoryLimits) { <option value="@memory">@memory</option> }</InputSelect>
-                    <ValidationMessage For="() => _input.Memory" class="text-danger" />
-                </div>
+                @if (!_input.Validator)
+                {
+                    <div class="col-md-6"><label for="trial-time" class="form-label">@SiteResources.TimeLimit (@SiteResources.Seconds)</label><InputNumber id="trial-time" class="form-control" step="1" @bind-Value="_input.Seconds" ParsingErrorMessage="@SiteResources.StaffRunTimeNumber" /><ValidationMessage For="() => _input.Seconds" class="text-danger" /></div>
+                    <div class="col-md-6"><label for="trial-memory" class="form-label">@SiteResources.MemoryLimit (@SiteResources.Megabytes)</label>
+                        <InputSelect id="trial-memory" class="form-select" @bind-Value="_input.Memory">@foreach (int memory in MemoryLimits) { <option value="@memory">@memory</option> }</InputSelect>
+                        <ValidationMessage For="() => _input.Memory" class="text-danger" />
+                    </div>
+                }
             </div>
+            @if (_input.Validator) { <p class="text-body-secondary">@SiteResources.StaffValidatorLimits</p> }
             @if (_problem is not null)
             {
-                <button type="button" class="btn btn-outline-secondary mb-3" @onclick="ResetLimits">@SiteResources.StaffResetRunLimits</button>
+                @if (!_input.Validator) { <button type="button" class="btn btn-outline-secondary mb-3" @onclick="ResetLimits">@SiteResources.StaffResetRunLimits</button> }
                 <div class="mb-3"><label for="trial-test" class="form-label">@SiteResources.StaffTest</label>
                     <InputSelect id="trial-test" class="form-select" @bind-Value="_input.Test">
                         <option value="">@SiteResources.StaffAllActiveTests</option>
@@ -91,13 +101,28 @@ else
     {
         <section class="mt-4" aria-label="@SiteResources.StaffRunOutput">
             <h2 class="h4">@SiteResources.StaffRunOutput</h2>
-            <p>@SiteResources.TimeLimit: @output.Seconds @SiteResources.Seconds · @SiteResources.MemoryLimit: @output.Memory @SiteResources.Megabytes @if (output.Count is int count) { <text>· @SiteResources.StaffTestsCount: @count</text> }</p>
+            @if (output.Validation is null) { <p>@SiteResources.TimeLimit: @output.Seconds @SiteResources.Seconds · @SiteResources.MemoryLimit: @output.Memory @SiteResources.Megabytes @if (output.Count is int count) { <text>· @SiteResources.StaffTestsCount: @count</text> }</p> }
             @if (output.Result is { } result)
             {
-                <dl class="row"><dt class="col-sm-4">@SiteResources.StaffStatus</dt><dd class="col-sm-8"><SubmissionStatus StatusCode="result.StatusCode" /></dd>
+                <dl class="row"><dt class="col-sm-4">@SiteResources.StaffStatus</dt><dd class="col-sm-8">@if (output.Checked) { <SubmissionStatus StatusCode="result.StatusCode" /> } else { @ExecutionStatusText(result.StatusCode) }</dd>
                     @if (result.Score is int score) { <dt class="col-sm-4">@SiteResources.StaffScore</dt><dd class="col-sm-8">@score</dd> }
                     @if (result.TestResults is not null) { <dt class="col-sm-4">@SiteResources.StaffTestResults</dt><dd class="col-sm-8 text-break">@result.TestResults</dd> }
+                    @if (result.MaxUserTime is { } userTime) { <dt class="col-sm-4">@SiteResources.StaffRunUserTime</dt><dd class="col-sm-8">@userTime.TotalSeconds.ToString("0.###") @SiteResources.Seconds</dd> }
+                    @if (result.MaxTotalTime is { } totalTime) { <dt class="col-sm-4">@SiteResources.StaffRunTotalTime</dt><dd class="col-sm-8">@totalTime.TotalSeconds.ToString("0.###") @SiteResources.Seconds</dd> }
+                    @if (result.MaxMemory is { } memory) { <dt class="col-sm-4">@SiteResources.ImportPeakMemory</dt><dd class="col-sm-8">@((memory / 1048576d).ToString("0.##"))</dd> }
+                    @if (result.SlowestTest is int slowest) { <dt class="col-sm-4">@SiteResources.ImportSlowestTest</dt><dd class="col-sm-8">@slowest</dd> }
                 </dl>
+            }
+            @if (output.Validation is { } validation)
+            {
+                @if (!validation.Compiled) { <p class="text-warning-emphasis">@SiteResources.ImportValidatorCompileFailed</p> }
+                else
+                {
+                    <p>@SiteResources.StaffTestsCount: @validation.Tests.Count</p>
+                    <table class="table"><thead><tr><th>@SiteResources.StaffTest</th><th>@SiteResources.StaffStatus</th></tr></thead><tbody>
+                        @foreach (var test in validation.Tests) { <tr><td>@test.Number</td><td class="@(test.IsValid ? "text-success" : "text-danger")">@(test.IsValid ? SiteResources.StaffValidationPassed : SiteResources.StaffValidationFailed)</td></tr> }
+                    </tbody></table>
+                }
             }
             <section class="card"><h3 class="card-header h5">@SiteResources.StaffLog</h3><pre class="card-body overflow-auto mb-0">@output.Log</pre></section>
         </section>
@@ -127,17 +152,20 @@ else
     private bool HasTaskContext => Submission.HasValue || Problem.HasValue;
     private bool InvalidTest => HasTaskContext && _problem is not null && _input.Test is int test && !_tests.Any(item => item.Id == test);
     private ICheckerService? CurrentRunner => AvailableRunners.SingleOrDefault(item => item.Id == _input.Runner);
-    private IEnumerable<ICheckerService> AvailableRunners => Checkers.Checkers.Values.Where(item => !HasTaskContext
-        || _compilers.Any(compiler => compiler.Id == _input.Compiler && item.CanCheck(compiler))).OrderBy(item => item.Name).ThenBy(item => item.Id);
-    private IEnumerable<CompilatorInfo> CurrentConfigurations => CurrentRunner?.Compilators
-        ?? CurrentRunner?.Configurations.Select(config => new CompilatorInfo(config, config.Name, null)) ?? [];
+    private IEnumerable<Compilator> AvailableCompilers => _compilers.Where(c => !_input.Validator || c.Language == "C++");
+    private IEnumerable<ICheckerService> AvailableRunners => Checkers.Checkers.Values.Where(item => HasTaskContext
+        ? AvailableCompilers.Any(compiler => compiler.Id == _input.Compiler && item.CanCheck(compiler))
+        : !_input.Validator || item.Configurations.Any(c => c.Language == "C++")).OrderBy(item => item.Name).ThenBy(item => item.Id);
+    private IEnumerable<CompilatorInfo> CurrentConfigurations => (CurrentRunner?.Compilators
+        ?? CurrentRunner?.Configurations.Select(config => new CompilatorInfo(config, config.Name, null)) ?? [])
+        .Where(info => !_input.Validator || info.Configuration.Language == "C++");
     private CompilatorInfo? CurrentConfiguration => HasTaskContext
         ? CurrentConfigurations.SingleOrDefault(info => _compilers.Any(compiler => compiler.Id == _input.Compiler && CompilerMatching.Matches(compiler, info)))
         : CurrentConfigurations.SingleOrDefault(info => info.Configuration.Name == _input.Configuration);
 
     private string? UnavailableReason => HasTaskContext && _problem is null ? SiteResources.PageNotFoundMessage
         : InvalidTest ? SiteResources.StaffRunTestNotFound
-        : HasTaskContext && _compilers.Count == 0 ? SiteResources.NoActiveCompilers
+        : HasTaskContext && !AvailableCompilers.Any() ? SiteResources.NoActiveCompilers
         : HasTaskContext && _input.Compiler is null ? null
         : !AvailableRunners.Any() ? HasTaskContext ? SiteResources.StaffNoMatchingRunner : SiteResources.StaffNoRunners
         : _input.Runner is null ? null
@@ -191,6 +219,18 @@ else
         SelectConfiguration();
     }
 
+    private void ChangeMode()
+    {
+        _output = null;
+        _error = null;
+        if (HasTaskContext && !AvailableCompilers.Any(c => c.Id == _input.Compiler))
+            _input.Compiler = AvailableCompilers.FirstOrDefault(c => Checkers.Checkers.Values.Any(r => r.CanCheck(c)))?.Id
+                ?? AvailableCompilers.FirstOrDefault()?.Id;
+        if (!AvailableRunners.Any(r => r.Id == _input.Runner))
+            _input.Runner = AvailableRunners.FirstOrDefault()?.Id;
+        SelectConfiguration();
+    }
+
     private void SelectConfiguration()
     {
         if (!CurrentConfigurations.Any(item => item.Configuration.Name == _input.Configuration))
@@ -227,14 +267,24 @@ else
             {
                 var configuration = configurations.SingleOrDefault(item => item.Configuration.Name == _input.Configuration);
                 if (configuration is null || configuration.Error is not null) { _error = SiteResources.StaffConfigurationUnavailable; return; }
-                string log = await runner.Run(_input.Source, configuration.Configuration, _input.Input, TimeSpan.FromSeconds(seconds), memory, cancellation.Token);
-                if (!_disposed && !cancellation.IsCancellationRequested) _output = new(null, log, seconds, memory, null);
+                if (_input.Validator)
+                {
+                    if (configuration.Configuration.Language != "C++") { _error = SiteResources.StaffConfigurationUnavailable; return; }
+                    var validation = await runner.Validate(_input.Source, configuration,
+                        [new(1, System.Text.Encoding.UTF8.GetBytes(_input.Input))], cancellation.Token);
+                    if (!_disposed && !cancellation.IsCancellationRequested) _output = new(null, validation.Log, 0, 0, 1, Validation: validation);
+                }
+                else
+                {
+                    var execution = await runner.Run(_input.Source, configuration.Configuration, _input.Input, TimeSpan.FromSeconds(seconds), memory, cancellation.Token);
+                    if (!_disposed && !cancellation.IsCancellationRequested) _output = new(execution, execution.Log, seconds, memory, null);
+                }
                 return;
             }
 
             await using var db = await ContextFactory.CreateDbContextAsync(cancellation.Token);
             var compiler = await db.Compilators.AsNoTracking().SingleOrDefaultAsync(item => item.Id == _input.Compiler && item.IsActive, cancellation.Token);
-            if (compiler is null || !runner.CanCheck(compiler)) { _error = SiteResources.StaffCompilerUnavailable; return; }
+            if (compiler is null || !runner.CanCheck(compiler) || (_input.Validator && compiler.Language != "C++")) { _error = SiteResources.StaffCompilerUnavailable; return; }
             var info = configurations.Single(item => CompilerMatching.Matches(compiler, item) && item.Error is null);
             var problem = await db.Problems.AsNoTracking().SingleOrDefaultAsync(item => item.Id == _input.Problem, cancellation.Token);
             if (problem is null) { _error = SiteResources.PageNotFoundMessage; return; }
@@ -243,9 +293,16 @@ else
                 .OrderBy(item => item.Number).Select(item => new CheckTest(item.Number, item.Input, item.Output, item.Score)).ToArrayAsync(cancellation.Token);
             if (tests.Length == 0) { _error = SiteResources.StaffNoTests; return; }
 
+            if (_input.Validator)
+            {
+                var validation = await runner.Validate(_input.Source, info, [.. tests.Select(t => new ValidatorTest(t.Number, t.Input))], cancellation.Token);
+                if (!_disposed && !cancellation.IsCancellationRequested) _output = new(null, validation.Log, 0, 0, tests.Length, Validation: validation);
+                return;
+            }
+
             var request = new CheckRequest(Guid.NewGuid().ToString("N"), _input.Source, info, problem.CheckerId, tests, TimeSpan.FromSeconds(seconds), memory, true);
             var result = await runner.Check(request, cancellation.Token);
-            if (!_disposed && !cancellation.IsCancellationRequested) _output = new(result, result.Log, seconds, memory, tests.Length);
+            if (!_disposed && !cancellation.IsCancellationRequested) _output = new(result, result.Log, seconds, memory, tests.Length, Checked: true);
         }
         catch (OperationCanceledException) { }
         catch (Exception exception)
@@ -255,6 +312,18 @@ else
         }
         finally { if (ReferenceEquals(_cancellation, cancellation)) _cancellation = null; }
     }
+
+    private static string ExecutionStatusText(int code) => code switch
+    {
+        2 => SiteResources.StaffExecutionCompleted,
+        -1 => SiteResources.SubmissionCompilationError,
+        <= -2000 and > -3000 => SiteResources.StaffVerdictTimeLimit,
+        <= -3000 and > -4000 => SiteResources.StaffVerdictRuntimeError,
+        <= -4000 and > -5000 => SiteResources.StaffOutputLimit,
+        <= -5000 and > -6000 => SiteResources.StaffVerdictIdlenessLimit,
+        <= -6000 and > -7000 => SiteResources.StaffVerdictMemoryLimit,
+        _ => SiteResources.StaffVerdictInternalError
+    };
 
     private static string StatusText(CheckerSelfTestingStatus status) => status switch
     {
@@ -277,6 +346,7 @@ else
     private sealed class RunInput : IValidatableObject
     {
         public bool HasTaskContext { get; set; }
+        public bool Validator { get; set; }
         public int? Compiler { get; set; }
         public Guid? Runner { get; set; }
         public string? Configuration { get; set; }
@@ -293,12 +363,13 @@ else
             if (HasTaskContext && Compiler is null) yield return new(SiteResources.CompilerRequired, [nameof(Compiler)]);
             if (Runner is null) yield return new(SiteResources.StaffSelectRunner, [nameof(Runner)]);
             if (!HasTaskContext && string.IsNullOrWhiteSpace(Configuration)) yield return new(SiteResources.StaffSelectConfiguration, [nameof(Configuration)]);
-            if (!double.IsFinite(Seconds) || Seconds <= 0 || Seconds >= TimeSpan.MaxValue.TotalSeconds - 10)
+            if (!Validator && (!double.IsFinite(Seconds) || Seconds <= 0 || Seconds >= TimeSpan.MaxValue.TotalSeconds - 10))
                 yield return new(SiteResources.StaffRunTimeInvalid, [nameof(Seconds)]);
-            if (!MemoryLimits.Contains(Memory)) yield return new(SiteResources.StaffRunMemoryInvalid, [nameof(Memory)]);
+            if (!Validator && !MemoryLimits.Contains(Memory)) yield return new(SiteResources.StaffRunMemoryInvalid, [nameof(Memory)]);
         }
     }
 
     private sealed record TestMetadata(int Id, int Number, bool Active);
-    private sealed record RunOutput(CheckerResult? Result, string Log, double Seconds, int Memory, int? Count);
+    private sealed record RunOutput(CheckerResult? Result, string Log, double Seconds, int Memory, int? Count,
+        bool Checked = false, ValidatorResult? Validation = null);
 }

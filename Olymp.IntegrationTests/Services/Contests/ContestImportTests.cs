@@ -320,7 +320,7 @@ public class ContestImportTests(ContestServiceFixture site) : IClassFixture<Cont
         public List<CheckRequest> Requests { get; } = [];
         public int ValidatorCalls { get; private set; }
         public Task<bool> RunSelfTests(CancellationToken token) => Task.FromResult(false);
-        public Task<string> Run(string source, ICompilatorConfiguration configuration, string input, TimeSpan timeLimit, int memoryLimitMb, CancellationToken token) => throw new NotSupportedException();
+        public Task<CheckerResult> Run(string source, ICompilatorConfiguration configuration, string input, TimeSpan timeLimit, int memoryLimitMb, CancellationToken token) => throw new NotSupportedException();
         public Task<CheckerResult> Check(CheckRequest request, CancellationToken token)
         {
             Requests.Add(request);
