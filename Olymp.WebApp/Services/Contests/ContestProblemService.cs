@@ -16,7 +16,7 @@ using Olymp.WebApp.Services.Checker;
 namespace Olymp.WebApp.Services.Contests;
 
 public sealed class ContestProblemService(OlympContext context, ICheckerManager checkerManager,
-    IEnumerable<ISimpleChecker> checkers, IOptions<ContestImportOptions> options, IAuthorizationService authorization, TimeProvider timeProvider)
+    IOptions<ContestImportOptions> options, IAuthorizationService authorization, TimeProvider timeProvider)
 {
     public const int LegacyCleanupContestId = 1;
     public static ReadOnlyCollection<int> LegacyCleanupProblemIds { get; } = Array.AsReadOnly<int>([3554, 3582]);
@@ -97,78 +97,6 @@ public sealed class ContestProblemService(OlympContext context, ICheckerManager 
         contest.ProblemPdf = null;
         context.Blobs.Remove(pdf);
         await context.SaveChangesAsync(token);
-    }
-
-    public async Task<int> ImportAsync(int contestId, Stream source, CancellationToken token = default)
-    {
-        var imported = await ProblemArchive.ReadAsync(source, options.Value, token);
-        using var gate = await checkerManager.EnterAsync(token);
-        var contest = await context.Contests.SingleAsync(x => x.Id == contestId, token);
-        var numbers = imported.Select(x => x.Manifest.Number).ToArray();
-        var existing = await context.Problems.Where(x => x.ContestId == contestId && numbers.Contains(x.Number))
-            .Include(x => x.Tests).AsTracking().ToListAsync(token);
-        if (existing.GroupBy(x => x.Number).Any(x => x.Count() > 1))
-            throw new InvalidDataException("The contest already contains problems with duplicate numbers.");
-        await EnsureIdleAsync([.. existing.Select(x => x.Id)], token);
-        var supported = checkers.Select(x => x.Id)
-            .Intersect(await context.Checkers.Select(x => x.Id).ToListAsync(token)).ToHashSet();
-        foreach (var item in imported)
-        {
-            var data = item.Manifest;
-            if (!supported.Contains(data.CheckerId))
-                throw new InvalidDataException($"{item.Folder}/problem.json: checkerId={data.CheckerId} is not supported.");
-            if (contest.IsSchool && data.Scores is null && data.OpenTestCount == item.Tests.Count)
-                throw new InvalidDataException($"{item.Folder}/problem.json: a non-example test is required to distribute scores.");
-            var problem = existing.SingleOrDefault(x => x.Number == data.Number);
-            if (problem is null)
-            {
-                problem = new Problem
-                {
-                    ContestId = contestId,
-                    Contest = null!,
-                    Name = data.Name,
-                    Checker = null!,
-                    Messages = [],
-                    Submissions = [],
-                    Tests = []
-                };
-                context.Problems.Add(problem);
-            }
-            else
-            {
-                context.Tests.RemoveRange(problem.Tests);
-                problem.Tests.Clear();
-            }
-            problem.Number = data.Number;
-            problem.Name = data.Name;
-            problem.TimeLimit = data.TimeLimit;
-            problem.SlowTimeLimit = data.SlowTimeLimit ?? data.TimeLimit;
-            problem.MemoryLimit = data.MemoryLimit;
-            problem.CheckerId = data.CheckerId;
-            problem.IsActive = data.IsActive;
-            var closedCount = item.Tests.Count - data.OpenTestCount;
-            for (var i = 0; i < item.Tests.Count; i++)
-            {
-                var test = item.Tests[i];
-                int? score = null;
-                if (data.Scores is not null)
-                    score = data.Scores.GetValueOrDefault(test.Number);
-                else if (contest.IsSchool)
-                    score = i < data.OpenTestCount ? 0 : (100 / closedCount) + (i >= item.Tests.Count - (100 % closedCount) ? 1 : 0);
-                problem.Tests.Add(new Test
-                {
-                    Problem = problem,
-                    Number = test.Number,
-                    Input = test.Input,
-                    Output = test.Output,
-                    IsActive = true,
-                    IsOpen = i < data.OpenTestCount,
-                    Score = score
-                });
-            }
-        }
-        await context.SaveChangesAsync(token);
-        return imported.Count;
     }
 
     public async Task<int> RetestAsync(int contestId, int problemId, bool exceptAccepted, CancellationToken token = default)

@@ -1,0 +1,19 @@
+@using Olymp.WebApp.Services.Contests
+@using Olymp.WebApp.Components.Submissions
+@if (Runs.Count != 0)
+{
+    <div class="table-responsive"><table class="table table-sm">
+        <thead><tr><th>@SiteResources.SourceCode</th><th>@SiteResources.Compiler</th><th>@SiteResources.TimeLimit (@SiteResources.Seconds)</th><th>@SiteResources.Status</th><th>@SiteResources.StaffScore</th><th>@SiteResources.ImportPeakTime</th><th>@SiteResources.ImportPeakMemory</th><th>@SiteResources.ImportSlowestTest</th></tr></thead>
+        <tbody>
+            @foreach (var run in Runs)
+            {
+                <tr><td>@run.File</td><td>@run.Compiler</td><td>@run.TimeLimit</td>
+                    <td>@if (run.Result is { } verdict) { <SubmissionStatus StatusCode="verdict.StatusCode" /> } else { @run.Message }</td>
+                    <td>@run.Result?.Score</td><td>@run.Result?.MaxUserTime?.TotalSeconds.ToString("0.###")</td><td>@(run.Result?.MaxMemory is { } bytes ? (bytes / 1048576d).ToString("0.##") : null)</td><td>@run.Result?.SlowestTest</td>
+                </tr>
+                @if (run.Result is not null) { <tr><td colspan="8"><details><summary>@SiteResources.StaffRunOutput</summary><pre class="text-wrap">@run.Result.Log</pre></details></td></tr> }
+            }
+        </tbody>
+    </table></div>
+}
+@code { [Parameter] public IReadOnlyList<ImportRun> Runs { get; set; } = []; }

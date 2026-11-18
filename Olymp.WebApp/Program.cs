@@ -118,6 +118,7 @@ builder.Services.AddWebEncoders(options =>
 
 builder.Services.AddScoped<CompetitorManagementService>();
 builder.Services.AddScoped<ContestProblemService>();
+builder.Services.AddScoped<ContestImportService>();
 builder.Services.AddScoped<ContestExportService>();
 builder.Services.AddOptions<DatabaseBackupOptions>()
     .Bind(builder.Configuration.GetSection(DatabaseBackupOptions.SectionName))

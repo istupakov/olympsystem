@@ -44,7 +44,7 @@ public class RetestTests(ContestServiceFixture site) : IClassFixture<ContestServ
     }
 
     [Fact]
-    public async Task BusyTaskRejectsRetestsAndWholeImportWithoutChanges()
+    public async Task BusyTaskRejectsRetestsWithoutChanges()
     {
         var owner = await site.AddUserAsync(RoleNames.Jury);
         var contest = await site.AddContestAsync(owner);
@@ -59,15 +59,13 @@ public class RetestTests(ContestServiceFixture site) : IClassFixture<ContestServ
                 (await Assert.ThrowsAsync<InvalidDataException>(() => service.RetestAsync(contest.Id, problem.Id, exceptAccepted, TestContext.Current.CancellationToken))).Message);
         Assert.Equal(ContestProblemService.BusyMessage,
             (await Assert.ThrowsAsync<InvalidDataException>(() => service.RetestCompilationErrorsAsync(contest.Id, TestContext.Current.CancellationToken))).Message);
-        await Assert.ThrowsAsync<InvalidDataException>(() => ContestMaterialsTests.ImportAsync(scope.ServiceProvider,
-            contest.Id, ProblemArchives.ProblemZip(name: "Не сохранять")));
         db.ChangeTracker.Clear();
         Assert.Equal("Задача", (await db.Problems.SingleAsync(x => x.Id == problem.Id, cancellationToken: TestContext.Current.CancellationToken)).Name);
         Assert.Equal(new[] { 2, 1, -1 }, await db.Submissions.Where(x => x.ProblemId == problem.Id).OrderBy(x => x.Id).Select(x => x.StatusCode).ToArrayAsync(cancellationToken: TestContext.Current.CancellationToken));
     }
 
     [Fact]
-    public async Task ConcurrentRunnersReleaseGateAndRejectRetestAndImport()
+    public async Task ConcurrentRunnersReleaseGateAndRejectRetest()
     {
         var owner = await site.AddUserAsync(RoleNames.Jury);
         var contest = await site.AddContestAsync(owner);
@@ -104,8 +102,6 @@ public class RetestTests(ContestServiceFixture site) : IClassFixture<ContestServ
             var service = scope.ServiceProvider.GetRequiredService<ContestProblemService>();
             // The gate must be free during compilation, so this fails promptly instead of waiting for the runner.
             await Assert.ThrowsAsync<InvalidDataException>(() => service.RetestAsync(contest.Id, problemId, false, TestContext.Current.CancellationToken).WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken));
-            await Assert.ThrowsAsync<InvalidDataException>(() => ContestMaterialsTests.ImportAsync(scope.ServiceProvider,
-                contest.Id, ProblemArchives.ProblemZip(name: "Не сохранять")).WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken));
         }
         finally
         {

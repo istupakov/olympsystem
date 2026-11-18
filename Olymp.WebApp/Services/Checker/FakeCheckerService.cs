@@ -64,6 +64,9 @@ internal sealed class FakeCheckerService(Guid id, CheckerSelfTestingStatus statu
         return Task.FromResult($"TEST RESULT: predefined output, source code was not executed.\nRunner: {Name} ({Id})\nConfiguration: {configuration.Name}\nTime limit: {timeLimit}\nMemory limit: {memoryLimitMb} MB\nInput length: {input.Length}\nstdout:\n42\nstderr:\n");
     }
 
+    public Task<ValidatorResult> Validate(string source, CompilatorInfo compiler, IReadOnlyList<ValidatorTest> tests, CancellationToken token)
+        => throw new NotSupportedException("The test runner does not execute validators.");
+
     public static IReadOnlyList<ICheckerService> Create()
     {
         var cpp = new GccCpp23Configuration().ParseInfo("14.2.0") with { DisplayName = "Test C++23 (GCC 14.2)", Description = "TEST CONFIGURATION: no compiler is executed." };

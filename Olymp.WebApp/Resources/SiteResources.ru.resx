@@ -844,4 +844,72 @@
   <data name="UserStatisticsNewShort" xml:space="preserve"><value>Новые пользователи</value></data>
   <data name="UserStatisticsSubmittedNew" xml:space="preserve"><value>Из них с отправками</value></data>
   <data name="UserStatisticsActiveShort" xml:space="preserve"><value>Пользователи с отправками</value></data>
+  <data name="ImportProblems" xml:space="preserve"><value>Импорт задач</value></data>
+  <data name="ImportContestMismatch" xml:space="preserve"><value>ID контеста в архиве не совпадает с выбранным контестом.</value></data>
+  <data name="ImportArchiveError" xml:space="preserve"><value>Ошибка архива: {0}</value></data>
+  <data name="ImportUnknownId" xml:space="preserve"><value>Задача с указанным ID не найдена в этом контесте.</value></data>
+  <data name="ImportStale" xml:space="preserve"><value>Данные изменились. Обновите предпросмотр и повторите проверку.</value></data>
+  <data name="ImportInvalidParameters" xml:space="preserve"><value>Проверьте обязательные имя и номер, положительные лимиты времени и памяти.</value></data>
+  <data name="ImportEmptyActive" xml:space="preserve"><value>Для активной задачи нужны тесты. Импорт всегда полностью заменяет набор тестов.</value></data>
+  <data name="ImportOpenTests" xml:space="preserve"><value>Поле openTests не поддерживается. Расположите открытые тесты первыми и укажите openTestCount.</value></data>
+  <data name="ImportInvalidMetadata" xml:space="preserve"><value>Метаданные тестов содержат недопустимые значения или ссылки на отсутствующие тесты.</value></data>
+  <data name="ImportDuplicateId" xml:space="preserve"><value>ID задачи повторяется среди выбранных задач.</value></data>
+  <data name="ImportDuplicateNumber" xml:space="preserve"><value>В контесте или ZIP есть другая задача с таким номером. Сохранение разрешено; для экспорта нужны уникальные номера.</value></data>
+  <data name="ImportUnsupportedChecker" xml:space="preserve"><value>Чекер не поддерживается или недоступен.</value></data>
+  <data name="ImportNoValidator" xml:space="preserve"><value>Нет validator.cpp: проверка входных данных не выполнена.</value></data>
+  <data name="ImportNoValidatorRunner" xml:space="preserve"><value>Выбранный компилятор C++ или подходящий Runner недоступен: проверка входных данных не выполнена.</value></data>
+  <data name="ImportValidatorCompileFailed" xml:space="preserve"><value>Валидатор не скомпилирован: проверка входных данных не выполнена.</value></data>
+  <data name="ImportValidatorFailed" xml:space="preserve"><value>Валидатор не прошёл тест {0}. Подробности в журнале.</value></data>
+  <data name="ImportUnknownLanguage" xml:space="preserve"><value>Нет активного компилятора для расширения файла.</value></data>
+  <data name="ImportValidationRequired" xml:space="preserve"><value>Перед сохранением задачи устраните ошибки и дождитесь проверки валидатором.</value></data>
+  <data name="ImportValidatorCompiler" xml:space="preserve"><value>Компилятор C++ для валидаторов</value></data>
+  <data name="ImportSlowTimeLimit" xml:space="preserve"><value>Замедленный лимит времени (секунды)</value></data>
+  <data name="ImportAddedTests" xml:space="preserve"><value>Добавленные тесты</value></data>
+  <data name="ImportChangedTests" xml:space="preserve"><value>Изменённые тесты</value></data>
+  <data name="ImportRemovedTests" xml:space="preserve"><value>Удалённые тесты</value></data>
+  <data name="ImportNewProblem" xml:space="preserve"><value>Новая задача</value></data>
+  <data name="ImportWaiting" xml:space="preserve"><value>Применяется импорт; при необходимости ожидается завершение текущих проверок.</value></data>
+  <data name="ImportPeakTime" xml:space="preserve"><value>Максимальное время (секунды)</value></data>
+  <data name="ImportPeakMemory" xml:space="preserve"><value>Максимальная память (МиБ)</value></data>
+  <data name="ImportSlowestTest" xml:space="preserve"><value>Самый медленный тест</value></data>
+  <data name="ImportRefresh" xml:space="preserve"><value>Обновить сравнение</value></data>
+  <data name="ImportCurrentValue" xml:space="preserve"><value>Текущее значение</value></data>
+  <data name="ImportNewValue" xml:space="preserve"><value>После импорта</value></data>
+  <data name="ImportFailed" xml:space="preserve"><value>Импорт не выполнен. Подробности в журнале приложения.</value></data>
+  <data name="ImportZipLimit" xml:space="preserve"><value>ZIP превышает допустимый размер.</value></data>
+  <data name="ImportEntryLimit" xml:space="preserve"><value>Слишком много файлов в архиве.</value></data>
+  <data name="ImportInvalidPath" xml:space="preserve"><value>Недопустимый или повторяющийся путь: {0}</value></data>
+  <data name="ImportExpandedLimit" xml:space="preserve"><value>Распакованный архив превышает допустимый размер.</value></data>
+  <data name="ImportSingleContest" xml:space="preserve"><value>Нужен архив одного контеста.</value></data>
+  <data name="ImportOutsideContest" xml:space="preserve"><value>Файлы вне каталога контеста.</value></data>
+  <data name="ImportNoProblems" xml:space="preserve"><value>В архиве нет задач.</value></data>
+  <data name="ImportJsonObject" xml:space="preserve"><value>Ожидается объект JSON.</value></data>
+  <data name="ImportTestFilename" xml:space="preserve"><value>{0}: ожидается inputN.txt или outputN.txt, N от 1 до 999.</value></data>
+  <data name="ImportDuplicateTest" xml:space="preserve"><value>{0}: повторяется номер теста {1}.</value></data>
+  <data name="ImportMissingPair" xml:space="preserve"><value>У каждого входного файла должен быть соответствующий выходной файл.</value></data>
+  <data name="ImportFileLimit" xml:space="preserve"><value>{0}: файл слишком большой.</value></data>
+  <data name="ImportFileSizeMismatch" xml:space="preserve"><value>{0}: размер файла не соответствует записи ZIP.</value></data>
+  <data name="ImportFinish" xml:space="preserve"><value>Завершить импорт</value></data>
+  <data name="ImportStop" xml:space="preserve"><value>Остановить запуск</value></data>
+  <data name="ImportLeaveConfirm" xml:space="preserve"><value>Есть несохранённые задачи. Завершить импорт и отбросить несохранённые изменения? Уже сохранённые задачи останутся.</value></data>
+  <data name="ImportStay" xml:space="preserve"><value>Продолжить импорт</value></data>
+  <data name="ImportProblemDetails" xml:space="preserve"><value>Импорт выбранной задачи</value></data>
+  <data name="ImportParameter" xml:space="preserve"><value>Параметр</value></data>
+  <data name="ImportTestSet" xml:space="preserve"><value>Новый набор тестов</value></data>
+  <data name="ImportOpenTest" xml:space="preserve"><value>Открытый</value></data>
+  <data name="ImportComment" xml:space="preserve"><value>Комментарий</value></data>
+  <data name="ImportValidator" xml:space="preserve"><value>Валидатор входных данных</value></data>
+  <data name="ImportValidatorNotRun" xml:space="preserve"><value>Проверка ещё не выполнена.</value></data>
+  <data name="ImportValidatorPassed" xml:space="preserve"><value>Входные данные прошли проверку.</value></data>
+  <data name="ImportValidatorRejected" xml:space="preserve"><value>Входные данные не прошли проверку на активных тестах.</value></data>
+  <data name="ImportLimits" xml:space="preserve"><value>Лимиты времени для запуска и сохранения</value></data>
+  <data name="ImportSolutions" xml:space="preserve"><value>Решения жюри</value></data>
+  <data name="ImportNoSolutions" xml:space="preserve"><value>В каталоге solutions/ нет файлов решений.</value></data>
+  <data name="ImportRunSelected" xml:space="preserve"><value>Запустить выбранные решения</value></data>
+  <data name="ImportSaveProblem" xml:space="preserve"><value>Сохранить задачу</value></data>
+  <data name="ImportConfirmProblem" xml:space="preserve"><value>Сохранить задачу «{0}»? Её набор тестов будет полностью заменён. Посылки и история проверок сохранятся.</value></data>
+  <data name="ImportProblemSaved" xml:space="preserve"><value>Задача «{0}» сохранена.</value></data>
+  <data name="ImportHasErrors" xml:space="preserve"><value>Есть ошибки</value></data>
+  <data name="ImportUpdateProblem" xml:space="preserve"><value>Обновление</value></data>
+  <data name="ImportCancelSave" xml:space="preserve"><value>Отменить сохранение</value></data>
 </root>

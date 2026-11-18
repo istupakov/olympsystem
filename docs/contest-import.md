@@ -1,30 +1,30 @@
-# Contest problem ZIP format
+# Import problems into a contest
 
-The preparation service accepts a ZIP with one folder per problem at the root.
-There is no web editor for this service.
+Import problems from a ZIP into an existing contest. One ZIP can contain new and existing problems. Each problem is saved separately after confirmation. Import requires permission to manage the contest.
+
+## Prepare the ZIP
+
+Put one directory per problem at the root of the ZIP. A single-contest [export](contest-export.md) is also accepted with its `abbr` directory and `contest.json`. If present, the contest ID in `contest.json` must match the selected contest.
 
 ```text
-A/
+problem01/
   problem.json
-  input01.txt
-  output01.txt
-  input02.txt
-  output02.txt
-B/
-  problem.json
-  input1.txt
-  output1.txt
+  validator.cpp
+  tests/
+    input001.txt
+    output001.txt
+    input002.txt
+    output002.txt
+  solutions/
+    reference.cpp
+    reference.py
 ```
 
-Folder names are arbitrary. Each folder must contain `problem.json` and at least one
-`inputN.txt` / `outputN.txt` pair. Test numbers range from 1 to 999; leading zeros are
-allowed. Nested folders and additional files are rejected. JSON uses UTF-8; test files
-are preserved as bytes.
-
-Example `problem.json`:
+Only problem parameters, tests, `validator.cpp`, and files under `solutions/` are used. Other exported files, including statements, can remain in the ZIP. Write `problem.json` in UTF-8.
 
 ```json
 {
+  "id": 417,
   "number": 1,
   "name": "Sum",
   "timeLimit": 1,
@@ -37,22 +37,29 @@ Example `problem.json`:
 }
 ```
 
-| Field | Meaning | Default |
-|---|---|---|
-| `number` | Unique positive problem number within the archive | Required |
-| `name` | Problem name | Required |
-| `timeLimit` | Time limit in seconds | `1` |
-| `slowTimeLimit` | Time limit for slower languages, in seconds | `timeLimit` |
-| `memoryLimit` | Memory limit in MiB | `256` |
-| `checkerId` | Checker ID; must exist in the database and be supported by the site | `4` |
-| `isActive` | Whether the problem is active | `true` |
-| `openTestCount` | Number of example tests, ordered by test number | `1` |
-| `scores` | Nonnegative scores keyed by test number; omitted tests receive zero | Optional |
+- Include `id` to update that problem in the selected contest. An unknown ID or an ID from another contest is an error. Omit `id` to create a problem and let the database assign its ID.
+- `number` is a nonnegative integer. Duplicate numbers produce a warning without blocking import; export requires unique numbers. `name` and `number` are required for new problems. For updates, omitted problem parameters keep their current values.
+- `timeLimit` and `slowTimeLimit` are in seconds. `memoryLimit` is in MiB. `checkerId` must refer to a supported checker. New problems default to 1 second, the regular time limit for `slowTimeLimit`, 256 MiB, checker 4, and `isActive: true`.
 
-Without `scores`, school contests distribute 100 points across non-example tests;
-at least one such test is required. Other contest modes leave scores unset.
+## Import tests
 
-Import updates problems by number and replaces their tests. Problem IDs, submissions,
-checking history and existing statement text are preserved. Problems absent from the
-archive are kept. Any error cancels the entire import. After changing tests, start a
-retest and regenerate the downloadable tests ZIP as needed.
+Import replaces the problem's complete test set with the files from `tests/`. Without test files, the set becomes empty. Only inactive problems can have an empty test set.
+
+Each test has an `inputN.txt` and an `outputN.txt` with the same test number. Use numbers from 1 through 999. Leading zeros and gaps are allowed. Reject duplicate test numbers, missing partners, and test metadata that refers to absent tests. The importer preserves the file bytes.
+
+- `openTestCount` specifies how many tests are open, starting from the lowest test number. It must be between zero and the size of the replacement set. The default is 1 for a nonempty set and 0 for an empty set.
+- `scores` maps test numbers to nonnegative scores. An omitted score is unset. Use an explicit `0` for a zero-point test.
+- `inactiveTests` lists disabled test numbers. Other tests are active.
+- `testComments` maps test numbers to comments.
+
+`openTests` is not supported. Use `openTestCount` with open tests first in test-number order.
+
+## Validation and saving
+
+- If supplied, `validator.cpp` checks test inputs using a selected C++ compiler; `testlib.h` is available. Failure on an active test blocks saving; failure on an inactive test is a warning. A missing validator, compilation failure, or unavailable Runner is a warning.
+- Selected files from `solutions/` run on active tests using the resulting checker and time limits, on available compilers for their language. Results are informational.
+- The regular and slow time limits can be changed independently before saving.
+
+An updated problem keeps its ID, statement, submissions, and checking history. Problems absent from the ZIP are kept. Finishing import discards unsaved changes and retains saved problems.
+
+Rejudging and publishing a replacement test ZIP are separate operations.

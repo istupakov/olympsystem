@@ -104,7 +104,7 @@ public sealed class CheckerService : ICheckerService
     }
 
     private async Task<RunnerResult> Compile(string name, ICompilatorConfiguration configuration,
-        string source, bool clearWorkdir, CancellationToken token)
+        string source, bool clearWorkdir, CancellationToken token, IReadOnlyList<RunnerFile>? additionalFiles = null)
     {
         if (!_runner.SupportedEnvs.Contains(configuration.ConfigName))
             throw new NotSupportedException($"Runner {_runner.Name} don't support config {configuration.ConfigName}");
@@ -113,7 +113,7 @@ public sealed class CheckerService : ICheckerService
         var command = configuration.GetCompileCommand(name);
 
         return await _runner.Run(new($"{command} 1>&2", Memory<byte>.Empty, clearWorkdir, false,
-            [configuration.ConfigName], [new(filename, Encoding.UTF8.GetBytes(source))], CompilationResources), token);
+            [configuration.ConfigName], [new(filename, Encoding.UTF8.GetBytes(source)), .. additionalFiles ?? []], CompilationResources), token);
     }
 
     private async Task<RunnerResult> RunTest(string name, ICompilatorConfiguration configuration,
@@ -127,7 +127,7 @@ public sealed class CheckerService : ICheckerService
         memoryLimitMb += configuration.MemoryOverheadMb;
 
         var resourceLimits = new RunnerResources(timeLimit, timeLimit + TimeSpan.FromSeconds(5),
-            (uint)memoryLimitMb * 1024 * 1024, 1024 * 1024, 4096);
+            (ulong)memoryLimitMb * 1024 * 1024, 1024 * 1024, 4096);
         return await _runner.Run(new(command, input, false, true, [configuration.ConfigName], [], resourceLimits), token);
     }
 
@@ -151,6 +151,45 @@ public sealed class CheckerService : ICheckerService
             _ => throw new Exception($"Runner unexpected result {result.Status}")
         };
         return (status, result);
+    }
+
+    public async Task<ValidatorResult> Validate(string source, CompilatorInfo compiler,
+        IReadOnlyList<ValidatorTest> tests, CancellationToken token)
+    {
+        await _semaphore.WaitAsync(token);
+        try
+        {
+            var configuration = compiler.Configuration;
+            if (compiler.Error is not null || configuration.Language != "C++")
+                throw new NotSupportedException();
+
+            string name = Guid.NewGuid().ToString("N");
+            using var header = typeof(CheckerService).Assembly.GetManifestResourceStream("Olymp.Checker.Validation.testlib.h")
+                ?? throw new InvalidOperationException("testlib.h is unavailable.");
+            using var memory = new MemoryStream();
+            await header.CopyToAsync(memory, token);
+            var compilation = await Compile(name, configuration, source, true, token,
+                [new("testlib.h", memory.ToArray())]);
+            var log = new StringBuilder(GetCompilationLog(configuration.GetCompileCommand(name), compilation));
+            if (compilation.Status != RunnerStatus.Completed)
+                return new(false, log.ToString(), []);
+
+            var results = new List<ValidatorTestResult>();
+            foreach (var test in tests)
+            {
+                var result = await _runner.Run(new(
+                    configuration.RunCommand(name, (int)(CompilationResources.Memory / 1024 / 1024)), test.Input,
+                    false, true, [configuration.ConfigName], [], CompilationResources), token);
+                results.Add(new(test.Number, result.Status == RunnerStatus.Completed));
+                log.AppendLine($"\nTest {test.Number}: {result.Status}, exit code {result.ExitCode}");
+                log.AppendLine(GetTruncatedString(result.Stderr, (int)CompilationResources.Stderr));
+            }
+            return new(true, log.ToString(), results);
+        }
+        finally
+        {
+            _semaphore.Release();
+        }
     }
 
     public async Task<CheckerResult> Check(CheckRequest request, CancellationToken token)
@@ -192,6 +231,7 @@ public sealed class CheckerService : ICheckerService
             var maxUserTime = TimeSpan.Zero;
             var maxTotalTime = TimeSpan.Zero;
             var maxPeakMemory = 0ul;
+            int? slowestTest = null;
             foreach (var test in request.Tests)
             {
                 int counter = 0;
@@ -203,8 +243,11 @@ public sealed class CheckerService : ICheckerService
                 var (status, result) = await CheckTest(name, configuration, checker,
                     test.Input, test.Output, request.TimeLimit, request.MemoryLimitMb, token);
 
-                if (result.ResourceConsumption.UserTime > maxUserTime)
+                if (slowestTest is null || result.ResourceConsumption.UserTime > maxUserTime)
+                {
                     maxUserTime = result.ResourceConsumption.UserTime;
+                    slowestTest = test.Number;
+                }
 
                 if (result.ResourceConsumption.TotalTime > maxTotalTime)
                     maxTotalTime = result.ResourceConsumption.TotalTime;
@@ -253,7 +296,9 @@ public sealed class CheckerService : ICheckerService
                 !needScores ? null : request.Tests
                     .Zip(testResults, (test, res) => res is CheckerResultStatus.Accepted ? test.Score : 0).Sum(),
                 !needScores ? null : string.Join(';', request.Tests
-                    .Zip(testResults, (test, res) => $"{(res is CheckerResultStatus.Accepted ? test.Score ?? 0 : res)}")));
+                    .Zip(testResults, (test, res) => $"{(res is CheckerResultStatus.Accepted ? test.Score ?? 0 : res)}")),
+                slowestTest is null ? null : maxUserTime, slowestTest is null ? null : maxTotalTime,
+                slowestTest is null ? null : maxPeakMemory, slowestTest);
         }
         finally
         {
