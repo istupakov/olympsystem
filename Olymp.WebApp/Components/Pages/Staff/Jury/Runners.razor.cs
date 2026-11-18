@@ -57,13 +57,14 @@ public partial class Runners
         _refreshing = true;
         try
         {
-            _runners = [.. Checkers.Checkers.Values.OrderBy(item => item.Name).ThenBy(item => item.Id)];
             await using var db = await ContextFactory.CreateDbContextAsync(_stop.Token);
-            _compilers = await db.Compilators.AsNoTracking().OrderByDescending(item => item.Id).ToListAsync(_stop.Token);
-            _loaded = true;
+            var compilers = await db.Compilators.AsNoTracking().OrderByDescending(item => item.Id).ToListAsync(_stop.Token);
+            _runners = [.. Checkers.Checkers.Values.OrderBy(item => item.Name).ThenBy(item => item.Id)];
+            _compilers = compilers;
+            _error = null;
         }
         catch (DbException exception) { Logger.LogWarning(exception, "Could not refresh Runner information"); _error = SiteResources.StaffRefreshFailed; }
-        finally { _refreshing = false; }
+        finally { _loaded = true; _refreshing = false; }
     }
 
     private async Task PollAsync()

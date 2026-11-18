@@ -9,13 +9,17 @@
 @implements IAsyncDisposable
 
 <StaffPageTitle Title="@SiteResources.StaffMessages" Context="@_contest?.Name" />
+@if (_refreshError is not null)
+{
+    <p class="alert alert-danger" role="alert">@_refreshError</p>
+}
 @if (!_loaded)
 {
     <p role="status">@SiteResources.StaffLoading</p>
 }
 else if (_contest is null)
 {
-    <p>@SiteResources.PageNotFoundMessage</p>
+    @if (_refreshError is null) { <p>@SiteResources.PageNotFoundMessage</p> }
 }
 else
 {
@@ -71,7 +75,6 @@ else
         <div class="col-12 d-flex flex-wrap gap-2">
             <button class="btn btn-primary">@SiteResources.StaffFind</button>
             <a class="btn btn-outline-secondary" href="@TabUrl(Announcements)">@SiteResources.StaffReset</a>
-            <button type="button" class="btn btn-secondary" @onclick="RefreshAsync">@SiteResources.Refresh</button>
             @if (Announcements && _canManage)
             {
                 <button type="button" class="btn btn-secondary" @onclick="NewAnnouncement">@SiteResources.StaffNewAnnouncement</button>

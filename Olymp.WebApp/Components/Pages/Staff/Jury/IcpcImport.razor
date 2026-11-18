@@ -131,6 +131,10 @@
                         }
                         @foreach (var error in row.Errors) { <p class="text-danger" role="alert">@error</p> }
                         @foreach (var warning in row.Warnings) { <p class="text-warning-emphasis" role="status">@warning</p> }
+                        @if (row.Members.Any(member => member.UserId is null))
+                        {
+                            <p class="text-body-secondary">@SiteResources.IcpcUnlinkedMembers</p>
+                        }
                         <div class="row g-3">
                             <div class="col-lg-6">
                                 <label class="form-label" for="@($"icpc-coach-{row.Source.Id}")">@SiteResources.StaffCoach</label>

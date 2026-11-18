@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.JSInterop;
 
 using Olymp.Domain;
 using Olymp.Domain.Models;
@@ -28,6 +29,85 @@ namespace Olymp.IntegrationTests.WebApp.Staff.Jury;
 [Trait("Category", "Integration")]
 public partial class MessageTests(WebAppFactory factory) : StaffComponentTests(factory)
 {
+    [Fact]
+    public async Task MessagePollingStartsEvenWhenSoundInitializationDisconnects()
+    {
+        var author = await _factory.AddUserAsync();
+        await using var scope = _factory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<OlympContext>();
+        var contest = TestEntities.CreateContest("Sound disconnect", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddHours(1));
+        db.Contests.Add(contest);
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await RenderAsync<JuryMessages>($"/jury/contests/{contest.Id}/messages", new() { ["ContestId"] = contest.Id }, Staff(author.Id), async page =>
+        {
+            await ActAsync(page, "OnAfterRenderAsync", true);
+            Assert.NotNull(typeof(JuryMessages).GetField("_poll", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(page));
+        }, services =>
+        {
+            services.RemoveAll<IJSRuntime>();
+            services.AddSingleton<IJSRuntime, DisconnectedJavaScript>();
+        });
+    }
+
+    private sealed class DisconnectedJavaScript : IJSRuntime, IJSObjectReference
+    {
+        public ValueTask<TValue> InvokeAsync<TValue>(string identifier, object?[]? args) =>
+            throw new JSDisconnectedException("Test disconnect");
+
+        public ValueTask<TValue> InvokeAsync<TValue>(string identifier, CancellationToken cancellationToken, object?[]? args) =>
+            throw new JSDisconnectedException("Test disconnect");
+
+        public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task MessageRefreshRecoversWithoutLosingDraftOrActionError(bool announcements)
+    {
+        var author = await _factory.AddUserAsync();
+        await using var scope = _factory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<OlympContext>();
+        var contest = TestEntities.CreateContest("Refresh recovery", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddHours(1));
+        var question = new Message { Contest = contest, UserId = announcements ? null : author.Id, UserText = "Question", JuryText = "Existing text" };
+        db.Messages.Add(question);
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var contexts = new RefreshFailureContextFactory(_factory.Services.GetRequiredService<IDbContextFactory<OlympContext>>());
+        void Configure(IServiceCollection services)
+        {
+            services.RemoveAll<IDbContextFactory<OlympContext>>();
+            services.AddSingleton<IDbContextFactory<OlympContext>>(contexts);
+        }
+        string path = $"/jury/contests/{contest.Id}/messages?Announcements={announcements}";
+        using var failed = await new HtmlParser().ParseDocumentAsync(await RenderAsync<JuryMessages>(path, new() { ["ContestId"] = contest.Id }, Staff(author.Id), configure: Configure));
+        Assert.Contains(SiteResources.StaffRefreshFailed, failed.Body!.TextContent);
+        Assert.DoesNotContain(SiteResources.PageNotFoundMessage, failed.Body.TextContent);
+        using var recovered = await new HtmlParser().ParseDocumentAsync(await RenderAsync<JuryMessages>(path, new() { ["ContestId"] = contest.Id }, Staff(author.Id), async page =>
+        {
+            contexts.Fail = false;
+            await ActAsync(page, "RefreshAsync");
+            await ActAsync(page, "Edit", question);
+            SetEditor(page, "Unsaved draft");
+            typeof(JuryMessages).GetField("_error", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(page, SiteResources.StaffMessageConflict);
+            typeof(JuryMessages).GetField("_sound", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(page, new DisconnectedJavaScript());
+            typeof(JuryMessages).GetField("_soundId", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(page, 1);
+            db.Messages.Add(new Message { Contest = contest, UserId = author.Id, UserText = "New question" });
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+            var messages = typeof(JuryMessages).GetField("_messages", BindingFlags.Instance | BindingFlags.NonPublic)!;
+            object? previous = messages.GetValue(page);
+            contexts.Fail = true;
+            await ActAsync(page, "RefreshAsync");
+            Assert.Same(previous, messages.GetValue(page));
+            contexts.Fail = false;
+            await ActAsync(page, "RefreshAsync");
+        }, Configure));
+        Assert.Contains("Unsaved draft", recovered.QuerySelector("#jury-text")!.TextContent);
+        Assert.Contains(SiteResources.StaffMessageConflict, recovered.Body!.TextContent);
+        Assert.Contains("Existing text", recovered.Body.TextContent);
+        Assert.DoesNotContain(SiteResources.StaffRefreshFailed, recovered.Body.TextContent);
+        Assert.DoesNotContain(recovered.QuerySelectorAll("button"), button => button.TextContent == SiteResources.Refresh);
+    }
+
     [Fact]
     public async Task MessageAuthorSelectionShowsAccountAndResetPreservesOtherFilters()
     {

@@ -123,8 +123,6 @@ public sealed class IcpcImportService(OlympContext context, UserManager<User> us
             }
 
             var members = team.Members.Where(member => member.IsContestant).Select(Match).ToArray();
-            if (members.Any(member => member.UserId is null))
-                warnings.Add(SiteResources.IcpcUnlinkedMembers);
             var coachEmails = team.Members.Where(member => member.IsCoach).Select(member => users.NormalizeEmail(member.Username?.Trim()))
                 .Where(email => !string.IsNullOrWhiteSpace(email)).ToArray();
             var coachIds = coachAccounts.Where(account => coachEmails.Contains(account.NormalizedEmail) && coaches.Any(coach => coach.Id == account.Id))

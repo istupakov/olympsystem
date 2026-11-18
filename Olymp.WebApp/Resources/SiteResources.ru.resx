@@ -412,7 +412,7 @@
   <data name="StaffEnableSound" xml:space="preserve"><value>Включить звук</value></data>
   <data name="StaffDisableSound" xml:space="preserve"><value>Выключить звук</value></data>
   <data name="StaffSoundUnavailable" xml:space="preserve"><value>Не удалось включить звук. Проверьте настройки звука вкладки и попробуйте ещё раз.</value></data>
-  <data name="StaffRefreshFailed" xml:space="preserve"><value>Не удалось обновить список. Повторите попытку.</value></data>
+  <data name="StaffRefreshFailed" xml:space="preserve"><value>Не удалось обновить данные. Повторяем автоматически.</value></data>
   <data name="StaffRunner" xml:space="preserve"><value>Runner</value></data>
   <data name="StaffCompilers" xml:space="preserve"><value>Компиляторы</value></data>
   <data name="StaffNoRunners" xml:space="preserve"><value>Нет подключённых Runner.</value></data>
@@ -732,8 +732,12 @@
     <value>Обновить</value>
   </data>
   <data name="BackupBusy" xml:space="preserve">
-    <value>Выполняется операция с бекапами. Нажмите «Обновить» для проверки результата.</value>
+    <value>Выполняется операция с бекапами…</value>
   </data>
+  <data name="BackupRefreshing" xml:space="preserve"><value>Обновляется список копий…</value></data>
+  <data name="BackupCreatingFull" xml:space="preserve"><value>Создаётся и проверяется полная копия…</value></data>
+  <data name="BackupCreatingDiff" xml:space="preserve"><value>Создаётся и проверяется дифференциальная копия…</value></data>
+  <data name="BackupDeleting" xml:space="preserve"><value>Удаляются копии…</value></data>
   <data name="BackupFailed" xml:space="preserve">
     <value>Не удалось создать копию. Подробности в журнале приложения. Если база для diff недоступна, сначала создайте полную копию.</value>
   </data>
