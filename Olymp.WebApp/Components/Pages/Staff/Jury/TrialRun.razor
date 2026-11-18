@@ -56,7 +56,7 @@ else
                     <div class="col-md-6"><label for="trial-configuration" class="form-label">@SiteResources.StaffConfiguration</label>
                         <InputSelect id="trial-configuration" class="form-select" @bind-Value="_input.Configuration" @bind-Value:after="ResetLimits">
                             <option value="">@SiteResources.StaffSelectConfiguration</option>
-                            @foreach (var info in CurrentConfigurations) { <option value="@info.Configuration.Name">@info.DisplayName (@info.Configuration.Name)</option> }
+                            @foreach (var info in CurrentConfigurations) { <option value="@info.FullName">@info.FullName (@info.Configuration.Name)</option> }
                         </InputSelect>
                         <ValidationMessage For="() => _input.Configuration" class="text-danger" />
                     </div>
@@ -157,11 +157,11 @@ else
         ? AvailableCompilers.Any(compiler => compiler.Id == _input.Compiler && item.CanCheck(compiler))
         : !_input.Validator || item.Configurations.Any(c => c.Language == "C++")).OrderBy(item => item.Name).ThenBy(item => item.Id);
     private IEnumerable<CompilatorInfo> CurrentConfigurations => (CurrentRunner?.Compilators
-        ?? CurrentRunner?.Configurations.Select(config => new CompilatorInfo(config, config.Name, null)) ?? [])
+        ?? CurrentRunner?.Configurations.Select(config => new CompilatorInfo(config, $"{config.Name} ({config.ConfigName})", null)) ?? [])
         .Where(info => !_input.Validator || info.Configuration.Language == "C++");
     private CompilatorInfo? CurrentConfiguration => HasTaskContext
         ? CurrentConfigurations.SingleOrDefault(info => _compilers.Any(compiler => compiler.Id == _input.Compiler && CompilerMatching.Matches(compiler, info)))
-        : CurrentConfigurations.SingleOrDefault(info => info.Configuration.Name == _input.Configuration);
+        : CurrentConfigurations.SingleOrDefault(info => info.FullName == _input.Configuration);
 
     private string? UnavailableReason => HasTaskContext && _problem is null ? SiteResources.PageNotFoundMessage
         : InvalidTest ? SiteResources.StaffRunTestNotFound
@@ -233,8 +233,8 @@ else
 
     private void SelectConfiguration()
     {
-        if (!CurrentConfigurations.Any(item => item.Configuration.Name == _input.Configuration))
-            _input.Configuration = CurrentConfigurations.FirstOrDefault(item => item.Error is null)?.Configuration.Name ?? CurrentConfigurations.FirstOrDefault()?.Configuration.Name;
+        if (!CurrentConfigurations.Any(item => item.FullName == _input.Configuration))
+            _input.Configuration = CurrentConfigurations.FirstOrDefault(item => item.Error is null)?.FullName ?? CurrentConfigurations.FirstOrDefault()?.FullName;
         ResetLimits();
     }
 
@@ -261,11 +261,11 @@ else
             if (_input.Runner is not Guid runnerId || !Checkers.Checkers.TryGetValue(runnerId, out var runner)) { _error = SiteResources.StaffNoRunners; return; }
             double seconds = _input.Seconds;
             int memory = _input.Memory;
-            var configurations = runner.Compilators ?? [.. runner.Configurations.Select(config => new CompilatorInfo(config, config.Name, null))];
+            var configurations = runner.Compilators ?? [.. runner.Configurations.Select(config => new CompilatorInfo(config, $"{config.Name} ({config.ConfigName})", null))];
 
             if (!HasTaskContext)
             {
-                var configuration = configurations.SingleOrDefault(item => item.Configuration.Name == _input.Configuration);
+                var configuration = configurations.SingleOrDefault(item => item.FullName == _input.Configuration);
                 if (configuration is null || configuration.Error is not null) { _error = SiteResources.StaffConfigurationUnavailable; return; }
                 if (_input.Validator)
                 {

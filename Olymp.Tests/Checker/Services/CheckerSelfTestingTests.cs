@@ -11,6 +11,23 @@ namespace Olymp.Tests.Checker.Services;
 public class CheckerSelfTestingTests
 {
     [Fact]
+    public async Task SharedNamesRemainDistinctBeforeAndAfterFailedVersionDetection()
+    {
+        var runner = new TestRunner { SupportedEnvs = new HashSet<string> { "test", "linux" } };
+        var checker = new CheckerService(runner,
+            [new TestConfiguration { Name = "shared", FailVersionParsing = true },
+                new TestConfiguration { Name = "shared", ConfigName = "linux", FailVersionParsing = true }], [], []);
+
+        var pending = checker.SelfTestingResults.Where(result => result.Name == "Version").ToArray();
+        Assert.Equal(2, pending.Select(result => result.Compilator.FullName).Distinct().Count());
+
+        await checker.LoadCompilators(TestContext.Current.CancellationToken);
+
+        Assert.Equal(2, checker.Compilators!.Select(info => info.FullName).Distinct().Count());
+        Assert.All(checker.Compilators!, info => Assert.NotNull(info.Error));
+    }
+
+    [Fact]
     public async Task VersionRequestsAreSharedAndCachedAndCompilatorsAreSorted()
     {
         var runner = new TestRunner();
@@ -27,7 +44,7 @@ public class CheckerSelfTestingTests
         await checker.LoadCompilators(TestContext.Current.CancellationToken);
 
         Assert.Equal(1, runner.VersionRequests);
-        Assert.Equal(["A 1", "Z 1"], checker.Compilators!.Select(x => x.DisplayName));
+        Assert.Equal(["A 1", "Z 1"], checker.Compilators!.Select(x => x.FullName));
         Assert.Equal(4, checker.SelfTestingResults.Count());
         Assert.All(checker.SelfTestingResults.Where(x => x.Name == nameof(TestSelfCheck)), result => Assert.Null(result.Result));
         Assert.All(checker.SelfTestingResults.Where(x => x.Name == "Version"), result =>
@@ -193,13 +210,13 @@ public class CheckerSelfTestingTests
     public async Task CompilersAreSortedByDisplayNameWithOrdinalPunctuationOrder()
     {
         var checker = new CheckerService(new TestRunner(),
-            [new TestConfiguration { Name = "A", DisplayName = "C++ (GCC)" },
-                new TestConfiguration { Name = "B", DisplayName = "C# (.NET)" },
-                new TestConfiguration { Name = "Z", DisplayName = "C (GCC)" }], [], []);
+            [new TestConfiguration { Name = "A", FullName = "C++ (GCC)" },
+                new TestConfiguration { Name = "B", FullName = "C# (.NET)" },
+                new TestConfiguration { Name = "Z", FullName = "C (GCC)" }], [], []);
 
         await checker.LoadCompilators(TestContext.Current.CancellationToken);
 
-        Assert.Equal(["C (GCC)", "C# (.NET)", "C++ (GCC)"], checker.Compilators!.Select(compilator => compilator.DisplayName));
+        Assert.Equal(["C (GCC)", "C# (.NET)", "C++ (GCC)"], checker.Compilators!.Select(compilator => compilator.FullName));
     }
 
     [Fact]
@@ -216,7 +233,7 @@ public class CheckerSelfTestingTests
         await checker.LoadCompilators(TestContext.Current.CancellationToken);
 
         var compilator = Assert.Single(checker.Compilators!);
-        Assert.Equal("Kotlin 2.4 (OpenJDK 27)", compilator.DisplayName);
+        Assert.Equal("Kotlin 2.4 (OpenJDK 27)", compilator.FullName);
         Assert.Null(compilator.Error);
         var request = Assert.Single(runner.Requests);
         Assert.False(request.ClearWorkdir);

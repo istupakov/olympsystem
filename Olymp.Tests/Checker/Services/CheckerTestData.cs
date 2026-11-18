@@ -41,7 +41,7 @@ internal static class CheckerTestData
     internal sealed class TestConfiguration : ICompilatorConfiguration
     {
         public string Name { get; init; } = "test";
-        public string? DisplayName { get; init; }
+        public string? FullName { get; init; }
         public bool FailVersionParsing { get; init; }
         public string Language { get; init; } = "C";
         public string ConfigName { get; init; } = "test";
@@ -55,7 +55,7 @@ internal static class CheckerTestData
         public string VersionCommand { get; init; } = "version";
         public string GetVersionCommand() => VersionCommand;
         public CompilatorInfo ParseInfo(string output) => FailVersionParsing
-            ? throw new FormatException("Invalid version") : new(this, DisplayName ?? (Name + " 1"), "full version");
+            ? throw new FormatException("Invalid version") : new(this, FullName ?? (Name + " 1"), "full version");
     }
 
     internal sealed class TestSelfCheck : ICheckerTest

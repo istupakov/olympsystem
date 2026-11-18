@@ -64,6 +64,15 @@ Open https://localhost:5001.
 
 Judging requires a separate Runner; see [deployment](docs/deployment.md).
 
+For local judging in the container, run the `Runner: Run (Linux)` task in a separate
+terminal or:
+
+```bash
+dotnet run --project Olymp.Runner --launch-profile "Olymp.Runner (Linux)"
+```
+
+On Linux, Runner is available only for development, without program isolation.
+
 ### Checks
 
 Run these commands from the repository root inside the container.

@@ -78,8 +78,8 @@ internal sealed class FakeCheckerService(Guid id, CheckerSelfTestingStatus statu
 
     public static IReadOnlyList<ICheckerService> Create()
     {
-        var cpp = new GccCpp23Configuration().ParseInfo("14.2.0") with { DisplayName = "Test C++23 (GCC 14.2)", Description = "TEST CONFIGURATION: no compiler is executed." };
-        var python = new CPythonConfiguration().ParseInfo("Python 3.13.1") with { DisplayName = "Test Python 3.13", Description = "TEST CONFIGURATION: no compiler is executed." };
+        var cpp = new GccCpp23Configuration().ParseInfo("14.2.0") with { FullName = "Test C++23 (GCC 14.2)", Description = "TEST CONFIGURATION: no compiler is executed." };
+        var python = new CPythonConfiguration().ParseInfo("Python 3.13.1") with { FullName = "Test Python 3.13", Description = "TEST CONFIGURATION: no compiler is executed." };
 
         return [
             new FakeCheckerService(Guid.Parse("11111111-1111-4111-8111-111111111111"), CheckerSelfTestingStatus.Success, [cpp, python]),

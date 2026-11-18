@@ -26,12 +26,13 @@ public class RestrictedWindowsProcessFactory : IRestrictedProcessFactory
 
     public IRestrictedProcess Create(string command, string workdir, string? user,
         Dictionary<string, string> envs, uint activeProcessLimit, ProcessPriorityClass priorityClass,
-        TimeSpan userTimeLimit, nuint memoryLimit)
+        TimeSpan userTimeLimit, nuint memoryLimit, bool readOnly = false)
     {
         var startInfo = new ProcessStartInfo
         {
             FileName = "cmd",
-            Arguments = $"/C pause > nul & {command}",
+            Arguments = $"/S /C \"{command}\"",
+            StartSuspended = true,
             RedirectStandardInput = true,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
@@ -61,10 +62,17 @@ public class RestrictedWindowsProcessFactory : IRestrictedProcessFactory
                 process.Job.SetAllUIRestrictions();
 
             process.Process.Start();
-            process.Job.Assign(process.Process);
-
-            // Start paused process
-            process.Process.StandardInput.Write("#");
+            try
+            {
+                process.Job.Assign(process.Process);
+                process.Process.SafeHandle.Resume();
+            }
+            catch
+            {
+                process.Process.Kill();
+                process.Process.WaitForExit();
+                throw;
+            }
 
             return process;
         }

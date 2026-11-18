@@ -18,5 +18,5 @@ public interface IRestrictedProcessFactory
     IRestrictedProcess Create(string command, string workdir,
         string? user, Dictionary<string, string> envs,
         uint activeProcessLimit, ProcessPriorityClass priorityClass,
-        TimeSpan userTimeLimit, nuint memoryLimit);
+        TimeSpan userTimeLimit, nuint memoryLimit, bool readOnly = false);
 }

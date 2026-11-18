@@ -97,7 +97,7 @@ public partial class Runners
     }
 
     private static IEnumerable<CompilatorInfo> RunnerCompilers(ICheckerService runner) => runner.Compilators
-        ?? [.. runner.Configurations.Select(config => new CompilatorInfo(config, config.Name, null))];
+        ?? [.. runner.Configurations.Select(config => new CompilatorInfo(config, $"{config.Name} ({config.ConfigName})", null))];
     private static string StatusText(CheckerSelfTestingStatus status) => status switch
     {
         CheckerSelfTestingStatus.Success => SiteResources.StaffSelfTestPassed,

@@ -30,6 +30,52 @@ namespace Olymp.IntegrationTests.WebApp.Staff.Jury;
 public class TrialRunTests(WebAppFactory factory) : StaffComponentTests(factory)
 {
     [Theory]
+    [InlineData("C (GCC 16.2)")]
+    [InlineData("C (GCC 16.2, Linux)")]
+    public async Task SharedNamesUseFullNamesForSelectionLinksAndCompilerPreview(string fullName)
+    {
+        var author = await _factory.AddUserAsync();
+        var runner = new CheckerTestData.TestRunner();
+        var windows = new CheckerTestData.TestConfiguration { Name = "GCC C", FullName = "C (GCC 16.2)" };
+        var linux = new CheckerTestData.TestConfiguration { Name = windows.Name, FullName = "C (GCC 16.2, Linux)" };
+        var checker = new CheckerService(runner, [windows, linux], [new CheckerTestData.SelfTest()], []);
+        Assert.True(await checker.RunSelfTests(TestContext.Current.CancellationToken));
+        var manager = new CheckerTestData.PageManager(checker);
+        void Configure(IServiceCollection services)
+        {
+            services.RemoveAll<ICheckerManager>();
+            services.AddSingleton<ICheckerManager>(manager);
+        }
+
+        string query = $"Runner={runner.Id}&Configuration={Uri.EscapeDataString(fullName)}";
+        using var trial = await new HtmlParser().ParseDocumentAsync(await RenderAsync<TrialRun>(
+            $"/jury/trial-run?{query}", [], Staff(author.Id), async page =>
+            {
+                SetInput(page, "Source", "edited diagnostic source");
+                var info = Assert.IsType<CompilatorInfo>(typeof(TrialRun).GetProperty("CurrentConfiguration", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(page));
+                Assert.Equal(fullName, info.FullName);
+                await ActAsync(page, "RunAsync");
+            }, Configure));
+        Assert.Contains("Execution:", trial.Body!.TextContent);
+        Assert.Equal(2, trial.QuerySelectorAll("#trial-configuration option[value]:not([value=''])").Length);
+
+        using var runners = await new HtmlParser().ParseDocumentAsync(await RenderAsync<Runners>(
+            $"/jury/runners?Runner={runner.Id}", [], Staff(author.Id), configure: Configure));
+        Assert.Equal(2, runners.QuerySelectorAll("details.card").Length);
+        Assert.Contains(runners.QuerySelectorAll("a"), link => link.GetAttribute("href") == $"jury/trial-run?{query}");
+        Assert.Contains(runners.QuerySelectorAll("a"), link => link.GetAttribute("href") == $"jury/compilers/add?{query}");
+
+        using var preview = await new HtmlParser().ParseDocumentAsync(await RenderAsync<AddCompiler>(
+            $"/jury/compilers/add?{query}", [], Staff(author.Id), async page =>
+            {
+                await ActAsync(page, "PreviewAsync");
+                var key = (CompilerConfigurationKey?)typeof(AddCompiler).GetField("_key", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(page);
+                Assert.Equal(fullName, key?.Description);
+            }, Configure));
+        Assert.Equal(2, preview.QuerySelectorAll("#add-configuration option[value]:not([value=''])").Length);
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public async Task CheckUsesEditedLimitsAndSourceAndDoesNotSaveResults(bool inactiveTest)
@@ -298,8 +344,8 @@ public class TrialRunTests(WebAppFactory factory) : StaffComponentTests(factory)
     {
         var author = await _factory.AddUserAsync();
         var runner = new CheckerTestData.TestRunner { CompilationFails = compilationFails };
-        var cpp = new CheckerTestData.TestConfiguration { Name = "cpp", Language = "C++" };
-        var other = new CheckerTestData.TestConfiguration { Name = "other" };
+        var cpp = new CheckerTestData.TestConfiguration { Name = "cpp", FullName = "C++ compiler", Language = "C++" };
+        var other = new CheckerTestData.TestConfiguration { Name = "other", FullName = "Other compiler" };
         var checker = new CheckerService(runner, [cpp, other], [], []);
         await checker.LoadCompilators(TestContext.Current.CancellationToken);
         var manager = new CheckerTestData.PageManager(checker);
@@ -313,7 +359,7 @@ public class TrialRunTests(WebAppFactory factory) : StaffComponentTests(factory)
             await ActAsync(page, "RunAsync");
         }, services => { services.RemoveAll<ICheckerManager>(); services.AddSingleton<ICheckerManager>(manager); }));
 
-        Assert.DoesNotContain(html.QuerySelectorAll("#trial-configuration option"), o => o.GetAttribute("value") == "other");
+        Assert.DoesNotContain(html.QuerySelectorAll("#trial-configuration option"), o => o.GetAttribute("value") == other.FullName);
         Assert.Contains(compilationFails ? SiteResources.ImportValidatorCompileFailed : SiteResources.StaffValidationPassed, html.Body!.TextContent);
         Assert.Equal(calls + (compilationFails ? 1 : 2), runner.Requests.Count);
         if (!compilationFails) Assert.Equal("  stdin\r\n", Encoding.UTF8.GetString(runner.Requests.Last().Stdin.Span));
