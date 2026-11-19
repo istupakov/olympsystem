@@ -5,4 +5,5 @@ public sealed record SubmissionListItem(int Id, DateTimeOffset CommitTime, strin
     bool IsSchool, int? StatusCode, bool? IsAccepted, int? Score, bool CanViewSource)
 {
     public string? CompilerDescription { get; init; }
+    public string? Description { get; init; }
 }

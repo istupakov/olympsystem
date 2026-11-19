@@ -15,6 +15,30 @@ namespace Olymp.IntegrationTests.Services.Checkers;
 public class QueueTests(ServiceFactory factory) : IClassFixture<ServiceFactory>
 {
     [Theory]
+    [InlineData(true, null, 0, true)]
+    [InlineData(true, null, 1, true)]
+    [InlineData(true, null, 2, false)]
+    [InlineData(true, "validator.cpp", 0, false)]
+    [InlineData(true, "validator.cpp", 1, false)]
+    [InlineData(false, "validator.cpp", 0, false)]
+    [InlineData(false, "validator.cpp", 1, false)]
+    public async Task SubmissionQueueExcludesOnlyValidators(bool reference, string? description, int status, bool shouldCheck)
+    {
+        var submission = Assert.Single(await AddSubmissionsAsync(factory, "acm", [status]));
+        var token = TestContext.Current.CancellationToken;
+        await using var scope = factory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<OlympContext>();
+        await db.Submissions.Where(item => item.Id == submission.Id).ExecuteUpdateAsync(setters => setters
+            .SetProperty(item => item.IsReference, reference).SetProperty(item => item.Description, description)
+            .SetProperty(item => item.LastModification, DateTimeOffset.UtcNow.AddMinutes(-5)), token);
+        var runner = new TestRunner();
+        var checker = await CreateCheckerAsync(runner, submission.Compilator.Name);
+        Assert.Equal(shouldCheck, await factory.Services.GetRequiredService<ICheckerManager>().TryCheckFromDB(checker, token));
+        Assert.Equal(shouldCheck ? 4 : 0, runner.TestsRun);
+        Assert.Equal(shouldCheck ? 2 : status, await db.Submissions.Where(item => item.Id == submission.Id).Select(item => item.StatusCode).SingleAsync(token));
+    }
+
+    [Theory]
     [InlineData(RoleNames.Jury, true)]
     [InlineData(RoleNames.Admin, true)]
     [InlineData("team", false)]

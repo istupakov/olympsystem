@@ -21,7 +21,7 @@ using Xunit;
 namespace Olymp.IntegrationTests.Services.Contests;
 
 [Collection("Contest management")]
-public class ContestImportTests(ContestServiceFixture site) : IClassFixture<ContestServiceFixture>
+public partial class ContestImportTests(ContestServiceFixture site) : IClassFixture<ContestServiceFixture>
 {
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
@@ -248,7 +248,7 @@ public class ContestImportTests(ContestServiceFixture site) : IClassFixture<Cont
         await service.RunSolutionsAsync(setup.Actor, preview, row, token: Token);
         Assert.Equal(TimeSpan.FromSeconds(5), runner.Requests.Last().TimeLimit);
         Assert.Equal(5, row.TimeLimit); Assert.Equal(9, row.SlowTimeLimit);
-        Assert.Equal([1, 5], row.Runs.Where(r => r.File == "main.cpp" && r.Compiler == info.FullName).Select(r => r.TimeLimit));
+        Assert.Equal([5], row.Runs.Where(r => r.File == "main.cpp" && r.Compiler == info.FullName).Select(r => r.TimeLimit));
         // Informational solution runs cannot override a failed validator.
         if (!inactive) await Assert.ThrowsAsync<OperationValidationException>(() => service.SaveAsync(setup.Actor, preview, preview.Rows[0], Token));
         else
@@ -359,17 +359,23 @@ public class ContestImportTests(ContestServiceFixture site) : IClassFixture<Cont
         public CheckerSelfTestingStatus SelfTestingStatus { get; init; } = CheckerSelfTestingStatus.Success;
         public IEnumerable<CheckerTestResult> SelfTestingResults => [];
         public List<CheckRequest> Requests { get; } = [];
+        public bool FailChecks { get; set; }
         public int ValidatorCalls { get; private set; }
+        public string? LastValidatorSource { get; private set; }
+        public IReadOnlyList<ValidatorTest> LastValidatorTests { get; private set; } = [];
         public Task<bool> RunSelfTests(CancellationToken token) => Task.FromResult(false);
         public Task<CheckerResult> Run(string source, ICompilatorConfiguration configuration, string input, TimeSpan timeLimit, int memoryLimitMb, CancellationToken token) => throw new NotSupportedException();
         public Task<CheckerResult> Check(CheckRequest request, CancellationToken token)
         {
             Requests.Add(request);
+            if (FailChecks) throw new IOException("Runner unavailable");
             return Task.FromResult(new CheckerResult(-1001, "informational failure", 0, MaxUserTime: TimeSpan.FromMilliseconds(5), MaxMemory: 1048576, SlowestTest: 1));
         }
         public Task<ValidatorResult> Validate(string source, CompilatorInfo compiler, IReadOnlyList<ValidatorTest> tests, CancellationToken token)
         {
             ValidatorCalls++;
+            LastValidatorSource = source;
+            LastValidatorTests = tests;
             return Task.FromResult(new ValidatorResult(true, "validator log", [.. tests.Select(t => new ValidatorTestResult(t.Number,
                 t.Number != 3))]));
         }

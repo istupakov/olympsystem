@@ -5,6 +5,7 @@
 @using Olymp.Checker
 @using Olymp.WebApp.Components.Submissions
 @using Olymp.WebApp.Services.Checker
+@using Olymp.WebApp.Services.Contests
 @inject IDbContextFactory<OlympContext> ContextFactory
 @inject ICheckerManager Checkers
 @inject ILogger<TrialRun> Logger
@@ -193,6 +194,7 @@ else
             else
             {
                 _input.Source = submission.Text;
+                _input.Validator = ReferenceSolutionFiles.IsValidator(submission.Description);
                 _originalCompiler = submission.Compilator;
                 _input.Compiler = submission.Compilator.IsActive ? submission.CompilatorId : null;
                 _input.Problem = submission.ProblemId;

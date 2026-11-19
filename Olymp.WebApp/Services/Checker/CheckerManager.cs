@@ -6,6 +6,7 @@ using Olymp.Checker;
 using Olymp.Checker.Services;
 using Olymp.Domain;
 using Olymp.Domain.Models;
+using Olymp.WebApp.Services.Contests;
 
 namespace Olymp.WebApp.Services.Checker;
 
@@ -118,7 +119,8 @@ public sealed class CheckerManager(IServiceProvider provider, IDbContextFactory<
     public async Task<int?> QueueRetestAsync(IQueryable<Submission> selection, IReadOnlyCollection<int> confirmedAccepted, CancellationToken token = default)
     {
         using var gate = await EnterAsync(token);
-        var eligible = selection.Where(item => item.Problem.IsActive && item.StatusCode != 0 && item.StatusCode != 1);
+        var eligible = selection.Where(item => item.Problem.IsActive && item.StatusCode != 0 && item.StatusCode != 1
+            && (item.Description == null || item.Description != ReferenceSolutionFiles.ValidatorFilename));
         if (await eligible.AnyAsync(item => item.StatusCode == 2 && !confirmedAccepted.Contains(item.Id), token))
             return null;
         return await eligible.Where(item => item.StatusCode != 2 || confirmedAccepted.Contains(item.Id))
@@ -149,6 +151,7 @@ public sealed class CheckerManager(IServiceProvider provider, IDbContextFactory<
                 && (role.Name == RoleNames.Jury || role.Name == RoleNames.Admin))).Select(assignment => assignment.UserId);
             submission = await context.Submissions
                 .Where(x => x.StatusCode == 0 || (x.StatusCode == 1 && x.LastModification < span))
+                .Where(x => x.Description == null || x.Description != ReferenceSolutionFiles.ValidatorFilename)
                 .Where(x => (x.Problem.IsActive || staffIds.Contains(x.UserId)) && compilatorIds.Contains(x.CompilatorId))
                 .Where(x => x.Problem.Tests.Any(test => test.IsActive))
                 .OrderBy(x => x.CommitTime)

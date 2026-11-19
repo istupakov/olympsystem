@@ -11,6 +11,30 @@ namespace Olymp.IntegrationTests.WebApp.Public;
 
 public partial class PracticeSubmissionTests
 {
+    [Fact]
+    public async Task DescriptionsAreNotShownInPublicSubmissionLists()
+    {
+        var (user, contest, problem, compiler) = await SeedAsync();
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<OlympContext>();
+        var submission = TestEntities.CreateSubmission(user, problem, compiler, DateTimeOffset.UtcNow);
+        submission.User = null!;
+        submission.Problem = null!;
+        submission.Compilator = null!;
+        submission.Description = "jury-source-filename.cpp";
+        submission.StatusCode = 2;
+        db.Submissions.Add(submission);
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        using var client = await factory.LoginAsync(user.UserName!);
+        foreach (string path in new[] { "/submissions", "/submissions?scope=all", ProblemPath(contest.Id, problem.Id), ProblemPath(contest.Id, problem.Id) + "&scope=all" })
+        {
+            using var page = await GetAsync(client, path);
+            var row = page.QuerySelector($"#submission-{submission.Id}");
+            Assert.NotNull(row);
+            Assert.DoesNotContain(submission.Description, row.OuterHtml);
+        }
+    }
+
     [Theory]
     [InlineData(0, "Queued")]
     [InlineData(1, "Checking")]

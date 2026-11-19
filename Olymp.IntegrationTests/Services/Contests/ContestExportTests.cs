@@ -25,6 +25,48 @@ namespace Olymp.IntegrationTests.Services.Contests;
 public class ContestExportTests(ContestServiceFixture site) : IClassFixture<ContestServiceFixture>
 {
     [Fact]
+    public async Task ReferencesExportWithOriginalNamesAndUtf8RegardlessOfAuthorVisibility()
+    {
+        var token = TestContext.Current.CancellationToken;
+        var contest = await site.AddContestAsync();
+        var author = await site.AddUserAsync();
+        using var scope = site.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<OlympContext>();
+        db.Attach(contest);
+        db.Attach(author);
+        var problem = TestEntities.CreateProblem(contest);
+        var compiler = TestEntities.CreateCompilator();
+        string source = "// Эталонное решение\r\nint main() {}";
+        var original = TestEntities.CreateSubmission(author, problem, compiler, DateTimeOffset.UtcNow, Encoding.GetEncoding(1251).GetBytes(source));
+        original.IsReference = true;
+        original.Description = "accepted/автор.cs";
+        var unnamed = TestEntities.CreateSubmission(author, problem, compiler, DateTimeOffset.UtcNow, "// fallback source"u8.ToArray());
+        unnamed.IsReference = true;
+        unnamed.Description = "../unsafe.cs";
+        var duplicate = TestEntities.CreateSubmission(author, problem, compiler, DateTimeOffset.UtcNow, "// another source"u8.ToArray());
+        duplicate.IsReference = true;
+        duplicate.Description = original.Description;
+        var ordinary = TestEntities.CreateSubmission(author, problem, compiler, DateTimeOffset.UtcNow, "// ordinary source"u8.ToArray());
+        ordinary.Description = "ordinary.cs";
+        db.Submissions.AddRange(original, unnamed, duplicate, ordinary);
+        await db.SaveChangesAsync(token);
+        var files = await ReadAsync(scope.ServiceProvider.GetRequiredService<ContestExportService>(), contest.Id);
+        string root = contest.Abbr + "/problem01/solutions/";
+        Assert.Equal(source, Encoding.UTF8.GetString(files[root + original.Description]));
+        Assert.Equal(unnamed.SourceCode, files[root + $"submission-{unnamed.Id}.cs"]);
+        Assert.Equal(duplicate.SourceCode, files[root + $"submission-{duplicate.Id}/" + duplicate.Description]);
+        Assert.Equal(3, files.Keys.Count(p => p.StartsWith(root, StringComparison.Ordinal)));
+        Assert.DoesNotContain(files.Keys, p => p.EndsWith("ordinary.cs", StringComparison.Ordinal));
+        Assert.DoesNotContain(files.Keys, p => p.Contains("../", StringComparison.Ordinal));
+        using var zip = new MemoryStream(ProblemArchives.Zip([.. files.Select(p => (p.Key, p.Value))]));
+        var imported = await ProblemArchive.ReadAsync(zip, new(), token);
+        var importedProblem = Assert.Single(imported.Problems);
+        Assert.Null(importedProblem.Error);
+        Assert.Equal(source, importedProblem.Solutions.Single(s => s.Filename == original.Description).Source);
+        Assert.Equal(compiler.Id, Assert.Single(Json(files, contest.Abbr + "/contest.json").GetProperty("compilers").EnumerateArray()).GetProperty("id").GetInt32());
+    }
+
+    [Fact]
     public async Task SerializableReadBlocksChangesUntilArchiveIsReadyAndReleasesLocksBeforeDownload()
     {
         var token = TestContext.Current.CancellationToken;

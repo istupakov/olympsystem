@@ -908,9 +908,22 @@
   <data name="ImportValidatorPassed" xml:space="preserve"><value>Input validation passed.</value></data>
   <data name="ImportValidatorRejected" xml:space="preserve"><value>Input validation failed on active tests.</value></data>
   <data name="ImportLimits" xml:space="preserve"><value>Time limits for execution and saving</value></data>
+  <data name="ImportTestLineEndings" xml:space="preserve"><value>Input and output test files are normalized to CRLF before checking and saving.</value></data>
   <data name="ImportSolutions" xml:space="preserve"><value>Jury solutions</value></data>
-  <data name="ImportNoSolutions" xml:space="preserve"><value>No solution files in solutions/.</value></data>
-  <data name="ImportRunSelected" xml:space="preserve"><value>Run selected solutions</value></data>
+  <data name="ImportNoSolutions" xml:space="preserve"><value>No solution files in solutions/ and no saved reference solutions.</value></data>
+  <data name="ImportRun" xml:space="preserve"><value>Run</value></data>
+  <data name="ImportSaveReference" xml:space="preserve"><value>Save as reference</value></data>
+  <data name="ImportArchiveSolutions" xml:space="preserve"><value>From archive</value></data>
+  <data name="ImportSavedSolutions" xml:space="preserve"><value>Saved reference solutions</value></data>
+  <data name="ImportAlreadySaved" xml:space="preserve"><value>Already saved</value></data>
+  <data name="ImportWillReplace" xml:space="preserve"><value>Will replace</value></data>
+  <data name="ImportReferenceReplacement" xml:space="preserve"><value>{0}: a reference solution with this name and different code exists. Saving replaces its reference flag; the previous submission and history are retained.</value></data>
+  <data name="ImportReferenceAddition" xml:space="preserve"><value>{0}: will be saved as a reference solution.</value></data>
+  <data name="ImportRunPreviewHint" xml:space="preserve"><value>All saved references and files selected to save as references must be checked on the imported tests and current limits. Results and check history are saved with the problem.</value></data>
+  <data name="ImportReferenceChecksRequired" xml:space="preserve"><value>Complete the checks for all reference records on the current tests and limits before saving.</value></data>
+  <data name="ImportReferencesChanged" xml:space="preserve"><value>Saved reference solutions have changed. The list and replacement warnings have been updated. Review them and confirm saving again.</value></data>
+  <data name="ImportSolutionCompilerRequired" xml:space="preserve"><value>{0}: select an available compiler before saving the reference solution.</value></data>
+  <data name="ImportRunSelected" xml:space="preserve"><value>Check solutions</value></data>
   <data name="ImportSaveProblem" xml:space="preserve"><value>Save problem</value></data>
   <data name="ImportConfirmProblem" xml:space="preserve"><value>Save problem “{0}”? Its test set will be completely replaced. Submissions and judging history will be retained.</value></data>
   <data name="ImportProblemSaved" xml:space="preserve"><value>Problem “{0}” saved.</value></data>
@@ -927,4 +940,13 @@
   <data name="StaffExecutionCompleted" xml:space="preserve"><value>Executed successfully</value></data>
   <data name="StaffOutputLimit" xml:space="preserve"><value>Output limit exceeded</value></data>
   <data name="StaffVerdictInternalError" xml:space="preserve"><value>Internal error</value></data>
+  <data name="StaffValidator" xml:space="preserve"><value>Validator</value></data>
+  <data name="StaffRunValidator" xml:space="preserve"><value>Run validator</value></data>
+  <data name="StaffReferenceSolutions" xml:space="preserve"><value>Reference solutions</value></data>
+  <data name="StaffReferenceTab" xml:space="preserve"><value>Reference</value></data>
+  <data name="StaffReferenceRecord" xml:space="preserve"><value>Reference record</value></data>
+  <data name="ImportSaveValidator" xml:space="preserve"><value>Save validator when saving the problem</value></data>
+  <data name="ImportSavedValidator" xml:space="preserve"><value>Saved validator</value></data>
+  <data name="ImportValidatorReplacement" xml:space="preserve"><value>The saved validator has different code and will be replaced if saving is selected. The previous submission and history are retained.</value></data>
+  <data name="ImportReservedValidatorName" xml:space="preserve"><value>The name validator.cpp is reserved for the input validator. Rename the solution in solutions/ before saving it as a reference.</value></data>
 </root>

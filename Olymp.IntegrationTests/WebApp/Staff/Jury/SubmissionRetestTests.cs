@@ -62,6 +62,7 @@ public partial class SubmissionRetestTests(WebAppFactory factory) : StaffCompone
         {
             var submission = TestEntities.CreateSubmission(author, index == 24 ? inactive : problem, compiler, DateTimeOffset.Now);
             submission.User = null!;
+            submission.IsReference = index == 0;
             submission.StatusCode = index switch { 21 => 2, 22 => 0, 23 => 1, _ => -2001 };
             submission.Score = 37;
             submission.ScoresByTest = "37";

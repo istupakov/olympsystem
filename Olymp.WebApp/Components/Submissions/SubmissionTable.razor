@@ -86,10 +86,17 @@
                     }
                     @if (ShowSource)
                     {
-                        <td>
+                        <td class="@(!string.IsNullOrWhiteSpace(submission.Description) ? "submission-text" : null)">
                             @if (submission.CanViewSource)
                             {
-                                <a href="@SourceUrl(submission)">@SiteResources.ViewSource</a>
+                                @if (!string.IsNullOrWhiteSpace(submission.Description))
+                                {
+                                    <a class="d-block text-truncate" href="@SourceUrl(submission)" title="@submission.Description">@submission.Description</a>
+                                }
+                                else
+                                {
+                                    <a href="@SourceUrl(submission)">@SiteResources.ViewSource</a>
+                                }
                             }
                         </td>
                     }

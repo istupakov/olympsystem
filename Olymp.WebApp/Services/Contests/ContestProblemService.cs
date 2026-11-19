@@ -109,6 +109,7 @@ public sealed class ContestProblemService(OlympContext context, ICheckerManager 
         await EnsureIdleAsync([problemId], token);
         return await context.Submissions
             .Where(x => x.ProblemId == problemId && x.StatusCode != 0 && x.StatusCode != 1
+                && (x.Description == null || x.Description != ReferenceSolutionFiles.ValidatorFilename)
                 && (!exceptAccepted || x.StatusCode != 2))
             .ExecuteUpdateAsync(setters => setters.SetProperty(x => x.StatusCode, 0)
                 .SetProperty(x => x.Score, (int?)null).SetProperty(x => x.ScoresByTest, (string?)null)
@@ -122,7 +123,8 @@ public sealed class ContestProblemService(OlympContext context, ICheckerManager 
             .Select(x => x.Id).ToArrayAsync(token);
         await EnsureIdleAsync(problemIds, token);
         var status = CheckerResultStatus.CompilationError.MakeStatusCode();
-        return await context.Submissions.Where(x => problemIds.Contains(x.ProblemId) && x.StatusCode == status)
+        return await context.Submissions.Where(x => problemIds.Contains(x.ProblemId) && x.StatusCode == status
+                && (x.Description == null || x.Description != ReferenceSolutionFiles.ValidatorFilename))
             .ExecuteUpdateAsync(setters => setters.SetProperty(x => x.StatusCode, 0)
                 .SetProperty(x => x.Score, (int?)null).SetProperty(x => x.ScoresByTest, (string?)null)
                 .SetProperty(x => x.LastModification, DateTimeOffset.Now), token);
@@ -130,7 +132,8 @@ public sealed class ContestProblemService(OlympContext context, ICheckerManager 
 
     private async Task EnsureIdleAsync(int[] problemIds, CancellationToken token)
     {
-        if (await context.Submissions.AnyAsync(x => problemIds.Contains(x.ProblemId) && x.StatusCode == 1, token))
+        if (await context.Submissions.AnyAsync(x => problemIds.Contains(x.ProblemId) && x.StatusCode == 1
+            && (x.Description == null || x.Description != ReferenceSolutionFiles.ValidatorFilename), token))
             throw new InvalidDataException(BusyMessage);
     }
 

@@ -312,11 +312,14 @@ public class TrialRunTests(WebAppFactory factory) : StaffComponentTests(factory)
     public async Task ValidatorUsesSelectedInputsAndFixedLimitsWithoutSaving(bool inactiveTest)
     {
         var setup = await SetupAsync(cpp: true);
+        await using (var validatorScope = _factory.Services.CreateAsyncScope())
+            await validatorScope.ServiceProvider.GetRequiredService<OlympContext>().Submissions.Where(s => s.Id == setup.Submission.Id)
+                .ExecuteUpdateAsync(s => s.SetProperty(x => x.Description, "validator.cpp").SetProperty(x => x.IsReference, true), TestContext.Current.CancellationToken);
         int calls = setup.Runner.Requests.Count;
         using var html = await new HtmlParser().ParseDocumentAsync(await RenderAsync<TrialRun>($"/jury/trial-run?Submission={setup.Submission.Id}{(inactiveTest ? $"&Test={setup.Inactive.Id}" : "")}", [], Staff(setup.Author.Id), async page =>
         {
-            SetInput(page, "Validator", true);
-            await ActAsync(page, "ChangeMode");
+            var input = typeof(TrialRun).GetField("_input", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(page)!;
+            Assert.True((bool)input.GetType().GetProperty("Validator")!.GetValue(input)!);
             SetInput(page, "Source", "validator source");
             SetInput(page, "Seconds", -1.0);
             SetInput(page, "Memory", 3);

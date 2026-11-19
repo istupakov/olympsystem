@@ -21,4 +21,5 @@ public sealed record StaffSubmissionListItem
     public string? IpAddress { get; init; }
     public bool IsHidden { get; init; }
     public bool IsReference { get; init; }
+    public bool IsValidator { get; init; }
 }

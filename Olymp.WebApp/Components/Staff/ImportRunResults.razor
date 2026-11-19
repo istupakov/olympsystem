@@ -7,7 +7,7 @@
         <tbody>
             @foreach (var run in Runs)
             {
-                <tr class="@(ReferenceEquals(run, _selected) ? "table-active" : null)"><td><button type="button" class="btn btn-link p-0 text-nowrap" aria-pressed="@ReferenceEquals(run, _selected)" @onclick="() => _selected = run">@run.File</button></td><td>@run.Compiler</td><td>@run.TimeLimit</td>
+                <tr class="@(ReferenceEquals(run, _selected) ? "table-active" : null)"><td><button type="button" class="btn btn-link p-0 text-nowrap" aria-pressed="@ReferenceEquals(run, _selected)" @onclick="() => _selected = run">@run.File@if (run.ReferenceId is int id) { <span class="text-body-secondary"> · ID @id</span> }</button></td><td>@run.Compiler</td><td>@run.TimeLimit</td>
                     <td>@if (run.Result is { } verdict) { <SubmissionStatus StatusCode="verdict.StatusCode" /> } else { @run.Message }</td>
                     @if (ShowScore) { <td>@run.Result?.Score</td> }<td>@run.Result?.MaxUserTime?.TotalSeconds.ToString("0.###")</td><td>@(run.Result?.MaxMemory is { } bytes ? (bytes / 1048576d).ToString("0.##") : null)</td><td>@run.Result?.SlowestTest</td>
                 </tr>
@@ -17,7 +17,7 @@
     @if (_selected is { } selected)
     {
         <section class="card mt-3" aria-label="@SiteResources.StaffRunOutput">
-            <h4 class="card-header h6">@selected.File · @selected.Compiler · @selected.TimeLimit @SiteResources.Seconds</h4>
+            <h4 class="card-header h6">@selected.File@if (selected.ReferenceId is int id) { <span> · ID @id</span> } · @selected.Compiler · @selected.TimeLimit @SiteResources.Seconds</h4>
             <div class="card-body">
                 <details @key="selected">
                     <summary>@SiteResources.StaffLog</summary>
