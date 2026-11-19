@@ -61,7 +61,7 @@ public partial class PracticeSubmissionTests
             Assert.Contains("Submitted", row.TextContent);
             Assert.DoesNotContain("Not accepted", row.TextContent);
         }
-        using var own = await GetAsync(client, "/submissions");
+        using var own = await GetAsync(client, "/submissions?scope=own");
         Assert.Contains(ownStatus, own.QuerySelector($"#submission-{submission.Id}")!.TextContent);
     }
 
@@ -116,7 +116,7 @@ public partial class PracticeSubmissionTests
             Assert.Empty(page.QuerySelectorAll("#submissions a[href*='/download'], #submissions a[href*='#compilation-errors']"));
             Assert.Null(page.QuerySelector("a[rel='next']"));
         }
-        using var own = await GetAsync(client, "/submissions");
+        using var own = await GetAsync(client, "/submissions?scope=own");
         Assert.Contains("Compilation error", own.QuerySelector("#submissions")!.TextContent);
         Assert.NotEmpty(own.QuerySelectorAll("#submissions a[href*='#compilation-errors']"));
     }

@@ -109,7 +109,7 @@ public partial class PracticeSubmissionTests
                 }
             }
         }
-        using var history = await GetAsync(client, "/submissions");
+        using var history = await GetAsync(client, "/submissions?scope=own&kind=training");
         Assert.Equal(2, history.QuerySelectorAll("#submissions tbody tr").Length);
         Assert.NotNull(history.QuerySelector($"a[href='submissions/{ids[0]}']"));
         using var workspace = await GetAsync(client, path);

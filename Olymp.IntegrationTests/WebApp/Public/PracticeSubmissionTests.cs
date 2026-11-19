@@ -140,7 +140,8 @@ public partial class PracticeSubmissionTests(WebAppFactory factory) : IClassFixt
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
         using var client = await factory.LoginAsync(data.User.UserName!);
         using var defaultHistory = await GetAsync(client, ProblemPath(data.Contest.Id, problem.Id));
-        Assert.NotNull(defaultHistory.QuerySelector($"#submission-{teamSubmission.Id}"));
+        Assert.NotNull(defaultHistory.QuerySelector($"#submission-{personal.Id}"));
+        Assert.Null(defaultHistory.QuerySelector($"#submission-{teamSubmission.Id}"));
         using var page = await GetAsync(client, ProblemPath(data.Contest.Id, problem.Id) + "&kind=training");
         Assert.Equal([personal.Id.ToString()], page.QuerySelectorAll("#submissions tbody tr")
             .Select(row => row.Id!["submission-".Length..]));

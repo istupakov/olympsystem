@@ -13,7 +13,7 @@
             {
                 <h2 id="submissions-heading" class="h4 mb-0">@SiteResources.Submissions</h2>
             }
-            @if (!isTemporary && AvailableScopes.Length > 1)
+            @if (!isTemporary && (AvailableScopes.Length > 1 || (AvailableScopes.Length == 1 && AvailableScopes[0] != selectedScope)))
             {
                 <nav class="btn-group btn-group-sm" aria-label="@SiteResources.SubmissionScope">
                     @foreach (var scope in AvailableScopes)
@@ -23,7 +23,7 @@
                     }
                 </nav>
             }
-            @if (!isTemporary && AvailableKinds.Length > 1)
+            @if (!FixedParticipant && AvailableKinds.Length > 1)
             {
                 <nav class="btn-group btn-group-sm" aria-label="@SiteResources.SubmissionKind">
                     @foreach (var kind in AvailableKinds)
@@ -78,6 +78,8 @@
     private SubmissionKind selectedKind;
     private bool loaded;
     private bool isTemporary;
+    private bool isForeignParticipant;
+    private bool FixedParticipant => isTemporary && !isForeignParticipant;
     private readonly HashSet<(SubmissionScope Scope, SubmissionKind Kind)> available = [];
     private bool hasNextPage;
 
@@ -85,7 +87,8 @@
     private bool ShowSource => submissions.Any(item => item.CanViewSource);
 
     private SubmissionScope[] AvailableScopes => Enum.GetValues<SubmissionScope>().Where(scope => available.Any(pair => pair.Scope == scope)).ToArray();
-    private SubmissionKind[] AvailableKinds => Enum.GetValues<SubmissionKind>().Where(kind => available.Any(pair => pair.Kind == kind)).ToArray();
+    private SubmissionKind[] AvailableKinds => Enum.GetValues<SubmissionKind>()
+        .Where(kind => kind == selectedKind || available.Any(pair => pair.Kind == kind)).ToArray();
 
     protected override async Task OnParametersSetAsync()
     {
@@ -104,11 +107,11 @@
         }
         int userId = user.Id;
         isTemporary = user is Competitor;
-        bool isForeignParticipant = user is Competitor participant && ContestId.HasValue && ContestId != participant.ContestId;
+        isForeignParticipant = user is Competitor participant && ContestId.HasValue && ContestId != participant.ContestId;
         selectedScope = isForeignParticipant ? SubmissionScope.All : SubmissionScope.Own;
         bool legacyParticipant = string.Equals(Scope, "participant", StringComparison.OrdinalIgnoreCase);
         selectedKind = SubmissionKind.Contest;
-        if (!isTemporary && ((!string.IsNullOrEmpty(Scope) && !legacyParticipant
+        if (!FixedParticipant && ((!string.IsNullOrEmpty(Scope) && !legacyParticipant
                 && (!Enum.TryParse(Scope, ignoreCase: true, out selectedScope) || !Enum.IsDefined(selectedScope)))
             || (!string.IsNullOrEmpty(Kind)
                 && (!Enum.TryParse(Kind, ignoreCase: true, out selectedKind) || !Enum.IsDefined(selectedKind)))))
@@ -137,21 +140,19 @@
                 && item.Problem.Contest.FreezeTime != null && item.Problem.Contest.FreezeTime < now
                 && item.CommitTime >= item.Problem.Contest.FreezeTime)));
         available.Clear();
-        if (!isTemporary)
+        if (!FixedParticipant)
         {
-            foreach (bool isParticipant in await ownQuery.Select(item => item.User is Competitor).Distinct().ToListAsync(token))
-                available.Add((SubmissionScope.Own, isParticipant ? SubmissionKind.Contest : SubmissionKind.Training));
-            foreach (var (scope, scopedQuery) in new[] { (SubmissionScope.Coached, coachedQuery), (SubmissionScope.All, publicQuery) })
+            if (!isTemporary)
             {
-                if (await scopedQuery.AnyAsync(item => item.User is Competitor, token))
-                    available.Add((scope, SubmissionKind.Contest));
-                if (await scopedQuery.AnyAsync(item => item.User is OlympUser, token))
-                    available.Add((scope, SubmissionKind.Training));
+                foreach (bool isParticipant in await ownQuery.Select(item => item.User is Competitor).Distinct().ToListAsync(token))
+                    available.Add((SubmissionScope.Own, isParticipant ? SubmissionKind.Contest : SubmissionKind.Training));
+                foreach (bool isParticipant in await coachedQuery.Select(item => item.User is Competitor).Distinct().ToListAsync(token))
+                    available.Add((SubmissionScope.Coached, isParticipant ? SubmissionKind.Contest : SubmissionKind.Training));
             }
-            if (string.IsNullOrEmpty(Scope))
-                selectedScope = AvailableScopes.FirstOrDefault(SubmissionScope.All);
-            if (string.IsNullOrEmpty(Kind) && !legacyParticipant)
-                selectedKind = available.Contains((selectedScope, SubmissionKind.Contest)) ? SubmissionKind.Contest : SubmissionKind.Training;
+            foreach (bool isParticipant in await publicQuery.Select(item => item.User is Competitor).Distinct().ToListAsync(token))
+                available.Add((SubmissionScope.All, isParticipant ? SubmissionKind.Contest : SubmissionKind.Training));
+            bool open = ContestId.HasValue && await context.Contests.AnyAsync(contest => contest.Id == ContestId && contest.IsOpen, token);
+            SelectDefaults(ContestId.HasValue && !open ? SubmissionKind.Contest : SubmissionKind.Training, legacyParticipant);
         }
 
         if (selectedScope == SubmissionScope.All && Page > AllPageLimit)
@@ -166,7 +167,7 @@
             SubmissionScope.Coached => coachedQuery,
             _ => publicQuery
         };
-        if (!isTemporary)
+        if (!FixedParticipant)
             query = query.Where(item => (item.User is Competitor) == (selectedKind == SubmissionKind.Contest));
 
         bool lastAllPage = selectedScope == SubmissionScope.All && Page == AllPageLimit;
@@ -210,6 +211,30 @@
         loaded = true;
     }
 
+    private void SelectDefaults(SubmissionKind preferredKind, bool legacyParticipant)
+    {
+        bool explicitScope = !string.IsNullOrEmpty(Scope);
+        bool explicitKind = !string.IsNullOrEmpty(Kind) || legacyParticipant;
+        if (isForeignParticipant) selectedScope = SubmissionScope.All;
+        else if (legacyParticipant) selectedScope = SubmissionScope.Own;
+        else if (!explicitScope) selectedScope = ContestId.HasValue ? SubmissionScope.Own : SubmissionScope.All;
+        if (!explicitKind) selectedKind = preferredKind;
+        if (!ContestId.HasValue) return;
+
+        SubmissionScope[] scopes = isForeignParticipant || explicitScope ? [selectedScope]
+            : [SubmissionScope.Own, SubmissionScope.Coached, SubmissionScope.All];
+        SubmissionKind[] kinds = explicitKind ? [selectedKind]
+            : [preferredKind, preferredKind == SubmissionKind.Contest ? SubmissionKind.Training : SubmissionKind.Contest];
+        foreach (var kind in kinds)
+            foreach (var scope in scopes)
+                if (available.Contains((scope, kind)))
+                {
+                    selectedScope = scope;
+                    selectedKind = kind;
+                    return;
+                }
+    }
+
     private string ScopeUrl(SubmissionScope scope) => ListUrl(scope, selectedKind, 1);
 
     private string KindUrl(SubmissionKind kind) => ListUrl(selectedScope, kind, 1);
@@ -217,8 +242,8 @@
     private string ListUrl(SubmissionScope scope, SubmissionKind kind, int page) => Navigation.GetUriWithQueryParameters(
         Navigation.Uri.Split('#')[0], new Dictionary<string, object?>
         {
-            ["scope"] = isTemporary ? null : scope.ToString().ToLowerInvariant(),
-            ["kind"] = isTemporary ? null : kind.ToString().ToLowerInvariant(),
+            ["scope"] = FixedParticipant ? null : scope.ToString().ToLowerInvariant(),
+            ["kind"] = FixedParticipant ? null : kind.ToString().ToLowerInvariant(),
             ["page"] = page == 1 ? null : page
         });
 
