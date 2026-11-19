@@ -120,7 +120,7 @@
   <data name="TimeLimit" xml:space="preserve"><value>Time limit</value></data>
   <data name="MemoryLimit" xml:space="preserve"><value>Memory limit</value></data>
   <data name="Seconds" xml:space="preserve"><value>s.</value></data>
-  <data name="Megabytes" xml:space="preserve"><value>MB</value></data>
+  <data name="Megabytes" xml:space="preserve"><value>MiB</value></data>
   <data name="DownloadStatements" xml:space="preserve"><value>Download contest statements (PDF)</value></data>
   <data name="StatementUnavailable" xml:space="preserve"><value>The statement has not been published yet.</value></data>
   <data name="Examples" xml:space="preserve"><value>Examples</value></data>
@@ -447,7 +447,7 @@
   <data name="StaffInputData" xml:space="preserve"><value>Input data</value></data>
   <data name="StaffRun" xml:space="preserve"><value>Run</value></data>
   <data name="StaffRunOutput" xml:space="preserve"><value>Execution result</value></data>
-  <data name="StaffRunLimits" xml:space="preserve"><value>Execution limits: 1 s, 128 MB.</value></data>
+  <data name="StaffRunLimits" xml:space="preserve"><value>Execution limits: 1 s, 128 MiB.</value></data>
   <data name="StaffRunnerDisconnected" xml:space="preserve"><value>Runner disconnected or execution failed. Your input is retained.</value></data>
   <data name="StaffCancelRun" xml:space="preserve"><value>Cancel execution</value></data>
   <data name="StaffRunnerRefresh" xml:space="preserve"><value>Runner status refreshes every 10 seconds.</value></data>
@@ -671,7 +671,7 @@
   <data name="StaffNoMatchingRunner" xml:space="preserve"><value>No connected Runner has passed self-testing and supports the selected compiler.</value></data>
   <data name="StaffConfigurationUnavailable" xml:space="preserve"><value>The configuration is unavailable.</value></data>
   <data name="StaffRunTimeInvalid" xml:space="preserve"><value>Enter a positive, finite time limit.</value></data>
-  <data name="StaffRunMemoryInvalid" xml:space="preserve"><value>Select a memory limit: 8, 16, 32, 64, 128, 256 or 512 MB.</value></data>
+  <data name="StaffRunMemoryInvalid" xml:space="preserve"><value>Select a memory limit: 8, 16, 32, 64, 128, 256 or 512 MiB.</value></data>
   <data name="StaffAnalysisNeedsRun" xml:space="preserve"><value>Run the analysis again to include the added problems.</value></data>
   <data name="StaffFirstAuthor" xml:space="preserve"><value>Author 1</value></data>
   <data name="StaffSecondAuthor" xml:space="preserve"><value>Author 2</value></data>
@@ -863,13 +863,18 @@
   <data name="ImportUnknownLanguage" xml:space="preserve"><value>No active compiler matches the file extension.</value></data>
   <data name="ImportValidationRequired" xml:space="preserve"><value>Resolve errors and complete the input validator check before saving this problem.</value></data>
   <data name="ImportValidatorCompiler" xml:space="preserve"><value>C++ compiler for validators</value></data>
-  <data name="ImportSlowTimeLimit" xml:space="preserve"><value>Slow time limit (seconds)</value></data>
+  <data name="ImportSlowTimeLimit" xml:space="preserve"><value>Slow time limit</value></data>
   <data name="ImportAddedTests" xml:space="preserve"><value>Added tests</value></data>
   <data name="ImportChangedTests" xml:space="preserve"><value>Changed tests</value></data>
   <data name="ImportRemovedTests" xml:space="preserve"><value>Removed tests</value></data>
   <data name="ImportNewProblem" xml:space="preserve"><value>New problem</value></data>
   <data name="ImportWaiting" xml:space="preserve"><value>Applying import; waiting for ongoing judging to finish if necessary.</value></data>
   <data name="ImportPeakTime" xml:space="preserve"><value>Peak time (seconds)</value></data>
+  <data name="ImportRunFile" xml:space="preserve"><value>File</value></data>
+  <data name="ImportRunTimeLimit" xml:space="preserve"><value>Limit, s</value></data>
+  <data name="ImportRunTime" xml:space="preserve"><value>Time, s</value></data>
+  <data name="ImportRunMemory" xml:space="preserve"><value>Memory, MiB</value></data>
+  <data name="ImportRunSlowestTest" xml:space="preserve"><value>Slowest test</value></data>
   <data name="ImportPeakMemory" xml:space="preserve"><value>Peak memory (MiB)</value></data>
   <data name="ImportSlowestTest" xml:space="preserve"><value>Slowest test</value></data>
   <data name="ImportRefresh" xml:space="preserve"><value>Refresh comparison</value></data>

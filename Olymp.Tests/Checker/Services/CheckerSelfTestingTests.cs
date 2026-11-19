@@ -75,7 +75,7 @@ public class CheckerSelfTestingTests
         var output = await checker.Run("source", configuration, "input", TimeSpan.FromSeconds(1), 128,
             TestContext.Current.CancellationToken);
 
-        Assert.Contains("Compilation:", output.Log);
+        Assert.Contains("--------------" + Environment.NewLine + "Compilation" + Environment.NewLine, output.Log);
         Assert.Contains("Execution:", output.Log);
         Assert.Contains("compiler output", output.Log);
         Assert.Equal(1, runner.VersionRequests);
@@ -97,6 +97,20 @@ public class CheckerSelfTestingTests
         var result = Assert.Single(checker.SelfTestingResults, x => x.Name == nameof(TestSelfCheck));
         Assert.Equal(expectedResult, result.Result);
         Assert.Contains(fail ? "Injected runner failure" : "compiler output", result.Output);
+    }
+
+    [Fact]
+    public async Task SelfTestsKeepCompilerWarningsWithinOneKiB()
+    {
+        var diagnostic = new string('W', 1024);
+        var runner = new TestRunner { CompilerOutput = diagnostic + "discarded diagnostic" };
+        var checker = new CheckerService(runner, [new TestConfiguration()], [new TestSelfCheck()], []);
+
+        Assert.True(await checker.RunSelfTests(TestContext.Current.CancellationToken));
+
+        var result = Assert.Single(checker.SelfTestingResults, x => x.Name == nameof(TestSelfCheck));
+        Assert.Contains("compilator:" + Environment.NewLine + diagnostic, result.Output);
+        Assert.DoesNotContain("discarded diagnostic", result.Output);
     }
 
     [Fact]

@@ -32,7 +32,7 @@ internal sealed class FakeCheckerService(Guid id, CheckerSelfTestingStatus statu
             throw new InvalidOperationException("The test configuration is unavailable.");
 
         var log = new StringBuilder("TEST RESULT: predefined results, source code was not executed.\n");
-        log.AppendLine($"Runner: {Name} ({Id})\nTime limit: {request.TimeLimit}\nMemory limit: {request.MemoryLimitMb} MB");
+        log.AppendLine($"Runner: {Name} ({Id})\nTime limit: {request.TimeLimit}\nMemory limit: {request.MemoryLimitMb} MiB");
         int code = 2, score = 0;
         var results = new List<string>();
 
@@ -61,7 +61,7 @@ internal sealed class FakeCheckerService(Guid id, CheckerSelfTestingStatus statu
         if (!compilers.Any(info => info.Configuration == configuration && info.Error is null))
             throw new InvalidOperationException("The test configuration is unavailable.");
 
-        return Task.FromResult(new CheckerResult(2, $"TEST RESULT: predefined output, source code was not executed.\nRunner: {Name} ({Id})\nConfiguration: {configuration.Name}\nTime limit: {timeLimit}\nMemory limit: {memoryLimitMb} MB\nInput length: {input.Length}\nstdout:\n42\nstderr:\n"));
+        return Task.FromResult(new CheckerResult(2, $"TEST RESULT: predefined output, source code was not executed.\nRunner: {Name} ({Id})\nConfiguration: {configuration.Name}\nTime limit: {timeLimit}\nMemory limit: {memoryLimitMb} MiB\nInput length: {input.Length}\nstdout:\n42\nstderr:\n"));
     }
 
     public Task<ValidatorResult> Validate(string source, CompilatorInfo compiler, IReadOnlyList<ValidatorTest> tests, CancellationToken token)

@@ -177,6 +177,7 @@ public sealed class CheckerService : ICheckerService
             if (compilation.Status != RunnerStatus.Completed)
                 return new(false, log.ToString(), []);
 
+            log.AppendLine("--------------");
             var results = new List<ValidatorTestResult>();
             foreach (var test in tests)
             {
@@ -184,8 +185,12 @@ public sealed class CheckerService : ICheckerService
                     configuration.RunCommand(name, (int)(CompilationResources.Memory / 1024 / 1024)), test.Input,
                     false, true, [configuration.ConfigName], [], CompilationResources), token);
                 results.Add(new(test.Number, result.Status == RunnerStatus.Completed));
-                log.AppendLine($"\nTest {test.Number}: {result.Status}, exit code {result.ExitCode}");
-                log.AppendLine(GetTruncatedString(result.Stderr, (int)CompilationResources.Stderr));
+                log.AppendLine($"Test {test.Number}: {result.Status}, exit code {result.ExitCode}");
+                if (result.Status != RunnerStatus.Completed)
+                {
+                    var message = GetTruncatedString(result.Stderr, (int)CompilationResources.Stderr).TrimEnd();
+                    if (message.Length != 0) log.AppendLine(message);
+                }
             }
             return new(true, log.ToString(), results);
         }
@@ -216,14 +221,10 @@ public sealed class CheckerService : ICheckerService
                 """);
 
             var compileResult = await Compile(name, configuration, request.Source, true, token);
-            log.AppendLine($"""
-                Compilation:
-                {GetCommandLog(configuration.GetCompileCommand(name), compileResult)}
-                """);
+            log.Append(GetCompilationLog(configuration.GetCompileCommand(name), compileResult));
             if (compileResult.Status is not RunnerStatus.Completed)
             {
-                return new(CheckerResultStatus.CompilationError.MakeStatusCode(),
-                    log.AppendLine("compilator:").AppendLine(GetTruncatedString(compileResult.Stderr, 1024)).ToString());
+                return new(CheckerResultStatus.CompilationError.MakeStatusCode(), log.ToString());
             }
 
             if (!_simpleCheckers.TryGetValue(request.CheckerId, out var checker))
@@ -257,13 +258,7 @@ public sealed class CheckerService : ICheckerService
 
                 maxPeakMemory = Math.Max(maxPeakMemory, result.ResourceConsumption.Memory);
 
-                log.AppendLine($"""
-                    status: {status}
-                    user time: {result.ResourceConsumption.UserTime}
-                    total time: {result.ResourceConsumption.TotalTime}
-                    peak memory: {result.ResourceConsumption.Memory / 1024 / 1024} MB
-                    exit code: {result.ExitCode}
-                    """);
+                log.AppendLine(GetCommandLog(configuration.RunCommand(name, request.MemoryLimitMb), result, status));
 
                 if (status is CheckerResultStatus.TimeLimit or CheckerResultStatus.MemoryLimit && ++counter < 2)
                     goto test;
@@ -286,12 +281,13 @@ public sealed class CheckerService : ICheckerService
                 }
             }
 
+            log.AppendLine("--------------");
+            if (slowestTest is { } number) log.AppendLine($"Slowest test: {number}");
             log.AppendLine($"""
-                --------------
                 Max user time: {maxUserTime}
                 Max total time: {maxTotalTime}
-                Max peak memory: {maxPeakMemory / 1024 / 1024} MB
-                Checking time {timer.Elapsed}
+                Max peak memory: {maxPeakMemory / 1024 / 1024} MiB
+                Checking time: {timer.Elapsed}
                 """);
 
             var needScores = request.Tests.Any(x => x.Score is not null);
@@ -318,7 +314,7 @@ public sealed class CheckerService : ICheckerService
             string name = Guid.NewGuid().ToString();
             var encoding = Encoding.UTF8;
             var compileResult = await Compile(name, configuration, source, true, token);
-            var compilationLog = GetCompilationLog(configuration.GetCompileCommand(name), compileResult);
+            var compilationLog = GetCompilationLog(configuration.GetCompileCommand(name), compileResult, 100 * 1024);
             if (compileResult.Status is not RunnerStatus.Completed)
                 return new(CheckerResultStatus.CompilationError.MakeStatusCode(), compilationLog);
 
@@ -329,11 +325,7 @@ public sealed class CheckerService : ICheckerService
                 {compilationLog}
 
                 Execution:
-                status: {result.Status}
-                user time: {result.ResourceConsumption.UserTime}
-                total time: {result.ResourceConsumption.TotalTime}
-                peak memory: {result.ResourceConsumption.Memory / 1024 / 1024} MB
-                exit code: {result.ExitCode}
+                {GetCommandLog(configuration.RunCommand(name, memoryLimitMb), result)}
                 stdout:
                 {GetTruncatedString(result.Stdout, 4096)}
                 stderr:
@@ -439,11 +431,7 @@ public sealed class CheckerService : ICheckerService
             {compilationLog}
 
             Execution:
-            status: {result.Status}
-            user time: {result.ResourceConsumption.UserTime}
-            total time: {result.ResourceConsumption.TotalTime}
-            peak memory: {result.ResourceConsumption.Memory / 1024 / 1024} MB
-            exit code: {result.ExitCode}
+            {GetCommandLog(configuration.RunCommand(test.Name, test.MemoryLimitMB), result)}
             source:
             {test.Source}
             test input:
@@ -459,21 +447,23 @@ public sealed class CheckerService : ICheckerService
         return (status, output);
     }
 
-    private static string GetCommandLog(string command, RunnerResult result) => $"""
+    private static string GetCommandLog(string command, RunnerResult result, CheckerResultStatus? status = null) => $"""
         command: {command}
-        status: {result.Status}
+        status: {status?.ToString() ?? result.Status.ToString()}
         user time: {result.ResourceConsumption.UserTime}
         total time: {result.ResourceConsumption.TotalTime}
-        peak memory: {result.ResourceConsumption.Memory / 1024 / 1024} MB
+        peak memory: {result.ResourceConsumption.Memory / 1024 / 1024} MiB
         exit code: {result.ExitCode}
         """;
 
-    private static string GetCompilationLog(string command, RunnerResult result) => $"""
-        Compilation:
-        {GetCommandLog(command, result)}
-        compilator:
-        {GetTruncatedString(result.Stderr, 100 * 1024)}
-        """;
+    private static string GetCompilationLog(string command, RunnerResult result, int outputLimit = 1024)
+    {
+        var log = new StringBuilder();
+        log.AppendLine("--------------").AppendLine("Compilation").AppendLine(GetCommandLog(command, result));
+        if (!result.Stderr.IsEmpty)
+            log.AppendLine("compilator:").AppendLine(GetTruncatedString(result.Stderr, outputLimit));
+        return log.ToString();
+    }
 
     private static string GetTruncatedString(ReadOnlyMemory<byte> memory, int len) =>
         Encoding.UTF8.GetString(memory.Span[..Math.Min(memory.Length, len)]);

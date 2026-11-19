@@ -57,7 +57,7 @@ Each test has an `inputN.txt` and an `outputN.txt` with the same test number. Us
 ## Validation and saving
 
 - If supplied, `validator.cpp` checks test inputs using a selected C++ compiler; `testlib.h` is available. Failure on an active test blocks saving; failure on an inactive test is a warning. A missing validator, compilation failure, or unavailable Runner is a warning.
-- Selected files from `solutions/` run on active tests using the resulting checker and time limits, on available compilers for their language. Results are informational.
+- Selected files from `solutions/` run on active tests using the resulting checker and time limits, on available configurations for their language. Results are informational.
 - The regular and slow time limits can be changed independently before saving.
 
 An updated problem keeps its ID, statement, submissions, and checking history. Problems absent from the ZIP are kept. Finishing import discards unsaved changes and retains saved problems.

@@ -2,18 +2,38 @@
 @using Olymp.WebApp.Components.Submissions
 @if (Runs.Count != 0)
 {
-    <div class="table-responsive"><table class="table table-sm">
-        <thead><tr><th>@SiteResources.SourceCode</th><th>@SiteResources.Compiler</th><th>@SiteResources.TimeLimit (@SiteResources.Seconds)</th><th>@SiteResources.Status</th><th>@SiteResources.StaffScore</th><th>@SiteResources.ImportPeakTime</th><th>@SiteResources.ImportPeakMemory</th><th>@SiteResources.ImportSlowestTest</th></tr></thead>
+    <div class="table-responsive" tabindex="0"><table class="table table-striped table-hover text-nowrap align-middle">
+        <thead><tr><th title="@SiteResources.SourceCode">@SiteResources.ImportRunFile</th><th>@SiteResources.Compiler</th><th title="@SiteResources.TimeLimit">@SiteResources.ImportRunTimeLimit</th><th>@SiteResources.Status</th>@if (ShowScore) { <th>@SiteResources.StaffScore</th> }<th title="@SiteResources.ImportPeakTime">@SiteResources.ImportRunTime</th><th title="@SiteResources.ImportPeakMemory">@SiteResources.ImportRunMemory</th><th title="@SiteResources.ImportSlowestTest">@SiteResources.ImportRunSlowestTest</th></tr></thead>
         <tbody>
             @foreach (var run in Runs)
             {
-                <tr><td>@run.File</td><td>@run.Compiler</td><td>@run.TimeLimit</td>
+                <tr class="@(ReferenceEquals(run, _selected) ? "table-active" : null)"><td><button type="button" class="btn btn-link p-0 text-nowrap" aria-pressed="@ReferenceEquals(run, _selected)" @onclick="() => _selected = run">@run.File</button></td><td>@run.Compiler</td><td>@run.TimeLimit</td>
                     <td>@if (run.Result is { } verdict) { <SubmissionStatus StatusCode="verdict.StatusCode" /> } else { @run.Message }</td>
-                    <td>@run.Result?.Score</td><td>@run.Result?.MaxUserTime?.TotalSeconds.ToString("0.###")</td><td>@(run.Result?.MaxMemory is { } bytes ? (bytes / 1048576d).ToString("0.##") : null)</td><td>@run.Result?.SlowestTest</td>
+                    @if (ShowScore) { <td>@run.Result?.Score</td> }<td>@run.Result?.MaxUserTime?.TotalSeconds.ToString("0.###")</td><td>@(run.Result?.MaxMemory is { } bytes ? (bytes / 1048576d).ToString("0.##") : null)</td><td>@run.Result?.SlowestTest</td>
                 </tr>
-                @if (run.Result is not null) { <tr><td colspan="8"><details><summary>@SiteResources.StaffRunOutput</summary><pre class="text-wrap">@run.Result.Log</pre></details></td></tr> }
             }
         </tbody>
     </table></div>
+    @if (_selected is { } selected)
+    {
+        <section class="card mt-3" aria-label="@SiteResources.StaffRunOutput">
+            <h4 class="card-header h6">@selected.File · @selected.Compiler · @selected.TimeLimit @SiteResources.Seconds</h4>
+            <div class="card-body">
+                <details @key="selected">
+                    <summary>@SiteResources.StaffLog</summary>
+                    <pre class="overflow-auto mt-2 mb-0">@(selected.Result?.Log ?? selected.Message)</pre>
+                </details>
+            </div>
+        </section>
+    }
 }
-@code { [Parameter] public IReadOnlyList<ImportRun> Runs { get; set; } = []; }
+@code {
+    [Parameter] public IReadOnlyList<ImportRun> Runs { get; set; } = [];
+    [Parameter] public bool ShowScore { get; set; }
+    private ImportRun? _selected;
+
+    protected override void OnParametersSet()
+    {
+        if (!Runs.Any(run => ReferenceEquals(run, _selected))) _selected = Runs.FirstOrDefault();
+    }
+}

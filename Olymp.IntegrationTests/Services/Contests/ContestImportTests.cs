@@ -211,7 +211,7 @@ public class ContestImportTests(ContestServiceFixture site) : IClassFixture<Cont
             ConfigName = info.Configuration.ConfigName,
             SourceExtension = info.Configuration.SourceExtension,
             CommandLine = info.Configuration.CompileCommand,
-            IsActive = true,
+            IsActive = false,
             Submissions = []
         };
         db.Compilators.Add(compiler);
@@ -223,7 +223,7 @@ public class ContestImportTests(ContestServiceFixture site) : IClassFixture<Cont
         var preview = await PrepareAsync(service, setup.Actor, setup.Contest.Id,
             Package(new { number = 1, name = "Checked", inactiveTests = inactive ? InactiveTestNumbers : [], scores = new Dictionary<int, int> { [3] = 100 } }, true,
                 ("A/validator.cpp", "validator"u8.ToArray()), ("A/solutions/main.cpp", "solution"u8.ToArray())));
-        preview.ValidatorCompilerId = compiler.Id;
+        preview.ValidatorConfiguration = ContestImportService.ConfigurationId(info);
         await service.EnsureValidatorAsync(setup.Actor, preview, preview.Rows[0], Token);
         var row = Assert.Single(preview.Rows);
         Assert.Equal(inactive, row.Errors.Count == 0);
@@ -231,7 +231,7 @@ public class ContestImportTests(ContestServiceFixture site) : IClassFixture<Cont
         Assert.Empty(runner.Requests);
         Assert.Equal(1, runner.ValidatorCalls);
         row.Solutions[0].Selected = true;
-        await service.RunSolutionsAsync(setup.Actor, preview, row, Token);
+        await service.RunSolutionsAsync(setup.Actor, preview, row, token: Token);
         var original = Assert.Single(runner.Requests);
         Assert.Equal(inactive ? ActiveTestNumbers : [1, 3], original.Tests.Select(t => t.Number));
         row.TimeLimit = 5; row.SlowTimeLimit = 9;
@@ -239,13 +239,13 @@ public class ContestImportTests(ContestServiceFixture site) : IClassFixture<Cont
         await service.RefreshAsync(setup.Actor, preview, row, Token);
         await service.EnsureValidatorAsync(setup.Actor, preview, row, Token);
         Assert.Equal(1, runner.ValidatorCalls);
-        preview.ValidatorCompilerId = null;
+        preview.ValidatorConfiguration = null;
         await service.EnsureValidatorAsync(setup.Actor, preview, row, Token);
         Assert.Null(row.ValidatorResult);
-        preview.ValidatorCompilerId = compiler.Id;
+        preview.ValidatorConfiguration = ContestImportService.ConfigurationId(info);
         await service.EnsureValidatorAsync(setup.Actor, preview, row, Token);
         Assert.Equal(2, runner.ValidatorCalls);
-        await service.RunSolutionsAsync(setup.Actor, preview, row, Token);
+        await service.RunSolutionsAsync(setup.Actor, preview, row, token: Token);
         Assert.Equal(TimeSpan.FromSeconds(5), runner.Requests.Last().TimeLimit);
         Assert.Equal(5, row.TimeLimit); Assert.Equal(9, row.SlowTimeLimit);
         Assert.Equal([1, 5], row.Runs.Where(r => r.File == "main.cpp" && r.Compiler == info.FullName).Select(r => r.TimeLimit));
@@ -260,7 +260,7 @@ public class ContestImportTests(ContestServiceFixture site) : IClassFixture<Cont
     }
 
     [Fact]
-    public async Task SolutionsUseAllLanguageCompilersAndTheirRegularOrSlowLimit()
+    public async Task SolutionsUseAvailableUnregisteredConfigurationsAndTheirRegularOrSlowLimit()
     {
         var setup = await SetupAsync();
         using var scope = site.Services.CreateScope();
@@ -270,34 +270,22 @@ public class ContestImportTests(ContestServiceFixture site) : IClassFixture<Cont
         foreach (var config in new ICompilatorConfiguration[] { new GccCpp23Configuration(), new CPythonConfiguration(), new PyPyConfiguration() })
         {
             var info = config.ParseInfo(config.Language == "C++" ? "14.2.0" : config.Name == "PyPy" ? "Python 3.11.0\nPyPy 7.3.17" : "Python 3.13.1") with { FullName = Guid.NewGuid().ToString("N") };
-            db.Compilators.Add(new Compilator
-            {
-                Name = config.Name,
-                Description = info.FullName,
-                Language = config.Language,
-                ConfigName = config.ConfigName,
-                SourceExtension = config.SourceExtension,
-                CommandLine = config.CompileCommand,
-                IsActive = true,
-                Submissions = []
-            });
             var runner = new ImportChecker(info);
             manager.Register(runner, Token);
             runners.Add(runner);
         }
-        await db.SaveChangesAsync(Token);
         var service = scope.ServiceProvider.GetRequiredService<ContestImportService>();
         var preview = await PrepareAsync(service, setup.Actor, setup.Contest.Id, Package(new { number = 1, name = "Languages", timeLimit = 4, slowTimeLimit = 9 }, true,
             ("A/solutions/main.cc", "C++ solution"u8.ToArray()), ("A/solutions/main.py", "Python solution"u8.ToArray())));
         await service.EnsureValidatorAsync(setup.Actor, preview, preview.Rows[0], Token);
         preview.Rows[0].Solutions[0].Selected = true;
-        await service.RunSolutionsAsync(setup.Actor, preview, preview.Rows[0], Token);
+        await service.RunSolutionsAsync(setup.Actor, preview, preview.Rows[0], token: Token);
         Assert.NotEmpty(runners[0].Requests);
         Assert.Empty(runners[1].Requests);
         Assert.Empty(runners[2].Requests);
         preview.Rows[0].Solutions[0].Selected = false;
         preview.Rows[0].Solutions[1].Selected = true;
-        await service.RunSolutionsAsync(setup.Actor, preview, preview.Rows[0], Token);
+        await service.RunSolutionsAsync(setup.Actor, preview, preview.Rows[0], token: Token);
         foreach (var runner in runners)
         {
             var request = Assert.Single(runner.Requests);
@@ -308,6 +296,59 @@ public class ContestImportTests(ContestServiceFixture site) : IClassFixture<Cont
         await service.SaveAsync(setup.Actor, preview, preview.Rows[0], Token);
     }
 
+    [Fact]
+    public async Task AvailableConfigurationsDeduplicateRunnersAndExcludeFailedSelfTestsAndVersions()
+    {
+        var setup = await SetupAsync();
+        using var scope = site.Services.CreateScope();
+        var manager = (CheckerManager)site.Services.GetRequiredService<ICheckerManager>();
+        var info = new GccLinuxCpp23Configuration().ParseInfo("15.2.0") with { FullName = Guid.NewGuid().ToString("N") };
+        var first = new ImportChecker(info);
+        var second = new ImportChecker(info);
+        var failed = new ImportChecker(info with { FullName = Guid.NewGuid().ToString("N") }) { SelfTestingStatus = CheckerSelfTestingStatus.Failed };
+        var broken = new ImportChecker(info with { FullName = Guid.NewGuid().ToString("N"), Error = "version failed" });
+        foreach (var runner in new[] { first, second, failed, broken }) manager.Register(runner, Token);
+
+        var configurations = ContestImportService.AvailableConfigurations(manager);
+        Assert.Single(configurations, c => c.Info == info);
+        Assert.DoesNotContain(configurations, c => c.Runner.Id == failed.Id || c.Runner.Id == broken.Id);
+
+        var service = scope.ServiceProvider.GetRequiredService<ContestImportService>();
+        var preview = await PrepareAsync(service, setup.Actor, setup.Contest.Id, Package(new { number = 1, name = "Unregistered" }, true,
+            ("A/validator.cpp", "validator"u8.ToArray()), ("A/solutions/main.cpp", "solution"u8.ToArray())));
+        preview.ValidatorConfiguration = ContestImportService.ConfigurationId(info);
+        await service.EnsureValidatorAsync(setup.Actor, preview, preview.Rows[0], Token);
+        Assert.Equal(1, first.ValidatorCalls + second.ValidatorCalls);
+        preview.Rows[0].Solutions[0].Selected = true;
+        var firstResult = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var resume = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var notifications = 0;
+        var run = service.RunSolutionsAsync(setup.Actor, preview, preview.Rows[0], async () =>
+        {
+            Assert.Equal(++notifications, preview.Rows[0].Runs.Count);
+            if (notifications == 1)
+            {
+                firstResult.SetResult();
+                await resume.Task.WaitAsync(Token);
+            }
+        }, Token);
+        try
+        {
+            await firstResult.Task.WaitAsync(Token);
+            Assert.Single(preview.Rows[0].Runs);
+            Assert.False(run.IsCompleted);
+        }
+        finally
+        {
+            resume.TrySetResult();
+        }
+        await run;
+        Assert.Equal(preview.Rows[0].Runs.Count, notifications);
+        Assert.Single(first.Requests.Concat(second.Requests));
+        Assert.Empty(failed.Requests);
+        Assert.Empty(broken.Requests);
+    }
+
     private sealed class ImportChecker(CompilatorInfo info) : ICheckerService
     {
         public Guid Id { get; } = Guid.NewGuid();
@@ -315,7 +356,7 @@ public class ContestImportTests(ContestServiceFixture site) : IClassFixture<Cont
         public DateTimeOffset ConnectingTime => DateTimeOffset.UtcNow;
         public IReadOnlyList<ICompilatorConfiguration> Configurations => [info.Configuration];
         public IReadOnlyList<CompilatorInfo>? Compilators => [info];
-        public CheckerSelfTestingStatus SelfTestingStatus => CheckerSelfTestingStatus.Success;
+        public CheckerSelfTestingStatus SelfTestingStatus { get; init; } = CheckerSelfTestingStatus.Success;
         public IEnumerable<CheckerTestResult> SelfTestingResults => [];
         public List<CheckRequest> Requests { get; } = [];
         public int ValidatorCalls { get; private set; }

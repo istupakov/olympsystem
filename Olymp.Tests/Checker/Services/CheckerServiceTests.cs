@@ -29,6 +29,8 @@ public class CheckerServiceTests
         Assert.Equal(expectedScore, result.Score);
         Assert.Equal(expectedResults, result.TestResults);
         Assert.Equal(failureTest == 0 ? 2 : -1000 - failureTest, result.StatusCode);
+        Assert.Contains("Test 1" + Environment.NewLine + "command: run" + Environment.NewLine + "status: "
+            + (failureTest == 1 ? "WrongAnswer" : "Accepted"), result.Log);
         if (expectedRuns < 4)
             Assert.DoesNotContain($"Test {expectedRuns + 1}", result.Log);
     }
@@ -77,7 +79,7 @@ public class CheckerServiceTests
         Assert.Equal(0, runner.TestsRun);
         Assert.Null(result.Score);
         Assert.Null(result.TestResults);
-        Assert.Contains("Compilation:", result.Log);
+        Assert.Contains("--------------" + Environment.NewLine + "Compilation" + Environment.NewLine, result.Log);
         Assert.Contains("user time:", result.Log);
         Assert.Contains("total time:", result.Log);
         Assert.Contains("peak memory:", result.Log);
@@ -237,20 +239,26 @@ public class CheckerServiceTests
         Assert.DoesNotContain("Test 42", result.Log);
     }
 
-    [Fact]
-    public async Task SuccessfulChecksLogCompilationResourcesWithoutCompilerOutput()
+    [Theory]
+    [InlineData(0)]
+    [InlineData(32)]
+    [InlineData(2048)]
+    public async Task SuccessfulChecksLogCompilationResourcesAndBoundedNonemptyDiagnostics(int diagnosticLength)
     {
-        var runner = new TestRunner { CompilerOutput = "Successful compilation diagnostics" };
+        var runner = new TestRunner { CompilerOutput = new string('W', diagnosticLength) };
 
         var result = await CreateChecker(runner).Check(CreateRequest(false), TestContext.Current.CancellationToken);
 
-        Assert.Contains("Compilation:", result.Log);
+        Assert.Contains("--------------" + Environment.NewLine + "Compilation" + Environment.NewLine, result.Log);
         Assert.Contains("user time:", result.Log);
-        string compilation = result.Log[..result.Log.IndexOf("--------------", StringComparison.Ordinal)];
+        int compilationStart = result.Log.IndexOf("Compilation", StringComparison.Ordinal);
+        string compilation = result.Log[compilationStart..result.Log.IndexOf("--------------", compilationStart, StringComparison.Ordinal)];
         Assert.Contains("total time:", compilation);
         Assert.Contains("peak memory:", compilation);
         Assert.Contains("exit code: 0", compilation);
-        Assert.DoesNotContain(runner.CompilerOutput, result.Log);
+        Assert.Equal(diagnosticLength != 0, compilation.Contains("compilator:", StringComparison.Ordinal));
+        if (diagnosticLength != 0)
+            Assert.EndsWith("compilator:" + Environment.NewLine + new string('W', Math.Min(diagnosticLength, 1024)) + Environment.NewLine, compilation);
     }
 
     [Fact]
@@ -308,9 +316,21 @@ public class CheckerServiceTests
         Assert.Equal(2, result.StatusCode);
         Assert.Equal(20, result.Score);
         Assert.Equal("20", result.TestResults);
+        Assert.Contains("--------------" + Environment.NewLine + "Slowest test: 2" + Environment.NewLine, result.Log);
+        Assert.Contains("Checking time:", result.Log);
         Assert.Contains("Max user time: 00:00:03", result.Log);
         Assert.Contains("Max total time: 00:00:04", result.Log);
-        Assert.Contains("Max peak memory: 32 MB", result.Log);
+        Assert.Contains("Max peak memory: 32 MiB", result.Log);
+    }
+
+    [Fact]
+    public async Task NoTestsOmitSlowestTestFromSummary()
+    {
+        var result = await CreateChecker(new TestRunner()).Check(CreateRequest(false) with { Tests = [] },
+            TestContext.Current.CancellationToken);
+
+        Assert.Null(result.SlowestTest);
+        Assert.DoesNotContain("Slowest test:", result.Log);
     }
 
     [Fact]
