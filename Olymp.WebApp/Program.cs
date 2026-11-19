@@ -131,7 +131,7 @@ builder.Services.AddScoped<UnconfirmedUserCleanupService>();
 builder.Services.AddScoped<StaffGridState>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<IcpcImportService>();
-builder.Services.AddHttpClient<Olymp.Icpc.IcpcClient>(client => client.Timeout = TimeSpan.FromSeconds(30))
+builder.Services.AddHttpClient<Olymp.Icpc.IcpcClient>(client => client.Timeout = Timeout.InfiniteTimeSpan)
     .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
 builder.Services.AddSimpleCheckers();
 builder.Services.AddCheckerTests();

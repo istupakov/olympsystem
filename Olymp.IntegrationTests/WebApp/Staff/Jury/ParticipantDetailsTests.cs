@@ -1,10 +1,13 @@
+using System.Data.Common;
 using System.Reflection;
 using System.Security.Claims;
 
 using AngleSharp.Html.Parser;
 
+using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 
 using Olymp.Domain;
@@ -147,6 +150,33 @@ public class ParticipantDetailsTests(WebAppFactory factory) : StaffComponentTest
     }
 
     [Fact]
+    public async Task ReplacesExistingCoachWithoutCoachClaimsAndReloadsRoster()
+    {
+        var token = TestContext.Current.CancellationToken;
+        var (participant, member) = await AddParticipantAsync();
+        var coach = await _factory.AddUserAsync();
+        var interceptor = new RenderDuringReload();
+        string html = await RenderAsync<ParticipantDetails>(Path(participant) + "?edit=true", Parameters(participant), Staff(member.Id), async page =>
+        {
+            await using (var scope = _factory.Services.CreateAsyncScope())
+                await scope.ServiceProvider.GetRequiredService<OlympContext>().Competitors.Where(item => item.Id == participant.Id)
+                    .ExecuteUpdateAsync(update => update.SetProperty(item => item.MemberInfos, "First;;Second;;Third;"), token);
+            typeof(ParticipantDetails).GetField("_coachId", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(page, coach.Id);
+            interceptor.Render = () => typeof(ComponentBase).GetMethod("StateHasChanged", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(page, null);
+            await ActAsync(page, "SaveCoachAsync");
+            Assert.Null(interceptor.Render);
+        }, services => services.AddDbContextFactory<OlympContext>(options => options.AddInterceptors(interceptor)));
+        using var document = await new HtmlParser().ParseDocumentAsync(html);
+        Assert.Contains(SiteResources.StaffSaved, document.Body!.TextContent);
+        Assert.Contains(document.QuerySelectorAll("dd a"), link => link.GetAttribute("href") == $"admin/users/{coach.Id}/edit");
+        Assert.Equal(3, document.QuerySelectorAll("input[id^='roster-name-']").Length);
+        await using var verify = _factory.Services.CreateAsyncScope();
+        var db = verify.ServiceProvider.GetRequiredService<OlympContext>();
+        Assert.Equal(coach.Id, await db.Competitors.Where(item => item.Id == participant.Id).Select(item => item.CoachId).SingleAsync(token));
+        Assert.False(await db.UserClaims.AnyAsync(claim => claim.UserId == coach.Id && claim.ClaimType == ClaimNames.CoachOrg, token));
+    }
+
+    [Fact]
     public async Task PermanentAccountLinksToSeparateParticipationAndCoachingLists()
     {
         var (participant, member) = await AddParticipantAsync();
@@ -211,6 +241,23 @@ public class ParticipantDetailsTests(WebAppFactory factory) : StaffComponentTest
         await using var scope = _factory.Services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<OlympContext>();
         Assert.False(await db.Competitors.Where(item => item.Id == participant.Id).Select(item => item.IsApproved).SingleAsync(TestContext.Current.CancellationToken));
+    }
+
+    private sealed class RenderDuringReload : DbCommandInterceptor
+    {
+        public Action? Render { get; set; }
+
+        public override ValueTask<InterceptionResult<DbDataReader>> ReaderExecutingAsync(DbCommand command,
+            CommandEventData eventData, InterceptionResult<DbDataReader> result, CancellationToken cancellationToken = default)
+        {
+            if (command.CommandText.Contains("COUNT(*)", StringComparison.Ordinal))
+            {
+                var render = Render;
+                Render = null;
+                render?.Invoke();
+            }
+            return ValueTask.FromResult(result);
+        }
     }
 
     private async Task<(Competitor Participant, OlympUser Member)> AddParticipantAsync()

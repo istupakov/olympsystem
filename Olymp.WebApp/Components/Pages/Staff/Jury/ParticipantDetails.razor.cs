@@ -48,25 +48,34 @@ public partial class ParticipantDetails
 
     private async Task LoadAsync()
     {
+        int id = Id, contestId = ContestId;
         await using var scope = ScopeFactory.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<OlympContext>();
-        _participant = await db.Competitors.AsNoTracking().Include(item => item.Contest)
+        var participant = await db.Competitors.AsNoTracking().Include(item => item.Contest)
             .Include(item => item.Organization).Include(item => item.Coach).Include(item => item.Members)
-            .AsSplitQuery().SingleOrDefaultAsync(item => item.Id == Id && item.ContestId == ContestId);
+            .AsSplitQuery().SingleOrDefaultAsync(item => item.Id == id && item.ContestId == contestId);
         var actor = (await AuthenticationState).User;
-        _admin = (await Authorization.AuthorizeAsync(actor, PolicyNames.Admin)).Succeeded;
-        _canManage = (await Authorization.AuthorizeAsync(actor, ContestId, PolicyNames.ManageContest)).Succeeded;
-        _submissionCount = await db.Submissions.CountAsync(item => item.UserId == Id);
-        _messageCount = await db.Messages.CountAsync(item => item.UserId == Id);
-        _participantName = _participant?.Name ?? "";
-        _coachId = _participant?.CoachId;
-        _organizationId = _participant?.OrganizationId;
-        _organizations = _admin ? await db.Organizations.AsNoTracking().OrderBy(item => item.Name).ToListAsync() : [];
-        _rosterNames = _participant is null ? [] : [.. _participant.GetMembers()?.Select(item => item.name) ?? _participant.Members.Select(item => item.Name)];
+        bool admin = (await Authorization.AuthorizeAsync(actor, PolicyNames.Admin)).Succeeded;
+        bool canManage = (await Authorization.AuthorizeAsync(actor, contestId, PolicyNames.ManageContest)).Succeeded;
+        int submissionCount = await db.Submissions.CountAsync(item => item.UserId == id);
+        int messageCount = await db.Messages.CountAsync(item => item.UserId == id);
+        var organizations = admin ? await db.Organizations.AsNoTracking().OrderBy(item => item.Name).ToListAsync() : [];
+        bool confirmed = participant is not null && await scope.ServiceProvider.GetRequiredService<IUserConfirmation<User>>()
+            .IsConfirmedAsync(scope.ServiceProvider.GetRequiredService<UserManager<User>>(), participant);
+        if (Id != id || ContestId != contestId) return;
+        _participant = participant;
+        _admin = admin;
+        _canManage = canManage;
+        _submissionCount = submissionCount;
+        _messageCount = messageCount;
+        _participantName = participant?.Name ?? "";
+        _coachId = participant?.CoachId;
+        _organizationId = participant?.OrganizationId;
+        _organizations = organizations;
+        _rosterNames = participant is null ? [] : [.. participant.GetMembers()?.Select(item => item.name) ?? participant.Members.Select(item => item.Name)];
         _newRosterName = "";
         _memberId = _memberSlot = _removeMemberId = null;
-        _confirmed = _participant is not null && await scope.ServiceProvider.GetRequiredService<IUserConfirmation<User>>()
-            .IsConfirmedAsync(scope.ServiceProvider.GetRequiredService<UserManager<User>>(), _participant);
+        _confirmed = confirmed;
         _loaded = true;
     }
     private Task RenameParticipantAsync()
@@ -117,8 +126,8 @@ public partial class ParticipantDetails
             if (!await db.Competitors.AnyAsync(item => item.Id == id && item.ContestId == contestId)) throw new EntityNotFoundException();
             await change(scope.ServiceProvider.GetRequiredService<AdminParticipantService>(), (await AuthenticationState).User, id);
             if (Id != id || ContestId != contestId) return;
-            _saved = true;
             await LoadAsync();
+            if (Id == id && ContestId == contestId) _saved = true;
         }
         catch (OperationValidationException exception) { _error = exception.Message; }
         catch (EntityNotFoundException) { _error = SiteResources.StaffUserNotFound; }
@@ -157,8 +166,8 @@ public partial class ParticipantDetails
             }
             if (Id != id || ContestId != contestId) return;
             if (action == ParticipantAction.Delete) { Navigation.NavigateTo(BackUrl); return; }
-            _saved = true;
             await LoadAsync();
+            if (Id == id && ContestId == contestId) _saved = true;
         }
         catch (OperationValidationException exception) { _error = exception.Message; }
         catch (EntityNotFoundException) { _error = SiteResources.PageNotFoundMessage; }

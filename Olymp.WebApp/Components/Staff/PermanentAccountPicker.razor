@@ -9,9 +9,9 @@
         <button type="button" class="btn btn-secondary" @onclick="SearchAsync" disabled="@Disabled">@SiteResources.StaffFind</button>
     </div>
     <label for="@_selectId" class="visually-hidden">@SiteResources.StaffAccount</label>
-    <select id="@_selectId" class="form-select" value="@Value" @onchange="SelectAsync" disabled="@Disabled">
+    <select id="@_selectId" class="form-select" @bind:get="Value" @bind:set="SelectAsync" disabled="@Disabled">
         <option value="">@SiteResources.StaffNoAccountSelected</option>
-        @foreach (var account in _accounts) { <option value="@account.Id">@account.Name · @account.Email · ID @account.Id</option> }
+        @foreach (var account in _accounts) { <option @key="account.Id" value="@account.Id">@account.Name · @account.Email · ID @account.Id</option> }
     </select>
     @if (_searched) { <div class="form-text">@SiteResources.StaffAccountSearchHint</div> }
 </div>
@@ -48,5 +48,5 @@
             if (account is not null) _accounts.Add(account);
         }
     }
-    private Task SelectAsync(ChangeEventArgs args) => ValueChanged.InvokeAsync(int.TryParse(args.Value?.ToString(), out int id) ? id : null);
+    private Task SelectAsync(int? value) => ValueChanged.InvokeAsync(value);
 }

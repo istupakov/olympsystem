@@ -50,7 +50,7 @@ public sealed class IcpcClient(HttpClient http)
         if (contestId <= 0 || string.IsNullOrWhiteSpace(email) || string.IsNullOrEmpty(password))
             throw new ArgumentException("Contest ID and credentials are required.");
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(token);
-        timeout.CancelAfter(TimeSpan.FromMinutes(2));
+        timeout.CancelAfter(TimeSpan.FromMinutes(5));
         using var provider = new AmazonCognitoIdentityProviderClient(new AnonymousAWSCredentials(), new AmazonCognitoIdentityProviderConfig
         {
             RegionEndpoint = RegionEndpoint.USEast1,
@@ -144,6 +144,8 @@ public sealed class IcpcClient(HttpClient http)
     private async Task<T> SendJsonAsync<T>(string url, IcpcStage stage, CancellationToken requestToken,
         CancellationToken callerToken, string? idToken = null)
     {
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(requestToken);
+        timeout.CancelAfter(TimeSpan.FromSeconds(idToken is null ? 30 : 120));
         int? status = null;
         try
         {
@@ -152,11 +154,11 @@ public sealed class IcpcClient(HttpClient http)
             request.Headers.UserAgent.ParseAdd("Olymp.Icpc/1.0");
             request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
             if (idToken is not null) request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", idToken);
-            using var response = await http.SendAsync(request, requestToken);
+            using var response = await http.SendAsync(request, timeout.Token);
             status = (int)response.StatusCode;
             if (!response.IsSuccessStatusCode)
                 throw new IcpcException(stage, IcpcFailure.Http, status);
-            return await response.Content.ReadFromJsonAsync<T>(JsonOptions, requestToken)
+            return await response.Content.ReadFromJsonAsync<T>(JsonOptions, timeout.Token)
                 ?? throw new IcpcException(stage, IcpcFailure.InvalidResponse, status);
         }
         catch (HttpRequestException exception)

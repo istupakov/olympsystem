@@ -139,7 +139,7 @@
                             <div class="col-lg-6">
                                 <label class="form-label" for="@($"icpc-coach-{row.Source.Id}")">@SiteResources.StaffCoach</label>
                                 <InputSelect id="@($"icpc-coach-{row.Source.Id}")" class="@(row.NeedsCoach ? "form-select is-invalid" : "form-select")" aria-invalid="@row.NeedsCoach" aria-describedby="@($"icpc-coach-error-{row.Source.Id}")" @bind-Value="row.CoachId" @bind-Value:after="PreviewChanged">
-                                    <option value="">@SiteResources.IcpcSelectCoach</option>
+                                    <option value="">@SiteResources.StaffNoAccountSelected</option>
                                     @foreach (var coach in row.Coaches)
                                     {
                                         <option value="@coach.Id">@coach.Name (@coach.Email) · ID @coach.Id</option>

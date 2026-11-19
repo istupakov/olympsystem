@@ -476,7 +476,7 @@
   <data name="ParticipantLoginsTooFew" xml:space="preserve"><value>В файле недостаточно логинов.</value></data>
   <data name="ProfileGroupRequired" xml:space="preserve"><value>Поле Группа в профиле должно быть заполнено.</value></data>
   <data name="IcpcImport" xml:space="preserve"><value>Импорт с icpc.global</value></data>
-  <data name="IcpcImportHint" xml:space="preserve"><value>Загрузите команды из ICPC и выберите нужные для импорта. Для каждой команды обязательны тренер и организация, на которую у него есть тренерские права. Единственное совпадение тренера по email выбирается автоматически.</value></data>
+  <data name="IcpcImportHint" xml:space="preserve"><value>Загрузите команды из ICPC и выберите нужные для импорта. Организация обязательна, тренер необязателен. Без тренера выберите любую существующую организацию; с тренером – организацию, на которую у него есть тренерские права. Единственное совпадение тренера по email выбирается автоматически.</value></data>
   <data name="IcpcCredentialsHint" xml:space="preserve"><value>У аккаунта ICPC должен быть доступ к этому соревнованию. Пароль используется только для загрузки и не сохраняется.</value></data>
   <data name="IcpcLoad" xml:space="preserve"><value>Загрузить команды</value></data>
   <data name="IcpcUpdateHint" xml:space="preserve"><value>У выбранных существующих команд обновятся название, вуз, состав, тренер и подтверждение. Логины, пароли, решения и остальные флаги сохранятся. Отсутствующие команды не удаляются.</value></data>
