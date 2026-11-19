@@ -9,6 +9,30 @@ namespace Olymp.Tests.Checker.Services;
 public class ValidatorTests
 {
     [Fact]
+    public async Task LogKeepsTestsCompactAndIncludesOnlyFailureDiagnostics()
+    {
+        var runner = new TestRunner
+        {
+            Handler = (task, _) => Task.FromResult(task.Command == "run"
+                ? task.Stdin.Span[0] == 2
+                    ? Completed(status: RunnerStatus.Error, exitCode: 3, stderr: "FAIL bad input\n\n")
+                    : Completed(stderr: "successful diagnostic")
+                : Completed())
+        };
+        var result = await CreateChecker(runner).Validate("source", new TestConfiguration { Language = "C++" }.ParseInfo("1"),
+            [new(1, new byte[] { 1 }), new(2, new byte[] { 2 }), new(3, new byte[] { 3 })], TestContext.Current.CancellationToken);
+
+        var testsLog = result.Log[result.Log.IndexOf("--------------" + Environment.NewLine + "Test 1:", StringComparison.Ordinal)..];
+        Assert.Equal(string.Join(Environment.NewLine,
+            "--------------",
+            "Test 1: Completed, exit code 0",
+            "Test 2: Error, exit code 3",
+            "FAIL bad input",
+            "Test 3: Completed, exit code 0", ""), testsLog);
+        Assert.DoesNotContain("compilator:", result.Log);
+    }
+
+    [Fact]
     public async Task CompilesWithEmbeddedHeaderPreservesInputBytesAndReportsExitCodes()
     {
         var runner = new TestRunner
@@ -34,10 +58,13 @@ public class ValidatorTests
     [Fact]
     public async Task FailedCompilationDoesNotRunValidator()
     {
-        var runner = new TestRunner { Handler = (_, _) => Task.FromResult(Completed(status: RunnerStatus.Error, exitCode: 1, stderr: "compile error")) };
+        var diagnostic = "compile error" + new string('E', 1024 - "compile error".Length);
+        var runner = new TestRunner { Handler = (_, _) => Task.FromResult(Completed(status: RunnerStatus.Error, exitCode: 1, stderr: diagnostic + "discarded diagnostic")) };
         var result = await CreateChecker(runner).Validate("source", new TestConfiguration { Language = "C++" }.ParseInfo("1"),
             [new(1, new byte[] { 1 })], TestContext.Current.CancellationToken);
         Assert.False(result.Compiled);
+        Assert.EndsWith("compilator:" + Environment.NewLine + diagnostic + Environment.NewLine, result.Log);
+        Assert.DoesNotContain("discarded diagnostic", result.Log);
         Assert.Empty(result.Tests);
         Assert.Single(runner.Requests);
     }

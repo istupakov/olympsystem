@@ -86,7 +86,8 @@ public class TrialRunTests(WebAppFactory factory) : StaffComponentTests(factory)
             SetInput(page, "Source", "edited source"); SetInput(page, "Seconds", 3.5); SetInput(page, "Memory", 512);
             await ActAsync(page, "RunAsync");
         }, services => { services.RemoveAll<ICheckerManager>(); services.AddSingleton<ICheckerManager>(setup.Manager); });
-        Assert.Contains("Compilation:", html);
+        using var document = await new HtmlParser().ParseDocumentAsync(html);
+        Assert.Contains("Compilation\ncommand:", document.QuerySelector("pre")!.TextContent.ReplaceLineEndings("\n"));
         Assert.Contains(inactiveTest ? "Test 3" : "Test 2", html);
         Assert.Contains("WrongAnswer", html);
         var runs = setup.Runner.Requests.Where(item => item.Command == "run").Skip(1).ToArray();

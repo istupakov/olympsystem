@@ -46,10 +46,13 @@ public partial class PracticeSubmissionTests
     }
 
     [Theory]
-    [InlineData(" \n\t\r\n")]
-    [InlineData("Compilation:\nuser time: 1\ntotal time: 2\n \n")]
-    [InlineData("Compilation:\ncommand: private command\ncompilator:\n \n")]
-    public async Task BlankCompilationOutputShowsDiagnosticsUnavailable(string log)
+    [InlineData(" \n\t\r\n", "Compilation diagnostics are unavailable.")]
+    [InlineData("Compilation:\nuser time: 1\ntotal time: 2\n \n", "Compilation diagnostics are unavailable.")]
+    [InlineData("Compilation:\ncommand: private command\ncompilator:\n \n", "Compilation diagnostics are unavailable.")]
+    [InlineData("Runner: private runner\nCompilation:\ncommand: private command\nstatus: Error\nuser time: 0\ntotal time: 0\npeak memory: 0 MB\nexit code: 1\ncompilator:\nmain.cpp: error: missing semicolon\nsecond line\n", "main.cpp: error: missing semicolon\nsecond line")]
+    [InlineData("Runner: private runner\n--------------\nCompilation\ncommand: private command\nstatus: Error\nuser time: 0\ntotal time: 0\npeak memory: 0 MiB\nexit code: 1\ncompilator:\nmain.cpp: error: missing semicolon\nsecond line\n", "main.cpp: error: missing semicolon\nsecond line")]
+    [InlineData("Runner: private runner\n--------------\nCompilation\ncommand: private command\nstatus: Error\nexit code: 1\n", "Compilation diagnostics are unavailable.")]
+    public async Task CompilationOutputShowsOnlyDiagnosticsOrUnavailableMessage(string log, string expected)
     {
         var (user, _, problem, compiler) = await SeedAsync();
         using var scope = factory.Services.CreateScope();
@@ -71,6 +74,6 @@ public partial class PracticeSubmissionTests
 
         using var client = await factory.LoginAsync(user.UserName!);
         using var page = await GetAsync(client, $"/submissions/{submission.Id}");
-        Assert.Equal("Compilation diagnostics are unavailable.", page.QuerySelector("#compilation-errors pre")!.TextContent);
+        Assert.Equal(expected, page.QuerySelector("#compilation-errors pre")!.TextContent);
     }
 }

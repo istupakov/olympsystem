@@ -40,9 +40,9 @@
         @if (_preview is { } preview)
         {
             <div class="mb-4"><label for="import-cpp" class="form-label">@SiteResources.ImportValidatorCompiler</label>
-                <select id="import-cpp" class="form-select" @bind="preview.ValidatorCompilerId" @bind:after="CheckValidatorAsync">
+                <select id="import-cpp" class="form-select" @bind="preview.ValidatorConfiguration" @bind:after="CheckValidatorAsync">
                     <option value="">@SiteResources.SelectCompiler</option>
-                    @foreach (var c in _compilers.Where(c => c.Language == "C++")) { <option value="@c.Id">@StaffEntityLabel.Format(c.Id, c.Description ?? c.Name)</option> }
+                    @foreach (var c in ValidatorConfigurations) { <option value="@ContestImportService.ConfigurationId(c.Info)">@c.Info.FullName</option> }
                 </select>
             </div>
         }
@@ -76,7 +76,7 @@
                             <tr><th scope="row">@SiteResources.StaffTestNumber</th><td>@task.Previous?.Number</td><td>@task.Parameters.Number</td></tr>
                             <tr><th scope="row">@SiteResources.StaffName</th><td>@task.Previous?.Name</td><td>@task.Parameters.Name</td></tr>
                             <tr><th scope="row">@SiteResources.TimeLimit (@SiteResources.Seconds)</th><td>@task.Previous?.TimeLimit</td><td>@task.TimeLimit</td></tr>
-                            <tr><th scope="row">@SiteResources.ImportSlowTimeLimit</th><td>@task.Previous?.SlowTimeLimit</td><td>@task.SlowTimeLimit</td></tr>
+                            <tr><th scope="row">@SiteResources.ImportSlowTimeLimit (@SiteResources.Seconds)</th><td>@task.Previous?.SlowTimeLimit</td><td>@task.SlowTimeLimit</td></tr>
                             <tr><th scope="row">@SiteResources.MemoryLimit (@SiteResources.Megabytes)</th><td>@task.Previous?.MemoryLimit</td><td>@task.Parameters.MemoryLimit</td></tr>
                             <tr><th scope="row">@SiteResources.StaffChecker</th><td>@task.Previous?.CheckerId</td><td>@task.Parameters.CheckerId</td></tr>
                             <tr><th scope="row">@SiteResources.StaffActive</th><td>@(task.Previous is null ? null : task.Previous.IsActive ? SiteResources.StaffYes : SiteResources.StaffNo)</td><td>@(task.Parameters.IsActive ? SiteResources.StaffYes : SiteResources.StaffNo)</td></tr>
@@ -93,16 +93,16 @@
                     @foreach (var message in task.StateErrors) { <p class="text-danger" role="alert">@message</p> }
                     @foreach (var message in task.StateWarnings) { <p class="text-warning-emphasis">@message</p> }
                     <h3 class="h5">@SiteResources.ImportValidator</h3>
-                    <p class="@(!task.HasValidator ? "text-warning-emphasis" : null)">@(task.HasValidator ? "validator.cpp" : SiteResources.ImportNoValidator)</p>
-                    @if (task.HasValidator) { <p class="@(task.ValidatorErrors.Count != 0 ? "text-danger" : task.ValidatorWarnings.Count != 0 ? "text-warning-emphasis" : null)" role="status">@(task.ValidatorMessage ?? SiteResources.ImportValidatorNotRun)</p> }
+                    @if (task.HasValidator) { <p>validator.cpp</p> }
+                    <p class="alert @ValidatorStatusClass(task)" role="status">@(task.HasValidator ? task.ValidatorMessage ?? SiteResources.ImportValidatorNotRun : SiteResources.ImportNoValidator)</p>
                     @foreach (var message in task.ValidatorErrors) { <p class="text-danger" role="alert">@message</p> }
                     @foreach (var message in task.ValidatorWarnings.Where(w => w != task.ValidatorMessage)) { <p class="text-warning-emphasis">@message</p> }
-                    @if (task.ValidatorResult is { } validation) { <details class="mb-3"><summary>@SiteResources.StaffRunOutput</summary><pre class="text-wrap">@validation.Log</pre></details> }
+                    @if (task.ValidatorResult is { } validation) { <details class="mb-3"><summary>@SiteResources.StaffRunOutput</summary><pre class="overflow-auto">@validation.Log</pre></details> }
                     <fieldset disabled="@(_busy || _confirmSave || _exitTarget is not null)">
                         <legend class="h5">@SiteResources.ImportLimits</legend>
                         <div class="row g-3 mb-4">
                             <div class="col-md-6"><label class="form-label" for="import-time">@SiteResources.TimeLimit (@SiteResources.Seconds)</label><input id="import-time" type="number" min="1" class="form-control" @bind="task.TimeLimit" @bind:after="LimitsChanged" /></div>
-                            <div class="col-md-6"><label class="form-label" for="import-slow">@SiteResources.ImportSlowTimeLimit</label><input id="import-slow" type="number" min="1" class="form-control" @bind="task.SlowTimeLimit" @bind:after="LimitsChanged" /></div>
+                            <div class="col-md-6"><label class="form-label" for="import-slow">@SiteResources.ImportSlowTimeLimit (@SiteResources.Seconds)</label><input id="import-slow" type="number" min="1" class="form-control" @bind="task.SlowTimeLimit" @bind:after="LimitsChanged" /></div>
                         </div>
                         <h3 class="h5">@SiteResources.ImportSolutions</h3>
                         @if (task.Solutions.Count == 0) { <p class="text-body-secondary">@SiteResources.ImportNoSolutions</p> }
@@ -112,7 +112,7 @@
                             <div class="form-check mb-2"><input id="@($"solution-{i}")" type="checkbox" class="form-check-input" @bind="solution.Selected" /><label for="@($"solution-{i}")" class="form-check-label">@solution.Filename</label></div>
                         }
                         @if (task.Solutions.Count != 0) { <button class="btn btn-outline-primary mb-3" disabled="@(!task.Solutions.Any(s => s.Selected))" @onclick="RunSolutionsAsync">@SiteResources.ImportRunSelected</button> }
-                        <ImportRunResults Runs="task.Runs" />
+                        <ImportRunResults Runs="task.Runs" ShowScore="task.Tests.Any(t => t.Score.HasValue)" />
                         <div class="d-flex flex-wrap gap-2 mt-4">
                             <button class="btn btn-warning" disabled="@(task.IsSaved || task.StateErrors.Count != 0 || task.ValidatorErrors.Count != 0 || !task.ValidatorChecked)" @onclick="ConfirmSaveAsync">@SiteResources.ImportSaveProblem</button>
                             @if (task.Id.HasValue)
@@ -139,7 +139,8 @@
     [Parameter] public int ContestId { get; set; }
     [SupplyParameterFromQuery(Name = "task")] public string? TaskFolder { get; set; }
     private Olymp.Domain.Models.Contest? _contest;
-    private List<Olymp.Domain.Models.Compilator> _compilers = [];
+    private IReadOnlyList<(Olymp.Checker.ICheckerService Runner, Olymp.Checker.CompilatorInfo Info)> ValidatorConfigurations =>
+        [.. ContestImportService.AvailableConfigurations(Checkers).Where(c => c.Info.Configuration.Language == "C++")];
     private ContestImportPreview? _preview;
     private ContestImportRow? _selected;
     private bool _canManage, _busy, _saving, _confirmSave, _allowExit, _disposed;
@@ -151,6 +152,9 @@
     private static string Numbers(IEnumerable<int> values) => string.Join(", ", values) is { Length: > 0 } text ? text : "–";
     private static string RowStatus(ContestImportRow row) => row.Errors.Count != 0 ? SiteResources.ImportHasErrors
         : row.IsSaved ? SiteResources.StaffSaved : row.Id.HasValue ? SiteResources.ImportUpdateProblem : SiteResources.ImportNewProblem;
+    private static string ValidatorStatusClass(ContestImportRow row) => row.ValidatorResult is { } result
+        ? !result.Compiled || result.Tests.Any(t => !t.IsValid) ? "alert-danger" : "alert-success"
+        : "alert-warning";
 
     protected override async Task OnParametersSetAsync()
     {
@@ -161,7 +165,6 @@
             _contest = await db.Contests.SingleOrDefaultAsync(c => c.Id == ContestId, _lifetime.Token);
             _canManage = _contest is not null && (await Authorization.AuthorizeAsync((await AuthenticationState).User, ContestId, PolicyNames.ManageContest)).Succeeded;
             if (!_canManage) _error = SiteResources.StaffAccessDenied;
-            _compilers = await db.Compilators.Where(c => c.IsActive).OrderBy(c => c.Id).ToListAsync(_lifetime.Token);
         }
         if (_preview is not null)
         {
@@ -191,10 +194,11 @@
         {
             using var input = args.File.OpenReadStream(ImportOptions.Value.MaxZipBytes, token);
             var preview = await service.PrepareAsync((await AuthenticationState).User, ContestId, input, token);
-            preview.ValidatorCompilerId = _compilers.FirstOrDefault(c => c.Language == "C++" && Checkers.Checkers.Values.Any(r => r.CanCheck(c)))?.Id
-                ?? _compilers.FirstOrDefault(c => c.Language == "C++")?.Id;
+            preview.ValidatorConfiguration = ValidatorConfigurations.FirstOrDefault().Info is { } compiler
+                ? ContestImportService.ConfigurationId(compiler) : null;
             _preview = preview;
             _selected = preview.Rows.First();
+            await InvokeAsync(StateHasChanged);
             await service.EnsureValidatorAsync((await AuthenticationState).User, preview, _selected, token);
         }, updateSelection: true);
     }
@@ -210,7 +214,9 @@
     });
     private Task RunSolutionsAsync() => ExecuteAsync(async (service, token) =>
     {
-        if (_preview is not null && _selected is not null) await service.RunSolutionsAsync((await AuthenticationState).User, _preview, _selected, token);
+        if (_preview is not null && _selected is not null)
+            await service.RunSolutionsAsync((await AuthenticationState).User, _preview, _selected,
+                () => InvokeAsync(StateHasChanged), token);
     });
     private Task ConfirmSaveAsync() => ExecuteAsync(async (service, token) =>
     {

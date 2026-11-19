@@ -120,7 +120,7 @@
   <data name="TimeLimit" xml:space="preserve"><value>Ограничение времени</value></data>
   <data name="MemoryLimit" xml:space="preserve"><value>Ограничение памяти</value></data>
   <data name="Seconds" xml:space="preserve"><value>с.</value></data>
-  <data name="Megabytes" xml:space="preserve"><value>МБ</value></data>
+  <data name="Megabytes" xml:space="preserve"><value>МиБ</value></data>
   <data name="DownloadStatements" xml:space="preserve"><value>Скачать условия соревнования (PDF)</value></data>
   <data name="StatementUnavailable" xml:space="preserve"><value>Условие пока не опубликовано.</value></data>
   <data name="Examples" xml:space="preserve"><value>Примеры</value></data>
@@ -447,7 +447,7 @@
   <data name="StaffInputData" xml:space="preserve"><value>Входные данные</value></data>
   <data name="StaffRun" xml:space="preserve"><value>Запустить</value></data>
   <data name="StaffRunOutput" xml:space="preserve"><value>Результат запуска</value></data>
-  <data name="StaffRunLimits" xml:space="preserve"><value>Ограничения запуска: 1 с, 128 МБ.</value></data>
+  <data name="StaffRunLimits" xml:space="preserve"><value>Ограничения запуска: 1 с, 128 МиБ.</value></data>
   <data name="StaffRunnerDisconnected" xml:space="preserve"><value>Runner отключился или запуск завершился ошибкой. Введённые данные сохранены.</value></data>
   <data name="StaffCancelRun" xml:space="preserve"><value>Отменить запуск</value></data>
   <data name="StaffRunnerRefresh" xml:space="preserve"><value>Состояние Runner обновляется каждые 10 секунд.</value></data>
@@ -671,7 +671,7 @@
   <data name="StaffNoMatchingRunner" xml:space="preserve"><value>Нет подключённого Runner с пройденной самопроверкой для выбранного компилятора.</value></data>
   <data name="StaffConfigurationUnavailable" xml:space="preserve"><value>Конфигурация недоступна.</value></data>
   <data name="StaffRunTimeInvalid" xml:space="preserve"><value>Укажите положительный конечный лимит времени.</value></data>
-  <data name="StaffRunMemoryInvalid" xml:space="preserve"><value>Выберите лимит памяти: 8, 16, 32, 64, 128, 256 или 512 МБ.</value></data>
+  <data name="StaffRunMemoryInvalid" xml:space="preserve"><value>Выберите лимит памяти: 8, 16, 32, 64, 128, 256 или 512 МиБ.</value></data>
   <data name="StaffAnalysisNeedsRun" xml:space="preserve"><value>Для добавленных задач нужно повторить проверку.</value></data>
   <data name="StaffFirstAuthor" xml:space="preserve"><value>Автор 1</value></data>
   <data name="StaffSecondAuthor" xml:space="preserve"><value>Автор 2</value></data>
@@ -863,13 +863,18 @@
   <data name="ImportUnknownLanguage" xml:space="preserve"><value>Нет активного компилятора для расширения файла.</value></data>
   <data name="ImportValidationRequired" xml:space="preserve"><value>Перед сохранением задачи устраните ошибки и дождитесь проверки валидатором.</value></data>
   <data name="ImportValidatorCompiler" xml:space="preserve"><value>Компилятор C++ для валидаторов</value></data>
-  <data name="ImportSlowTimeLimit" xml:space="preserve"><value>Замедленный лимит времени (секунды)</value></data>
+  <data name="ImportSlowTimeLimit" xml:space="preserve"><value>Замедленный лимит времени</value></data>
   <data name="ImportAddedTests" xml:space="preserve"><value>Добавленные тесты</value></data>
   <data name="ImportChangedTests" xml:space="preserve"><value>Изменённые тесты</value></data>
   <data name="ImportRemovedTests" xml:space="preserve"><value>Удалённые тесты</value></data>
   <data name="ImportNewProblem" xml:space="preserve"><value>Новая задача</value></data>
   <data name="ImportWaiting" xml:space="preserve"><value>Применяется импорт; при необходимости ожидается завершение текущих проверок.</value></data>
   <data name="ImportPeakTime" xml:space="preserve"><value>Максимальное время (секунды)</value></data>
+  <data name="ImportRunFile" xml:space="preserve"><value>Файл</value></data>
+  <data name="ImportRunTimeLimit" xml:space="preserve"><value>Лимит, с</value></data>
+  <data name="ImportRunTime" xml:space="preserve"><value>Время, с</value></data>
+  <data name="ImportRunMemory" xml:space="preserve"><value>Память, МиБ</value></data>
+  <data name="ImportRunSlowestTest" xml:space="preserve"><value>Медл. тест</value></data>
   <data name="ImportPeakMemory" xml:space="preserve"><value>Максимальная память (МиБ)</value></data>
   <data name="ImportSlowestTest" xml:space="preserve"><value>Самый медленный тест</value></data>
   <data name="ImportRefresh" xml:space="preserve"><value>Обновить сравнение</value></data>

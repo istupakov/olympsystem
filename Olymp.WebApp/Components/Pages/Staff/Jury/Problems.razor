@@ -24,7 +24,13 @@ else if (_contest is null)
 else
 {
     <StaffContestNavigation ContestId="ContestId" ContestName="@_contest.Name" IsHidden="_contest.IsHidden" />
-    <h1 class="h3">@SiteResources.Problems</h1>
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+        <h1 class="h3 mb-0">@SiteResources.Problems</h1>
+        @if (_canManage && _contest.EndTime > DateTimeOffset.UtcNow)
+        {
+            <a class="btn btn-outline-primary" href="jury/contests/@ContestId/import">@SiteResources.ImportProblems</a>
+        }
+    </div>
     @if (_selected is null)
     {
         <p>@SiteResources.NoProblemsFound</p>

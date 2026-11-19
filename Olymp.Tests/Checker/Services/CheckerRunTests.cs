@@ -13,7 +13,8 @@ public class CheckerRunTests
     [Fact]
     public async Task FailedCompilationShowsDiagnosticsAndSkipsExecution()
     {
-        var runner = new TestRunner { CompilationFails = true };
+        var diagnostic = new string('E', 100 * 1024);
+        var runner = new TestRunner { CompilationFails = true, CompilerOutput = diagnostic + "discarded diagnostic" };
 
         var result = await CreateChecker(runner).Run("source", new TestConfiguration(), "input",
             TimeSpan.FromSeconds(1), 128, TestContext.Current.CancellationToken);
@@ -22,8 +23,9 @@ public class CheckerRunTests
         Assert.Null(result.MaxUserTime);
         Assert.Null(result.MaxTotalTime);
         Assert.Null(result.MaxMemory);
-        Assert.Contains("Compilation:", result.Log);
-        Assert.Contains(runner.CompilerOutput, result.Log);
+        Assert.Contains("--------------" + Environment.NewLine + "Compilation" + Environment.NewLine, result.Log);
+        Assert.Contains(diagnostic, result.Log);
+        Assert.DoesNotContain("discarded diagnostic", result.Log);
         Assert.Contains("exit code: 1", result.Log);
         Assert.DoesNotContain("Execution:", result.Log);
         Assert.Single(runner.Requests);
@@ -59,7 +61,7 @@ public class CheckerRunTests
         Assert.Contains("status: Error", result.Log);
         Assert.Contains("user time: 00:00:02", result.Log);
         Assert.Contains("total time: 00:00:03", result.Log);
-        Assert.Contains("peak memory: 32 MB", result.Log);
+        Assert.Contains("peak memory: 32 MiB", result.Log);
         Assert.Contains("exit code: 42", result.Log);
         Assert.Contains(new string('O', 4096), result.Log);
         Assert.Contains(new string('E', 4096), result.Log);

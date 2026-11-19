@@ -100,7 +100,7 @@ public sealed class ContestImportPreview
     }
     public int ContestId { get; }
     public IReadOnlyList<ContestImportRow> Rows { get; }
-    public int? ValidatorCompilerId { get; set; }
+    public string? ValidatorConfiguration { get; set; }
 }
 
 public sealed class ContestImportService(OlympContext context, ICheckerManager manager, IEnumerable<ISimpleChecker> checkers,
@@ -164,7 +164,12 @@ public sealed class ContestImportService(OlympContext context, ICheckerManager m
         Tests = p.Tests.OrderBy(t => t.Id).Select(t => new { t.Id, t.Number, t.Input, t.Output, t.IsActive, t.IsOpen, t.Score, t.Comment })
     });
     private static string Hash<T>(T value) => Convert.ToHexString(SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(value)));
-    private static string ValidatorKey(Compilator? compiler) => compiler is null ? "unavailable" : Hash(new { compiler.Id, Configuration = CompilerConfigurationKey.From(compiler) });
+    public static string ConfigurationId(CompilatorInfo info) => Hash(CompilerConfigurationKey.From(info));
+
+    public static IReadOnlyList<(ICheckerService Runner, CompilatorInfo Info)> AvailableConfigurations(ICheckerManager manager) =>
+        [.. manager.Checkers.Values.Where(r => r.SelfTestingStatus == CheckerSelfTestingStatus.Success).OrderBy(r => r.Id)
+            .SelectMany(r => (r.Compilators ?? []).Where(info => info.Error is null).Select(info => (Runner: r, Info: info)))
+            .DistinctBy(c => CompilerConfigurationKey.From(c.Info)).OrderBy(c => c.Info.FullName, StringComparer.Ordinal)];
 
     private async Task CheckStateAsync(ContestImportPreview preview, ContestImportRow row, CancellationToken token)
     {
@@ -192,17 +197,17 @@ public sealed class ContestImportService(OlympContext context, ICheckerManager m
             row.StateWarnings.Add(SiteResources.ImportDuplicateNumber);
     }
 
-    private async Task<Compilator?> ValidatorCompilerAsync(ContestImportPreview preview, CancellationToken token) =>
-        await context.Compilators.AsNoTracking().SingleOrDefaultAsync(c => c.IsActive && c.Id == preview.ValidatorCompilerId && c.Language == "C++", token);
+    private (ICheckerService Runner, CompilatorInfo Info)? ValidatorConfiguration(ContestImportPreview preview) =>
+        AvailableConfigurations(manager).Where(c => c.Info.Configuration.Language == "C++" && ConfigurationId(c.Info) == preview.ValidatorConfiguration)
+            .Select(c => ((ICheckerService Runner, CompilatorInfo Info)?)c).FirstOrDefault();
 
     public async Task EnsureValidatorAsync(ClaimsPrincipal actor, ContestImportPreview preview, ContestImportRow row, CancellationToken token = default)
     {
         EnsureMember(preview, row);
         await AuthorizeAsync(actor, preview.ContestId);
         await CheckStateAsync(preview, row, token);
-        var compiler = await ValidatorCompilerAsync(preview, token);
-        string key = ValidatorKey(compiler);
-        var runner = compiler is null ? null : FindRunner(compiler);
+        var runner = ValidatorConfiguration(preview);
+        string key = preview.ValidatorConfiguration ?? "unavailable";
         if (row.ValidatorKey == key && (!row.HasValidator || row.ValidatorResult is not null || runner is null)) return;
         row.ValidatorKey = null;
         row.ValidatorResult = null;
@@ -241,17 +246,14 @@ public sealed class ContestImportService(OlympContext context, ICheckerManager m
         }
     }
 
-    private (ICheckerService Runner, CompilatorInfo Info)? FindRunner(Compilator compiler) => manager.Checkers.Values
-        .Where(r => r.CanCheck(compiler)).OrderBy(r => r.Id)
-        .Select(r => ((ICheckerService Runner, CompilatorInfo Info)?)(r, r.Compilators!.First(c => c.Error is null && CompilerMatching.Matches(compiler, c)))).FirstOrDefault();
-
-    public async Task RunSolutionsAsync(ClaimsPrincipal actor, ContestImportPreview preview, ContestImportRow row, CancellationToken token = default)
+    public async Task RunSolutionsAsync(ClaimsPrincipal actor, ContestImportPreview preview, ContestImportRow row,
+        Func<Task>? resultAvailable = null, CancellationToken token = default)
     {
         EnsureMember(preview, row);
         await AuthorizeAsync(actor, preview.ContestId);
         await CheckStateAsync(preview, row, token);
         if (row.StateErrors.Count != 0) throw new OperationValidationException(SiteResources.ImportInvalidParameters);
-        var compilers = await context.Compilators.AsNoTracking().Where(c => c.IsActive).OrderBy(c => c.Id).ToListAsync(token);
+        var configurations = AvailableConfigurations(manager);
         var tests = row.Tests.Where(t => t.IsActive).Select(t => new CheckTest(t.Number, t.Input, t.Output, t.Score)).ToArray();
         int regular = row.TimeLimit, slow = row.SlowTimeLimit;
         foreach (var file in row.Solutions.Where(s => s.Selected).Select(s => s.Source).ToArray())
@@ -261,20 +263,18 @@ public sealed class ContestImportService(OlympContext context, ICheckerManager m
             {
                 ".cc" or ".cxx" or ".c++" => "C++",
                 ".pp" => "Pascal",
-                _ => compilers.FirstOrDefault(c => c.SourceExtension.Equals(extension, StringComparison.OrdinalIgnoreCase))?.Language
+                _ => configurations.FirstOrDefault(c => c.Info.Configuration.SourceExtension.Equals(extension, StringComparison.OrdinalIgnoreCase)).Info?.Configuration.Language
             };
-            var matching = compilers.Where(c => c.Language == language).ToArray();
+            var matching = configurations.Where(c => c.Info.Configuration.Language == language).ToArray();
             if (matching.Length == 0 || tests.Length == 0)
             {
                 row.Runs.Add(new(file.Filename, "", null, tests.Length == 0 ? SiteResources.StaffNoTests : SiteResources.ImportUnknownLanguage));
+                if (resultAvailable is not null) await resultAvailable();
                 continue;
             }
-            foreach (var compiler in matching)
+            foreach (var (runner, info) in matching)
             {
-                var available = FindRunner(compiler);
-                string label = compiler.Description ?? compiler.Name;
-                if (available is null) { row.Runs.Add(new(file.Filename, label, null, SiteResources.StaffNoMatchingRunner)); continue; }
-                var (runner, info) = available.Value;
+                string label = info.FullName;
                 int time = info.Configuration.UseSlowTimeLimit ? slow : regular;
                 try
                 {
@@ -286,6 +286,7 @@ public sealed class ContestImportService(OlympContext context, ICheckerManager m
                 {
                     row.Runs.Add(new(file.Filename, label, null, SiteResources.StaffRunnerDisconnected, time));
                 }
+                if (resultAvailable is not null) await resultAvailable();
             }
         }
     }
@@ -301,7 +302,7 @@ public sealed class ContestImportService(OlympContext context, ICheckerManager m
                 await using var transaction = await context.Database.BeginTransactionAsync(IsolationLevel.Serializable, token);
                 await AuthorizeAsync(actor, preview.ContestId);
                 await CheckStateAsync(preview, row, token);
-                if (row.Errors.Count != 0 || row.ValidatorKey != ValidatorKey(await ValidatorCompilerAsync(preview, token)))
+                if (row.Errors.Count != 0 || row.ValidatorKey != (preview.ValidatorConfiguration ?? "unavailable"))
                     throw new OperationValidationException(SiteResources.ImportValidationRequired);
                 if (!await context.Submissions.AnyAsync(s => s.ProblemId == row.Id && s.StatusCode == 1, token))
                 {
