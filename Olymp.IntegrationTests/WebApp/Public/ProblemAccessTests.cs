@@ -546,13 +546,13 @@ public sealed class ProblemAccessTests(WebAppFactory factory) : IClassFixture<We
     [InlineData("coach", true)]
     [InlineData("linked-coach-without-claim", true)]
     [InlineData("user", false)]
-    [InlineData("unrelated-coach", false)]
+    [InlineData("unrelated-coach", true)]
     [InlineData("other-contest-member", false)]
-    [InlineData("other-contest-coach", false)]
+    [InlineData("other-contest-coach", true)]
     [InlineData("participant", false)]
     [InlineData(RoleNames.Jury, false)]
     [InlineData(RoleNames.Admin, false)]
-    public async Task TestArchivesRequirePermanentMemberOrCoachRelationshipInThisContest(string actor, bool allowed)
+    public async Task TestArchivesAllowAllCoachesAndRelatedMembers(string actor, bool allowed)
     {
         var data = await CreateDataAsync();
         User user = data.Other;

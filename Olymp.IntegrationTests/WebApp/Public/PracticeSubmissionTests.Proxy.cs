@@ -71,6 +71,7 @@ public partial class PracticeSubmissionTests
         using var content = new FormUrlEncodedContent(fields);
         using var response = await client.PostAsync(path, content, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+        Assert.Equal(!temporary, response.Headers.Location!.OriginalString.Contains("scope=own&kind=training", StringComparison.Ordinal));
         await using var scope = factory.Services.CreateAsyncScope();
         var saved = await scope.ServiceProvider.GetRequiredService<OlympContext>().Submissions
             .SingleAsync(TestContext.Current.CancellationToken);

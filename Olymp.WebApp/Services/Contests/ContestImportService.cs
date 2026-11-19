@@ -19,6 +19,8 @@ public sealed record ImportParameters(int Number, string Name, int TimeLimit, in
 public sealed record ImportTest(int Number, byte[] Input, byte[] Output, bool IsOpen, bool IsActive, int? Score, string? Comment);
 public sealed record ImportRun(string File, string Compiler, CheckerResult? Result, string? Message, int? TimeLimit = null, int? ReferenceId = null, int? CompilerId = null);
 
+public enum ImportLineEndings { Crlf, Lf }
+
 public sealed class ImportSolution(ImportedSolution source)
 {
     internal ImportedSolution Source { get; } = source;
@@ -45,10 +47,11 @@ public sealed class ContestImportRow
         TimeLimit = Parameters.TimeLimit;
         SlowTimeLimit = Parameters.SlowTimeLimit;
         int open = data.OpenTestCount ?? (source.Tests.Count == 0 ? 0 : 1);
-        Tests = [.. source.Tests.Select((test, i) => new ImportTest(test.Number, NormalizeLineEndings(test.Input), NormalizeLineEndings(test.Output), i < open,
+        Tests = [.. source.Tests.Select((test, i) => new ImportTest(test.Number, test.Input, test.Output, i < open,
             data.InactiveTests?.Contains(test.Number) != true,
             data.Scores is not null && data.Scores.TryGetValue(test.Number, out int score) ? score : null,
             data.TestComments?.GetValueOrDefault(test.Number)))];
+        NormalizeTests(ImportLineEndings.Crlf);
         Solutions = [.. source.Solutions.OrderBy(s => s.Filename, StringComparer.Ordinal).Select(s => new ImportSolution(s))];
         Validator = source.Validator is { } validator ? new(new(ReferenceSolutionFiles.ValidatorFilename, validator)) : null;
     }
@@ -63,7 +66,7 @@ public sealed class ContestImportRow
     public int? Id => Original?.Id ?? Source.Manifest.Id;
     public string Label => string.IsNullOrWhiteSpace(Parameters.Name) ? Folder : $"{Parameters.Number}. {Parameters.Name}";
     public ImportParameters Parameters { get; internal set; }
-    public IReadOnlyList<ImportTest> Tests { get; }
+    public IReadOnlyList<ImportTest> Tests { get; private set; }
     public IReadOnlyList<ImportSolution> Solutions { get; }
     public IReadOnlyList<ReferenceImportSolution> ReferenceSolutions { get; internal set; } = [];
     internal string? ReferenceSnapshot { get; set; }
@@ -80,8 +83,9 @@ public sealed class ContestImportRow
         || ReferenceRunsKey == ContestImportService.ReferenceRunsKey(this);
     public bool ReferenceValidatorChecked => (Validator is not { Save: true, AlreadySaved: false } || ValidatorResult is not null)
         && (SavedValidator is null || SavedValidatorResult is not null);
-    public bool IsSaved => SavedParameters == Proposed && !Solutions.Any(s => s.Save && !s.AlreadySaved)
-        && Validator is not { Save: true, AlreadySaved: false };
+    public bool HasChanges => Original is null || Proposed != Previous || AddedTests.Any() || RemovedTests.Any() || ChangedTests.Any()
+        || Solutions.Any(s => s.Save && !s.AlreadySaved) || Validator is { Save: true, AlreadySaved: false };
+    public bool IsSaved => SavedParameters == Proposed && !HasChanges;
     public int TimeLimit { get; set; }
     public int SlowTimeLimit { get; set; }
     public List<string> StateErrors { get; } = [];
@@ -105,22 +109,37 @@ public sealed class ContestImportRow
             StateErrors.Add(SiteResources.ImportInvalidParameters);
     }
 
-    private static byte[] NormalizeLineEndings(byte[] source)
+    internal void NormalizeTests(ImportLineEndings endings)
     {
-        int extra = 0;
+        Tests = [.. Source.Tests.Zip(Tests, (source, test) => test with
+        {
+            Input = NormalizeLineEndings(source.Input, endings),
+            Output = NormalizeLineEndings(source.Output, endings)
+        })];
+        ValidatorKey = ReferenceRunsKey = null;
+        ValidatorResult = SavedValidatorResult = null;
+        ValidatorMessage = null;
+        ValidatorErrors.Clear();
+        ValidatorWarnings.Clear();
+        Runs.Clear();
+    }
+
+    private static byte[] NormalizeLineEndings(byte[] source, ImportLineEndings endings)
+    {
+        bool crlf = endings == ImportLineEndings.Crlf;
+        int length = source.Length;
         for (int i = 0; i < source.Length; i++)
         {
-            if (source[i] == '\r' && i + 1 < source.Length && source[i + 1] == '\n') i++;
-            else if (source[i] is (byte)'\r' or (byte)'\n') extra++;
+            if (source[i] == '\r' && i + 1 < source.Length && source[i + 1] == '\n') { if (!crlf) length--; i++; }
+            else if (crlf && source[i] is (byte)'\r' or (byte)'\n') length++;
         }
-        if (extra == 0) return source;
-        var result = new byte[source.Length + extra];
+        var result = new byte[length];
         int offset = 0;
         for (int i = 0; i < source.Length; i++)
         {
             if (source[i] is (byte)'\r' or (byte)'\n')
             {
-                result[offset++] = (byte)'\r';
+                if (crlf) result[offset++] = (byte)'\r';
                 result[offset++] = (byte)'\n';
                 if (source[i] == '\r' && i + 1 < source.Length && source[i + 1] == '\n') i++;
             }
@@ -143,6 +162,17 @@ public sealed class ContestImportPreview
     }
     public int ContestId { get; }
     public IReadOnlyList<ContestImportRow> Rows { get; }
+    public ImportLineEndings LineEndings
+    {
+        get;
+        set
+        {
+            if (value is not (ImportLineEndings.Crlf or ImportLineEndings.Lf)) throw new ArgumentOutOfRangeException(nameof(value));
+            if (field == value) return;
+            field = value;
+            foreach (var row in Rows) row.NormalizeTests(value);
+        }
+    }
     public string? ValidatorConfiguration { get; set; }
 }
 
@@ -395,7 +425,7 @@ public sealed partial class ContestImportService(OlympContext context, ICheckerM
                 await using var transaction = await context.Database.BeginTransactionAsync(IsolationLevel.Serializable, token);
                 await AuthorizeAsync(actor, preview.ContestId);
                 await CheckStateAsync(preview, row, token);
-                if (row.IsSaved) return row.Id!.Value;
+                if (row.StateErrors.Count == 0 && !row.HasChanges) return row.Id!.Value;
                 if (row.Errors.Count != 0 || row.ValidatorKey != ValidatorCacheKey(preview, row))
                     throw new OperationValidationException(SiteResources.ImportValidationRequired);
                 ValidateReferenceSelection(row);

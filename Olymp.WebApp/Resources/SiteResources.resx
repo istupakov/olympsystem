@@ -270,6 +270,10 @@
   <data name="StaffDateFrom" xml:space="preserve"><value>From</value></data>
   <data name="StaffDateTo" xml:space="preserve"><value>Until</value></data>
   <data name="StaffDelete" xml:space="preserve"><value>Delete</value></data>
+  <data name="StaffDeleteProblem" xml:space="preserve"><value>Delete problem</value></data>
+  <data name="StaffDeleteProblemConfirm" xml:space="preserve"><value>Delete problem “{0}” permanently? Tests: {1}; submissions (including references and validators): {2}; check results: {3}; messages: {4}. Eligibility will be checked again.</value></data>
+  <data name="StaffProblemDeletionBlocked" xml:space="preserve"><value>The problem cannot be deleted because it has submissions or messages linked to participant accounts.</value></data>
+  <data name="StaffProblemDeletionBusy" xml:space="preserve"><value>A submission is currently being checked. Wait for checking to finish before deleting the problem.</value></data>
   <data name="StaffDeleteEmptyParticipants" xml:space="preserve"><value>Delete participants without submissions or messages</value></data>
   <data name="StaffDeletedCount" xml:space="preserve"><value>Participants deleted: {0}.</value></data>
   <data name="StaffDisapprove" xml:space="preserve"><value>Revoke approval</value></data>
@@ -908,7 +912,9 @@
   <data name="ImportValidatorPassed" xml:space="preserve"><value>Input validation passed.</value></data>
   <data name="ImportValidatorRejected" xml:space="preserve"><value>Input validation failed on active tests.</value></data>
   <data name="ImportLimits" xml:space="preserve"><value>Time limits for execution and saving</value></data>
-  <data name="ImportTestLineEndings" xml:space="preserve"><value>Input and output test files are normalized to CRLF before checking and saving.</value></data>
+  <data name="ImportLineEndings" xml:space="preserve"><value>Test file line endings</value></data>
+  <data name="ImportTestLineEndings" xml:space="preserve"><value>Input and output test files are normalized to the selected line endings before checking and saving.</value></data>
+  <data name="ImportUnchanged" xml:space="preserve"><value>No changes</value></data>
   <data name="ImportSolutions" xml:space="preserve"><value>Jury solutions</value></data>
   <data name="ImportNoSolutions" xml:space="preserve"><value>No solution files in solutions/ and no saved reference solutions.</value></data>
   <data name="ImportRun" xml:space="preserve"><value>Run</value></data>
@@ -928,7 +934,7 @@
   <data name="ImportConfirmProblem" xml:space="preserve"><value>Save problem “{0}”? Its test set will be completely replaced. Submissions and judging history will be retained.</value></data>
   <data name="ImportProblemSaved" xml:space="preserve"><value>Problem “{0}” saved.</value></data>
   <data name="ImportHasErrors" xml:space="preserve"><value>Errors</value></data>
-  <data name="ImportUpdateProblem" xml:space="preserve"><value>Update</value></data>
+  <data name="ImportUpdateProblem" xml:space="preserve"><value>Has changes</value></data>
   <data name="ImportCancelSave" xml:space="preserve"><value>Cancel saving</value></data>
   <data name="StaffRunMode" xml:space="preserve"><value>Run mode</value></data>
   <data name="StaffRunSolution" xml:space="preserve"><value>Solution</value></data>

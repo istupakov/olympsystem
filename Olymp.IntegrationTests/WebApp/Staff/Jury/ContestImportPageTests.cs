@@ -1,5 +1,7 @@
 using System.Reflection;
 
+using AngleSharp.Html.Parser;
+
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -19,6 +21,38 @@ namespace Olymp.IntegrationTests.WebApp.Staff.Jury;
 public class ContestImportPageTests(WebAppFactory factory) : StaffComponentTests(factory)
 {
     private static CancellationToken Token => TestContext.Current.CancellationToken;
+
+    [Fact]
+    public async Task UnchangedProblemShowsNoChangesDisablesSavingAndDoesNotRequireExitConfirmation()
+    {
+        var user = await _factory.AddUserAsync();
+        await GrantRoleAsync(user.Id, RoleNames.Admin);
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<OlympContext>();
+        await db.Database.ExecuteSqlRawAsync("IF NOT EXISTS (SELECT 1 FROM Checkers WHERE Id = 4) BEGIN SET IDENTITY_INSERT Checkers ON; INSERT INTO Checkers (Id, Description) VALUES (4, N'Strict'); SET IDENTITY_INSERT Checkers OFF; END", Token);
+        var contest = TestEntities.CreateContest("Unchanged import", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddHours(1));
+        var problem = TestEntities.CreateProblem(contest);
+        problem.Checker = null!;
+        problem.CheckerId = 4;
+        problem.IsActive = false;
+        problem.SlowTimeLimit = 1;
+        db.Problems.Add(problem);
+        await db.SaveChangesAsync(Token);
+        using var html = await new HtmlParser().ParseDocumentAsync(await RenderAsync<ContestImport>(
+            $"/jury/contests/{contest.Id}/import", new() { [nameof(ContestImport.ContestId)] = contest.Id }, Staff(user.Id), async page =>
+            {
+                byte[] zip = ProblemArchives.Zip(("A/problem.json", System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(new { id = problem.Id })));
+                await ActAsync(page, "UploadAsync", new InputFileChangeEventArgs([new MemoryFile(zip)]));
+                Assert.False(Preview(page).Rows[0].HasChanges);
+                Assert.Empty(Preview(page).Rows[0].Errors);
+                await ActAsync(page, "Finish");
+                Assert.Null(Field(page, "_exitTarget"));
+            }));
+        Assert.Contains(SiteResources.ImportUnchanged, html.Body!.TextContent);
+        var save = Assert.Single(html.QuerySelectorAll("button"), b => b.TextContent == SiteResources.ImportSaveProblem);
+        Assert.True(save.HasAttribute("disabled"));
+        Assert.Equal("Crlf", html.QuerySelector("#import-line-endings option[selected]")!.GetAttribute("value"));
+    }
 
     [Theory]
     [InlineData(true)]

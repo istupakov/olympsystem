@@ -41,7 +41,7 @@ Protected operations use the following account policies:
 | Default (`[Authorize]`) | Authenticated account and completed email migration; temporary accounts are exempt from migration. | Shared protected pages and source downloads, including temporary participants. |
 | `PermanentAccount` | Authenticated account without the temporary-participant claim; migration is not required. | Account management, including email migration itself. |
 | `OlympUser` | Default policy plus `PermanentAccount`. | Individual registration and test downloads. |
-| `Coach` | `OlympUser` plus the coach claim. | Team registration and the protected PDF printing endpoint. |
+| `Coach` | `OlympUser` plus the coach claim. | Team registration, the protected PDF printing endpoint, and published test archives. |
 | `SignedIn` | Authentication only. | Signed-in navigation, including before email migration. |
 
 Passkey sign-in remains available to guests when the feature is enabled.
@@ -104,7 +104,7 @@ on these routes, including staff accounts.
 | Statement PDF after the start | Anonymous download when the contest is visible and the file exists. |
 | Statement PDF before the start | Permanent account passing the `Coach` policy, from `ProblemShowTime`, with a participant in this contest whose `CoachId` matches the account. Visible contest and existing file required; participant approval is not required. |
 | HTML statements and examples | Signed-in account and a visible, active problem, including temporary accounts viewing another contest. Examples contain only active, open tests. |
-| Test ZIP | Permanent account passing `OlympUser`, linked as a member or coach to a participant in this contest; visible, open contest strictly after its end and an existing file. Participant approval is not required. |
+| Test ZIP | Permanent account passing `OlympUser`, with the coach claim or linked as a member or coach to a participant in this contest; visible, open contest strictly after its end and an existing file. Participant approval is not required. |
 
 Early printing uses the protected `/contests/{id}/printproblems` endpoint;
 the public `/contests/{id}/downloadproblems` endpoint is available only after
@@ -112,8 +112,8 @@ the start. From `ProblemShowTime` until the start, navigation offers the printin
 link; guests must sign in and unauthorized accounts are denied. After the start,
 the PDF is public. A coach claim does not override contest visibility.
 
-Test archives require the member or coach relationship in the requested contest.
-Organization membership, a coach claim alone, and staff roles are insufficient.
+Test archives are available to all accounts passing `Coach`, and to members or
+coaches of participants in the requested contest. Staff roles alone are insufficient.
 
 Sources: [downloads](../Olymp.WebApp/Components/Contests/ContestDownloads.cs),
 [participants](../Olymp.WebApp/Components/Pages/Contests/Participants.razor),
@@ -423,6 +423,7 @@ details, including to jury members without a contest management assignment.
 | Create a contest | Jury or administrator; the creator receives management permission. New contests are hidden. |
 | Edit contest settings, problem and test activity; import problems; publish or remove the contest test archive; finish a contest; manage participants and credentials, import ICPC teams, answer questions, manage announcements and clarifications | Administrator or jury member with the stored `contest-manage` assignment for this contest. Problem import requires preview and confirmation. Archive publication and contest completion are permitted only after the contest ends and require confirmation; archive removal also requires confirmation. |
 | Submit solutions from the staff task page | Jury or administrator, without a contest assignment or public publication, activity, time, or open-contest restrictions. Solutions belong to the signed-in account. |
+| Delete a problem and its tests, remaining submissions, check history, and messages | Administrator or jury member with the stored `contest-manage` assignment for this contest. Requires confirmation and no submissions or messages linked to `Competitor` accounts. Conditions are rechecked when deleting. |
 | Read compiler configurations and Runner diagnostics; run anti-cheat analysis and trial runs | Jury or administrator. Analysis applies no participant penalties automatically. |
 | Manage news, users, roles, coach claims, organizations, and compiler records; rejudge submissions | Administrator only. |
 | Runner RPC | Separate API-key authentication. |

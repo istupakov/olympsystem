@@ -89,7 +89,8 @@ public partial class ContestImportTests
         Assert.Empty(runner.Requests);
         using (var saveScope = site.Services.CreateScope())
             await saveScope.ServiceProvider.GetRequiredService<ContestImportService>().SaveAsync(setup.Actor, preview, row, Token);
-        Assert.Equal(2, await db.CheckResults.CountAsync(r => r.SubmissionId == row.SavedValidator!.Id, Token));
+        Assert.False(row.HasChanges);
+        Assert.Equal(1, await db.CheckResults.CountAsync(r => r.SubmissionId == row.SavedValidator!.Id, Token));
         var export = await scope.ServiceProvider.GetRequiredService<ContestExportService>().ExportAsync(setup.Contest.Id, Token);
         await using var stream = export.Stream;
         using var archive = new ZipArchive(stream, ZipArchiveMode.Read);
