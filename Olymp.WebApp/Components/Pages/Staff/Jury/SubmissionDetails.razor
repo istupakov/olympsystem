@@ -37,6 +37,7 @@ else
             @if (StaffVerdicts.HasTest(_submission.StatusCode) && _testIds.TryGetValue(CheckStatusCodes.TestNumber(_submission.StatusCode), out int failedTest))
             { <a class="btn btn-secondary" href="jury/trial-run?Submission=@_submission.Id&Test=@failedTest">@SiteResources.StaffRunFailedTest</a> }
         </div>
+        <SubmissionReferenceActions Submission="_submission" OnChanged="OnParametersSetAsync" />
     </StaffActions>
     <section class="card mb-3" aria-label="@SiteResources.StaffSubmissionOverview">
         <div class="card-body">

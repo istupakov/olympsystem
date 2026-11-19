@@ -1,10 +1,10 @@
 # OlympSystem contest export
 
-This document specifies version 1 of the contest export format. The exported files can be tracked in Git and used to prepare import packages.
+This document specifies version 1 of the full contest export format and the simplified problem archive. The exported files can be tracked in Git and used to prepare import packages.
 
 ## Archive layout
 
-The ZIP contains one top-level directory per contest, named after its `abbr`. Use the same layout for single-contest and all-contest exports. Place problem directories directly inside the contest directory. Use `problem` followed by the decimal problem number padded to at least two digits, such as `problem01/` and `problem02/`.
+The full ZIP contains one top-level directory per contest, named after its `abbr`. Use the same layout for single-contest and all-contest exports. Place problem directories directly inside the contest directory. Use `problem` followed by the decimal problem number padded to at least two digits, such as `problem01/` and `problem02/`.
 
 Problem numbers may be zero: export problem 0 as `problem00/` and preserve `"number": 0` in its metadata. Negative problem numbers and duplicate numbers within a contest are rejected. Test numbers must remain positive.
 
@@ -84,6 +84,12 @@ Deduplicate identical source bytes within each problem across all compilers. Sto
 ```
 
 `secondsFromStart` is the signed difference between `CommitTime` and `StartTime` in seconds, with a fractional part where needed. Include `isReference` when the submission is marked as a reference. The verdict and score describe the saved attempt.
+
+## Simplified problem archive
+
+The simplified ZIP contains all problems, including inactive ones, in root-level `problemNN/` directories. Each contains `problem.json` with the original ID, byte-for-byte test files, and any saved validator and reference solutions in UTF-8. Statements, contest metadata, participants, results, and check history are omitted.
+
+The archive follows the [import format](contest-import.md). Export is rejected if test numbers fall outside 1–999 or an open test follows a closed test in test-number order.
 
 ## Export usage
 

@@ -18,18 +18,16 @@ internal sealed class ManageContestHandler(IDbContextFactory<OlympContext> conte
     protected override async Task HandleRequirementAsync(AuthorizationHandlerContext context,
         ManageContestRequirement requirement, int contestId)
     {
-        if (context.User.IsInRole(RoleNames.Admin))
-        {
-            context.Succeed(requirement);
-            return;
-        }
-        if (!int.TryParse(context.User.FindFirstValue(ClaimTypes.NameIdentifier), out int userId))
-            return;
-
         await using var db = await contextFactory.CreateDbContextAsync();
+        if (await HasAccessAsync(db, context.User, contestId)) context.Succeed(requirement);
+    }
+
+    internal static async Task<bool> HasAccessAsync(OlympContext db, ClaimsPrincipal user, int contestId)
+    {
+        if (user.IsInRole(RoleNames.Admin)) return true;
+        if (!int.TryParse(user.FindFirstValue(ClaimTypes.NameIdentifier), out int userId)) return false;
         string value = contestId.ToString(CultureInfo.InvariantCulture);
-        if (await db.UserClaims.AnyAsync(claim => claim.UserId == userId
-            && claim.ClaimType == ClaimNames.ContestManage && claim.ClaimValue == value))
-            context.Succeed(requirement);
+        return await db.UserClaims.AnyAsync(claim => claim.UserId == userId
+            && claim.ClaimType == ClaimNames.ContestManage && claim.ClaimValue == value);
     }
 }

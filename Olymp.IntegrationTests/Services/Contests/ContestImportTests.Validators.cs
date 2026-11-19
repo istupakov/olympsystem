@@ -44,7 +44,7 @@ public partial class ContestImportTests
         var preview = await PrepareAsync(service, setup.Actor, setup.Contest.Id,
             Package(new { number = 1, name = "Validator", inactiveTests = InactiveTestNumbers }, true,
                 ("A/VALIDATOR.CPP", "// original validator"u8.ToArray())));
-        preview.ValidatorConfiguration = ContestImportService.ConfigurationId(info);
+        preview.ValidatorCompilerId = compiler.Id;
         var row = preview.Rows[0];
         row.Validator!.Save = true;
         await service.EnsureValidatorAsync(setup.Actor, preview, row, Token);
@@ -63,7 +63,7 @@ public partial class ContestImportTests
 
         preview = await PrepareAsync(service, setup.Actor, setup.Contest.Id,
             Package(new { id, inactiveTests = InactiveTestNumbers }, true, ("A/validator.cpp", "// replacement validator"u8.ToArray())));
-        preview.ValidatorConfiguration = ContestImportService.ConfigurationId(info);
+        preview.ValidatorCompilerId = compiler.Id;
         row = preview.Rows[0];
         Assert.Equal([originalId], row.Validator!.ReplacedIds);
         row.Validator.Save = true;
@@ -76,7 +76,7 @@ public partial class ContestImportTests
         Assert.Equal(1, await db.Submissions.CountAsync(s => s.ProblemId == id && s.IsReference, Token));
 
         preview = await PrepareAsync(service, setup.Actor, setup.Contest.Id, Package(new { id, inactiveTests = InactiveTestNumbers }));
-        preview.ValidatorConfiguration = ContestImportService.ConfigurationId(info);
+        preview.ValidatorCompilerId = compiler.Id;
         row = preview.Rows[0];
         Assert.Null(row.Validator);
         Assert.True(row.HasValidator);

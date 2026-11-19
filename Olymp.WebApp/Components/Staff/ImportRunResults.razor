@@ -8,7 +8,9 @@
             @foreach (var run in Runs)
             {
                 <tr class="@(ReferenceEquals(run, _selected) ? "table-active" : null)"><td><button type="button" class="btn btn-link p-0 text-nowrap" aria-pressed="@ReferenceEquals(run, _selected)" @onclick="() => _selected = run">@run.File@if (run.ReferenceId is int id) { <span class="text-body-secondary"> · ID @id</span> }</button></td><td>@run.Compiler</td><td>@run.TimeLimit</td>
-                    <td>@if (run.Result is { } verdict) { <SubmissionStatus StatusCode="verdict.StatusCode" /> } else { @run.Message }</td>
+                    <td>@if (run.Result is { } verdict) { <SubmissionStatus StatusCode="verdict.StatusCode" /> } else { @run.Message }
+                        @if (run.Result is not null && IsCurrent is not null && !IsCurrent(run)) { <span class="badge text-bg-warning ms-2">@SiteResources.ImportRunOutdated</span> }
+                    </td>
                     @if (ShowScore) { <td>@run.Result?.Score</td> }<td>@run.Result?.MaxUserTime?.TotalSeconds.ToString("0.###")</td><td>@(run.Result?.MaxMemory is { } bytes ? (bytes / 1048576d).ToString("0.##") : null)</td><td>@run.Result?.SlowestTest</td>
                 </tr>
             }
@@ -30,6 +32,7 @@
 @code {
     [Parameter] public IReadOnlyList<ImportRun> Runs { get; set; } = [];
     [Parameter] public bool ShowScore { get; set; }
+    [Parameter] public Func<ImportRun, bool>? IsCurrent { get; set; }
     private ImportRun? _selected;
 
     protected override void OnParametersSet()

@@ -21,6 +21,7 @@
     [Parameter] public int? Value { get; set; }
     [Parameter] public EventCallback<int?> ValueChanged { get; set; }
     [Parameter] public bool Disabled { get; set; }
+    [Parameter] public string? RequiredRole { get; set; }
     private readonly string _searchId = $"account-search-{Guid.NewGuid():N}";
     private readonly string _selectId = $"account-select-{Guid.NewGuid():N}";
     private string _search = "";
@@ -38,6 +39,11 @@
         string search = _search.Trim();
         bool hasId = int.TryParse(search, out int id);
         var query = db.OlympUsers.AsNoTracking();
+        if (RequiredRole is { } roleName)
+            query = query.Where(user => (from assignment in db.UserRoles
+                                        join role in db.Roles on assignment.RoleId equals role.Id
+                                        where assignment.UserId == user.Id && role.Name == roleName
+                                        select assignment).Any());
         if (search.Length > 0) query = query.Where(item => (hasId && item.Id == id) || item.Name.Contains(search)
             || (item.Email != null && item.Email.Contains(search)) || (item.UserName != null && item.UserName.Contains(search)));
         _accounts = await query.OrderBy(item => item.Name).ThenBy(item => item.Id).Take(20).ToListAsync();

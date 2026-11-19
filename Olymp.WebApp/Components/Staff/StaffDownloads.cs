@@ -18,6 +18,7 @@ internal static class StaffDownloads
         var jury = endpoints.MapGroup("/jury").RequireAuthorization(PolicyNames.JuryOrAdmin);
         jury.MapGet("/contests/{contestId:int}/export", (int contestId, HttpContext http, ContestExportService service) =>
             ExportContestAsync(contestId, http, service));
+        jury.MapGet("/contests/{contestId:int}/problems/export", ExportProblemsAsync);
         jury.MapGet("/problems/{problemId:int}/tests/download", DownloadZipAsync);
         jury.MapGet("/problems/{problemId:int}/tests/{id:int}/input", (int problemId, int id, HttpContext http,
             IDbContextFactory<OlympContext> factory) => DownloadTestAsync(problemId, id, false, http, factory));
@@ -73,6 +74,22 @@ internal static class StaffDownloads
         catch (OperationValidationException ex)
         {
             return Results.Problem(ex.Message, statusCode: StatusCodes.Status400BadRequest, title: SiteResources.StaffExportFailed);
+        }
+    }
+
+    private static async Task<IResult> ExportProblemsAsync(int contestId, HttpContext http, ContestExportService service)
+    {
+        http.Response.Headers.CacheControl = "no-store";
+        try
+        {
+            var export = await service.ExportProblemsAsync(contestId, http.RequestAborted);
+            http.Response.RegisterForDispose(export.Stream);
+            return Results.File(export.Stream, "application/zip", export.FileName);
+        }
+        catch (EntityNotFoundException) { return Results.NotFound(); }
+        catch (OperationValidationException exception)
+        {
+            return Results.Problem(exception.Message, statusCode: StatusCodes.Status400BadRequest, title: SiteResources.StaffExportFailed);
         }
     }
 

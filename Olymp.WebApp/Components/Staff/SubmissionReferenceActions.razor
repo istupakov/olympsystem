@@ -1,0 +1,85 @@
+@using Microsoft.AspNetCore.Authorization
+@using Olymp.WebApp.Services
+@using Olymp.WebApp.Services.Contests
+@inject IAuthorizationService Authorization
+@inject IServiceScopeFactory ScopeFactory
+
+@if (_allowed && Submission.User.IsHidden && !ReferenceSolutionFiles.IsValidator(Submission.Description)
+    && (Submission.IsReference || ReferenceSubmissionService.CanAssign(Submission)))
+{
+    <div class="mt-3">
+        <StaffFormFeedback Error="@_error" Saved="_saved" />
+        @if (_editing)
+        {
+            <div class="mb-2">
+                <label for="reference-filename" class="form-label">@SiteResources.ReferenceFilename</label>
+                <input id="reference-filename" class="form-control" @bind="_filename" disabled="@_busy" />
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+                <button type="button" class="btn btn-primary" disabled="@_busy" @onclick="() => SaveAsync(true)">@SiteResources.StaffSave</button>
+                <button type="button" class="btn btn-secondary" disabled="@_busy" @onclick="() => _editing = false">@SiteResources.StaffCancel</button>
+            </div>
+        }
+        else if (Submission.IsReference)
+        {
+            <button type="button" class="btn btn-outline-danger" disabled="@_busy" @onclick="() => SaveAsync(false)">@SiteResources.ReferenceRemove</button>
+        }
+        else
+        {
+            <button type="button" class="btn btn-outline-primary" disabled="@_busy" @onclick="Edit">@SiteResources.ReferenceAdd</button>
+        }
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public Submission Submission { get; set; } = default!;
+    [Parameter] public EventCallback OnChanged { get; set; }
+    [CascadingParameter] private Task<AuthenticationState> AuthenticationState { get; set; } = default!;
+    private bool _allowed, _editing, _busy, _saved;
+    private string? _filename, _error;
+    private int _submissionId;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_submissionId != Submission.Id)
+        {
+            _submissionId = Submission.Id;
+            _editing = _saved = false;
+            _error = null;
+        }
+        _allowed = (await Authorization.AuthorizeAsync((await AuthenticationState).User,
+            Submission.Problem.ContestId, PolicyNames.ImportProblems)).Succeeded;
+    }
+
+    private void Edit()
+    {
+        _saved = false;
+        _error = null;
+        try
+        {
+            _filename = ReferenceSubmissionService.DefaultFilename(Submission);
+            _editing = true;
+        }
+        catch (OperationValidationException exception) { _error = exception.Message; }
+    }
+
+    private async Task SaveAsync(bool reference)
+    {
+        if (_busy) return;
+        _busy = true;
+        _saved = false;
+        _error = null;
+        try
+        {
+            await using var scope = ScopeFactory.CreateAsyncScope();
+            await scope.ServiceProvider.GetRequiredService<ReferenceSubmissionService>()
+                .SetAsync((await AuthenticationState).User, Submission.Id, reference, _filename);
+            _editing = false;
+            await OnChanged.InvokeAsync();
+            _saved = true;
+        }
+        catch (OperationValidationException exception) { _error = exception.Message; }
+        catch (EntityNotFoundException) { _error = SiteResources.PageNotFoundMessage; }
+        finally { _busy = false; }
+    }
+}

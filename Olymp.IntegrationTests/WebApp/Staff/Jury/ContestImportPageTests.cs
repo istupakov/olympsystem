@@ -18,9 +18,56 @@ using Xunit;
 
 namespace Olymp.IntegrationTests.WebApp.Staff.Jury;
 
-public class ContestImportPageTests(WebAppFactory factory) : StaffComponentTests(factory)
+public partial class ContestImportPageTests(WebAppFactory factory) : StaffComponentTests(factory)
 {
     private static CancellationToken Token => TestContext.Current.CancellationToken;
+
+    [Fact]
+    public async Task AlreadySavedSolutionAllowsCompilerSelectionAndMarksOldReferenceForReplacement()
+    {
+        var user = await _factory.AddUserAsync();
+        await GrantRoleAsync(user.Id, RoleNames.Admin);
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<OlympContext>();
+        await db.Database.ExecuteSqlRawAsync("IF NOT EXISTS (SELECT 1 FROM Checkers WHERE Id = 4) BEGIN SET IDENTITY_INSERT Checkers ON; INSERT INTO Checkers (Id, Description) VALUES (4, N'Strict'); SET IDENTITY_INSERT Checkers OFF; END", Token);
+        var contest = TestEntities.CreateContest("Compiler selection", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddHours(1));
+        var problem = TestEntities.CreateProblem(contest);
+        problem.Checker = null!;
+        problem.CheckerId = 4;
+        problem.IsActive = false;
+        var originalCompiler = TestEntities.CreateCompilator();
+        var nextCompiler = TestEntities.CreateCompilator();
+        nextCompiler.Description = "Alternative compiler";
+        var reference = TestEntities.CreateSubmission(user, problem, originalCompiler, DateTimeOffset.UtcNow, "// same source"u8.ToArray());
+        reference.User = null!;
+        reference.IsReference = true;
+        reference.Description = "main.cs";
+        reference.StatusCode = 2;
+        db.Submissions.Add(reference);
+        db.Compilators.Add(nextCompiler);
+        await db.SaveChangesAsync(Token);
+        byte[] zip = ProblemArchives.Zip(("A/problem.json", System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(new { id = problem.Id })),
+            ("A/solutions/main.cs", "// same source"u8.ToArray()));
+        async Task Upload(ContestImport page) => await ActAsync(page, "UploadAsync", new InputFileChangeEventArgs([new MemoryFile(zip)]));
+        using var initial = await new HtmlParser().ParseDocumentAsync(await RenderAsync<ContestImport>(
+            $"/jury/contests/{contest.Id}/import", new() { ["ContestId"] = contest.Id }, Staff(user.Id), Upload));
+        var select = initial.QuerySelector("select[aria-label$='main.cs']")!;
+        Assert.False(select.HasAttribute("disabled"));
+        Assert.Equal(originalCompiler.Id.ToString(), select.QuerySelector("option[selected]")!.GetAttribute("value"));
+        using var changed = await new HtmlParser().ParseDocumentAsync(await RenderAsync<ContestImport>(
+            $"/jury/contests/{contest.Id}/import", new() { ["ContestId"] = contest.Id }, Staff(user.Id), async page =>
+            {
+                await Upload(page);
+                var row = Preview(page).Rows[0];
+                row.Solutions[0].CompilerId = nextCompiler.Id;
+                row.Solutions[0].Save = true;
+                await ActAsync(page, "SolutionsChanged");
+                Assert.True(row.HasChanges);
+                Assert.Empty(row.ReferencesToCheck);
+            }));
+        Assert.False(changed.QuerySelector($"#reference-{reference.Id}")!.HasAttribute("checked"));
+        Assert.Contains(SiteResources.ImportWillReplace, changed.Body!.TextContent);
+    }
 
     [Fact]
     public async Task UnchangedProblemShowsNoChangesDisablesSavingAndDoesNotRequireExitConfirmation()
@@ -52,6 +99,44 @@ public class ContestImportPageTests(WebAppFactory factory) : StaffComponentTests
         var save = Assert.Single(html.QuerySelectorAll("button"), b => b.TextContent == SiteResources.ImportSaveProblem);
         Assert.True(save.HasAttribute("disabled"));
         Assert.Equal("Crlf", html.QuerySelector("#import-line-endings option[selected]")!.GetAttribute("value"));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task NewReferenceIsSelectedForSavingAndShowsChangesByDefault(bool validator)
+    {
+        var user = await _factory.AddUserAsync();
+        await GrantRoleAsync(user.Id, RoleNames.Admin);
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<OlympContext>();
+        await db.Database.ExecuteSqlRawAsync("IF NOT EXISTS (SELECT 1 FROM Checkers WHERE Id = 4) BEGIN SET IDENTITY_INSERT Checkers ON; INSERT INTO Checkers (Id, Description) VALUES (4, N'Strict'); SET IDENTITY_INSERT Checkers OFF; END", Token);
+        var contest = TestEntities.CreateContest("New reference", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddHours(1));
+        var problem = TestEntities.CreateProblem(contest);
+        problem.Checker = null!;
+        problem.CheckerId = 4;
+        problem.IsActive = false;
+        problem.SlowTimeLimit = 1;
+        db.Problems.Add(problem);
+        await db.SaveChangesAsync(Token);
+        byte[] zip = ProblemArchives.Zip(("A/problem.json", System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(new { id = problem.Id })),
+            (validator ? "A/validator.cpp" : "A/solutions/main.cs", "// new source"u8.ToArray()));
+        using var html = await new HtmlParser().ParseDocumentAsync(await RenderAsync<ContestImport>(
+            $"/jury/contests/{contest.Id}/import", new() { ["ContestId"] = contest.Id }, Staff(user.Id), async page =>
+            {
+                await ActAsync(page, "UploadAsync", new InputFileChangeEventArgs([new MemoryFile(zip)]));
+                var row = Preview(page).Rows[0];
+                var file = validator ? row.Validator! : row.Solutions[0];
+                Assert.True(file.Save);
+                if (!validator) Assert.True(file.Selected);
+                Assert.True(row.HasChanges);
+                file.Save = false;
+                await ActAsync(page, "SolutionsChanged");
+                Assert.False(row.HasChanges);
+                file.Save = true;
+                await ActAsync(page, "SolutionsChanged");
+            }));
+        Assert.Contains(html.QuerySelectorAll(".badge"), badge => badge.TextContent == SiteResources.ImportUpdateProblem);
     }
 
     [Theory]
@@ -121,6 +206,9 @@ public class ContestImportPageTests(WebAppFactory factory) : StaffComponentTests
             await UploadAsync(page);
             var preview = Preview(page);
             var row = preview.Rows[0];
+            Assert.True(row.Solutions[0].Save);
+            row.Solutions[0].Save = false;
+            await ActAsync(page, "SolutionsChanged");
             Assert.True(row.ValidatorChecked);
             await ActAsync(page, "ConfirmSaveAsync");
             Assert.True(Assert.IsType<bool>(Field(page, "_confirmSave")));

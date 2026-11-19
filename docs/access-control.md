@@ -419,11 +419,14 @@ details, including to jury members without a contest management assignment.
 | Read test metadata and bounded file previews; download individual input/output files, all tests of a problem as ZIP, and stored contest attachments | Jury or administrator; includes closed and inactive tests and hidden contests. Public download rules are unchanged. |
 | Export assigned participant credentials | Jury or administrator. |
 | Export one contest as ZIP, including hidden and archived contests | Jury or administrator; contest management assignment is not required. |
+| Export all problems of one contest as an import-compatible ZIP | Jury or administrator; contest management assignment is not required. Includes inactive problems and hidden or archived contests. |
+| Import problems; assign or remove reference solutions | Administrator or contest manager at any time; jury members with a stored `contest-import` assignment for this contest strictly before its start. Assignments and start time are rechecked for every operation, including saving an open import. |
+| Grant or revoke `contest-import` assignments | Administrator or contest manager. Recipients must be permanent accounts with the Jury role. The assignment grants no other contest management permissions. |
 | Export all contests as ZIP; view backup storage and disk space; create, download, and delete database backups | Administrator only. Backup deletion requires a preview and confirmation; deleting a full backup includes its dependent differential backups. |
 | Restore a database backup | Administrator only, in Development. Requires preview and confirmation of replacing the development database. |
 | Pause or resume judging for all Runner connections | Administrator only. Pausing stops new checks; current checks finish normally. |
 | Create a contest | Jury or administrator; the creator receives management permission. New contests are hidden. |
-| Edit contest settings, problem and test activity; import problems; publish or remove the contest test archive; finish a contest; manage participants and credentials, import ICPC teams, answer questions, manage announcements and clarifications | Administrator or jury member with the stored `contest-manage` assignment for this contest. Problem import requires preview and confirmation. Archive publication and contest completion are permitted only after the contest ends and require confirmation; archive removal also requires confirmation. |
+| Edit contest settings, problem and test activity; publish or remove the contest test archive; finish a contest; manage participants and credentials, import ICPC teams, answer questions, manage announcements and clarifications | Administrator or jury member with the stored `contest-manage` assignment for this contest. Archive publication and contest completion are permitted only after the contest ends and require confirmation; archive removal also requires confirmation. |
 | Submit solutions from the staff task page | Jury or administrator, without a contest assignment or public publication, activity, time, or open-contest restrictions. Solutions belong to the signed-in account. |
 | Delete a problem and its tests, remaining submissions, check history, and messages | Administrator or jury member with the stored `contest-manage` assignment for this contest. Requires confirmation and no submissions or messages linked to `Competitor` accounts. Conditions are rechecked when deleting. |
 | Read compiler configurations and Runner diagnostics; run anti-cheat analysis and trial runs | Jury or administrator. Analysis applies no participant penalties automatically. |
@@ -436,6 +439,12 @@ operation. The participant service authorizes staff mutations and registration
 cancellation before writing. Cancellation uses `CancelRegistration` with the
 participant as its resource and the rules in section 4. Page controls use the
 same policy. Staff deletion does not bypass the history restriction.
+
+Problem import requires preview and confirmation. Reference assignment is limited
+to completed submissions from hidden accounts with an email. Reference filenames
+must be valid single file names, unique per problem ignoring case;
+`validator.cpp` is reserved. Validators are not managed by this operation.
+Removing the reference flag retains the submission and check history.
 
 Jury alone grants no global contest editing rights. The staff submission exception
 does not expand permission to edit contests or registrations. Public and staff
@@ -462,7 +471,7 @@ Additional restrictions:
 - Administrators may delete permanent accounts with unconfirmed email registered
   strictly more than one calendar month ago. Accounts without a registration date,
   with submissions, messages, team memberships, coached accounts or participants,
-  roles, or coach/contest-management claims are excluded. Cleanup covers all
+  roles, or coach/contest-management/import claims are excluded. Cleanup covers all
   accounts regardless of list filters and requires a candidate preview and
   confirmation. Deletion is limited to the previewed IDs; eligibility is rechecked
   transactionally, and accounts that no longer qualify are skipped.

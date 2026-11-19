@@ -1,0 +1,62 @@
+@using Olymp.WebApp.Services
+@using Olymp.WebApp.Services.Contests
+@inject IServiceScopeFactory ScopeFactory
+
+<StaffActions Title="@SiteResources.ImportAccessTitle" Class="mt-4">
+    <p>@SiteResources.ImportAccessHint</p>
+    <StaffFormFeedback Error="@_error" Saved="_saved" />
+    @foreach (var assignment in _assignments)
+    {
+        <div class="d-flex flex-wrap align-items-center gap-2 mb-2" @key="assignment.UserId">
+            <span class="text-break">@assignment.Name · @assignment.Email</span>
+            <button type="button" class="btn btn-sm btn-outline-danger" disabled="@_busy" @onclick="() => SetAsync(assignment.UserId, false)">@SiteResources.ImportAccessRevoke</button>
+        </div>
+    }
+    <PermanentAccountPicker Label="@SiteResources.ImportAccessJury" RequiredRole="@RoleNames.Jury" @bind-Value="_selected" Disabled="_busy" />
+    <button type="button" class="btn btn-secondary" disabled="@(_busy || _selected is null)" @onclick="() => SetAsync(_selected!.Value, true)">@SiteResources.ImportAccessGrant</button>
+</StaffActions>
+
+@code {
+    [Parameter] public int ContestId { get; set; }
+    [CascadingParameter] private Task<AuthenticationState> AuthenticationState { get; set; } = default!;
+    private List<ContestImportAccessService.Assignment> _assignments = [];
+    private int? _selected;
+    private bool _busy, _saved;
+    private string? _error;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _error = null;
+        _saved = false;
+        _selected = null;
+        await using var scope = ScopeFactory.CreateAsyncScope();
+        try
+        {
+            _assignments = await scope.ServiceProvider.GetRequiredService<ContestImportAccessService>()
+                .ListAsync((await AuthenticationState).User, ContestId);
+        }
+        catch (OperationValidationException exception) { _error = exception.Message; }
+        catch (EntityNotFoundException) { _error = SiteResources.PageNotFoundMessage; }
+    }
+
+    private async Task SetAsync(int userId, bool granted)
+    {
+        if (_busy) return;
+        _busy = true;
+        _saved = false;
+        _error = null;
+        try
+        {
+            await using var scope = ScopeFactory.CreateAsyncScope();
+            var service = scope.ServiceProvider.GetRequiredService<ContestImportAccessService>();
+            var actor = (await AuthenticationState).User;
+            await service.SetAsync(actor, ContestId, userId, granted);
+            _assignments = await service.ListAsync(actor, ContestId);
+            _selected = null;
+            _saved = true;
+        }
+        catch (OperationValidationException exception) { _error = exception.Message; }
+        catch (EntityNotFoundException) { _error = SiteResources.PageNotFoundMessage; }
+        finally { _busy = false; }
+    }
+}

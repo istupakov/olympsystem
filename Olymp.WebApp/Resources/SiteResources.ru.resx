@@ -923,13 +923,19 @@
   <data name="ImportSavedSolutions" xml:space="preserve"><value>Сохранённые эталонные решения</value></data>
   <data name="ImportAlreadySaved" xml:space="preserve"><value>Уже сохранено</value></data>
   <data name="ImportWillReplace" xml:space="preserve"><value>Будет заменено</value></data>
-  <data name="ImportReferenceReplacement" xml:space="preserve"><value>{0}: эталонное решение с таким именем и другим кодом уже существует. При сохранении флаг эталонного решения будет перенесён на новое; старая посылка и история сохранятся.</value></data>
+  <data name="ImportReferenceReplacement" xml:space="preserve"><value>{0}: эталонное решение с таким именем и другим кодом или компилятором уже существует. При сохранении флаг эталонного решения будет перенесён на новое; старая посылка и история сохранятся.</value></data>
   <data name="ImportReferenceAddition" xml:space="preserve"><value>{0}: будет сохранено как эталонное решение.</value></data>
   <data name="ImportRunPreviewHint" xml:space="preserve"><value>Все сохранённые эталоны и файлы, отмеченные для сохранения как эталонные, должны быть проверены на импортируемых тестах и текущих лимитах. Результаты и история проверок записываются вместе с задачей.</value></data>
   <data name="ImportReferenceChecksRequired" xml:space="preserve"><value>Перед сохранением завершите проверку всех эталонных записей на текущих тестах и лимитах.</value></data>
   <data name="ImportReferencesChanged" xml:space="preserve"><value>Сохранённые эталонные решения изменились. Список и предупреждения о замене обновлены. Проверьте их и подтвердите сохранение повторно.</value></data>
   <data name="ImportSolutionCompilerRequired" xml:space="preserve"><value>{0}: выберите доступный компилятор для сохранения эталонного решения.</value></data>
-  <data name="ImportRunSelected" xml:space="preserve"><value>Проверить решения</value></data>
+  <data name="ExportProblems" xml:space="preserve"><value>Экспорт задач</value></data>
+  <data name="ExportProblemsOpenTests" xml:space="preserve"><value>Нельзя экспортировать задачу «{0}»: открытые тесты должны идти первыми по номеру.</value></data>
+  <data name="ExportProblemsTestNumbers" xml:space="preserve"><value>Нельзя экспортировать задачу «{0}»: импорт поддерживает номера тестов от 1 до 999.</value></data>
+  <data name="ImportRunSelected" xml:space="preserve"><value>Проверить непроверенные</value></data>
+  <data name="ImportRerunAll" xml:space="preserve"><value>Перезапустить все выбранные</value></data>
+  <data name="ImportCheckProgress" xml:space="preserve"><value>Проверка: {0} из {1}</value></data>
+  <data name="ImportRunOutdated" xml:space="preserve"><value>Требуется перепроверка</value></data>
   <data name="ImportSaveProblem" xml:space="preserve"><value>Сохранить задачу</value></data>
   <data name="ImportConfirmProblem" xml:space="preserve"><value>Сохранить задачу «{0}»? Её набор тестов будет полностью заменён. Посылки и история проверок сохранятся.</value></data>
   <data name="ImportProblemSaved" xml:space="preserve"><value>Задача «{0}» сохранена.</value></data>
@@ -955,4 +961,23 @@
   <data name="ImportSavedValidator" xml:space="preserve"><value>Сохранённый валидатор</value></data>
   <data name="ImportValidatorReplacement" xml:space="preserve"><value>Код сохранённого валидатора отличается. Если выбрано сохранение, он будет заменён. Старая посылка и история сохранятся.</value></data>
   <data name="ImportReservedValidatorName" xml:space="preserve"><value>Имя validator.cpp зарезервировано для валидатора входных данных. Переименуйте решение в solutions/ перед сохранением как эталонного.</value></data>
+  <data name="ImportAccessTitle" xml:space="preserve"><value>Право импорта задач до начала</value></data>
+  <data name="ImportAccessHint" xml:space="preserve"><value>Выбранные члены жюри могут импортировать задачи и управлять эталонными решениями строго до начала контеста. Остальные права управления не предоставляются.</value></data>
+  <data name="ImportAccessJury" xml:space="preserve"><value>Член жюри</value></data>
+  <data name="ImportAccessGrant" xml:space="preserve"><value>Разрешить импорт</value></data>
+  <data name="ImportAccessRevoke" xml:space="preserve"><value>Отозвать право</value></data>
+  <data name="ImportAccessJuryRequired" xml:space="preserve"><value>Выберите постоянный аккаунт с ролью жюри.</value></data>
+  <data name="ReferenceAdd" xml:space="preserve"><value>Добавить в эталонные</value></data>
+  <data name="ReferenceRemove" xml:space="preserve"><value>Убрать из эталонных</value></data>
+  <data name="ReferenceFilename" xml:space="preserve"><value>Имя файла эталонного решения</value></data>
+  <data name="ReferenceEmailRequired" xml:space="preserve"><value>Email автора отсутствует или некорректен.</value></data>
+  <data name="ReferenceUnavailable" xml:space="preserve"><value>Эталонными можно назначать только завершённые посылки скрытых аккаунтов. Валидаторы здесь изменять нельзя.</value></data>
+  <data name="ReferenceInvalidFilename" xml:space="preserve"><value>Укажите допустимое имя файла без папок.</value></data>
+  <data name="ReferenceDuplicateFilename" xml:space="preserve"><value>Эталонное решение с таким именем файла уже существует. Выберите другое имя.</value></data>
+  <data name="ReferenceReservedFilename" xml:space="preserve"><value>Имя validator.cpp зарезервировано для валидатора входных данных. Укажите другое имя файла.</value></data>
+  <data name="ImportSaveValidatorOnly" xml:space="preserve"><value>Сохранить только валидатор</value></data>
+  <data name="ImportConfirmValidatorOnly" xml:space="preserve"><value>Сохранить валидатор, проверенный на текущих сохранённых тестах? Тесты, лимиты и другие решения из архива сохранены не будут. Предыдущий валидатор и его история сохранятся.</value></data>
+  <data name="ImportValidatorOnlyRejected" xml:space="preserve"><value>Валидатор отклоняет сохранённые тесты: {0}. Сохранить его с этими ошибками?</value></data>
+  <data name="ImportValidatorOnlySaved" xml:space="preserve"><value>Валидатор и результаты его проверки сохранены.</value></data>
+  <data name="ImportCompilerRunnerUnavailable" xml:space="preserve"><value>Нет доступного Runner для выбранного компилятора.</value></data>
 </root>

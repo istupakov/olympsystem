@@ -27,10 +27,10 @@ public partial class ProblemWorkspaceTests(WebAppFactory factory) : StaffCompone
     [InlineData(1, 2, true, false, true)]
     [InlineData(-1, 1, true, true, true)]
     [InlineData(-1, 1, true, false, true)]
-    [InlineData(-2, -1, true, true, false)]
+    [InlineData(-2, -1, true, true, true)]
     [InlineData(-1, 1, false, true, false)]
-    public async Task ImportLinkIsAvailableToManagersBeforeContestEnds(int startHours, int endHours,
-        bool canManage, bool hasProblem, bool expected)
+    public async Task ImportLinkIsAvailableToAdministratorsRegardlessOfContestTime(int startHours, int endHours,
+        bool administrator, bool hasProblem, bool expected)
     {
         var author = await _factory.AddUserAsync();
         await using var scope = _factory.Services.CreateAsyncScope();
@@ -43,7 +43,7 @@ public partial class ProblemWorkspaceTests(WebAppFactory factory) : StaffCompone
 
         using var page = await new HtmlParser().ParseDocumentAsync(await RenderAsync<JuryProblems>(
             $"/jury/contests/{contest.Id}/problems", new() { [nameof(JuryProblems.ContestId)] = contest.Id },
-            Staff(author.Id, canManage ? RoleNames.Admin : RoleNames.Jury)));
+            Staff(author.Id, administrator ? RoleNames.Admin : RoleNames.Jury)));
 
         Assert.Equal(expected, page.QuerySelector($"a[href='jury/contests/{contest.Id}/import']") is not null);
     }

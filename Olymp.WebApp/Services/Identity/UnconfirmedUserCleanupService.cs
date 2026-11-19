@@ -46,7 +46,8 @@ public sealed class UnconfirmedUserCleanupService(OlympContext context, UserMana
             && !item.Submissions.Any() && !item.Messages.Any() && !item.Memberships.Any() && !item.Teams.Any()
             && !context.UserRoles.Any(role => role.UserId == item.Id)
             && !context.UserClaims.Any(claim => claim.UserId == item.Id
-                && (claim.ClaimType == ClaimNames.CoachOrg || claim.ClaimType == ClaimNames.ContestManage)));
+                && (claim.ClaimType == ClaimNames.CoachOrg || claim.ClaimType == ClaimNames.ContestManage
+                    || claim.ClaimType == ClaimNames.ContestImport)));
 
     private async Task AuthorizeAsync(ClaimsPrincipal actor)
     {

@@ -23,7 +23,13 @@ public sealed class ContestExportService(IDbContextFactory<OlympContext> factory
     public sealed record ExportResult(FileStream Stream, string FileName);
 
     // Ownership of the stream passes to the caller. Closing it also deletes the temporary archive.
-    public async Task<ExportResult> ExportAsync(int? contestId, CancellationToken token = default)
+    public Task<ExportResult> ExportAsync(int? contestId, CancellationToken token = default)
+        => ExportCoreAsync(contestId, false, token);
+
+    public Task<ExportResult> ExportProblemsAsync(int contestId, CancellationToken token = default)
+        => ExportCoreAsync(contestId, true, token);
+
+    private async Task<ExportResult> ExportCoreAsync(int? contestId, bool problemsOnly, CancellationToken token)
     {
         await using var db = await factory.CreateDbContextAsync(token);
         await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, token);
@@ -38,10 +44,18 @@ public sealed class ContestExportService(IDbContextFactory<OlympContext> factory
         {
             await using (var archive = new ZipArchive(file, ZipArchiveMode.Create, leaveOpen: true))
                 foreach (var contest in contests)
-                    await WriteContestAsync(db, archive, contest, token);
+                    if (problemsOnly)
+                    {
+                        var problemIds = await db.Problems.Where(problem => problem.ContestId == contest.Id)
+                            .OrderBy(problem => problem.Number).ThenBy(problem => problem.Id).Select(problem => problem.Id).ToListAsync(token);
+                        if (problemIds.Count == 0) throw new OperationValidationException(SiteResources.NoProblemsFound);
+                        foreach (int id in problemIds) await WriteProblemAsync(db, archive, contest, id, true, token);
+                    }
+                    else await WriteContestAsync(db, archive, contest, token);
             await transaction.CommitAsync(token);
             file.Position = 0;
-            return new(file, contestId is not null ? $"{contests.Single().Abbr}-export.zip" : "contests-export.zip");
+            return new(file, problemsOnly ? $"{contests.Single().Abbr}-problems.zip"
+                : contestId is not null ? $"{contests.Single().Abbr}-export.zip" : "contests-export.zip");
         }
         catch
         {
@@ -131,7 +145,7 @@ public sealed class ContestExportService(IDbContextFactory<OlympContext> factory
         await WriteRecordsAsync(db, archive, contest, token);
         var problemIds = await db.Problems.Where(item => item.ContestId == contest.Id).OrderBy(item => item.Id).Select(item => item.Id).ToListAsync(token);
         foreach (int id in problemIds)
-            await WriteProblemAsync(db, archive, contest, id, token);
+            await WriteProblemAsync(db, archive, contest, id, false, token);
     }
 
     private static async Task WriteJsonAsync<T>(ZipArchive archive, string path, T value, CancellationToken token)
@@ -179,14 +193,18 @@ public sealed class ContestExportService(IDbContextFactory<OlympContext> factory
             .AsAsyncEnumerable(), token);
     }
 
-    private static async Task WriteProblemAsync(OlympContext db, ZipArchive archive, Contest contest, int problemId, CancellationToken token)
+    private static async Task WriteProblemAsync(OlympContext db, ZipArchive archive, Contest contest, int problemId, bool problemsOnly, CancellationToken token)
     {
         var problem = await db.Problems.AsNoTracking().SingleAsync(item => item.Id == problemId, token);
-        string root = $"{contest.Abbr}/problem{problem.Number.ToString("D2", CultureInfo.InvariantCulture)}/";
+        string root = $"{(problemsOnly ? "" : contest.Abbr + "/")}problem{problem.Number.ToString("D2", CultureInfo.InvariantCulture)}/";
         var tests = await db.Tests.AsNoTracking().Where(item => item.ProblemId == problemId).OrderBy(item => item.Number)
             .Select(item => new { item.Number, item.IsOpen, item.IsActive, item.Score, item.Comment }).ToListAsync(token);
         int openTestCount = tests.TakeWhile(item => item.IsOpen).Count();
         var openTests = tests.Where(item => item.IsOpen).Select(item => item.Number).ToArray();
+        if (problemsOnly && openTests.Length != openTestCount)
+            throw new OperationValidationException(string.Format(CultureInfo.CurrentCulture, SiteResources.ExportProblemsOpenTests, problem.Name));
+        if (problemsOnly && tests.Any(test => test.Number is < 1 or > 999))
+            throw new OperationValidationException(string.Format(CultureInfo.CurrentCulture, SiteResources.ExportProblemsTestNumbers, problem.Name));
         var scores = tests.Where(item => item.Score is not null).ToDictionary(item => item.Number, item => item.Score!.Value);
         var inactive = tests.Where(item => !item.IsActive).Select(item => item.Number).ToArray();
         var comments = tests.Where(item => !string.IsNullOrEmpty(item.Comment)).ToDictionary(item => item.Number, item => item.Comment!);
@@ -194,7 +212,7 @@ public sealed class ContestExportService(IDbContextFactory<OlympContext> factory
             problem.Id, problem.Number, problem.Name, problem.TimeLimit, problem.SlowTimeLimit, problem.MemoryLimit, problem.CheckerId,
             problem.IsActive, openTestCount, openTests.Length == openTestCount ? null : openTests,
             scores.Count == 0 ? null : scores, inactive.Length == 0 ? null : inactive, comments.Count == 0 ? null : comments), token);
-        if (problem.Text is not null) await WriteTextAsync(archive, root + "statement.html", problem.Text, token);
+        if (!problemsOnly && problem.Text is not null) await WriteTextAsync(archive, root + "statement.html", problem.Text, token);
         await foreach (var test in db.Tests.AsNoTracking().Where(item => item.ProblemId == problemId).OrderBy(item => item.Number)
             .Select(item => new { item.Number, item.Input, item.Output }).AsAsyncEnumerable().WithCancellation(token))
         {
@@ -202,7 +220,7 @@ public sealed class ContestExportService(IDbContextFactory<OlympContext> factory
             await WriteBytesAsync(archive, root + $"tests/input{number}.txt", test.Input, token);
             await WriteBytesAsync(archive, root + $"tests/output{number}.txt", test.Output, token);
         }
-        await WriteJurySolutionsAsync(db, archive, contest, problemId, root, token);
+        if (!problemsOnly) await WriteJurySolutionsAsync(db, archive, contest, problemId, root, token);
         await WriteReferenceSolutionsAsync(db, archive, problemId, root, token);
     }
 
