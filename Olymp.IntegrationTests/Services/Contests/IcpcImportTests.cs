@@ -127,7 +127,7 @@ public class IcpcImportTests(ContestServiceFixture site) : IClassFixture<Contest
     }
 
     [Fact]
-    public async Task MissingCoachRequiresManualSelectionAndUnmatchedMembersStayUnlinked()
+    public async Task MissingCoachAllowsManualOrganizationAndUnmatchedMembersStayUnlinked()
     {
         var token = TestContext.Current.CancellationToken;
         var setup = await SetupAsync();
@@ -146,18 +146,70 @@ public class IcpcImportTests(ContestServiceFixture site) : IClassFixture<Contest
         Assert.Null(row.CoachId);
         Assert.Null(Assert.Single(row.Members).UserId);
         Assert.Empty(row.Warnings);
-        Assert.True(row.NeedsCoach);
+        Assert.False(row.NeedsCoach);
         Assert.False(row.HasNoRemarks);
         await Assert.ThrowsAsync<OperationValidationException>(() => service.ImportAsync(setup.Actor, setup.Contest.Id, preview.Rows, token));
         Assert.False(await db.Competitors.AnyAsync(item => item.ContestId == setup.Contest.Id, token));
-        row.CoachId = setup.Coach.Id;
+        row.OrganizationId = setup.OrgId;
         Assert.True(row.HasNoRemarks);
         await service.ImportAsync(setup.Actor, setup.Contest.Id, preview.Rows, token);
         Assert.Equal(count, await db.OlympUsers.CountAsync(token));
         var team = await db.Competitors.Include(item => item.Members).SingleAsync(item => item.ContestId == setup.Contest.Id, token);
-        Assert.Equal(setup.Coach.Id, team.CoachId);
+        Assert.Null(team.CoachId);
         Assert.Empty(team.Members);
         Assert.Equal("Unknown Contestant", Assert.Single(team.GetMembers()!).name);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ImportsWithoutCoachIntoOrganizationOutsideCoachAccess(bool updateExisting)
+    {
+        var token = TestContext.Current.CancellationToken;
+        var setup = await SetupAsync();
+        using var scope = site.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<OlympContext>();
+        var service = scope.ServiceProvider.GetRequiredService<IcpcImportService>();
+        if (updateExisting)
+        {
+            var initial = await service.PreviewAsync(setup.Actor, setup.Contest.Id, [setup.Source], token);
+            await service.ImportAsync(setup.Actor, setup.Contest.Id, initial.Rows, token);
+        }
+        var organization = new Organization { Name = "Manually selected organization", Users = [] };
+        db.Organizations.Add(organization);
+        await db.SaveChangesAsync(token);
+        var preview = await service.PreviewAsync(setup.Actor, setup.Contest.Id, [setup.Source], token);
+        var row = Assert.Single(preview.Rows);
+        row.CoachId = null;
+        row.OrganizationId = int.MaxValue;
+        await Assert.ThrowsAsync<OperationValidationException>(() => service.ImportAsync(setup.Actor, setup.Contest.Id, preview.Rows, token));
+        row.OrganizationId = organization.Id;
+        Assert.Contains(row.Organizations, org => org.Id == organization.Id);
+        Assert.Equal(new IcpcImportSummary(updateExisting ? 0 : 1, updateExisting ? 1 : 0),
+            await service.ImportAsync(setup.Actor, setup.Contest.Id, preview.Rows, token));
+        var team = await db.Competitors.AsNoTracking().SingleAsync(item => item.ContestId == setup.Contest.Id, token);
+        Assert.Null(team.CoachId);
+        Assert.Equal(organization.Id, team.OrganizationId);
+    }
+
+    [Fact]
+    public async Task RejectsOrganizationDeletedAfterPreviewWithoutCoach()
+    {
+        var token = TestContext.Current.CancellationToken;
+        var setup = await SetupAsync();
+        using var scope = site.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<OlympContext>();
+        var organization = new Organization { Name = "Removed organization", Users = [] };
+        db.Organizations.Add(organization);
+        await db.SaveChangesAsync(token);
+        var service = scope.ServiceProvider.GetRequiredService<IcpcImportService>();
+        var preview = await service.PreviewAsync(setup.Actor, setup.Contest.Id, [setup.Source], token);
+        var row = Assert.Single(preview.Rows);
+        row.CoachId = null;
+        row.OrganizationId = organization.Id;
+        await db.Organizations.Where(item => item.Id == organization.Id).ExecuteDeleteAsync(token);
+        await Assert.ThrowsAsync<OperationValidationException>(() => service.ImportAsync(setup.Actor, setup.Contest.Id, preview.Rows, token));
+        Assert.False(await db.Competitors.AnyAsync(item => item.ContestId == setup.Contest.Id, token));
     }
 
     [Fact]

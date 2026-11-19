@@ -476,7 +476,7 @@
   <data name="ParticipantLoginsTooFew" xml:space="preserve"><value>The file contains too few logins.</value></data>
   <data name="ProfileGroupRequired" xml:space="preserve"><value>The Group field in the profile must be filled in.</value></data>
   <data name="IcpcImport" xml:space="preserve"><value>Import from icpc.global</value></data>
-  <data name="IcpcImportHint" xml:space="preserve"><value>Load teams from ICPC and select the ones to import. Each team requires a coach and an organization covered by that coach's access. A unique coach email match is selected automatically.</value></data>
+  <data name="IcpcImportHint" xml:space="preserve"><value>Load teams from ICPC and select the ones to import. An organization is required; a coach is optional. Without a coach, select any existing organization; with a coach, select an organization covered by that coach's access. A unique coach email match is selected automatically.</value></data>
   <data name="IcpcCredentialsHint" xml:space="preserve"><value>Your ICPC account must have access to this contest. The password is used only for this request and is not saved.</value></data>
   <data name="IcpcLoad" xml:space="preserve"><value>Load teams</value></data>
   <data name="IcpcUpdateHint" xml:space="preserve"><value>Selected existing teams will have their name, organization, roster, coach and approval updated. Logins, passwords, submissions and other flags are retained. Missing teams are not deleted.</value></data>

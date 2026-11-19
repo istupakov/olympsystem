@@ -30,8 +30,8 @@ public class IcpcImportRowTests
         row.OrganizationId = 10;
         Assert.True(row.HasNoRemarks);
         row.CoachId = null;
-        Assert.True(row.NeedsCoach);
-        Assert.False(row.HasNoRemarks);
+        Assert.False(row.NeedsCoach);
+        Assert.True(row.HasNoRemarks);
         row.CoachId = 1;
         row.OrganizationId = 20;
         Assert.True(row.NeedsOrganization);
@@ -48,8 +48,10 @@ public class IcpcImportRowTests
         row.CoachId = 1;
         Assert.Equal(10, row.OrganizationId);
         row.CoachId = null;
-        Assert.Null(row.OrganizationId);
-        Assert.True(row.NeedsCoach);
+        Assert.Equal(10, row.OrganizationId);
+        Assert.False(row.NeedsCoach);
+        Assert.Equal(3, row.Organizations.Count);
+        row.OrganizationId = 30;
         row.CoachId = 3;
         Assert.Null(row.OrganizationId);
         Assert.True(row.NeedsOrganization);
@@ -76,6 +78,7 @@ public class IcpcImportRowTests
         Snapshot = "",
         Members = [new("Member", "member@example.test", 2)],
         Coaches = [new(1, "Coach", "coach@example.test", [new(10, "First")]), new(3, "Other", "other@example.test", [new(10, "First"), new(20, "Second")])],
+        AllOrganizations = [new(10, "First"), new(20, "Second"), new(30, "Third")],
         CoachId = 1,
         OrganizationId = 10,
         Errors = errors ?? [],

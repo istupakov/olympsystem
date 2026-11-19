@@ -27,6 +27,7 @@ public sealed class IcpcImportRow
     public required string Snapshot { get; init; }
     public required IReadOnlyList<IcpcAccountMatch> Members { get; init; }
     public required IReadOnlyList<IcpcCoachOption> Coaches { get; init; }
+    public required IReadOnlyList<IcpcOrganizationOption> AllOrganizations { get; init; }
     public required IReadOnlyList<string> Errors { get; init; }
     public required IReadOnlyList<string> Warnings { get; init; }
     public int? OrganizationId { get; set; }
@@ -37,14 +38,15 @@ public sealed class IcpcImportRow
         {
             field = value;
             if (!Organizations.Any(org => org.Id == OrganizationId))
-                OrganizationId = Organizations.Count == 1 ? Organizations[0].Id : null;
+                OrganizationId = value.HasValue && Organizations.Count == 1 ? Organizations[0].Id : null;
         }
     }
-    public IReadOnlyList<IcpcOrganizationOption> Organizations => Coaches.SingleOrDefault(coach => coach.Id == CoachId)?.Organizations ?? [];
+    public IReadOnlyList<IcpcOrganizationOption> Organizations => CoachId.HasValue
+        ? Coaches.SingleOrDefault(coach => coach.Id == CoachId)?.Organizations ?? [] : AllOrganizations;
     public bool Selected { get; set; }
     public bool IsApproved => Source.Status == "ACCEPTED";
     public bool NeedsOrganization => !Organizations.Any(org => org.Id == OrganizationId);
-    public bool NeedsCoach => !Coaches.Any(coach => coach.Id == CoachId);
+    public bool NeedsCoach => CoachId.HasValue && !Coaches.Any(coach => coach.Id == CoachId);
     public bool HasNoRemarks => IsApproved && Errors.Count == 0 && Warnings.Count == 0
         && !NeedsOrganization && !NeedsCoach
         && (string.IsNullOrWhiteSpace(Source.EligibilityStatus) || Source.EligibilityStatus == "NO_ISSUES_FOUND")
@@ -155,6 +157,7 @@ public sealed class IcpcImportService(OlympContext context, UserManager<User> us
                 Snapshot = snapshot,
                 Members = members,
                 Coaches = coaches,
+                AllOrganizations = [.. organizations.Select(org => new IcpcOrganizationOption(org.Id, org.Name))],
                 CoachId = coachId,
                 Selected = team.Status != "CANCELED" && errors.Count == 0,
                 Errors = errors,
@@ -180,9 +183,10 @@ public sealed class IcpcImportService(OlympContext context, UserManager<User> us
                 throw new OperationValidationException(SiteResources.IcpcPreviewChanged);
             if (fresh.Errors.Count != 0)
                 throw new OperationValidationException(string.Join(" ", fresh.Errors));
-            var coach = fresh.Coaches.SingleOrDefault(coach => coach.Id == row.CoachId)
-                ?? throw new OperationValidationException(SiteResources.IcpcSelectCoach);
-            if (!coach.Organizations.Any(org => org.Id == row.OrganizationId))
+            fresh.CoachId = row.CoachId;
+            if (fresh.NeedsCoach)
+                throw new OperationValidationException(SiteResources.IcpcSelectCoach);
+            if (!fresh.Organizations.Any(org => org.Id == row.OrganizationId))
                 throw new OperationValidationException(SiteResources.IcpcSelectOrganization);
         }
         if (selected.Select(row => row.Source.Name.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).Count() != selected.Length)

@@ -22,7 +22,7 @@ namespace Olymp.IntegrationTests.WebApp.Staff.Jury;
 public class IcpcImportPageTests(WebAppFactory factory) : StaffComponentTests(factory)
 {
     [Fact]
-    public async Task CoachControlsOrganizationOptionsAndBothAreRequiredBeforeConfirmation()
+    public async Task OrganizationIsRequiredAndOptionalCoachRestrictsOrganizationOptions()
     {
         var token = TestContext.Current.CancellationToken;
         var admin = await _factory.AddUserAsync();
@@ -39,6 +39,7 @@ public class IcpcImportPageTests(WebAppFactory factory) : StaffComponentTests(fa
             Snapshot = "",
             Members = [new("Unknown", "missing@example.test", null)],
             Coaches = [new(1, "One", "one@example.test", [new(10, "First")]), new(2, "Two", "two@example.test", [new(10, "First"), new(20, "Second")])],
+            AllOrganizations = [new(10, "First"), new(20, "Second"), new(30, "Third")],
             Errors = [],
             Warnings = [],
             Selected = true
@@ -54,16 +55,21 @@ public class IcpcImportPageTests(WebAppFactory factory) : StaffComponentTests(fa
             }, services => services.AddScoped(_ => new IcpcClient(new HttpClient(new EmptyCatalogHandler())))));
 
         using var missing = await PageAsync(true);
-        Assert.NotNull(missing.QuerySelector("#icpc-org-12345[disabled]"));
+        Assert.Null(missing.QuerySelector("#icpc-org-12345[disabled]"));
+        Assert.Equal(4, missing.QuerySelectorAll("#icpc-org-12345 option").Length);
         Assert.Equal(3, missing.QuerySelectorAll("#icpc-coach-12345 option").Length);
         Assert.Contains(SiteResources.IcpcCorrectFields, missing.Body!.TextContent);
         Assert.DoesNotContain(missing.QuerySelectorAll("button"), button => button.TextContent == SiteResources.StaffConfirm);
+        row.OrganizationId = 30;
+        using var withoutCoach = await PageAsync(true);
+        Assert.Contains(withoutCoach.QuerySelectorAll("button"), button => button.TextContent == SiteResources.StaffConfirm);
         row.CoachId = 1;
         using var single = await PageAsync(true);
         Assert.Equal("10", single.QuerySelector("#icpc-org-12345 option[selected]")!.GetAttribute("value"));
         Assert.Equal(2, single.QuerySelectorAll("#icpc-org-12345 option").Length);
         Assert.Contains(single.QuerySelectorAll("button"), button => button.TextContent == SiteResources.StaffConfirm);
         row.CoachId = null;
+        row.OrganizationId = null;
         row.CoachId = 2;
         using var multiple = await PageAsync(true);
         Assert.Contains("is-invalid", multiple.QuerySelector("#icpc-org-12345")!.ClassList);

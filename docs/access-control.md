@@ -131,9 +131,11 @@ when saving.
 
 ICPC import requires access to the selected contest in icpc.global. It links roster
 members to existing permanent accounts by normalized email and never creates
-permanent accounts or grants coach claims. Each imported team requires a permanent
-coach account with coach access to the selected existing local organization.
-Recheck the coach account and organization access when saving. Unmatched roster
+permanent accounts or grants coach claims. Each imported team requires an existing
+local organization. A coach is optional; without one, the organization is selected
+manually from all existing organizations. If selected, the coach must be a permanent
+account with coach access to that organization. Recheck the organization and any
+selected coach's access when saving. Unmatched roster
 names remain unlinked.
 Only ICPC registration status `ACCEPTED` sets approval; eligibility does not
 override it. Reimports update selected teams' names, organization, roster, coach,
