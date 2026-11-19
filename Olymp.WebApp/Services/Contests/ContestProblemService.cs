@@ -15,7 +15,7 @@ using Olymp.WebApp.Services.Checker;
 
 namespace Olymp.WebApp.Services.Contests;
 
-public sealed class ContestProblemService(OlympContext context, ICheckerManager checkerManager,
+public sealed partial class ContestProblemService(OlympContext context, ICheckerManager checkerManager,
     IOptions<ContestImportOptions> options, IAuthorizationService authorization, TimeProvider timeProvider)
 {
     public const int LegacyCleanupContestId = 1;

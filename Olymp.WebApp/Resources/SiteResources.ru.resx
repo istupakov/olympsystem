@@ -270,6 +270,10 @@
   <data name="StaffDateFrom" xml:space="preserve"><value>С</value></data>
   <data name="StaffDateTo" xml:space="preserve"><value>По</value></data>
   <data name="StaffDelete" xml:space="preserve"><value>Удалить</value></data>
+  <data name="StaffDeleteProblem" xml:space="preserve"><value>Удалить задачу</value></data>
+  <data name="StaffDeleteProblemConfirm" xml:space="preserve"><value>Удалить задачу «{0}» без возможности восстановления? Тестов: {1}; решений (включая эталоны и валидаторы): {2}; результатов проверок: {3}; сообщений: {4}. Условия удаления будут проверены повторно.</value></data>
+  <data name="StaffProblemDeletionBlocked" xml:space="preserve"><value>Задачу нельзя удалить: есть посылки или сообщения, связанные с аккаунтами участников.</value></data>
+  <data name="StaffProblemDeletionBusy" xml:space="preserve"><value>Сейчас проверяется решение. Дождитесь завершения проверки перед удалением задачи.</value></data>
   <data name="StaffDeleteEmptyParticipants" xml:space="preserve"><value>Удалить участников без посылок и сообщений</value></data>
   <data name="StaffDeletedCount" xml:space="preserve"><value>Удалено участников: {0}.</value></data>
   <data name="StaffDisapprove" xml:space="preserve"><value>Снять допуск</value></data>
@@ -908,7 +912,9 @@
   <data name="ImportValidatorPassed" xml:space="preserve"><value>Входные данные прошли проверку.</value></data>
   <data name="ImportValidatorRejected" xml:space="preserve"><value>Входные данные не прошли проверку на активных тестах.</value></data>
   <data name="ImportLimits" xml:space="preserve"><value>Лимиты времени для запуска и сохранения</value></data>
-  <data name="ImportTestLineEndings" xml:space="preserve"><value>Входные и выходные файлы тестов приводятся к CRLF перед проверкой и сохранением.</value></data>
+  <data name="ImportLineEndings" xml:space="preserve"><value>Окончания строк в тестах</value></data>
+  <data name="ImportTestLineEndings" xml:space="preserve"><value>Входные и выходные файлы тестов приводятся к выбранным окончаниям строк перед проверкой и сохранением.</value></data>
+  <data name="ImportUnchanged" xml:space="preserve"><value>Без изменений</value></data>
   <data name="ImportSolutions" xml:space="preserve"><value>Решения жюри</value></data>
   <data name="ImportNoSolutions" xml:space="preserve"><value>В каталоге solutions/ нет файлов решений, сохранённых эталонных решений тоже нет.</value></data>
   <data name="ImportRun" xml:space="preserve"><value>Запустить</value></data>
@@ -928,7 +934,7 @@
   <data name="ImportConfirmProblem" xml:space="preserve"><value>Сохранить задачу «{0}»? Её набор тестов будет полностью заменён. Посылки и история проверок сохранятся.</value></data>
   <data name="ImportProblemSaved" xml:space="preserve"><value>Задача «{0}» сохранена.</value></data>
   <data name="ImportHasErrors" xml:space="preserve"><value>Есть ошибки</value></data>
-  <data name="ImportUpdateProblem" xml:space="preserve"><value>Обновление</value></data>
+  <data name="ImportUpdateProblem" xml:space="preserve"><value>Есть изменения</value></data>
   <data name="ImportCancelSave" xml:space="preserve"><value>Отменить сохранение</value></data>
   <data name="StaffRunMode" xml:space="preserve"><value>Режим запуска</value></data>
   <data name="StaffRunSolution" xml:space="preserve"><value>Решение</value></data>

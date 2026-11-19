@@ -64,6 +64,10 @@
         }
         error = result.Error;
         if (result.Id is int id)
-            Navigation.NavigateTo($"contests/{Problem.ContestId}/problems?problemId={Problem.Id}#submission-{id}");
+        {
+            string scope = HttpContext.User.HasClaim(claim => claim.Type == ClaimNames.CompetitorContest)
+                ? "" : "&scope=own&kind=training";
+            Navigation.NavigateTo($"contests/{Problem.ContestId}/problems?problemId={Problem.Id}{scope}#submission-{id}");
+        }
     }
 }

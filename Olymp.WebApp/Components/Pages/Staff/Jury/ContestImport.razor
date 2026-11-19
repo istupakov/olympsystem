@@ -40,6 +40,12 @@
         <div class="mb-3"><label for="import-zip" class="form-label">ZIP</label><InputFile id="import-zip" class="form-control" accept=".zip" OnChange="UploadAsync" /></div>
         @if (_preview is { } preview)
         {
+            <div class="mb-3"><label for="import-line-endings" class="form-label">@SiteResources.ImportLineEndings</label>
+                <select id="import-line-endings" class="form-select" @bind="preview.LineEndings" @bind:after="CheckValidatorAsync">
+                    <option value="@ImportLineEndings.Crlf">CRLF</option>
+                    <option value="@ImportLineEndings.Lf">LF</option>
+                </select>
+            </div>
             <div class="mb-4"><label for="import-cpp" class="form-label">@SiteResources.ImportValidatorCompiler</label>
                 <select id="import-cpp" class="form-select" @bind="preview.ValidatorConfiguration" @bind:after="CheckValidatorAsync">
                     <option value="">@SiteResources.SelectCompiler</option>
@@ -177,7 +183,7 @@
                         }
                         <ImportRunResults Runs="task.Runs" ShowScore="task.Tests.Any(t => t.Score.HasValue)" />
                         <div class="d-flex flex-wrap gap-2 mt-4">
-                            <button class="btn btn-warning" disabled="@(task.IsSaved || task.StateErrors.Count != 0 || task.ValidatorErrors.Count != 0 || !task.ValidatorChecked || !task.ReferencesChecked || !task.ReferenceValidatorChecked)" @onclick="ConfirmSaveAsync">@SiteResources.ImportSaveProblem</button>
+                            <button class="btn btn-warning" disabled="@(!task.HasChanges || task.StateErrors.Count != 0 || task.ValidatorErrors.Count != 0 || !task.ValidatorChecked || !task.ReferencesChecked || !task.ReferenceValidatorChecked)" @onclick="ConfirmSaveAsync">@SiteResources.ImportSaveProblem</button>
                             @if (task.Id.HasValue)
                             {
                                 <button class="btn btn-outline-secondary" @onclick="RefreshAsync">@SiteResources.ImportRefresh</button>
@@ -218,11 +224,12 @@
     private string? _error, _status, _exitTarget;
     private CancellationTokenSource? _operation;
     private readonly CancellationTokenSource _lifetime = new();
-    private bool HasPending => _preview?.Rows.Any(r => !r.IsSaved) == true;
+    private bool HasPending => _preview?.Rows.Any(r => r.HasChanges) == true;
     private string ProblemUrl(ContestImportRow row) => Navigation.GetUriWithQueryParameter("task", row.Folder);
     private static string Numbers(IEnumerable<int> values) => string.Join(", ", values) is { Length: > 0 } text ? text : "–";
     private static string RowStatus(ContestImportRow row) => row.Errors.Count != 0 ? SiteResources.ImportHasErrors
-        : row.IsSaved ? SiteResources.StaffSaved : row.Id.HasValue ? SiteResources.ImportUpdateProblem : SiteResources.ImportNewProblem;
+        : row.IsSaved ? SiteResources.StaffSaved : !row.HasChanges ? SiteResources.ImportUnchanged
+        : row.Id.HasValue ? SiteResources.ImportUpdateProblem : SiteResources.ImportNewProblem;
     private static string ValidatorStatusClass(ContestImportRow row) => row.ValidatorResult is { } result
         ? !result.Compiled || result.Tests.Any(t => !t.IsValid) ? "alert-danger" : "alert-success"
         : "alert-warning";

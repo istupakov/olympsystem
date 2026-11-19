@@ -29,15 +29,18 @@ public partial class PracticeSubmissionTests(WebAppFactory factory) : IClassFixt
 {
     private const string Source = "// Привет\nclass Program { static void Main() {} }\n";
 
-    [Fact]
-    public async Task SubmissionIsQueuedForPersonalAccountAndRedirectClearsCodeWithoutChangingContestResults()
+    [Theory]
+    [InlineData("")]
+    [InlineData("&scope=all&kind=contest")]
+    [InlineData("&scope=coached&kind=contest")]
+    public async Task SubmissionIsQueuedForPersonalAccountAndRedirectClearsCodeWithoutChangingContestResults(string filters)
     {
         var data = await SeedAsync();
         using var client = await factory.LoginAsync(data.User.UserName!);
         string path = ProblemPath(data.Contest.Id, data.Problem.Id);
-        using var response = await PostAsync(client, path, data.Compiler.Id, Source);
+        using var response = await PostAsync(client, path + filters, data.Compiler.Id, Source);
         Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
-        Assert.Contains($"{path}#submission-", response.Headers.Location!.OriginalString);
+        Assert.Contains($"{path}&scope=own&kind=training#submission-", response.Headers.Location!.OriginalString);
 
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<OlympContext>();

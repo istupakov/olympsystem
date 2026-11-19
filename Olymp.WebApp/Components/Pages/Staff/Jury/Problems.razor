@@ -57,13 +57,23 @@ else
             {
                 <StaffActions Title="@SiteResources.StaffProblemOperations">
                     <div class="d-flex flex-wrap gap-2">
-                        <button class="btn btn-warning" disabled="@_activityBusy" @onclick="() => _confirmActivity = !_confirmActivity">@(_selected.IsActive ? SiteResources.StaffDisable : SiteResources.StaffEnable)</button>
+                        <button class="btn btn-warning" disabled="@_activityBusy" @onclick="() => { _deletion = null; _confirmActivity = !_confirmActivity; }">@(_selected.IsActive ? SiteResources.StaffDisable : SiteResources.StaffEnable)</button>
+                        <button class="btn btn-outline-danger" disabled="@_activityBusy" @onclick="PreviewDeletionAsync">@SiteResources.StaffDeleteProblem</button>
                         @if (_admin)
                         {
                             <a class="btn btn-warning" href="jury/contests/@ContestId/submissions?Problem=@_selected.Id&Retest=true">@SiteResources.StaffRetestFiltered</a>
                         }
                     </div>
                     @if (_activityError is not null) { <p class="text-danger mt-2" role="alert">@_activityError</p> }
+                    @if (_deletion is { } deletion)
+                    {
+                        <div class="alert alert-warning mt-3" role="alert">
+                            <p>@string.Format(SiteResources.StaffDeleteProblemConfirm, _selected.NameWithNumber, deletion.Tests, deletion.Submissions, deletion.Checks, deletion.Messages)</p>
+                            @if (!deletion.CanDelete) { <p>@SiteResources.StaffProblemDeletionBlocked</p> }
+                            <button class="btn btn-danger" disabled="@(_activityBusy || !deletion.CanDelete)" @onclick="DeleteProblemAsync">@SiteResources.StaffConfirm</button>
+                            <button class="btn btn-outline-secondary ms-2" disabled="@_activityBusy" @onclick="() => _deletion = null">@SiteResources.StaffCancel</button>
+                        </div>
+                    }
                     @if (_confirmActivity)
                     {
                         <div class="alert alert-warning mt-3" role="alert">
@@ -154,6 +164,7 @@ else
     private bool _admin;
     private bool _canManage, _confirmActivity, _activityBusy;
     private string? _activityError;
+    private ProblemDeletionPreview? _deletion;
     private int _loadVersion;
     private const int PageSize = 20;
     private int CurrentPage => Math.Max(1, SubmissionPage ?? 1);
@@ -174,6 +185,7 @@ else
     {
         int version = ++_loadVersion;
         _confirmActivity = false;
+        _deletion = null;
         _activityError = null;
         _canManage = (await Authorization.AuthorizeAsync((await AuthenticationState).User, ContestId, PolicyNames.ManageContest)).Succeeded;
         int contestId = ContestId;
@@ -268,6 +280,47 @@ else
         if (_hasNext) _rows.RemoveAt(PageSize);
         if (previousProblem != selected?.Id) _input = new() { CompilatorId = compiler };
         _loaded = true;
+    }
+
+    private async Task PreviewDeletionAsync()
+    {
+        if (_activityBusy || _selected is null) return;
+        int contestId = ContestId, problemId = _selected.Id;
+        _activityBusy = true; _activityError = null; _confirmActivity = false;
+        try
+        {
+            await using var scope = ScopeFactory.CreateAsyncScope();
+            var preview = await scope.ServiceProvider.GetRequiredService<ContestProblemService>()
+                .PreviewDeletionAsync((await AuthenticationState).User, contestId, problemId);
+            if (ContestId == contestId && _selected?.Id == problemId) _deletion = preview;
+        }
+        catch (OperationValidationException exception) { _activityError = exception.Message; }
+        catch (EntityNotFoundException) { _activityError = SiteResources.PageNotFoundMessage; }
+        catch (System.Data.Common.DbException) { _activityError = SiteResources.StaffSaveFailed; }
+        finally { _activityBusy = false; }
+    }
+
+    private async Task DeleteProblemAsync()
+    {
+        if (_activityBusy || _selected is null || _deletion is not { CanDelete: true }) return;
+        int contestId = ContestId, problemId = _selected.Id;
+        _activityBusy = true; _activityError = null;
+        try
+        {
+            await using var scope = ScopeFactory.CreateAsyncScope();
+            await scope.ServiceProvider.GetRequiredService<ContestProblemService>()
+                .DeleteProblemAsync((await AuthenticationState).User, contestId, problemId);
+            if (ContestId != contestId || _selected?.Id != problemId) return;
+            ProblemId = null;
+            Scope = null;
+            SubmissionPage = null;
+            await OnParametersSetAsync();
+            Navigation.NavigateTo($"jury/contests/{contestId}/problems", replace: true);
+        }
+        catch (OperationValidationException exception) { _activityError = exception.Message; _deletion = null; }
+        catch (EntityNotFoundException) { _activityError = SiteResources.PageNotFoundMessage; _deletion = null; }
+        catch (System.Data.Common.DbException) { _activityError = SiteResources.StaffSaveFailed; }
+        finally { _activityBusy = false; }
     }
 
     private async Task ToggleActivityAsync()

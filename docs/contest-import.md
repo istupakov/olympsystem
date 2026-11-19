@@ -45,7 +45,9 @@ Only problem parameters, tests, `validator.cpp`, and files under `solutions/` ar
 
 Import replaces the problem's complete test set with the files from `tests/`. Without test files, the set becomes empty. Only inactive problems can have an empty test set.
 
-Each test has an `inputN.txt` and an `outputN.txt` with the same test number. Use numbers from 1 through 999. Leading zeros and gaps are allowed. Reject duplicate test numbers, missing partners, and test metadata that refers to absent tests. The importer preserves the file bytes.
+Each test has an `inputN.txt` and an `outputN.txt` with the same test number. Use numbers from 1 through 999. Leading zeros and gaps are allowed. Reject duplicate test numbers, missing partners, and test metadata that refers to absent tests.
+
+Input and output line endings are normalized before validation, solution runs, and saving. Choose CRLF (the default) or LF for the whole import. Other bytes are preserved; no final newline is added. Changing the choice discards previous validation and solution results. The validator retains its platform's line-ending requirements.
 
 - `openTestCount` specifies how many tests are open, starting from the lowest test number. It must be between zero and the size of the replacement set. The default is 1 for a nonempty set and 0 for an empty set.
 - `scores` maps test numbers to nonnegative scores. An omitted score is unset. Use an explicit `0` for a zero-point test.
@@ -58,7 +60,10 @@ Each test has an `inputN.txt` and an `outputN.txt` with the same test number. Us
 
 - If supplied, `validator.cpp` checks test inputs using a selected C++ compiler; `testlib.h` is available. Failure on an active test blocks saving; failure on an inactive test is a warning. A missing validator, compilation failure, or unavailable Runner is a warning.
 - Selected files from `solutions/` run on active tests using the resulting checker and time limits, on available configurations for their language. Results are informational.
+- All saved reference solutions and files selected for saving as references must run on the replacement tests before saving. Verdicts need not be accepted, but each solution must produce a result. Results and checking history are saved with the tests. A saved validator is used when the ZIP contains none.
 - The regular and slow time limits can be changed independently before saving.
+
+An existing problem with identical resulting parameters and tests, and no selected new references or validator to save, requires no save. Repeating an unchanged import does not replace tests or add checking history.
 
 An updated problem keeps its ID, statement, submissions, and checking history. Problems absent from the ZIP are kept. Finishing import discards unsaved changes and retains saved problems.
 

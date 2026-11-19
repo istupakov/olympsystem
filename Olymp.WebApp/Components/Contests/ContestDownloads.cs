@@ -1,5 +1,6 @@
 using System.Net.Mime;
 
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -45,7 +46,7 @@ internal static class ContestDownloads
     }
 
     private static async Task<IResult> DownloadTestsAsync(int id, HttpContext http, IDbContextFactory<OlympContext> factory,
-        UserManager<User> users)
+        UserManager<User> users, IAuthorizationService authorization)
     {
         await using var context = await factory.CreateDbContextAsync(http.RequestAborted);
         var contest = await context.Contests.AsNoTracking().SingleOrDefaultAsync(item => item.Id == id && !item.IsHidden, http.RequestAborted);
@@ -56,7 +57,7 @@ internal static class ContestDownloads
         int userId = int.Parse(users.GetUserId(http.User)!);
         bool related = await context.Competitors.AnyAsync(participant => participant.ContestId == id
             && (participant.CoachId == userId || participant.Members.Any(member => member.Id == userId)), http.RequestAborted);
-        if (!related)
+        if (!related && !(await authorization.AuthorizeAsync(http.User, PolicyNames.Coach)).Succeeded)
             return Results.Forbid();
 
         var data = await context.Blobs.Where(blob => blob.Id == contest.TestZipId).Select(blob => blob.Data).SingleAsync(http.RequestAborted);
