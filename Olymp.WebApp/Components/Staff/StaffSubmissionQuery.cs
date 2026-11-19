@@ -1,5 +1,8 @@
+using Microsoft.EntityFrameworkCore;
+
 using Olymp.Domain;
 using Olymp.Domain.Models;
+using Olymp.WebApp.Services.Contests;
 
 namespace Olymp.WebApp.Components.Staff;
 
@@ -12,6 +15,7 @@ public static class StaffSubmissionQuery
             "hidden" => query.Where(item => item.User.IsHidden),
             "participants" => query.Where(item => context.Competitors.Any(author => author.Id == item.UserId
                 && author.ContestId == (contestId ?? item.Problem.ContestId))),
+            "reference" => query.Where(item => item.IsReference),
             _ => query
         };
 
@@ -36,6 +40,7 @@ public static class StaffSubmissionQuery
             CompilerId = item.CompilatorId,
             Language = item.Compilator.Language,
             IsHidden = item.IsHidden,
-            IsReference = item.IsReference
+            IsReference = item.IsReference,
+            IsValidator = item.Description != null && item.Description == ReferenceSolutionFiles.ValidatorFilename
         });
 }

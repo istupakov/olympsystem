@@ -4,6 +4,7 @@
 @using System.Security.Claims
 @using Olymp.WebApp.Components.Submissions
 @using Olymp.WebApp.Services.Checker
+@using Olymp.WebApp.Services.Contests
 @inject IDbContextFactory<OlympContext> ContextFactory
 @inject NavigationManager Navigation
 @inject ICheckerManager Checkers
@@ -102,6 +103,14 @@ else
                 <option value="hidden">@SiteResources.StaffJuryAuthors</option>
             </InputSelect>
         </div>
+        <div class="col-md-6">
+            <label for="submission-reference" class="form-label">@SiteResources.StaffReferenceRecord</label>
+            <InputSelect id="submission-reference" class="form-select" @bind-Value="_filters.Reference">
+                <option value="">@SiteResources.StaffAll</option>
+                <option value="true">@SiteResources.StaffYes</option>
+                <option value="false">@SiteResources.StaffNo</option>
+            </InputSelect>
+        </div>
         <div class="col-12 d-flex flex-wrap gap-2">
             <button class="btn btn-primary">@SiteResources.StaffFind</button>
             <a class="btn btn-outline-secondary" href="@BaseUrl">@SiteResources.StaffReset</a>
@@ -119,7 +128,7 @@ else
         <ActiveFilter Name="IpAddress" Label="@SiteResources.IpAddress" Value="@IpAddress" />
         <ActiveFilter Name="Contest" Label="@SiteResources.StaffContest" Value="@(ContestId is null && Contest is int selectedContestFilter ? StaffEntityLabel.Format(selectedContestFilter, _contest?.Name) : null)" Clear="@(new[] { nameof(Problem), nameof(ProblemSearch) })" />
         <ActiveFilter Name="Hidden" Label="@SiteResources.StaffHiddenSubmission" Value="@(Hidden is bool hidden ? hidden ? SiteResources.StaffYes : SiteResources.StaffNo : null)" />
-        <ActiveFilter Name="Reference" Label="@SiteResources.StaffReferenceSubmission" Value="@(Reference is bool reference ? reference ? SiteResources.StaffYes : SiteResources.StaffNo : null)" />
+        <ActiveFilter Name="Reference" Label="@SiteResources.StaffReferenceRecord" Value="@(Reference is bool reference ? reference ? SiteResources.StaffYes : SiteResources.StaffNo : null)" />
         <ActiveFilter Name="Scope" Label="@SiteResources.StaffSubmissionAuthors" Value="@(EffectiveScope == "own" ? SiteResources.OwnSubmissions : EffectiveScope == "participants" ? SiteResources.ContestParticipants : EffectiveScope == "hidden" ? SiteResources.StaffJuryAuthors : null)" Clear="@(new[] { nameof(OnlyParticipants) })" />
         <ActiveFilter Name="Status" Label="@SiteResources.SubmissionStatus" Value="@(Status is not null ? _statusLabel : null)" />
         <ActiveFilter Name="StatusCode" Label="@SiteResources.SubmissionStatus" Value="@(StatusCode is int exactStatus ? CheckStatusCodes.Description(exactStatus) : null)" />
@@ -189,7 +198,7 @@ else
                     </QuickFilter>
                 }
                 @if (item.IsHidden) { <div><QuickFilter Url="@StaffFilterUrl.Set(Navigation.Uri, nameof(Hidden), true)" Label="@SiteResources.StaffHiddenSubmission" Value="@SiteResources.StaffYes"><span class="badge text-bg-secondary">@SiteResources.StaffHiddenSubmission</span></QuickFilter></div> }
-                @if (item.IsReference) { <div><QuickFilter Url="@StaffFilterUrl.Set(Navigation.Uri, nameof(Reference), true)" Label="@SiteResources.StaffReferenceSubmission" Value="@SiteResources.StaffYes"><span class="badge text-bg-info">@SiteResources.StaffReferenceSubmission</span></QuickFilter></div> }
+                @if (item.IsReference) { <div><QuickFilter Url="@StaffFilterUrl.Set(Navigation.Uri, nameof(Reference), true)" Label="@SiteResources.StaffReferenceRecord" Value="@SiteResources.StaffYes"><ReferenceSubmissionBadge IsReference="true" IsValidator="item.IsValidator" /></QuickFilter></div> }
             </TemplateColumn>
             <PropertyColumn Property="@(item => item.Score)" Title="@SiteResources.Points" Sortable="true" />
             <TemplateColumn Title="@SiteResources.IpAddress" Sortable="true" SortBy="@(GridSort<StaffSubmissionListItem>.ByAscending(item => item.IpAddress))" Context="item">
@@ -275,7 +284,7 @@ else
         _loaded = false;
         _error = _authorName = _notice = null;
         _retestTotal = null;
-        _filters = new() { Contest = Contest, Author = Author, Problem = Problem, ProblemSearch = ProblemSearch, Language = Language, Status = Status, From = From, To = To, Scope = EffectiveScope };
+        _filters = new() { Contest = Contest, Author = Author, Problem = Problem, ProblemSearch = ProblemSearch, Language = Language, Status = Status, From = From, To = To, Scope = EffectiveScope, Reference = Reference };
         _compilerName = _problemName = null;
         _statusLabel = StaffVerdicts.Label(Status);
         var user = (await AuthenticationState).User;
@@ -313,7 +322,8 @@ else
     }
 
     private IQueryable<Submission> RetestQuery(OlympContext db) => FilteredQuery(db)
-        .Where(item => item.Id <= _retestMaxId && item.Problem.IsActive && item.StatusCode != 0 && item.StatusCode != 1);
+        .Where(item => item.Id <= _retestMaxId && item.Problem.IsActive && item.StatusCode != 0 && item.StatusCode != 1
+            && (item.Description == null || item.Description != ReferenceSolutionFiles.ValidatorFilename));
 
     private async Task PrepareRetestAsync()
     {
@@ -386,6 +396,7 @@ else
         [nameof(Problem)] = _filters.Problem,
         [nameof(ProblemSearch)] = _filters.Problem is null && FormContest is null ? _filters.ProblemSearch : null,
         [nameof(Language)] = _filters.Language,
+        [nameof(Reference)] = _filters.Reference,
         [nameof(StatusCode)] = _filters.Status == Status ? StatusCode : null,
         [nameof(Status)] = _filters.Status, [nameof(OnlyParticipants)] = null, [nameof(Scope)] = _filters.Scope == "all" ? null : _filters.Scope, [nameof(From)] = _filters.From, [nameof(To)] = _filters.To, ["Page"] = null, ["row"] = null
     }));
@@ -396,6 +407,7 @@ else
         public string? Author { get; set; }
         public int? Problem { get; set; }
         public string? Language { get; set; }
+        public bool? Reference { get; set; }
         public string? ProblemSearch { get; set; }
         public string? Status { get; set; }
         public DateTime? From { get; set; }

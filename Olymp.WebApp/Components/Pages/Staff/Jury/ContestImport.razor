@@ -4,6 +4,7 @@
 @using Olymp.WebApp.Services
 @using Olymp.WebApp.Services.Checker
 @using Olymp.WebApp.Services.Contests
+@using Olymp.WebApp.Components.Submissions
 @inject IServiceScopeFactory ScopeFactory
 @inject IDbContextFactory<OlympContext> ContextFactory
 @inject ICheckerManager Checkers
@@ -83,6 +84,7 @@
                         </tbody>
                     </table></div>
                     <h3 class="h5">@SiteResources.StaffTests (@task.Tests.Count)</h3>
+                    <p class="small text-body-secondary">@SiteResources.ImportTestLineEndings</p>
                     <p>@SiteResources.ImportAddedTests: @Numbers(task.AddedTests)<br />@SiteResources.ImportChangedTests: @Numbers(task.ChangedTests)<br />@SiteResources.ImportRemovedTests: @Numbers(task.RemovedTests)</p>
                     <details class="mb-3"><summary>@SiteResources.ImportTestSet</summary>
                         <div class="table-responsive"><table class="table table-sm">
@@ -93,11 +95,32 @@
                     @foreach (var message in task.StateErrors) { <p class="text-danger" role="alert">@message</p> }
                     @foreach (var message in task.StateWarnings) { <p class="text-warning-emphasis">@message</p> }
                     <h3 class="h5">@SiteResources.ImportValidator</h3>
-                    @if (task.HasValidator) { <p>validator.cpp</p> }
+                    @if (task.HasValidator)
+                    {
+                        <p>validator.cpp · @(task.Validator is not null ? SiteResources.ImportArchiveSolutions : SiteResources.ImportSavedValidator)
+                            @if (task.Validator is { ReplacedIds.Count: > 0 }) { <span class="badge text-bg-warning">@SiteResources.ImportWillReplace</span> }
+                        </p>
+                        @if (task.Validator is { } validator)
+                        {
+                            @if (validator.AlreadySaved) { <p class="text-body-secondary">@SiteResources.ImportAlreadySaved</p> }
+                            else
+                            {
+                                <fieldset disabled="@(_busy || _confirmSave || _exitTarget is not null)">
+                                    <div class="form-check mb-3"><input id="save-validator" type="checkbox" class="form-check-input" @bind="validator.Save" @bind:after="SolutionsChanged" /><label for="save-validator" class="form-check-label">@SiteResources.ImportSaveValidator</label></div>
+                                </fieldset>
+                            }
+                            @if (validator.ReplacedIds.Count != 0) { <p class="small text-warning-emphasis">@SiteResources.ImportValidatorReplacement</p> }
+                        }
+                    }
                     <p class="alert @ValidatorStatusClass(task)" role="status">@(task.HasValidator ? task.ValidatorMessage ?? SiteResources.ImportValidatorNotRun : SiteResources.ImportNoValidator)</p>
                     @foreach (var message in task.ValidatorErrors) { <p class="text-danger" role="alert">@message</p> }
                     @foreach (var message in task.ValidatorWarnings.Where(w => w != task.ValidatorMessage)) { <p class="text-warning-emphasis">@message</p> }
                     @if (task.ValidatorResult is { } validation) { <details class="mb-3"><summary>@SiteResources.StaffRunOutput</summary><pre class="overflow-auto">@validation.Log</pre></details> }
+                    @if (task.SavedValidatorResult is { } savedValidation && !ReferenceEquals(savedValidation, task.ValidatorResult))
+                    {
+                        <p class="alert @(savedValidation.Compiled && savedValidation.Tests.All(t => t.IsValid) ? "alert-success" : "alert-warning")">@SiteResources.ImportSavedValidator: @(savedValidation.Compiled ? savedValidation.Tests.All(t => t.IsValid) ? SiteResources.ImportValidatorPassed : SiteResources.ImportValidatorRejected : SiteResources.ImportValidatorCompileFailed)</p>
+                        <details class="mb-3"><summary>@SiteResources.StaffRunOutput</summary><pre class="overflow-auto">@savedValidation.Log</pre></details>
+                    }
                     <fieldset disabled="@(_busy || _confirmSave || _exitTarget is not null)">
                         <legend class="h5">@SiteResources.ImportLimits</legend>
                         <div class="row g-3 mb-4">
@@ -105,16 +128,56 @@
                             <div class="col-md-6"><label class="form-label" for="import-slow">@SiteResources.ImportSlowTimeLimit (@SiteResources.Seconds)</label><input id="import-slow" type="number" min="1" class="form-control" @bind="task.SlowTimeLimit" @bind:after="LimitsChanged" /></div>
                         </div>
                         <h3 class="h5">@SiteResources.ImportSolutions</h3>
-                        @if (task.Solutions.Count == 0) { <p class="text-body-secondary">@SiteResources.ImportNoSolutions</p> }
-                        @for (int i = 0; i < task.Solutions.Count; i++)
+                        @if (task.Solutions.Count == 0 && task.ReferenceSolutions.Count == 0) { <p class="text-body-secondary">@SiteResources.ImportNoSolutions</p> }
+                        else
                         {
-                            var solution = task.Solutions[i];
-                            <div class="form-check mb-2"><input id="@($"solution-{i}")" type="checkbox" class="form-check-input" @bind="solution.Selected" /><label for="@($"solution-{i}")" class="form-check-label">@solution.Filename</label></div>
+                            <div class="table-responsive" tabindex="0"><table class="table table-sm text-nowrap align-middle">
+                                <thead><tr><th>@SiteResources.ImportRun</th><th>@SiteResources.ImportRunFile</th><th>@SiteResources.Compiler</th><th>@SiteResources.ImportSaveReference</th><th>@SiteResources.Status</th></tr></thead>
+                                <tbody>
+                                    @if (task.Solutions.Count != 0) { <tr class="table-light"><th colspan="5">@SiteResources.ImportArchiveSolutions</th></tr> }
+                                    @for (int i = 0; i < task.Solutions.Count; i++)
+                                    {
+                                        var solution = task.Solutions[i];
+                                        <tr>
+                                            <td><input id="@($"solution-{i}")" type="checkbox" class="form-check-input" aria-label="@($"{SiteResources.ImportRun}: {solution.Filename}")" disabled="@solution.Save" @bind="solution.Selected" /></td>
+                                            <td><label for="@($"solution-{i}")">@solution.Filename</label></td>
+                                            <td>
+                                                <select class="form-select form-select-sm form-control-sm" aria-label="@($"{SiteResources.Compiler}: {solution.Filename}")" disabled="@solution.AlreadySaved" @bind="solution.CompilerId" @bind:after="SolutionsChanged">
+                                                    <option value="">@SiteResources.SelectCompiler</option>
+                                                    @foreach (var compiler in solution.Compilers) { <option value="@compiler.Id">@(compiler.Description ?? compiler.Name) · ID @compiler.Id</option> }
+                                                </select>
+                                            </td>
+                                            <td>
+                                                @if (solution.AlreadySaved) { <span class="text-body-secondary">@SiteResources.ImportAlreadySaved</span> }
+                                                else { <input type="checkbox" class="form-check-input" aria-label="@($"{SiteResources.ImportSaveReference}: {solution.Filename}")" @bind="solution.Save" @bind:after="SolutionsChanged" /> }
+                                            </td>
+                                            <td>@if (solution.ReplacedIds.Count != 0) { <span class="badge text-bg-warning" title="@string.Format(SiteResources.ImportReferenceReplacement, solution.Filename)">@SiteResources.ImportWillReplace</span> }</td>
+                                        </tr>
+                                    }
+                                    @if (task.ReferenceSolutions.Count != 0) { <tr class="table-light"><th colspan="5">@SiteResources.ImportSavedSolutions</th></tr> }
+                                    @foreach (var solution in task.ReferenceSolutions)
+                                    {
+                                        <tr>
+                                            <td><input id="@($"reference-{solution.Id}")" type="checkbox" class="form-check-input" aria-label="@($"{SiteResources.ImportRun}: {solution.Filename} · ID {solution.Id}")" checked disabled /></td>
+                                            <td><label for="@($"reference-{solution.Id}")">@solution.Filename</label> <span class="text-body-secondary">· ID @solution.Id</span></td>
+                                            <td><span class="form-control-plaintext form-control-sm">@solution.Compiler</span></td>
+                                            <td class="text-body-secondary">@SiteResources.ImportAlreadySaved</td>
+                                            <td><SubmissionStatus StatusCode="solution.StatusCode" /></td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table></div>
+                            <p class="small text-body-secondary">@SiteResources.ImportRunPreviewHint</p>
+                            <button class="btn btn-outline-primary mb-3" disabled="@(SelectedSolutionCount(task) == 0)" @onclick="RunSolutionsAsync">@SiteResources.ImportRunSelected (@SelectedSolutionCount(task))</button>
+                            @if (!task.ReferencesChecked || !task.ReferenceValidatorChecked) { <p class="text-warning-emphasis" role="status">@SiteResources.ImportReferenceChecksRequired</p> }
+                            @foreach (var solution in task.Solutions.Where(s => s.ReplacedIds.Count != 0))
+                            {
+                                <p class="small text-warning-emphasis">@string.Format(SiteResources.ImportReferenceReplacement, solution.Filename)</p>
+                            }
                         }
-                        @if (task.Solutions.Count != 0) { <button class="btn btn-outline-primary mb-3" disabled="@(!task.Solutions.Any(s => s.Selected))" @onclick="RunSolutionsAsync">@SiteResources.ImportRunSelected</button> }
                         <ImportRunResults Runs="task.Runs" ShowScore="task.Tests.Any(t => t.Score.HasValue)" />
                         <div class="d-flex flex-wrap gap-2 mt-4">
-                            <button class="btn btn-warning" disabled="@(task.IsSaved || task.StateErrors.Count != 0 || task.ValidatorErrors.Count != 0 || !task.ValidatorChecked)" @onclick="ConfirmSaveAsync">@SiteResources.ImportSaveProblem</button>
+                            <button class="btn btn-warning" disabled="@(task.IsSaved || task.StateErrors.Count != 0 || task.ValidatorErrors.Count != 0 || !task.ValidatorChecked || !task.ReferencesChecked || !task.ReferenceValidatorChecked)" @onclick="ConfirmSaveAsync">@SiteResources.ImportSaveProblem</button>
                             @if (task.Id.HasValue)
                             {
                                 <button class="btn btn-outline-secondary" @onclick="RefreshAsync">@SiteResources.ImportRefresh</button>
@@ -124,6 +187,14 @@
                     @if (_confirmSave)
                     {
                         <div class="alert alert-warning mt-3" role="alert"><p>@string.Format(SiteResources.ImportConfirmProblem, task.Label)</p>
+                            @foreach (var solution in task.Solutions.Where(s => s.Save && !s.AlreadySaved))
+                            {
+                                <p>@string.Format(solution.ReplacedIds.Count == 0 ? SiteResources.ImportReferenceAddition : SiteResources.ImportReferenceReplacement, solution.Filename)</p>
+                            }
+                            @if (task.Validator is { Save: true, AlreadySaved: false } validator)
+                            {
+                                <p>@(validator.ReplacedIds.Count == 0 ? SiteResources.ImportSaveValidator : SiteResources.ImportValidatorReplacement)</p>
+                            }
                             <button class="btn btn-warning" disabled="@_busy" @onclick="SaveAsync">@SiteResources.StaffConfirm</button>
                             <button class="btn btn-outline-secondary ms-2" disabled="@_busy" @onclick="() => _confirmSave = false">@SiteResources.StaffCancel</button>
                         </div>
@@ -187,6 +258,13 @@
         _confirmSave = false; _status = null;
         _selected?.CheckParameters();
     }
+    private void SolutionsChanged()
+    {
+        _confirmSave = false; _status = null;
+        if (_selected is not null)
+            foreach (var solution in _selected.Solutions.Where(s => s.Save)) solution.Selected = true;
+    }
+    private static int SelectedSolutionCount(ContestImportRow row) => row.Solutions.Count(s => s.Selected || s.Save && !s.AlreadySaved) + row.ReferenceSolutions.Count;
     private Task UploadAsync(InputFileChangeEventArgs args)
     {
         if (args.FileCount == 0) return Task.CompletedTask;
@@ -200,17 +278,24 @@
             _selected = preview.Rows.First();
             await InvokeAsync(StateHasChanged);
             await service.EnsureValidatorAsync((await AuthenticationState).User, preview, _selected, token);
+            if (_selected.ReferenceSolutions.Count != 0)
+                await service.RunSolutionsAsync((await AuthenticationState).User, preview, _selected, () => InvokeAsync(StateHasChanged), token);
         }, updateSelection: true);
     }
     private Task CheckValidatorAsync() => ExecuteAsync(async (service, token) =>
     {
-        if (_preview is not null && _selected is not null) await service.EnsureValidatorAsync((await AuthenticationState).User, _preview, _selected, token);
+        if (_preview is null || _selected is null) return;
+        await service.EnsureValidatorAsync((await AuthenticationState).User, _preview, _selected, token);
+        if (!_selected.ReferencesChecked)
+            await service.RunSolutionsAsync((await AuthenticationState).User, _preview, _selected, () => InvokeAsync(StateHasChanged), token);
     });
     private Task RefreshAsync() => ExecuteAsync(async (service, token) =>
     {
         if (_preview is null || _selected is null) return;
         await service.RefreshAsync((await AuthenticationState).User, _preview, _selected, token);
         await service.EnsureValidatorAsync((await AuthenticationState).User, _preview, _selected, token);
+        if (_selected.ReferenceSolutions.Count != 0)
+            await service.RunSolutionsAsync((await AuthenticationState).User, _preview, _selected, () => InvokeAsync(StateHasChanged), token);
     });
     private Task RunSolutionsAsync() => ExecuteAsync(async (service, token) =>
     {
@@ -222,6 +307,9 @@
     {
         if (_preview is null || _selected is null) return;
         await service.EnsureValidatorAsync((await AuthenticationState).User, _preview, _selected, token);
+        ContestImportService.ValidateReferenceSelection(_selected);
+        if (!_selected.ReferencesChecked || !_selected.ReferenceValidatorChecked)
+            throw new OperationValidationException(SiteResources.ImportReferenceChecksRequired);
         _confirmSave = _selected.Errors.Count == 0;
     });
     private Task SaveAsync() => ExecuteAsync(async (service, token) =>

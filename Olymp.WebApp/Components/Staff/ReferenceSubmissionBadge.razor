@@ -1,0 +1,9 @@
+@if (IsReference)
+{
+    <span class="badge text-bg-success">@(IsValidator ? SiteResources.StaffValidator : SiteResources.StaffReferenceSubmission)</span>
+}
+
+@code {
+    [Parameter] public bool IsReference { get; set; }
+    [Parameter] public bool IsValidator { get; set; }
+}

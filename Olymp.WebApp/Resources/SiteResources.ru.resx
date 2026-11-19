@@ -908,9 +908,22 @@
   <data name="ImportValidatorPassed" xml:space="preserve"><value>Входные данные прошли проверку.</value></data>
   <data name="ImportValidatorRejected" xml:space="preserve"><value>Входные данные не прошли проверку на активных тестах.</value></data>
   <data name="ImportLimits" xml:space="preserve"><value>Лимиты времени для запуска и сохранения</value></data>
+  <data name="ImportTestLineEndings" xml:space="preserve"><value>Входные и выходные файлы тестов приводятся к CRLF перед проверкой и сохранением.</value></data>
   <data name="ImportSolutions" xml:space="preserve"><value>Решения жюри</value></data>
-  <data name="ImportNoSolutions" xml:space="preserve"><value>В каталоге solutions/ нет файлов решений.</value></data>
-  <data name="ImportRunSelected" xml:space="preserve"><value>Запустить выбранные решения</value></data>
+  <data name="ImportNoSolutions" xml:space="preserve"><value>В каталоге solutions/ нет файлов решений, сохранённых эталонных решений тоже нет.</value></data>
+  <data name="ImportRun" xml:space="preserve"><value>Запустить</value></data>
+  <data name="ImportSaveReference" xml:space="preserve"><value>Сохранить как эталонное</value></data>
+  <data name="ImportArchiveSolutions" xml:space="preserve"><value>Из архива</value></data>
+  <data name="ImportSavedSolutions" xml:space="preserve"><value>Сохранённые эталонные решения</value></data>
+  <data name="ImportAlreadySaved" xml:space="preserve"><value>Уже сохранено</value></data>
+  <data name="ImportWillReplace" xml:space="preserve"><value>Будет заменено</value></data>
+  <data name="ImportReferenceReplacement" xml:space="preserve"><value>{0}: эталонное решение с таким именем и другим кодом уже существует. При сохранении флаг эталонного решения будет перенесён на новое; старая посылка и история сохранятся.</value></data>
+  <data name="ImportReferenceAddition" xml:space="preserve"><value>{0}: будет сохранено как эталонное решение.</value></data>
+  <data name="ImportRunPreviewHint" xml:space="preserve"><value>Все сохранённые эталоны и файлы, отмеченные для сохранения как эталонные, должны быть проверены на импортируемых тестах и текущих лимитах. Результаты и история проверок записываются вместе с задачей.</value></data>
+  <data name="ImportReferenceChecksRequired" xml:space="preserve"><value>Перед сохранением завершите проверку всех эталонных записей на текущих тестах и лимитах.</value></data>
+  <data name="ImportReferencesChanged" xml:space="preserve"><value>Сохранённые эталонные решения изменились. Список и предупреждения о замене обновлены. Проверьте их и подтвердите сохранение повторно.</value></data>
+  <data name="ImportSolutionCompilerRequired" xml:space="preserve"><value>{0}: выберите доступный компилятор для сохранения эталонного решения.</value></data>
+  <data name="ImportRunSelected" xml:space="preserve"><value>Проверить решения</value></data>
   <data name="ImportSaveProblem" xml:space="preserve"><value>Сохранить задачу</value></data>
   <data name="ImportConfirmProblem" xml:space="preserve"><value>Сохранить задачу «{0}»? Её набор тестов будет полностью заменён. Посылки и история проверок сохранятся.</value></data>
   <data name="ImportProblemSaved" xml:space="preserve"><value>Задача «{0}» сохранена.</value></data>
@@ -927,4 +940,13 @@
   <data name="StaffExecutionCompleted" xml:space="preserve"><value>Успешно выполнено</value></data>
   <data name="StaffOutputLimit" xml:space="preserve"><value>Превышен лимит вывода</value></data>
   <data name="StaffVerdictInternalError" xml:space="preserve"><value>Внутренняя ошибка</value></data>
+  <data name="StaffValidator" xml:space="preserve"><value>Валидатор</value></data>
+  <data name="StaffRunValidator" xml:space="preserve"><value>Запустить валидатор</value></data>
+  <data name="StaffReferenceSolutions" xml:space="preserve"><value>Эталонные решения</value></data>
+  <data name="StaffReferenceTab" xml:space="preserve"><value>Эталонные</value></data>
+  <data name="StaffReferenceRecord" xml:space="preserve"><value>Эталонная запись</value></data>
+  <data name="ImportSaveValidator" xml:space="preserve"><value>Сохранить валидатор при сохранении задачи</value></data>
+  <data name="ImportSavedValidator" xml:space="preserve"><value>Сохранённый валидатор</value></data>
+  <data name="ImportValidatorReplacement" xml:space="preserve"><value>Код сохранённого валидатора отличается. Если выбрано сохранение, он будет заменён. Старая посылка и история сохранятся.</value></data>
+  <data name="ImportReservedValidatorName" xml:space="preserve"><value>Имя validator.cpp зарезервировано для валидатора входных данных. Переименуйте решение в solutions/ перед сохранением как эталонного.</value></data>
 </root>

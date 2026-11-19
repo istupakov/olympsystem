@@ -99,7 +99,7 @@ public sealed class ContestExportService(IDbContextFactory<OlympContext> factory
         string root = contest.Abbr + "/";
         var checkers = await db.Checkers.AsNoTracking().Where(item => item.Problems.Any(problem => problem.ContestId == contest.Id))
             .OrderBy(item => item.Id).Select(item => new { item.Id, item.Description }).ToListAsync(token);
-        var compilers = await db.Compilators.AsNoTracking().Where(item => item.Submissions.Any(submission => submission.Problem.ContestId == contest.Id && submission.User.IsHidden))
+        var compilers = await db.Compilators.AsNoTracking().Where(item => item.Submissions.Any(submission => submission.Problem.ContestId == contest.Id && (submission.User.IsHidden || submission.IsReference)))
             .OrderBy(item => item.Id).Select(item => new { item.Id, item.Language, item.Name }).ToListAsync(token);
         await WriteJsonAsync(archive, root + "contest.json", new
         {
@@ -203,6 +203,33 @@ public sealed class ContestExportService(IDbContextFactory<OlympContext> factory
             await WriteBytesAsync(archive, root + $"tests/output{number}.txt", test.Output, token);
         }
         await WriteJurySolutionsAsync(db, archive, contest, problemId, root, token);
+        await WriteReferenceSolutionsAsync(db, archive, problemId, root, token);
+    }
+
+    private static async Task WriteReferenceSolutionsAsync(OlympContext db, ZipArchive archive, int problemId, string root, CancellationToken token)
+    {
+        var paths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        bool hasValidator = false;
+        await foreach (var submission in db.Submissions.AsNoTracking().Where(s => s.ProblemId == problemId && s.IsReference)
+            .OrderBy(s => s.Id).Select(s => new { s.Id, s.Description, s.SourceCode, s.Compilator.SourceExtension })
+            .AsAsyncEnumerable().WithCancellation(token))
+        {
+            string path = ReferenceSolutionFiles.Filename(submission.Id, submission.Description, submission.SourceExtension);
+            if (ReferenceSolutionFiles.IsValidator(path))
+            {
+                if (hasValidator) throw InvalidPath(path, $"problemId={problemId}, submissionId={submission.Id}");
+                hasValidator = true;
+                await WriteTextAsync(archive, root + ReferenceSolutionFiles.ValidatorFilename,
+                    ReferenceSolutionFiles.SourceEncoding.GetString(submission.SourceCode), token);
+                continue;
+            }
+            if (!paths.Add(path))
+            {
+                path = $"submission-{submission.Id}/{path}";
+                if (!paths.Add(path)) throw InvalidPath(path, $"problemId={problemId}, submissionId={submission.Id}");
+            }
+            await WriteTextAsync(archive, root + "solutions/" + path, ReferenceSolutionFiles.SourceEncoding.GetString(submission.SourceCode), token);
+        }
     }
 
     private static async Task WriteJurySolutionsAsync(OlympContext db, ZipArchive archive, Contest contest, int problemId, string root, CancellationToken token)
