@@ -7,6 +7,7 @@ using Olymp.Checker;
 using Olymp.Domain.Models;
 using Olymp.WebApp.Components.Submissions;
 using Olymp.WebApp.Resources;
+using Olymp.WebApp.Services.Checker;
 
 namespace Olymp.WebApp.Services.Contests;
 
@@ -31,6 +32,7 @@ public sealed partial class ContestImportService
 {
     private async Task LoadReferenceSolutionsAsync(ContestImportRow row, CancellationToken token)
     {
+        row.RunDataKey = null;
         var submissions = row.Original is null ? [] : await context.Submissions.AsNoTracking()
             .Where(s => s.ProblemId == row.Id && s.IsReference).Include(s => s.Compilator).OrderBy(s => s.Id).ToListAsync(token);
         row.ReferenceSnapshot = Hash(submissions.Select(s => new
@@ -50,6 +52,7 @@ public sealed partial class ContestImportService
         row.ValidatorReferences = [.. references.Where(s => ReferenceSolutionFiles.IsValidator(s.Filename))];
         row.SavedValidator = row.ValidatorReferences.Count == 0 ? null : row.ValidatorReferences[^1];
         var compilers = await context.Compilators.AsNoTracking().Where(c => c.IsActive).OrderBy(c => c.Id).ToListAsync(token);
+        row.CompilerKeys = compilers.ToDictionary(compiler => compiler.Id, compiler => Hash(CompilerConfigurationKey.From(compiler)));
         foreach (var solution in ReferenceFiles(row))
         {
             string extension = Path.GetExtension(solution.Filename);
@@ -60,14 +63,20 @@ public sealed partial class ContestImportService
                 _ => compilers.FirstOrDefault(c => c.SourceExtension.Equals(extension, StringComparison.OrdinalIgnoreCase))?.Language
             };
             solution.Compilers = [.. compilers.Where(c => c.Language == language)];
-            if (solution.CompilerId is null && solution.Compilers.Count == 1) solution.CompilerId = solution.Compilers[0].Id;
             var matching = references.Where(s => s.Filename.Equals(solution.Filename, StringComparison.OrdinalIgnoreCase)).ToArray();
-            solution.AlreadySaved = matching.Length != 0 && matching.All(s => s.Source.Source == solution.Source.Source);
-            solution.ReplacedIds = [.. matching.Where(s => s.Source.Source != solution.Source.Source).Select(s => s.Id)];
+            if (solution.CompilerId is null)
+            {
+                int[] storedCompilers = [.. matching.Where(reference => reference.Source.Source == solution.Source.Source
+                    && solution.Compilers.Any(compiler => compiler.Id == reference.Submission.CompilatorId))
+                    .Select(reference => reference.Submission.CompilatorId).Distinct()];
+                if (storedCompilers.Length == 1) solution.CompilerId = storedCompilers[0];
+                else if (solution.Compilers.Count == 1) solution.CompilerId = solution.Compilers[0].Id;
+            }
+            solution.MatchingReferences = matching;
         }
     }
 
-    private async Task SaveReferenceSolutionsAsync(ClaimsPrincipal actor, ContestImportRow row, Problem problem, CancellationToken token)
+    private async Task SaveReferenceSolutionsAsync(ClaimsPrincipal actor, ContestImportRow row, Problem problem, CancellationToken token, bool validatorOnly = false)
     {
         var selected = ReferenceFiles(row).Where(s => s.Save && !s.AlreadySaved).ToArray();
         ValidateReferenceSelection(row);
@@ -102,6 +111,7 @@ public sealed partial class ContestImportService
             ApplyReferenceResult(submission, result);
             context.Submissions.Add(submission);
         }
+        if (validatorOnly) return;
         int[] replacedIds = [.. selected.SelectMany(s => row.ReferenceSolutions.Concat(row.ValidatorReferences)
             .Where(r => r.Filename.Equals(s.Filename, StringComparison.OrdinalIgnoreCase)).Select(r => r.Id))];
         foreach (var reference in row.ReferenceSolutions.Where(r => !replacedIds.Contains(r.Id)))

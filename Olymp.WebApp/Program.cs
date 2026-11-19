@@ -88,6 +88,9 @@ builder.Services.AddAuthorizationBuilder()
     .AddPolicy(PolicyNames.ManageContest, policy => policy
         .Combine(juryOrAdminPolicy)
         .AddRequirements(new ManageContestRequirement()))
+    .AddPolicy(PolicyNames.ImportProblems, policy => policy
+        .Combine(juryOrAdminPolicy)
+        .AddRequirements(new ImportProblemsRequirement()))
     .AddPolicy(PolicyNames.Admin, policy => policy
         .Combine(defaultPolicy)
         .RequireRole(RoleNames.Admin))
@@ -119,6 +122,8 @@ builder.Services.AddWebEncoders(options =>
 builder.Services.AddScoped<CompetitorManagementService>();
 builder.Services.AddScoped<ContestProblemService>();
 builder.Services.AddScoped<ContestImportService>();
+builder.Services.AddScoped<ContestImportAccessService>();
+builder.Services.AddScoped<ReferenceSubmissionService>();
 builder.Services.AddScoped<ContestExportService>();
 builder.Services.AddOptions<DatabaseBackupOptions>()
     .Bind(builder.Configuration.GetSection(DatabaseBackupOptions.SectionName))
@@ -148,6 +153,7 @@ builder.Services.AddScoped<ClosedContestRestriction>();
 builder.Services.AddScoped<SubmissionService>();
 builder.Services.AddScoped<IAuthorizationHandler, ViewSolutionHandler>();
 builder.Services.AddScoped<IAuthorizationHandler, ManageContestHandler>();
+builder.Services.AddScoped<IAuthorizationHandler, ImportProblemsHandler>();
 builder.Services.AddScoped<IAuthorizationHandler, CancelRegistrationHandler>();
 
 builder.Services.AddCascadingAuthenticationState();

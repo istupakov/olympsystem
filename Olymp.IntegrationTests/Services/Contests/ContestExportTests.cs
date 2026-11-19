@@ -22,7 +22,7 @@ using Xunit;
 namespace Olymp.IntegrationTests.Services.Contests;
 
 [Collection("Contest management")]
-public class ContestExportTests(ContestServiceFixture site) : IClassFixture<ContestServiceFixture>
+public partial class ContestExportTests(ContestServiceFixture site) : IClassFixture<ContestServiceFixture>
 {
     [Fact]
     public async Task ReferencesExportWithOriginalNamesAndUtf8RegardlessOfAuthorVisibility()

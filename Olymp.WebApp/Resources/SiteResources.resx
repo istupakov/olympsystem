@@ -923,13 +923,19 @@
   <data name="ImportSavedSolutions" xml:space="preserve"><value>Saved reference solutions</value></data>
   <data name="ImportAlreadySaved" xml:space="preserve"><value>Already saved</value></data>
   <data name="ImportWillReplace" xml:space="preserve"><value>Will replace</value></data>
-  <data name="ImportReferenceReplacement" xml:space="preserve"><value>{0}: a reference solution with this name and different code exists. Saving replaces its reference flag; the previous submission and history are retained.</value></data>
+  <data name="ImportReferenceReplacement" xml:space="preserve"><value>{0}: a reference solution with this name and different code or compiler exists. Saving replaces its reference flag; the previous submission and history are retained.</value></data>
   <data name="ImportReferenceAddition" xml:space="preserve"><value>{0}: will be saved as a reference solution.</value></data>
   <data name="ImportRunPreviewHint" xml:space="preserve"><value>All saved references and files selected to save as references must be checked on the imported tests and current limits. Results and check history are saved with the problem.</value></data>
   <data name="ImportReferenceChecksRequired" xml:space="preserve"><value>Complete the checks for all reference records on the current tests and limits before saving.</value></data>
   <data name="ImportReferencesChanged" xml:space="preserve"><value>Saved reference solutions have changed. The list and replacement warnings have been updated. Review them and confirm saving again.</value></data>
   <data name="ImportSolutionCompilerRequired" xml:space="preserve"><value>{0}: select an available compiler before saving the reference solution.</value></data>
-  <data name="ImportRunSelected" xml:space="preserve"><value>Check solutions</value></data>
+  <data name="ExportProblems" xml:space="preserve"><value>Export problems</value></data>
+  <data name="ExportProblemsOpenTests" xml:space="preserve"><value>Cannot export problem “{0}”: open tests must come first in test number order.</value></data>
+  <data name="ExportProblemsTestNumbers" xml:space="preserve"><value>Cannot export problem “{0}”: import supports test numbers from 1 to 999.</value></data>
+  <data name="ImportRunSelected" xml:space="preserve"><value>Check pending solutions</value></data>
+  <data name="ImportRerunAll" xml:space="preserve"><value>Rerun all selected</value></data>
+  <data name="ImportCheckProgress" xml:space="preserve"><value>Checking: {0} of {1}</value></data>
+  <data name="ImportRunOutdated" xml:space="preserve"><value>Recheck required</value></data>
   <data name="ImportSaveProblem" xml:space="preserve"><value>Save problem</value></data>
   <data name="ImportConfirmProblem" xml:space="preserve"><value>Save problem “{0}”? Its test set will be completely replaced. Submissions and judging history will be retained.</value></data>
   <data name="ImportProblemSaved" xml:space="preserve"><value>Problem “{0}” saved.</value></data>
@@ -955,4 +961,23 @@
   <data name="ImportSavedValidator" xml:space="preserve"><value>Saved validator</value></data>
   <data name="ImportValidatorReplacement" xml:space="preserve"><value>The saved validator has different code and will be replaced if saving is selected. The previous submission and history are retained.</value></data>
   <data name="ImportReservedValidatorName" xml:space="preserve"><value>The name validator.cpp is reserved for the input validator. Rename the solution in solutions/ before saving it as a reference.</value></data>
+  <data name="ImportAccessTitle" xml:space="preserve"><value>Problem import access before the start</value></data>
+  <data name="ImportAccessHint" xml:space="preserve"><value>Selected jury members may import problems and manage reference solutions strictly before the contest starts. Other contest management permissions are not granted.</value></data>
+  <data name="ImportAccessJury" xml:space="preserve"><value>Jury member</value></data>
+  <data name="ImportAccessGrant" xml:space="preserve"><value>Grant import access</value></data>
+  <data name="ImportAccessRevoke" xml:space="preserve"><value>Revoke access</value></data>
+  <data name="ImportAccessJuryRequired" xml:space="preserve"><value>Select a permanent account with the Jury role.</value></data>
+  <data name="ReferenceAdd" xml:space="preserve"><value>Add to reference solutions</value></data>
+  <data name="ReferenceRemove" xml:space="preserve"><value>Remove from reference solutions</value></data>
+  <data name="ReferenceFilename" xml:space="preserve"><value>Reference solution filename</value></data>
+  <data name="ReferenceEmailRequired" xml:space="preserve"><value>The author's email is missing or invalid.</value></data>
+  <data name="ReferenceUnavailable" xml:space="preserve"><value>Only completed submissions from hidden accounts can be assigned as reference solutions. Validators cannot be changed here.</value></data>
+  <data name="ReferenceInvalidFilename" xml:space="preserve"><value>Enter a valid filename without folders.</value></data>
+  <data name="ReferenceDuplicateFilename" xml:space="preserve"><value>A reference solution with this filename already exists. Choose another filename.</value></data>
+  <data name="ReferenceReservedFilename" xml:space="preserve"><value>The filename validator.cpp is reserved for the input validator. Choose another filename.</value></data>
+  <data name="ImportSaveValidatorOnly" xml:space="preserve"><value>Save validator only</value></data>
+  <data name="ImportConfirmValidatorOnly" xml:space="preserve"><value>Save the validator checked against the currently stored tests? Tests, limits, and other solutions from the archive will not be saved. The previous validator and its history will be retained.</value></data>
+  <data name="ImportValidatorOnlyRejected" xml:space="preserve"><value>The validator rejects stored tests: {0}. Save it with these errors?</value></data>
+  <data name="ImportValidatorOnlySaved" xml:space="preserve"><value>The validator and its check results have been saved.</value></data>
+  <data name="ImportCompilerRunnerUnavailable" xml:space="preserve"><value>No available Runner supports the selected compiler.</value></data>
 </root>

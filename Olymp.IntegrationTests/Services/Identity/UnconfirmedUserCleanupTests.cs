@@ -37,6 +37,7 @@ public class UnconfirmedUserCleanupTests(WebAppFactory factory) : IClassFixture<
     [InlineData("jury", false)]
     [InlineData("coach", false)]
     [InlineData("manager", false)]
+    [InlineData("importer", false)]
     public async Task PreviewSelectsOnlyOldUnconfirmedAccountsWithoutHistoryOrPermissions(string reason, bool eligible)
     {
         int id = await AddOldAccountAsync();
@@ -56,6 +57,7 @@ public class UnconfirmedUserCleanupTests(WebAppFactory factory) : IClassFixture<
     [InlineData("admin")]
     [InlineData("coach")]
     [InlineData("manager")]
+    [InlineData("importer")]
     public async Task DeletionRechecksEligibilityAndSkipsChangedAccounts(string reason)
     {
         int id = await AddOldAccountAsync();
@@ -160,7 +162,14 @@ public class UnconfirmedUserCleanupTests(WebAppFactory factory) : IClassFixture<
                 break;
             case "coach":
             case "manager":
-                db.UserClaims.Add(new IdentityUserClaim<int> { UserId = id, ClaimType = reason == "coach" ? ClaimNames.CoachOrg : ClaimNames.ContestManage, ClaimValue = "1" });
+            case "importer":
+                string claimType = reason switch
+                {
+                    "coach" => ClaimNames.CoachOrg,
+                    "manager" => ClaimNames.ContestManage,
+                    _ => ClaimNames.ContestImport
+                };
+                db.UserClaims.Add(new IdentityUserClaim<int> { UserId = id, ClaimType = claimType, ClaimValue = "1" });
                 break;
         }
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);

@@ -17,7 +17,12 @@ namespace Olymp.WebApp.Services.Contests;
 
 public sealed record ImportParameters(int Number, string Name, int TimeLimit, int SlowTimeLimit, int MemoryLimit, int CheckerId, bool IsActive);
 public sealed record ImportTest(int Number, byte[] Input, byte[] Output, bool IsOpen, bool IsActive, int? Score, string? Comment);
-public sealed record ImportRun(string File, string Compiler, CheckerResult? Result, string? Message, int? TimeLimit = null, int? ReferenceId = null, int? CompilerId = null);
+public sealed record ImportRun(string File, string Compiler, CheckerResult? Result, string? Message, int? TimeLimit = null, int? ReferenceId = null, int? CompilerId = null)
+{
+    internal string? Key { get; init; }
+    internal string? CompilerKey { get; init; }
+    internal bool UsesSlowTimeLimit { get; init; }
+}
 
 public enum ImportLineEndings { Crlf, Lf }
 
@@ -29,8 +34,11 @@ public sealed class ImportSolution(ImportedSolution source)
     public bool Save { get; set; }
     public int? CompilerId { get; set; }
     public IReadOnlyList<Compilator> Compilers { get; internal set; } = [];
-    public bool AlreadySaved { get; internal set; }
-    public IReadOnlyList<int> ReplacedIds { get; internal set; } = [];
+    internal IReadOnlyList<ReferenceImportSolution> MatchingReferences { get; set; } = [];
+    private bool Matches(ReferenceImportSolution reference) => reference.Source.Source == Source.Source
+        && reference.Submission.CompilatorId == CompilerId;
+    public bool AlreadySaved => MatchingReferences.Count != 0 && MatchingReferences.All(Matches);
+    public IReadOnlyList<int> ReplacedIds => [.. MatchingReferences.Where(reference => !Matches(reference)).Select(reference => reference.Id)];
 }
 
 public sealed class ContestImportRow
@@ -60,13 +68,15 @@ public sealed class ContestImportRow
     internal Problem? Original { get; set; }
     internal string Snapshot { get; set; }
     internal string? ValidatorKey { get; set; }
-    internal string? ReferenceRunsKey { get; set; }
+    internal IReadOnlyDictionary<int, string> CompilerKeys { get; set; } = new Dictionary<int, string>();
+    internal string? RunDataKey { get; set; }
+    internal int NormalizationVersion { get; private set; }
     internal ImportParameters? SavedParameters { get; set; }
     public string Folder => Source.Folder;
     public int? Id => Original?.Id ?? Source.Manifest.Id;
     public string Label => string.IsNullOrWhiteSpace(Parameters.Name) ? Folder : $"{Parameters.Number}. {Parameters.Name}";
     public ImportParameters Parameters { get; internal set; }
-    public IReadOnlyList<ImportTest> Tests { get; private set; }
+    public IReadOnlyList<ImportTest> Tests { get; internal set; }
     public IReadOnlyList<ImportSolution> Solutions { get; }
     public IReadOnlyList<ReferenceImportSolution> ReferenceSolutions { get; internal set; } = [];
     internal string? ReferenceSnapshot { get; set; }
@@ -79,10 +89,22 @@ public sealed class ContestImportRow
     public ValidatorResult? SavedValidatorResult { get; internal set; }
     public string? ValidatorMessage { get; internal set; }
     public bool ValidatorChecked => ValidatorKey is not null;
-    public bool ReferencesChecked => IsSaved || (ReferenceSolutions.Count == 0 && !Solutions.Any(s => s.Save && !s.AlreadySaved))
-        || ReferenceRunsKey == ContestImportService.ReferenceRunsKey(this);
+    public bool IsReplaced(ReferenceImportSolution reference) => Solutions.Any(solution => solution.Save && !solution.AlreadySaved
+        && solution.ReplacedIds.Contains(reference.Id));
+    public IEnumerable<ReferenceImportSolution> ReferencesToCheck => ReferenceSolutions.Where(reference => !IsReplaced(reference));
+    public bool ReferencesChecked => IsSaved || (ReferencesToCheck.All(s => Runs.Any(r => r.ReferenceId == s.Id && IsCurrent(r)))
+        && Solutions.Where(s => s.Save && !s.AlreadySaved).All(s => Runs.Any(r => r.ReferenceId is null
+            && r.File == s.Filename && r.CompilerId == s.CompilerId && IsCurrent(r))));
+    public bool IsChecking { get; internal set; }
+    public int RunsCompleted { get; internal set; }
+    public int RunsTotal { get; internal set; }
+    public string? CheckError { get; internal set; }
+    public bool IsCurrent(ImportRun run) => run.Result is { StatusCode: not (0 or 1 or -10) } && run.Key == ContestImportService.ReferenceRunsKey(this)
+        && run.CompilerId is { } compilerId && CompilerKeys.TryGetValue(compilerId, out string? compilerKey) && run.CompilerKey == compilerKey
+        && run.TimeLimit == (run.UsesSlowTimeLimit ? SlowTimeLimit : TimeLimit);
+    internal bool ReplacesValidator => Validator is { Save: true, AlreadySaved: false };
     public bool ReferenceValidatorChecked => (Validator is not { Save: true, AlreadySaved: false } || ValidatorResult is not null)
-        && (SavedValidator is null || SavedValidatorResult is not null);
+        && (SavedValidator is null || ReplacesValidator || SavedValidatorResult is not null);
     public bool HasChanges => Original is null || Proposed != Previous || AddedTests.Any() || RemovedTests.Any() || ChangedTests.Any()
         || Solutions.Any(s => s.Save && !s.AlreadySaved) || Validator is { Save: true, AlreadySaved: false };
     public bool IsSaved => SavedParameters == Proposed && !HasChanges;
@@ -116,7 +138,9 @@ public sealed class ContestImportRow
             Input = NormalizeLineEndings(source.Input, endings),
             Output = NormalizeLineEndings(source.Output, endings)
         })];
-        ValidatorKey = ReferenceRunsKey = null;
+        NormalizationVersion++;
+        RunDataKey = null;
+        ValidatorKey = null;
         ValidatorResult = SavedValidatorResult = null;
         ValidatorMessage = null;
         ValidatorErrors.Clear();
@@ -173,7 +197,7 @@ public sealed class ContestImportPreview
             foreach (var row in Rows) row.NormalizeTests(value);
         }
     }
-    public string? ValidatorConfiguration { get; set; }
+    public int? ValidatorCompilerId { get; set; }
 }
 
 public sealed partial class ContestImportService(OlympContext context, ICheckerManager manager, IEnumerable<ISimpleChecker> checkers,
@@ -181,7 +205,7 @@ public sealed partial class ContestImportService(OlympContext context, ICheckerM
 {
     private async Task AuthorizeAsync(ClaimsPrincipal actor, int contestId)
     {
-        if (!(await authorization.AuthorizeAsync(actor, contestId, PolicyNames.ManageContest)).Succeeded)
+        if (!(await authorization.AuthorizeAsync(actor, contestId, PolicyNames.ImportProblems)).Succeeded)
             throw new OperationValidationException(SiteResources.StaffAccessDenied);
     }
 
@@ -247,6 +271,7 @@ public sealed partial class ContestImportService(OlympContext context, ICheckerM
 
     private async Task CheckStateAsync(ContestImportPreview preview, ContestImportRow row, CancellationToken token)
     {
+        row.RunDataKey = null;
         row.StateErrors.Clear();
         row.StateWarnings.Clear();
         var original = await context.Problems.AsNoTracking().Where(x => x.ContestId == preview.ContestId && x.Id == row.Id).Include(x => x.Tests).SingleOrDefaultAsync(token);
@@ -275,19 +300,31 @@ public sealed partial class ContestImportService(OlympContext context, ICheckerM
             throw new OperationValidationException(SiteResources.ImportReferencesChanged);
     }
 
-    private (ICheckerService Runner, CompilatorInfo Info)? ValidatorConfiguration(ContestImportPreview preview) =>
-        AvailableConfigurations(manager).Where(c => c.Info.Configuration.Language == "C++" && ConfigurationId(c.Info) == preview.ValidatorConfiguration)
-            .Select(c => ((ICheckerService Runner, CompilatorInfo Info)?)c).FirstOrDefault();
+    private async Task<(ICheckerService Runner, CompilatorInfo Info)?> ValidatorConfigurationAsync(ContestImportPreview preview, CancellationToken token)
+    {
+        var compiler = await context.Compilators.AsNoTracking().SingleOrDefaultAsync(compiler =>
+            compiler.Id == preview.ValidatorCompilerId && compiler.IsActive && compiler.Language == "C++", token);
+        return compiler is null ? null : AvailableConfigurations(manager).Where(configuration => CompilerMatching.Matches(compiler, configuration.Info))
+            .Select(configuration => ((ICheckerService Runner, CompilatorInfo Info)?)configuration).FirstOrDefault();
+    }
 
     private static string ValidatorCacheKey(ContestImportPreview preview, ContestImportRow row) =>
-        Hash(new { preview.ValidatorConfiguration, row.ValidatorSource, row.ReferenceSnapshot, row.Tests });
+        Hash(new
+        {
+            Compiler = row.CompilerKeys.GetValueOrDefault(row.Validator is null ? row.SavedValidator?.Submission.CompilatorId ?? 0 : preview.ValidatorCompilerId ?? 0),
+            row.ValidatorSource,
+            row.ReferenceSnapshot,
+            row.Tests,
+            row.NormalizationVersion
+        });
 
-    internal static string ReferenceRunsKey(ContestImportRow row) => Hash(new
+    internal static string ReferenceRunsKey(ContestImportRow row) => row.RunDataKey ??= Hash(new
     {
-        row.Proposed,
-        row.Tests,
+        row.Proposed.CheckerId,
+        row.Proposed.MemoryLimit,
+        Tests = row.Tests.Where(t => t.IsActive).Select(t => new { t.Number, t.Input, t.Output, t.Score }),
         row.ReferenceSnapshot,
-        Files = row.Solutions.Where(s => s.Save && !s.AlreadySaved).Select(s => new { s.Filename, s.CompilerId })
+        row.NormalizationVersion
     });
 
     public async Task EnsureValidatorAsync(ClaimsPrincipal actor, ContestImportPreview preview, ContestImportRow row, CancellationToken token = default)
@@ -299,12 +336,11 @@ public sealed partial class ContestImportService(OlympContext context, ICheckerM
             ? AvailableConfigurations(manager).Where(c => storedValidator.Submission.Compilator.IsActive
                 && CompilerMatching.Matches(storedValidator.Submission.Compilator, c.Info))
                 .Select(c => ((ICheckerService Runner, CompilatorInfo Info)?)c).FirstOrDefault()
-            : ValidatorConfiguration(preview);
+            : await ValidatorConfigurationAsync(preview, token);
         if (row.Validator is { } file)
-            file.CompilerId = runner is { } selected
-                ? file.Compilers.FirstOrDefault(c => CompilerMatching.Matches(c, selected.Info))?.Id : null;
+            file.CompilerId = preview.ValidatorCompilerId;
         string key = ValidatorCacheKey(preview, row);
-        if (row.ValidatorKey == key && row.ReferenceValidatorChecked && (!row.HasValidator || row.ValidatorResult is not null || runner is null)) return;
+        if (row.ValidatorKey == key && row.ReferenceValidatorChecked && (!row.HasValidator || (runner is not null && row.ValidatorResult is not null))) return;
         row.ValidatorKey = null;
         row.ValidatorResult = null;
         row.SavedValidatorResult = null;
@@ -315,7 +351,8 @@ public sealed partial class ContestImportService(OlympContext context, ICheckerM
         if (!row.HasValidator || runner is null)
         {
             row.ValidatorMessage = row.HasValidator ? SiteResources.ImportNoValidatorRunner : SiteResources.ImportNoValidator;
-            row.ValidatorWarnings.Add(row.ValidatorMessage);
+            if (row.HasValidator) row.ValidatorErrors.Add(row.ValidatorMessage);
+            else row.ValidatorWarnings.Add(row.ValidatorMessage);
             row.ValidatorKey = key;
             return;
         }
@@ -324,7 +361,7 @@ public sealed partial class ContestImportService(OlympContext context, ICheckerM
             var result = await runner.Value.Runner.Validate(row.ValidatorSource!, runner.Value.Info,
                 [.. row.Tests.Select(t => new ValidatorTest(t.Number, t.Input))], token);
             row.ValidatorResult = result;
-            if (row.SavedValidator is { } saved)
+            if (row.SavedValidator is { } saved && !row.ReplacesValidator)
             {
                 if (saved.Source.Source == row.ValidatorSource && CompilerMatching.Matches(saved.Submission.Compilator, runner.Value.Info))
                     row.SavedValidatorResult = result;
@@ -351,67 +388,81 @@ public sealed partial class ContestImportService(OlympContext context, ICheckerM
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             row.ValidatorMessage = SiteResources.ImportNoValidatorRunner;
-            row.ValidatorWarnings.Add(row.ValidatorMessage);
+            row.ValidatorErrors.Add(row.ValidatorMessage);
             row.ValidatorKey = key;
         }
     }
 
     public async Task RunSolutionsAsync(ClaimsPrincipal actor, ContestImportPreview preview, ContestImportRow row,
-        Func<Task>? resultAvailable = null, CancellationToken token = default)
+        Func<Task>? resultAvailable = null, bool force = false, CancellationToken token = default)
     {
         EnsureMember(preview, row);
         await AuthorizeAsync(actor, preview.ContestId);
         await CheckStateAsync(preview, row, token);
         if (row.StateErrors.Count != 0) throw new OperationValidationException(SiteResources.ImportInvalidParameters);
         var configurations = AvailableConfigurations(manager);
-        row.ReferenceRunsKey = null;
+        string key = ReferenceRunsKey(row);
+        int checkerId = row.Proposed.CheckerId, memoryLimit = row.Proposed.MemoryLimit;
         var tests = row.Tests.Where(t => t.IsActive).Select(t => new CheckTest(t.Number, t.Input, t.Output, t.Score)).ToArray();
         int regular = row.TimeLimit, slow = row.SlowTimeLimit;
-        var selected = row.Solutions.Where(s => s.Selected || (s.Save && !s.AlreadySaved))
-            .Select(s => (s.Source, Compiler: s.Save && !s.AlreadySaved ? s.Compilers.FirstOrDefault(c => c.Id == s.CompilerId) : null,
-                ReferenceId: (int?)null))
-            .Concat(row.ReferenceSolutions.Select(s => (s.Source, Compiler: (Compilator?)s.Submission.Compilator, ReferenceId: (int?)s.Id))).ToArray();
-        row.Runs.RemoveAll(run => selected.Any(s => s.Source.Filename == run.File && s.ReferenceId == run.ReferenceId));
-        foreach (var (file, compiler, referenceId) in selected)
+        var selected = row.Solutions.Where(s => !s.AlreadySaved && (s.Selected || s.Save))
+            .Select(s => (s.Source, Compiler: s.Compilers.FirstOrDefault(c => c.Id == s.CompilerId),
+                ReferenceId: (int?)null, s.CompilerId))
+            .Concat(row.ReferencesToCheck.Select(s => (s.Source, Compiler: (Compilator?)s.Submission.Compilator,
+                ReferenceId: (int?)s.Id, CompilerId: (int?)s.Submission.CompilatorId))).ToArray();
+        IReadOnlyList<(ICheckerService Runner, CompilatorInfo Info)> Matching(Compilator? compiler)
         {
-            var extension = Path.GetExtension(file.Filename).ToLowerInvariant();
-            var language = extension switch
+            return compiler is null ? [] : [.. configurations.Where(c => compiler.IsActive && CompilerMatching.Matches(compiler, c.Info))];
+        }
+        row.RunsCompleted = 0;
+        row.RunsTotal = selected.Sum(s => Math.Max(1, Matching(s.Compiler).Count));
+        foreach (var (file, compiler, referenceId, compilerId) in selected)
+        {
+            token.ThrowIfCancellationRequested();
+            var matching = Matching(compiler);
+            if (matching.Count == 0 || tests.Length == 0)
             {
-                ".cc" or ".cxx" or ".c++" => "C++",
-                ".pp" => "Pascal",
-                _ => configurations.FirstOrDefault(c => c.Info.Configuration.SourceExtension.Equals(extension, StringComparison.OrdinalIgnoreCase)).Info?.Configuration.Language
-            };
-            var matching = configurations.Where(c => compiler is null ? c.Info.Configuration.Language == language
-                : compiler.IsActive && CompilerMatching.Matches(compiler, c.Info)).ToArray();
-            if (matching.Length == 0 || tests.Length == 0)
-            {
+                row.Runs.RemoveAll(run => run.File == file.Filename && run.ReferenceId == referenceId);
                 row.Runs.Add(new(file.Filename, compiler?.Description ?? compiler?.Name ?? "", null,
-                    tests.Length == 0 ? SiteResources.StaffNoTests : compiler is null ? SiteResources.ImportUnknownLanguage : SiteResources.CompilerUnavailable,
-                    ReferenceId: referenceId));
+                    tests.Length == 0 ? SiteResources.StaffNoTests : compilerId is null ? SiteResources.SelectCompiler : SiteResources.ImportCompilerRunnerUnavailable,
+                    ReferenceId: referenceId, CompilerId: compilerId));
+                row.RunsCompleted += Math.Max(1, matching.Count);
                 if (resultAvailable is not null) await resultAvailable();
                 continue;
             }
             foreach (var (runner, info) in matching)
             {
+                token.ThrowIfCancellationRequested();
                 string label = info.FullName;
+                string compilerKey = ConfigurationId(info);
                 int time = info.Configuration.UseSlowTimeLimit ? slow : regular;
+                if (!force && row.Runs.Any(run => run.File == file.Filename && run.ReferenceId == referenceId
+                    && run.CompilerId == compiler?.Id && run.CompilerKey == compilerKey && run.Key == key && run.TimeLimit == time
+                    && run.Result is { StatusCode: not (0 or 1 or -10) }))
+                {
+                    row.RunsCompleted++;
+                    continue;
+                }
+                row.Runs.RemoveAll(run => run.File == file.Filename && run.ReferenceId == referenceId && run.Compiler == label);
                 try
                 {
-                    var result = await runner.Check(new(Guid.NewGuid().ToString("N"), file.Source, info, row.Proposed.CheckerId,
-                        tests, TimeSpan.FromSeconds(time), row.Proposed.MemoryLimit, true), token);
-                    row.Runs.Add(new(file.Filename, label, result, null, time, referenceId, compiler?.Id));
+                    var result = await runner.Check(new(Guid.NewGuid().ToString("N"), file.Source, info, checkerId,
+                        tests, TimeSpan.FromSeconds(time), memoryLimit, true), token);
+                    row.Runs.Add(new(file.Filename, label, result, null, time, referenceId, compiler?.Id)
+                    {
+                        Key = key,
+                        CompilerKey = compilerKey,
+                        UsesSlowTimeLimit = info.Configuration.UseSlowTimeLimit
+                    });
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException)
                 {
                     row.Runs.Add(new(file.Filename, label, null, SiteResources.StaffRunnerDisconnected, time, referenceId));
                 }
+                row.RunsCompleted++;
                 if (resultAvailable is not null) await resultAvailable();
             }
         }
-        if (row.ReferenceSolutions.All(s => row.Runs.Any(r => r.ReferenceId == s.Id && r.Result is not null))
-            && row.Solutions.Where(s => s.Save && !s.AlreadySaved).All(s => row.Runs.Any(r => r.ReferenceId is null
-                && r.File == s.Filename && r.CompilerId == s.CompilerId && r.Result is not null)))
-            row.ReferenceRunsKey = ReferenceRunsKey(row);
     }
 
     public async Task<int> SaveAsync(ClaimsPrincipal actor, ContestImportPreview preview, ContestImportRow row, CancellationToken token = default)
@@ -455,12 +506,31 @@ public sealed partial class ContestImportService(OlympContext context, ICheckerM
                             Comment = t.Comment
                         });
                     await SaveReferenceSolutionsAsync(actor, row, p, token);
+                    string previousRunKey = ReferenceRunsKey(row);
+                    string previousValidatorKey = ValidatorCacheKey(preview, row);
+                    await AuthorizeAsync(actor, preview.ContestId);
                     await context.SaveChangesAsync(token);
                     await transaction.CommitAsync(token);
                     row.Original = p;
                     row.Snapshot = Snapshot(p);
                     row.SavedParameters = data;
                     await LoadReferenceSolutionsAsync(row, token);
+                    string savedRunKey = ReferenceRunsKey(row);
+                    for (int i = 0; i < row.Runs.Count; i++)
+                    {
+                        var run = row.Runs[i];
+                        if (run.Key != previousRunKey) continue;
+                        int? referenceId = run.ReferenceId ?? row.ReferenceSolutions.FirstOrDefault(reference =>
+                            reference.Filename == run.File && reference.Submission.CompilatorId == run.CompilerId)?.Id;
+                        row.Runs[i] = run with { Key = savedRunKey, ReferenceId = referenceId };
+                    }
+                    if (row.ValidatorKey == previousValidatorKey)
+                    {
+                        row.ValidatorKey = ValidatorCacheKey(preview, row);
+                        if (row.SavedValidator is { } savedValidator && savedValidator.Source.Source == row.ValidatorSource
+                            && savedValidator.Submission.CompilatorId == row.Validator?.CompilerId)
+                            row.SavedValidatorResult = row.ValidatorResult;
+                    }
                     return p.Id;
                 }
             }

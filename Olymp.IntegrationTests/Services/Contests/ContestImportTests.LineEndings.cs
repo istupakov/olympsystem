@@ -45,7 +45,7 @@ public partial class ContestImportTests
             var preview = await PrepareAsync(service, setup.Actor, setup.Contest.Id, Archive(new { number = 1, name = "LF" }));
             Assert.Equal(ImportLineEndings.Crlf, preview.LineEndings);
             preview.LineEndings = endings;
-            preview.ValidatorConfiguration = ContestImportService.ConfigurationId(Assert.Single(runner.Compilators!));
+            preview.ValidatorCompilerId = compiler.Id;
             var row = Assert.Single(preview.Rows);
             Assert.Equal(expectedInput, Assert.Single(row.Tests).Input);
             Assert.Equal(expectedOutput, row.Tests[0].Output);
@@ -85,7 +85,7 @@ public partial class ContestImportTests
             ("A/validator.cpp", "// validator"u8.ToArray()), ("A/solutions/main.cpp", "// source"u8.ToArray()),
             ("B/problem.json", "{\"number\":2,\"name\":\"Second\"}"u8.ToArray()),
             ("B/tests/input1.txt", "1\r\n2\r3\n"u8.ToArray()), ("B/tests/output1.txt", "1\n"u8.ToArray())));
-        preview.ValidatorConfiguration = ContestImportService.ConfigurationId(Assert.Single(runner.Compilators!));
+        preview.ValidatorCompilerId = compiler.Id;
         var row = preview.Rows[0];
         row.Solutions[0].Save = true;
         row.Solutions[0].CompilerId = compiler.Id;

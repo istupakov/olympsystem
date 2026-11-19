@@ -19,9 +19,19 @@ namespace Olymp.IntegrationTests.Services.Contests;
 
 public partial class ContestImportTests
 {
-    private async Task<(Compilator Compiler, ImportChecker Runner)> AddReferenceCompilerAsync(OlympContext db)
+    private async Task<(Compilator Compiler, ImportChecker Runner)> AddReferenceCompilerAsync(OlympContext db, ICompilatorConfiguration? configuration = null)
     {
-        var info = new GccLinuxCpp23Configuration().ParseInfo("15.2.0") with { FullName = Guid.NewGuid().ToString("N") };
+        var info = (configuration ?? new GccLinuxCpp23Configuration()).ParseInfo(configuration is CPythonConfiguration ? "Python 3.13.1" : "15.2.0")
+            with
+        { FullName = Guid.NewGuid().ToString("N") };
+        var compiler = await AddImportCompilerAsync(db, info);
+        var runner = new ImportChecker(info);
+        ((CheckerManager)site.Services.GetRequiredService<ICheckerManager>()).Register(runner, Token);
+        return (compiler, runner);
+    }
+
+    private static async Task<Compilator> AddImportCompilerAsync(OlympContext db, CompilatorInfo info)
+    {
         var compiler = new Compilator
         {
             Name = info.Configuration.Name,
@@ -35,9 +45,7 @@ public partial class ContestImportTests
         };
         db.Compilators.Add(compiler);
         await db.SaveChangesAsync(Token);
-        var runner = new ImportChecker(info);
-        ((CheckerManager)site.Services.GetRequiredService<ICheckerManager>()).Register(runner, Token);
-        return (compiler, runner);
+        return compiler;
     }
 
     [Fact]
@@ -100,6 +108,71 @@ public partial class ContestImportTests
         Assert.Single(row.ReferenceSolutions);
         await service.SaveAsync(setup.Actor, preview, row, Token);
         Assert.Equal(2, await db.Submissions.CountAsync(s => s.ProblemId == row.Id, Token));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task SameSourceCanReplaceCompilerWithoutRunningReplacedReference(bool oldCompilerInactive)
+    {
+        var setup = await SetupAsync();
+        using var scope = site.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<OlympContext>();
+        var service = scope.ServiceProvider.GetRequiredService<ContestImportService>();
+        var (oldCompiler, oldRunner) = await AddReferenceCompilerAsync(db);
+        var preview = await PrepareAsync(service, setup.Actor, setup.Contest.Id, Package(new { number = 1, name = "Compiler replacement" }, true,
+            ("A/solutions/main.cpp", "// same source"u8.ToArray())));
+        var row = Assert.Single(preview.Rows);
+        row.Solutions[0].Save = true;
+        row.Solutions[0].CompilerId = oldCompiler.Id;
+        await service.EnsureValidatorAsync(setup.Actor, preview, row, Token);
+        await service.RunSolutionsAsync(setup.Actor, preview, row, token: Token);
+        int id = await service.SaveAsync(setup.Actor, preview, row, Token);
+        int originalId = Assert.Single(row.ReferenceSolutions).Id;
+        oldRunner.Requests.Clear();
+        var (newCompiler, newRunner) = await AddReferenceCompilerAsync(db);
+        if (oldCompilerInactive)
+            await db.Compilators.Where(compiler => compiler.Id == oldCompiler.Id)
+                .ExecuteUpdateAsync(set => set.SetProperty(compiler => compiler.IsActive, false), Token);
+        preview = await PrepareAsync(service, setup.Actor, setup.Contest.Id, Package(new { id }, true,
+            ("A/solutions/main.cpp", "// same source"u8.ToArray())));
+        row = Assert.Single(preview.Rows);
+        var file = Assert.Single(row.Solutions);
+        if (!oldCompilerInactive)
+        {
+            Assert.Equal(oldCompiler.Id, file.CompilerId);
+            Assert.True(file.AlreadySaved);
+        }
+        file.CompilerId = newCompiler.Id;
+        Assert.False(file.AlreadySaved);
+        Assert.Equal([originalId], file.ReplacedIds);
+        Assert.Single(row.ReferencesToCheck);
+        file.Save = true;
+        Assert.Empty(row.ReferencesToCheck);
+        if (!oldCompilerInactive)
+        {
+            file.CompilerId = oldCompiler.Id;
+            Assert.True(file.AlreadySaved);
+            Assert.Empty(file.ReplacedIds);
+            Assert.Single(row.ReferencesToCheck);
+            file.CompilerId = newCompiler.Id;
+        }
+        await service.EnsureValidatorAsync(setup.Actor, preview, row, Token);
+        await Assert.ThrowsAsync<OperationValidationException>(() => service.SaveAsync(setup.Actor, preview, row, Token));
+        await service.RunSolutionsAsync(setup.Actor, preview, row, token: Token);
+        Assert.Empty(oldRunner.Requests);
+        Assert.Single(newRunner.Requests);
+        Assert.True(row.ReferencesChecked);
+        await service.SaveAsync(setup.Actor, preview, row, Token);
+        var stored = await db.Submissions.AsNoTracking().Where(item => item.ProblemId == id).OrderBy(item => item.Id).ToListAsync(Token);
+        Assert.Equal(2, stored.Count);
+        Assert.False(stored[0].IsReference);
+        Assert.Equal(oldCompiler.Id, stored[0].CompilatorId);
+        Assert.True(stored[1].IsReference);
+        Assert.Equal(newCompiler.Id, stored[1].CompilatorId);
+        Assert.Equal(stored[0].SourceCode, stored[1].SourceCode);
+        Assert.Equal(1, await db.CheckResults.CountAsync(result => result.SubmissionId == originalId, Token));
+        Assert.True(file.AlreadySaved);
     }
 
     [Fact]

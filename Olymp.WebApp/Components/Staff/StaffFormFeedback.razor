@@ -6,9 +6,13 @@
 {
     <div class="alert alert-success" role="status">@SiteResources.StaffSaved</div>
 }
-<ValidationSummary class="alert alert-danger ps-4" role="alert" />
+@if (EditContext is not null)
+{
+    <ValidationSummary class="alert alert-danger ps-4" role="alert" />
+}
 
 @code {
     [Parameter] public string? Error { get; set; }
     [Parameter] public bool Saved { get; set; }
+    [CascadingParameter] private EditContext? EditContext { get; set; }
 }

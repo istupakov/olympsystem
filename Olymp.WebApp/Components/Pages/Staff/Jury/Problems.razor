@@ -26,10 +26,13 @@ else
     <StaffContestNavigation ContestId="ContestId" ContestName="@_contest.Name" IsHidden="_contest.IsHidden" />
     <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
         <h1 class="h3 mb-0">@SiteResources.Problems</h1>
-        @if (_canManage && _contest.EndTime > DateTimeOffset.UtcNow)
-        {
-            <a class="btn btn-outline-primary" href="jury/contests/@ContestId/import">@SiteResources.ImportProblems</a>
-        }
+        <div class="d-flex flex-wrap gap-2">
+            @if (_canImport)
+            {
+                <a class="btn btn-outline-primary" href="jury/contests/@ContestId/import">@SiteResources.ImportProblems</a>
+            }
+            <a class="btn btn-outline-secondary" href="jury/contests/@ContestId/problems/export" data-enhance-nav="false">@SiteResources.ExportProblems</a>
+        </div>
     </div>
     @if (_selected is null)
     {
@@ -163,6 +166,7 @@ else
     private bool _busy;
     private bool _admin;
     private bool _canManage, _confirmActivity, _activityBusy;
+    private bool _canImport;
     private string? _activityError;
     private ProblemDeletionPreview? _deletion;
     private int _loadVersion;
@@ -188,6 +192,7 @@ else
         _deletion = null;
         _activityError = null;
         _canManage = (await Authorization.AuthorizeAsync((await AuthenticationState).User, ContestId, PolicyNames.ManageContest)).Succeeded;
+        _canImport = (await Authorization.AuthorizeAsync((await AuthenticationState).User, ContestId, PolicyNames.ImportProblems)).Succeeded;
         int contestId = ContestId;
         int? requestedProblem = ProblemId;
         string selectedScope = CurrentScope;

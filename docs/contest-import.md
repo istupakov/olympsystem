@@ -1,6 +1,6 @@
 # Import problems into a contest
 
-Import problems from a ZIP into an existing contest. One ZIP can contain new and existing problems. Each problem is saved separately after confirmation. Import requires permission to manage the contest.
+Import problems from a ZIP into an existing contest. One ZIP can contain new and existing problems. Each problem is saved separately after confirmation. See [import permissions](access-control.md#10-jury-administration-and-service-accounts).
 
 ## Prepare the ZIP
 
@@ -58,10 +58,13 @@ Input and output line endings are normalized before validation, solution runs, a
 
 ## Validation and saving
 
-- If supplied, `validator.cpp` checks test inputs using a selected C++ compiler; `testlib.h` is available. Failure on an active test blocks saving; failure on an inactive test is a warning. A missing validator, compilation failure, or unavailable Runner is a warning.
-- Selected files from `solutions/` run on active tests using the resulting checker and time limits, on available configurations for their language. Results are informational.
-- All saved reference solutions and files selected for saving as references must run on the replacement tests before saving. Verdicts need not be accepted, but each solution must produce a result. Results and checking history are saved with the tests. A saved validator is used when the ZIP contains none.
+- Compilers for solutions and validators are selected from active database records. Each run requires an available Runner matching the selected compiler; unavailable compilers produce an error without changing the selection.
+- If supplied, `validator.cpp` checks test inputs using a selected C++ compiler; `testlib.h` is available. Failure on an active test or an unavailable Runner blocks saving; failure on an inactive test is a warning. A missing validator or compilation failure is a warning.
+- Selected files from `solutions/` run on active tests using the resulting checker, time limits, and selected compiler. Results are informational.
+- Reference solutions retained or selected for saving must have current results on the replacement tests before saving. Verdicts need not be accepted, but each solution must produce a result. Matching filenames replace a reference when its code or compiler differs; the previous submission and history are retained. Results and checking history are saved with the tests. A saved validator is used when the ZIP contains none.
+- Within the current open import, completed results are reused while their inputs remain unchanged. Changing a time limit invalidates runs using that limit; changing line-ending normalization invalidates all validation and solution results. Failed Runner requests are retried; a forced run bypasses reuse.
 - The regular and slow time limits can be changed independently before saving.
+- For an existing problem, the validator can be saved separately after compilation and a complete check against the stored test inputs. Rejected tests require confirmation; archive tests, parameters, and other solutions are not saved. Replacing a validator retains the previous submission and history. Normal problem import still rejects validation failures on active tests.
 
 An existing problem with identical resulting parameters and tests, and no selected new references or validator to save, requires no save. Repeating an unchanged import does not replace tests or add checking history.
 
