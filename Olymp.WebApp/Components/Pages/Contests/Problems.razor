@@ -77,8 +77,9 @@
     private IReadOnlyList<Olymp.Domain.Standing.UserProblemResult> progress = [];
     private bool canSubmit;
     private string? submissionUnavailable;
-    private string? EffectiveScope => HttpContext.User.HasClaim(claim => claim.Type == ClaimNames.CompetitorContest) ? null : Scope;
-    private string? EffectiveKind => HttpContext.User.HasClaim(claim => claim.Type == ClaimNames.CompetitorContest) ? null : Kind;
+    private bool IsOwnContest => HttpContext.User.HasClaim(ClaimNames.CompetitorContest, ContestId.ToString(CultureInfo.InvariantCulture));
+    private string? EffectiveScope => IsOwnContest ? null : Scope;
+    private string? EffectiveKind => IsOwnContest ? null : Kind;
 
     private string ProblemUrl(int problemId)
     {
