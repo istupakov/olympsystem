@@ -7,6 +7,7 @@
 @inject NavigationManager Navigation
 @inject ILogger<EditContest> Logger
 @inject TimeProvider TimeProvider
+@inject Microsoft.Extensions.Options.IOptions<Olymp.WebApp.Services.Contests.ContestImportOptions> ImportOptions
 
 <StaffPageTitle Title="@Title" Context="@(Id.HasValue ? _input.Name : null)" />
 @if (Id is { } contestId)
@@ -126,6 +127,24 @@ else
     </EditForm>
     @if (Id is not null)
     {
+        <div class="my-4">
+            <label for="contest-pdf" class="form-label">@SiteResources.StaffStatementPdf</label>
+            <InputFile @key="_pdfInputVersion" id="contest-pdf" class="form-control mb-2" accept=".pdf,application/pdf" OnChange="SelectPdf" disabled="@_saving" />
+            <StaffFormFeedback Error="@_pdfError" />
+            @if (_pdfSaved) { <p class="alert alert-success" role="status">@SiteResources.StaffPdfUploaded</p> }
+            @if (_confirmPdf)
+            {
+                <div class="alert alert-warning" role="alert">
+                    <p>@SiteResources.StaffReplacePdfConfirm</p>
+                    <button type="button" class="btn btn-warning" disabled="@_saving" @onclick="() => UploadPdfAsync(true)">@SiteResources.StaffConfirm</button>
+                    <button type="button" class="btn btn-outline-secondary ms-2" disabled="@_saving" @onclick="() => _confirmPdf = false">@SiteResources.StaffCancel</button>
+                </div>
+            }
+            else
+            {
+                <button type="button" class="btn btn-secondary" disabled="@(_saving || _pdfFile is null)" @onclick="() => UploadPdfAsync(false)">@(_hasPdf ? SiteResources.StaffReplacePdf : SiteResources.StaffUploadPdf)</button>
+            }
+        </div>
         <ContestImportAccess ContestId="Id.Value" />
         <StaffActions Title="@SiteResources.StaffContestOperations" Class="mt-4">
             @if (_operationCompleted) { <p class="alert alert-success" role="status">@SiteResources.StaffOperationCompleted</p> }

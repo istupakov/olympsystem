@@ -1,3 +1,5 @@
+using System.Security.Claims;
+
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
@@ -5,6 +7,8 @@ using Microsoft.Extensions.Options;
 
 using Olymp.Domain;
 using Olymp.Domain.Models;
+using Olymp.WebApp;
+using Olymp.WebApp.Services;
 using Olymp.WebApp.Services.Contests;
 
 using Xunit;
@@ -14,6 +18,29 @@ namespace Olymp.IntegrationTests.Services.Contests;
 [Collection("Contest management")]
 public class ProblemPdfTests(ContestServiceFixture site) : IClassFixture<ContestServiceFixture>
 {
+    [Fact]
+    public async Task UploadRequiresManagementAndExplicitReplacementAndRechecksRevokedAssignment()
+    {
+        var token = TestContext.Current.CancellationToken;
+        var owner = await site.AddUserAsync(RoleNames.Jury);
+        var stranger = await site.AddUserAsync(RoleNames.Jury);
+        var contest = await site.AddContestAsync(owner);
+        static ClaimsPrincipal Actor(User user) => new(new ClaimsIdentity(
+            [new(ClaimTypes.NameIdentifier, user.Id.ToString()), new(ClaimTypes.Role, RoleNames.Jury)], "Test"));
+        byte[] first = "%PDF-1.4\nfirst"u8.ToArray(), second = "%PDF-1.4\nsecond"u8.ToArray();
+        using var scope = site.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<OlympContext>();
+        var service = scope.ServiceProvider.GetRequiredService<ContestProblemService>();
+        await Assert.ThrowsAsync<OperationValidationException>(() => service.UploadPdfAsync(Actor(stranger), contest.Id, first, false, token));
+        await service.UploadPdfAsync(Actor(owner), contest.Id, first, false, token);
+        await Assert.ThrowsAsync<OperationValidationException>(() => service.UploadPdfAsync(Actor(owner), contest.Id, second, false, token));
+        Assert.Equal(first, await db.Contests.Where(item => item.Id == contest.Id).Select(item => item.ProblemPdf!.Data).SingleAsync(token));
+        await service.UploadPdfAsync(Actor(owner), contest.Id, second, true, token);
+        await db.UserClaims.Where(item => item.UserId == owner.Id && item.ClaimType == ClaimNames.ContestManage).ExecuteDeleteAsync(token);
+        await Assert.ThrowsAsync<OperationValidationException>(() => service.UploadPdfAsync(Actor(owner), contest.Id, first, true, token));
+        Assert.Equal(second, await db.Contests.Where(item => item.Id == contest.Id).Select(item => item.ProblemPdf!.Data).SingleAsync(token));
+    }
+
     [Theory]
     [InlineData("empty")]
     [InlineData("signature")]

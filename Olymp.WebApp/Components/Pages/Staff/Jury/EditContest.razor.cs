@@ -48,6 +48,7 @@ public partial class EditContest
         _canRetest = (await AuthenticationState).User.IsInRole(RoleNames.Admin);
         _pendingOperation = null;
         _operationCompleted = false;
+        ResetPdf();
         if (Id is { } id)
         {
             await using var context = await ContextFactory.CreateDbContextAsync();
@@ -65,6 +66,7 @@ public partial class EditContest
             }
             _input = InputModel.From(contest);
             _isHidden = contest.IsHidden;
+            _hasPdf = contest.ProblemPdfId is not null;
             await LoadOperationsAsync(context, id);
         }
         _editContext = new(_input);
