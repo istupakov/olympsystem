@@ -129,7 +129,11 @@ else
         <div class="col-12 d-flex flex-wrap gap-2">
             <button class="btn btn-primary">@SiteResources.StaffFind</button>
             <a class="btn btn-outline-secondary" href="@ListUrl">@SiteResources.StaffReset</a>
-            @if (ContestId.HasValue) { <button type="button" class="btn btn-secondary" disabled="@_preparingExport" @onclick="PrepareExportAsync">@SiteResources.StaffExportLogins</button> }
+            @if (ContestId.HasValue)
+            {
+                <button type="button" class="btn btn-secondary" disabled="@_preparingExport" @onclick="PrepareExportAsync">@SiteResources.StaffExportLogins</button>
+                <a class="btn btn-secondary" href="@ExportUrl(true)" data-enhance-nav="false">@SiteResources.StaffExportPeople</a>
+            }
         </div>
     </EditForm>
     <div class="d-flex flex-wrap gap-2 mb-3">
@@ -153,7 +157,7 @@ else
             <div class="card-body">
                 <p>@string.Format(SiteResources.StaffExportSelection, export.Total)</p>
                 @if (export.Missing > 0) { <p class="alert alert-warning">@string.Format(SiteResources.StaffMissingLogins, export.Missing)</p> }
-                @if (export.Total > export.Missing)
+                @if (export.Total > 0)
                 {
                     <a class="btn btn-primary" href="@export.Url" data-enhance-nav="false">@SiteResources.StaffDownloadCsv</a>
                 }

@@ -417,7 +417,7 @@ details, including to jury members without a contest management assignment.
 | --- | --- |
 | Read contest information, the global and contest participant lists, participant cards and assigned credentials, statements, submissions, source, diagnostics, standings, and messages | Jury or administrator; includes hidden contests/accounts, unpublished and inactive problems, and results without freeze restrictions. |
 | Read test metadata and bounded file previews; download individual input/output files, all tests of a problem as ZIP, and stored contest attachments | Jury or administrator; includes closed and inactive tests and hidden contests. Public download rules are unchanged. |
-| Export assigned participant credentials | Jury or administrator. |
+| Export participant credentials and the participant/coach list | Jury or administrator. |
 | Export one contest as ZIP, including hidden and archived contests | Jury or administrator; contest management assignment is not required. |
 | Export all problems of one contest as an import-compatible ZIP | Jury or administrator; contest management assignment is not required. Includes inactive problems and hidden or archived contests. |
 | Export printable Markdown statements as a TeX ZIP | Jury or administrator; contest management assignment is not required. Includes active problems and active open examples, including in hidden or archived contests. |

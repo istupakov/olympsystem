@@ -594,7 +594,11 @@
   <data name="StaffPreviewBinary" xml:space="preserve"><value>Бинарные данные или нераспознанная кодировка текста. Файл доступен для скачивания.</value></data>
   <data name="StaffNoTests" xml:space="preserve"><value>Тестов не найдено.</value></data>
   <data name="StaffExportLogins" xml:space="preserve"><value>Выгрузить логины CSV</value></data>
-  <data name="StaffMissingLogins" xml:space="preserve"><value>У {0} участников из найденных не назначены логины. Они не попадут в CSV.</value></data>
+  <data name="StaffMissingLogins" xml:space="preserve"><value>У {0} участников из найденных не назначены логины. Поля логина и пароля в CSV будут пустыми.</value></data>
+  <data name="StaffExportPeople" xml:space="preserve"><value>Выгрузить участников и тренеров CSV</value></data>
+  <data name="StaffPersonRole" xml:space="preserve"><value>Роль</value></data>
+  <data name="StaffPersonParticipant" xml:space="preserve"><value>Участник</value></data>
+  <data name="StaffPersonParticipantAndCoach" xml:space="preserve"><value>Участник и тренер</value></data>
   <data name="StaffLastModification" xml:space="preserve"><value>Последнее изменение</value></data>
   <data name="StaffReferenceSubmission" xml:space="preserve"><value>Эталонное решение</value></data>
   <data name="StaffScoresByTest" xml:space="preserve"><value>Баллы по тестам</value></data>

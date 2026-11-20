@@ -63,7 +63,7 @@ public partial class ParticipantList
         .OrderByDescending(item => item.Contest.StartTime).ThenBy(item => item.RegistrationDate).ThenBy(item => item.Id);
     private string ParticipantUrl(Competitor participant) => GridState.DetailUrl(Navigation.Uri, $"jury/contests/{participant.ContestId}/participants/{participant.Id}", participant.Id);
     private string AccountUrl(int id, int? sourceId = null) => GridState.DetailUrl(Navigation.Uri, $"admin/users/{id}/edit", sourceId ?? id);
-    private string ExportUrl()
+    private string ExportUrl(bool people = false)
     {
         var query = QueryHelpers.ParseQuery(new Uri(Navigation.Uri).Query);
         query.TryGetValue("sort", out var column);
@@ -73,6 +73,7 @@ public partial class ParticipantList
             : column == SiteResources.StaffOrganization ? "Organization" : column == SiteResources.StaffCoach ? "Coach" : "Date";
         return QueryHelpers.AddQueryString($"/jury/contests/{ContestId}/participants/export", new Dictionary<string, string?>
         {
+            ["people"] = people ? "true" : null,
             ["search"] = Search,
             ["hasLogin"] = HasLogin?.ToString(),
             ["hidden"] = Hidden?.ToString(),
