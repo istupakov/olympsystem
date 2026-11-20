@@ -166,27 +166,38 @@ internal static class StaffDownloads
 
     private static async Task<IResult> ExportParticipantsAsync(int contestId, string? search, int? organization,
         bool? approved, bool? unofficial, bool? disqualified, string? sort, bool? descending,
-        int? coach, int? member, string? coachSearch, string? memberSearch, bool? hasLogin, bool? hidden,
+        int? coach, int? member, string? coachSearch, string? memberSearch, bool? hasLogin, bool? hidden, bool? people,
         HttpContext http, IDbContextFactory<OlympContext> factory)
     {
         await using var db = await factory.CreateDbContextAsync(http.RequestAborted);
         string? abbr = await db.Contests.Where(item => item.Id == contestId).Select(item => item.Abbr).SingleOrDefaultAsync(http.RequestAborted);
         if (abbr is null) return Results.NotFound();
-        var query = new ParticipantQuery(contestId, search, organization, approved, unofficial, disqualified, coach, member, coachSearch, memberSearch, hasLogin, hidden).Apply(db)
-            .Where(item => item.UserName != null && item.UserName != "");
+        var query = new ParticipantQuery(contestId, search, organization, approved, unofficial, disqualified, coach, member, coachSearch, memberSearch, hasLogin, hidden).Apply(db);
         var participants = await ParticipantQuery.Order(query, sort, descending ?? false)
-            .Include(item => item.Organization).Include(item => item.Members).AsSplitQuery().ToListAsync(http.RequestAborted);
+            .Include(item => item.Contest).Include(item => item.Organization)
+            .Include(item => item.Members).ThenInclude(item => item.Organization)
+            .Include(item => item.Coach).ThenInclude(item => item!.Organization)
+            .AsSplitQuery().ToListAsync(http.RequestAborted);
         var csv = new StringBuilder();
-        csv.AppendLine(string.Join(';', new[] { "ID", SiteResources.StaffName, SiteResources.StaffOrganization,
-            SiteResources.StaffMembers, SiteResources.StaffLogin, SiteResources.StaffPassword }.Select(Escape)));
-        foreach (var participant in participants)
-            csv.AppendLine(string.Join(';', new[] { participant.Id.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                participant.Name, participant.Organization?.Name,
-                string.Join(", ", participant.GetMembers()?.Select(item => item.name) ?? participant.Members.Select(item => item.Name)),
-                participant.UserName, participant.PasswordHash }.Select(Escape)));
+        if (people == true)
+        {
+            csv.AppendLine(string.Join(';', new[] { SiteResources.StaffFullName, SiteResources.StaffOrganization, SiteResources.StaffPersonRole }.Select(Escape)));
+            foreach (var row in ParticipantPeopleExport.Rows(participants))
+                csv.AppendLine(string.Join(';', row.Select(Escape)));
+        }
+        else
+        {
+            csv.AppendLine(string.Join(';', new[] { "ID", SiteResources.StaffName, SiteResources.StaffOrganization,
+                SiteResources.StaffMembers, SiteResources.StaffLogin, SiteResources.StaffPassword }.Select(Escape)));
+            foreach (var participant in participants)
+                csv.AppendLine(string.Join(';', new[] { participant.Id.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    participant.Name, participant.Organization?.Name,
+                    string.Join(", ", participant.GetMembers()?.Select(item => item.name) ?? participant.Members.Select(item => item.Name)),
+                    participant.UserName, string.IsNullOrEmpty(participant.UserName) ? null : participant.PasswordHash }.Select(Escape)));
+        }
         http.Response.Headers.CacheControl = "no-store";
         return Results.File(Encoding.UTF8.Preamble.ToArray().Concat(Encoding.UTF8.GetBytes(csv.ToString())).ToArray(),
-            "text/csv; charset=utf-8", $"{abbr}-logins.csv");
+            "text/csv; charset=utf-8", $"{abbr}-{(people == true ? "people" : "logins")}.csv");
     }
 
     private static string Escape(string? value) => "\"" + (value ?? "").Replace("\"", "\"\"", StringComparison.Ordinal) + "\"";

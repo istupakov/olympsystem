@@ -594,7 +594,11 @@
   <data name="StaffPreviewBinary" xml:space="preserve"><value>Binary data or unrecognized text encoding. Download the file to view it.</value></data>
   <data name="StaffNoTests" xml:space="preserve"><value>No tests found.</value></data>
   <data name="StaffExportLogins" xml:space="preserve"><value>Export logins (CSV)</value></data>
-  <data name="StaffMissingLogins" xml:space="preserve"><value>{0} of the matching participants have no login and will be omitted from the CSV.</value></data>
+  <data name="StaffMissingLogins" xml:space="preserve"><value>{0} of the matching participants have no login. Their login and password fields will be empty in the CSV.</value></data>
+  <data name="StaffExportPeople" xml:space="preserve"><value>Export participants and coaches CSV</value></data>
+  <data name="StaffPersonRole" xml:space="preserve"><value>Role</value></data>
+  <data name="StaffPersonParticipant" xml:space="preserve"><value>Participant</value></data>
+  <data name="StaffPersonParticipantAndCoach" xml:space="preserve"><value>Participant and coach</value></data>
   <data name="StaffLastModification" xml:space="preserve"><value>Last modification</value></data>
   <data name="StaffReferenceSubmission" xml:space="preserve"><value>Reference solution</value></data>
   <data name="StaffScoresByTest" xml:space="preserve"><value>Scores by test</value></data>

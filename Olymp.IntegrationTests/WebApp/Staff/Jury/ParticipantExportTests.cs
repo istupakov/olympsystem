@@ -25,8 +25,10 @@ namespace Olymp.IntegrationTests.WebApp.Staff.Jury;
 [Trait("Category", "Integration")]
 public partial class ParticipantExportTests(WebAppFactory factory) : StaffComponentTests(factory)
 {
-    [Fact]
-    public async Task CsvAndSelectionRespectVisibilityLoginAndOrganizationOrder()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task CsvAndSelectionRespectVisibilityLoginAndOrganizationOrder(bool people)
     {
         var staff = await _factory.AddUserAsync();
         await GrantRoleAsync(staff.Id, RoleNames.Jury);
@@ -43,14 +45,16 @@ public partial class ParticipantExportTests(WebAppFactory factory) : StaffCompon
         hidden.IsHidden = true;
         hidden.UserName = $"csv-{Guid.NewGuid():N}";
         var missing = TestEntities.CreateCompetitor(contest, "No login");
+        foreach (var participant in new[] { first, second, hidden, missing })
+            participant.MemberInfos = $"{participant.Name};";
         db.Competitors.AddRange(first, second, hidden, missing);
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
         var selection = new ParticipantQuery(contest.Id, HasLogin: true, Hidden: false).Apply(db);
         Assert.Equal(new[] { second.Id, first.Id }, await ParticipantQuery.Order(selection, "Organization", true).Select(item => item.Id).ToArrayAsync(TestContext.Current.CancellationToken));
         using var client = await _factory.LoginAsync(staff.UserName!);
-        using var response = await client.GetAsync($"/jury/contests/{contest.Id}/participants/export?hasLogin=true&hidden=false&sort=Organization&descending=true", TestContext.Current.CancellationToken);
+        using var response = await client.GetAsync($"/jury/contests/{contest.Id}/participants/export?hasLogin=true&hidden=false&sort=Organization&descending=true&people={people}", TestContext.Current.CancellationToken);
         response.EnsureSuccessStatusCode();
-        Assert.Equal($"{contest.Abbr}-logins.csv", response.Content.Headers.ContentDisposition!.FileNameStar);
+        Assert.Equal($"{contest.Abbr}-{(people ? "people" : "logins")}.csv", response.Content.Headers.ContentDisposition!.FileNameStar);
         string csv = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         Assert.DoesNotContain(hidden.Name, csv);
         Assert.DoesNotContain(missing.Name, csv);
@@ -112,7 +116,7 @@ public partial class ParticipantExportTests(WebAppFactory factory) : StaffCompon
         string csv = Encoding.UTF8.GetString(data);
         Assert.Contains("\"Alpha; \"\"quoted\"\"\"", csv);
         Assert.True(csv.IndexOf("Zulu", StringComparison.Ordinal) < csv.IndexOf("Alpha", StringComparison.Ordinal));
-        Assert.DoesNotContain("Missing", csv);
+        Assert.Contains($"\"{participants[2].Id}\";\"Missing\";\"\";\"\";\"\";\"\"", csv);
         Assert.DoesNotContain("Filtered", csv);
         Assert.Contains("credential", csv);
         Assert.True(response.Headers.CacheControl!.NoStore);
