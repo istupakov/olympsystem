@@ -18,9 +18,10 @@ public static class StatementTexArchive
         using var preamble = new StreamReader(assembly.GetManifestResourceStream("Olymp.Statements.Latex.preamble.tex")
             ?? throw new InvalidOperationException("Missing preamble resource."));
         var main = new StringBuilder((await preamble.ReadToEndAsync(token))
-            .Replace("STATEMENT_NOTE_HEADING", StatementDocument.NoteHeading, StringComparison.Ordinal));
-        main.Append("\n\\contest{").Append(StatementDocument.Escape(contestName, true)).Append("}{}{")
-            .Append(start.ToString("dd.MM.yyyy", CultureInfo.InvariantCulture)).Append("}\n\\begin{document}\n\\raggedbottom\n");
+            .Replace("STATEMENT_NOTE_HEADING", StatementDocument.NoteHeading, StringComparison.Ordinal)
+            .Replace("STATEMENT_CONTEST_DATE", start.ToString("MMMM d, yyyy", CultureInfo.GetCultureInfo("en-US")), StringComparison.Ordinal)
+            .Replace("STATEMENT_CONTEST_NAME", StatementDocument.Escape(contestName, true), StringComparison.Ordinal));
+        main.Append("\n\\begin{document}\n\\raggedbottom\n");
         var warnings = new List<string>();
         foreach (var (index, problem) in problems.OrderBy(p => p.Number).Index())
         {
@@ -38,13 +39,13 @@ public static class StatementTexArchive
             }
             if (problem.Examples.Count != 0)
             {
-                text.Append("\\Examples\n\\begin{example}\n");
+                text.Append(problem.Examples.Count == 1 ? "\\Example\n" : "\\Examples\n").Append("\\begin{example}%\n");
                 foreach (var (exampleIndex, example) in problem.Examples.Index())
                 {
                     string input = $"samples/{stem}-{exampleIndex + 1}.in", output = $"samples/{stem}-{exampleIndex + 1}.out";
                     await WriteBytesAsync(archive, input, example.Input, token);
                     await WriteBytesAsync(archive, output, example.Output, token);
-                    text.Append("\\exmpfile{").Append(input).Append("}{").Append(output).Append("}\n");
+                    text.Append("\\exmpfile{").Append(input).Append("}{").Append(output).Append("}%\n");
                 }
                 text.Append("\\end{example}\n");
             }

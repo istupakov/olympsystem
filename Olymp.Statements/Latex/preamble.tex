@@ -4,6 +4,22 @@
 \usepackage[english,russian]{babel}
 \usepackage[russian,arabic]{olymp}
 \usepackage{amsmath,amssymb}
+
+\contest
+{Novosibirsk 2026, NSTU}%
+{STATEMENT_CONTEST_NAME}%
+{Novosibirsk, STATEMENT_CONTEST_DATE}%
+
+\binoppenalty=10000
+\relpenalty=10000
+\exhyphenpenalty=10000
+
 \def\NoInputFileName{}
 \def\NoOutputFileName{}
 \makeatletter\renewcommand{\kw@Note}{STATEMENT_NOTE_HEADING}\makeatother
+
+% Remove outer space tokens from the standard header and footer.
+\ExplSyntaxOn
+\exp_args:Nc \tl_remove_all:Nn { @oddhead } { ~ }
+\exp_args:Nc \tl_remove_all:Nn { @oddfoot } { ~ }
+\ExplSyntaxOff
