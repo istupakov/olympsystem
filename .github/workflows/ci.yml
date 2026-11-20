@@ -65,6 +65,9 @@ jobs:
       - name: Prepare backup storage
         run: sudo install -d -o "$(id -u)" -g "$(id -g)" -m 2775 /tmp/olymp-backups
 
+      - name: Install PDF tools
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends texlive-latex-base texlive-lang-cyrillic cm-super
+
       - name: Test site with SQL Server
         run: dotnet test --project Olymp.IntegrationTests -c Release
 

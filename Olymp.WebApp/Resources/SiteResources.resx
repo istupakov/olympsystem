@@ -997,6 +997,10 @@
   <data name="StatementConstructError" xml:space="preserve"><value>Unsupported Markdown construct.</value></data>
   <data name="StatementPrintWarning" xml:space="preserve"><value>The statement is missing or invalid. The printable set contains a placeholder.</value></data>
   <data name="DownloadStatementTex" xml:space="preserve"><value>Download statements as TeX ZIP</value></data>
+  <data name="DownloadStatementPdf" xml:space="preserve"><value>Download statements as PDF</value></data>
+  <data name="StatementPdfUnavailable" xml:space="preserve"><value>PDF compilation is unavailable: pdflatex is not installed.</value></data>
+  <data name="StatementPdfFailed" xml:space="preserve"><value>PDF compilation failed. Download the TeX ZIP to check the source.</value></data>
+  <data name="StatementPdfTimeout" xml:space="preserve"><value>PDF compilation exceeded the time limit.</value></data>
   <data name="ImportValidateAll" xml:space="preserve"><value>Run all validators</value></data>
   <data name="ImportValidate" xml:space="preserve"><value>Run validator</value></data>
   <data name="ImportValidationProgress" xml:space="preserve"><value>Validated {0} of {1}</value></data>

@@ -161,7 +161,7 @@ public sealed partial class StatementDocument
                     result.Append("\\begin{flushleft}\\ttfamily\n");
                     foreach (string line in literal.Split('\n'))
                         result.Append("\\mbox{").Append(EscapeCode(line.TrimEnd('\r'))).Append("}\\\\\n");
-                    result.Append("\\end{flushleft}\n");
+                    result.Append("\\end{flushleft}\n\n");
                 }
                 else result.Append("<pre><code>").Append(Escape(literal, false)).Append("</code></pre>");
                 break;
@@ -171,12 +171,17 @@ public sealed partial class StatementDocument
                 if (latex && list.IsOrdered && int.TryParse(list.OrderedStart, out int start))
                     result.Append("\\setcounter{enum").Append('i', orderedDepth + 1).Append("}{").Append(start - 1).Append("}\n");
                 foreach (var child in list) RenderBlock(result, child, latex, orderedDepth + (list.IsOrdered ? 1 : 0));
-                result.Append(latex ? $"\\end{{{environment}}}\n" : $"</{tag}>");
+                result.Append(latex ? $"\\end{{{environment}}}\n\n" : $"</{tag}>");
                 break;
             case ListItemBlock item:
                 result.Append(latex ? "\\item " : "<li>");
                 foreach (var child in item) RenderBlock(result, child, latex, orderedDepth);
-                if (!latex) result.Append("</li>");
+                if (latex)
+                {
+                    while (result[^1] == '\n') result.Length--;
+                    result.Append('\n');
+                }
+                else result.Append("</li>");
                 break;
         }
     }
@@ -187,7 +192,9 @@ public sealed partial class StatementDocument
             switch (inline)
             {
                 case LiteralInline literal:
-                    result.Append(Escape(literal.Content.ToString(), latex));
+                    string text = literal.Content.ToString();
+                    if (latex) text = DashSpacePattern.Replace(text, "\u00a0");
+                    result.Append(Escape(text, latex));
                     break;
                 case CodeInline code:
                     bool single = StringInfo.ParseCombiningCharacters(code.Content).Length == 1;
@@ -196,19 +203,47 @@ public sealed partial class StatementDocument
                         .Append(latex ? single ? "}'" : "}>>" : single ? "</code>’" : "</code>»");
                     break;
                 case MathInline math:
+                    if (latex && StartsWithSingleSymbol(math)) TieTrailingSpace(result);
                     RenderMath(result, math.Content.ToString(), false, latex);
                     break;
                 case EmphasisInline emphasis:
+                    if (latex && StartsWithSingleSymbol(emphasis)) TieTrailingSpace(result);
                     string tag = emphasis.DelimiterCount == 2 ? "strong" : "em";
                     result.Append(latex ? emphasis.DelimiterCount == 2 ? "\\textbf{" : "\\emph{" : $"<{tag}>");
                     RenderInline(result, emphasis, latex);
                     result.Append(latex ? "}" : $"</{tag}>");
                     break;
                 case LineBreakInline line:
-                    result.Append(line.IsHard ? latex ? "\\\\\n" : "<br>" : "\n");
+                    bool tie = latex && !line.IsHard && (StartsWithSingleSymbol(line.NextSibling)
+                        || (line.NextSibling is LiteralInline nextText && DashStartPattern.IsMatch(nextText.Content.ToString())));
+                    result.Append(line.IsHard ? latex ? "\\\\\n" : "<br>" : tie ? "~" : "\n");
                     break;
             }
     }
+
+    private static bool StartsWithSingleSymbol(Inline? inline) => inline switch
+    {
+        MathInline math => math.Content.AsSpan() is [var symbol] && char.IsLetterOrDigit(symbol),
+        EmphasisInline emphasis => StartsWithSingleSymbol(emphasis.FirstChild),
+        _ => false
+    };
+
+    private static void TieTrailingSpace(StringBuilder result)
+    {
+        int start = result.Length;
+        while (start > 0 && result[start - 1] is ' ' or '\t') start--;
+        if (start < result.Length && start > 0 && !char.IsWhiteSpace(result[start - 1]))
+        {
+            result.Length = start;
+            result.Append('~');
+        }
+    }
+
+    [GeneratedRegex(@"[ \t]+(?=(?:-{2,3}|\u2013|\u2014)(?:\s|$))")]
+    private static partial Regex DashSpacePattern { get; }
+
+    [GeneratedRegex(@"^(?:-{2,3}|\u2013|\u2014)(?:\s|$)")]
+    private static partial Regex DashStartPattern { get; }
 
     private static void RenderMath(StringBuilder result, string expression, bool display, bool latex)
     {
@@ -241,7 +276,7 @@ public sealed partial class StatementDocument
         while (elements.MoveNext())
         {
             string element = elements.GetTextElement();
-            string escaped = Escape(element, true);
+            string escaped = element == "\u00a0" ? element : Escape(element, true);
             result.Append(element switch
             {
                 "-" or "`" or "'" => "{" + escaped + "}",
@@ -278,6 +313,7 @@ public sealed partial class StatementDocument
                     '_' => "\\_",
                     '~' => "\\textasciitilde{}",
                     '^' => "\\textasciicircum{}",
+                    '\u00a0' => "~",
                     '<' => "\\textless{}",
                     '>' => "\\textgreater{}",
                     _ => character.ToString()

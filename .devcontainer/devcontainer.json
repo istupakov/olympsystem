@@ -44,7 +44,7 @@
       "onAutoForward": "silent"
     }
   },
-  "postCreateCommand": "sudo apt-get update && sudo apt-get install -y --no-install-recommends gcc g++ && bash .devcontainer/setup-https.sh && dotnet tool restore && dotnet restore",
+  "postCreateCommand": "sudo apt-get update && sudo apt-get install -y --no-install-recommends gcc g++ texlive-latex-base texlive-lang-cyrillic cm-super && bash .devcontainer/setup-https.sh && dotnet tool restore && dotnet restore",
   "customizations": {
     "vscode": {
       "extensions": [
