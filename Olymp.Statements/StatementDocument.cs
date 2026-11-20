@@ -160,7 +160,7 @@ public sealed partial class StatementDocument
                 {
                     result.Append("\\begin{flushleft}\\ttfamily\n");
                     foreach (string line in literal.Split('\n'))
-                        result.Append("\\mbox{").Append(Escape(line.TrimEnd('\r'), true).Replace(" ", "\\ ", StringComparison.Ordinal)).Append("}\\\\\n");
+                        result.Append("\\mbox{").Append(EscapeCode(line.TrimEnd('\r'))).Append("}\\\\\n");
                     result.Append("\\end{flushleft}\n");
                 }
                 else result.Append("<pre><code>").Append(Escape(literal, false)).Append("</code></pre>");
@@ -192,7 +192,7 @@ public sealed partial class StatementDocument
                 case CodeInline code:
                     bool single = StringInfo.ParseCombiningCharacters(code.Content).Length == 1;
                     result.Append(latex ? single ? "`\\t{" : "<<\\t{" : single ? "‘<code>" : "«<code>")
-                        .Append(latex ? Escape(code.Content, true).Replace(" ", "\\ ", StringComparison.Ordinal) : Escape(code.Content, false))
+                        .Append(latex ? EscapeCode(code.Content) : Escape(code.Content, false))
                         .Append(latex ? single ? "}'" : "}>>" : single ? "</code>’" : "</code>»");
                     break;
                 case MathInline math:
@@ -216,6 +216,40 @@ public sealed partial class StatementDocument
         if (latex) result.Append(display ? "\\[\n" : "$").Append(normalized).Append(display ? "\n\\]\n" : "$");
         else result.Append(display ? "<div class=\"statement-math\" data-display=\"true\">" : "<span class=\"statement-math\">")
             .Append(WebUtility.HtmlEncode(normalized)).Append(display ? "</div>" : "</span>");
+    }
+
+    private static string EscapeCode(string value)
+    {
+        var expanded = new StringBuilder();
+        int column = 0;
+        foreach (char character in value)
+        {
+            if (character == '\t')
+            {
+                int spaces = 4 - (column % 4);
+                expanded.Append(' ', spaces);
+                column += spaces;
+            }
+            else
+            {
+                expanded.Append(character);
+                column++;
+            }
+        }
+        var result = new StringBuilder();
+        var elements = StringInfo.GetTextElementEnumerator(expanded.ToString().Normalize(NormalizationForm.FormC));
+        while (elements.MoveNext())
+        {
+            string element = elements.GetTextElement();
+            string escaped = Escape(element, true);
+            result.Append(element switch
+            {
+                "-" or "`" or "'" => "{" + escaped + "}",
+                " " => "\\ ",
+                _ => escaped
+            });
+        }
+        return result.ToString();
     }
 
     public static string Escape(string value, bool latex)
