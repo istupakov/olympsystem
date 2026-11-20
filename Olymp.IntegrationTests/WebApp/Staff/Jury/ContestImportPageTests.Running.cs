@@ -55,11 +55,34 @@ public partial class ContestImportPageTests
                 ("A/problem.json", "{\"number\":1,\"name\":\"First\"}"u8.ToArray()),
                 ("A/tests/input1.txt", "1"u8.ToArray()), ("A/tests/output1.txt", "1"u8.ToArray()),
                 ("A/solutions/main.cpp", "source"u8.ToArray()),
+                ("A/validator.cpp", "validator A"u8.ToArray()),
                 ("B/problem.json", "{\"number\":2,\"name\":\"Second\"}"u8.ToArray()),
+                ("B/validator.cpp", "validator B"u8.ToArray()),
                 ("B/tests/input1.txt", "1"u8.ToArray()), ("B/tests/output1.txt", "1"u8.ToArray())))]));
             var preview = Preview(page);
             var first = preview.Rows[0];
+            Assert.Equal(0, runner.ValidationCalls);
+            Assert.False(runner.Started.Task.IsCompleted);
+            Assert.False(first.IsChecking);
+            Assert.Empty(first.Runs);
+            preview.ValidatorCompilerId = compiler.Id;
+            await ActAsync(page, "SettingsChangedAsync");
+            await SelectAsync(page, preview.Rows[1].Folder);
+            await SelectAsync(page, first.Folder);
+            Assert.Equal(0, runner.ValidationCalls);
+            Assert.False(runner.Started.Task.IsCompleted);
+            await ActAsync(page, "ValidateAllAsync");
+            Assert.Equal(2, runner.ValidationCalls);
+            Assert.All(preview.Rows, row => Assert.True(row.ValidatorChecked));
+            Assert.All(preview.Rows, row => Assert.NotEmpty(row.ValidatorErrors));
+            Assert.False(runner.Started.Task.IsCompleted);
+            await ActAsync(page, "ValidateAllAsync");
+            Assert.Equal(2, runner.ValidationCalls);
+            first.Solutions[0].CompilerId = null;
+            await ActAsync(page, "RunSolutionsAsync");
+            Assert.Empty(first.Runs);
             first.Solutions[0].CompilerId = compiler.Id;
+            await ActAsync(page, "SolutionsChanged");
             var checking = ActAsync(page, "RunSolutionsAsync");
             try
             {
@@ -85,6 +108,7 @@ public partial class ContestImportPageTests
 
     private sealed class WaitingImportChecker(CompilatorInfo info) : ICheckerService
     {
+        public int ValidationCalls { get; private set; }
         public Guid Id { get; } = Guid.NewGuid();
         public string Name => "Waiting import runner";
         public DateTimeOffset ConnectingTime => DateTimeOffset.UtcNow;
@@ -101,7 +125,10 @@ public partial class ContestImportPageTests
             await Task.Delay(Timeout.Infinite, token);
             throw new InvalidOperationException("The test must cancel this check.");
         }
-        public Task<ValidatorResult> Validate(string source, CompilatorInfo compiler, IReadOnlyList<ValidatorTest> tests, CancellationToken token) =>
-            Task.FromResult(new ValidatorResult(true, "Rejected stored input", [.. tests.Select(test => new ValidatorTestResult(test.Number, false))]));
+        public Task<ValidatorResult> Validate(string source, CompilatorInfo compiler, IReadOnlyList<ValidatorTest> tests, CancellationToken token)
+        {
+            ValidationCalls++;
+            return Task.FromResult(new ValidatorResult(true, "Rejected stored input", [.. tests.Select(test => new ValidatorTestResult(test.Number, false))]));
+        }
     }
 }

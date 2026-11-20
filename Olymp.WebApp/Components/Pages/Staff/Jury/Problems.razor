@@ -35,16 +35,20 @@ else
             <a class="btn btn-outline-secondary" href="jury/contests/@ContestId/problems/export" data-enhance-nav="false">@SiteResources.ExportProblems</a>
             @if (StatementFormat.UsesMarkdown(_contest.StartTime))
             {
-                <a class="btn btn-outline-secondary" href="jury/contests/@ContestId/statements/export" data-enhance-nav="false">@SiteResources.DownloadStatementTex</a>
+                <button class="btn btn-outline-secondary" @onclick="PreviewStatementExport">@SiteResources.DownloadStatementTex</button>
             }
         </div>
     </div>
-    @if (StatementFormat.UsesMarkdown(_contest.StartTime))
+    @if (_showStatementWarnings)
     {
-        @foreach (var problem in _progress.Select(p => p.Problem).Where(p => p.IsActive && !_statementDocuments.GetValueOrDefault(p.Id)!.IsValid))
-        {
-            <p class="text-warning-emphasis">@problem.NameWithNumber: @SiteResources.StatementPrintWarning</p>
-        }
+        <div class="alert alert-warning" role="alert">
+            @foreach (var problem in InvalidStatements)
+            {
+                <p>@problem.NameWithNumber: @SiteResources.StatementPrintWarning</p>
+            }
+            <a class="btn btn-warning" href="jury/contests/@ContestId/statements/export" data-enhance-nav="false">@SiteResources.StatementExportAnyway</a>
+            <button class="btn btn-outline-secondary ms-2" @onclick="() => _showStatementWarnings = false">@SiteResources.StaffCancel</button>
+        </div>
     }
     @if (_selected is null)
     {
@@ -56,8 +60,8 @@ else
             @if (_validatorId is not null || _referenceSolutionCount != 0)
             {
                 <div class="d-flex flex-wrap gap-2 mb-3">
-                    @if (_validatorId is int validatorId) { <a class="badge text-bg-success text-decoration-none" href="@SourceUrl(validatorId)">@SiteResources.StaffValidator</a> }
-                    @if (_referenceSolutionCount != 0) { <a class="badge text-bg-success text-decoration-none" href="jury/contests/@ContestId/submissions?Problem=@_selected.Id&Reference=true">@SiteResources.StaffReferenceSolutions · @_referenceSolutionCount</a> }
+                    <ReferenceBadges HasValidator="@(_validatorId is not null)" ValidatorPassed="_validatorPassed" ReferenceCount="_referenceSolutionCount" HasAccepted="_hasAcceptedReference"
+                                     ValidatorUrl="@(_validatorId is int validatorId ? SourceUrl(validatorId) : null)" ReferencesUrl="@($"jury/contests/{ContestId}/submissions?Problem={_selected.Id}&Reference=true")" />
                 </div>
             }
             @if (!_selected.IsActive) { <p class="badge text-bg-secondary">@SiteResources.StaffInactiveProblem</p> }
@@ -117,6 +121,7 @@ else
                 </dl>
             </details>
             <ProblemStatementView Problem="_selected" Examples="_examples" Clarifications="_clarifications" ShowPdfLink="false" Document="_statementDocuments.GetValueOrDefault(_selected.Id)" />
+            <ProblemLimitMeasurement @key="_selected.Id" ProblemId="_selected.Id" />
             <section class="mt-4" aria-labelledby="submit-heading">
                 <h2 id="submit-heading" class="h4">@SiteResources.SubmitSolution</h2>
                 <EditForm @key="_input" Model="_input" OnValidSubmit="SubmitAsync">
@@ -191,6 +196,15 @@ else
     private int _testCount, _activeTestCount, _openTestCount;
     private int? _validatorId;
     private int _referenceSolutionCount;
+    private bool? _validatorPassed;
+    private bool _hasAcceptedReference, _showStatementWarnings;
+    private IEnumerable<Problem> InvalidStatements => _progress.Select(item => item.Problem)
+        .Where(problem => problem.IsActive && _statementDocuments.TryGetValue(problem.Id, out var document) && !document.IsValid);
+    private void PreviewStatementExport()
+    {
+        _showStatementWarnings = InvalidStatements.Any();
+        if (!_showStatementWarnings) Navigation.NavigateTo($"jury/contests/{ContestId}/statements/export", forceLoad: true);
+    }
 
     private string ProblemUrl(int id) => $"jury/contests/{ContestId}/problems?problemId={id}" + (CurrentScope == "own" ? "" : $"&scope={CurrentScope}");
     private string SubmissionsUrl(string scope, int page) => Navigation.GetUriWithQueryParameters(Navigation.Uri.Split('#')[0],
@@ -202,6 +216,7 @@ else
     {
         int version = ++_loadVersion;
         _confirmActivity = false;
+        _showStatementWarnings = false;
         _deletion = null;
         _activityError = null;
         _canManage = (await Authorization.AuthorizeAsync((await AuthenticationState).User, ContestId, PolicyNames.ManageContest)).Succeeded;
@@ -229,11 +244,17 @@ else
         List<SubmissionListItem> rows = [];
         int? validatorId = null;
         int referenceSolutionCount = 0;
+        bool? validatorPassed = null;
+        bool hasAcceptedReference = false;
         if (selected is not null)
         {
             var references = await context.Submissions.AsNoTracking().Where(s => s.ProblemId == selected.Id && s.IsReference)
-                .Select(s => new { s.Id, IsValidator = s.Description != null && s.Description == ReferenceSolutionFiles.ValidatorFilename }).ToListAsync();
-            validatorId = references.Where(s => s.IsValidator).Select(s => (int?)s.Id).LastOrDefault();
+                .Select(s => new { s.Id, s.StatusCode, IsValidator = s.Description != null && s.Description == ReferenceSolutionFiles.ValidatorFilename,
+                    CheckedStatus = s.CheckResults.OrderByDescending(check => check.CheckTime).ThenByDescending(check => check.Id).Select(check => (int?)check.StatusCode).FirstOrDefault() }).ToListAsync();
+            var validator = references.Where(s => s.IsValidator).OrderBy(s => s.Id).LastOrDefault();
+            validatorId = validator?.Id;
+            validatorPassed = validator?.CheckedStatus is int status && status is not (0 or 1 or -1 or -10) ? status == 2 : null;
+            hasAcceptedReference = references.Any(s => !s.IsValidator && s.StatusCode == 2);
             referenceSolutionCount = references.Count(s => !s.IsValidator);
             var tests = context.Tests.Where(item => item.ProblemId == selected.Id);
             _testCount = await tests.CountAsync();
@@ -296,6 +317,8 @@ else
         _rows = rows;
         _validatorId = validatorId;
         _referenceSolutionCount = referenceSolutionCount;
+        _validatorPassed = validatorPassed;
+        _hasAcceptedReference = hasAcceptedReference;
         _hasNext = _rows.Count > PageSize;
         if (_hasNext) _rows.RemoveAt(PageSize);
         if (previousProblem != selected?.Id) _input = new() { CompilatorId = compiler };

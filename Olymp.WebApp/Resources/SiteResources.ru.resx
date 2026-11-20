@@ -925,7 +925,7 @@
   <data name="ImportWillReplace" xml:space="preserve"><value>Будет заменено</value></data>
   <data name="ImportReferenceReplacement" xml:space="preserve"><value>{0}: эталонное решение с таким именем и другим кодом или компилятором уже существует. При сохранении флаг эталонного решения будет перенесён на новое; старая посылка и история сохранятся.</value></data>
   <data name="ImportReferenceAddition" xml:space="preserve"><value>{0}: будет сохранено как эталонное решение.</value></data>
-  <data name="ImportRunPreviewHint" xml:space="preserve"><value>Все сохранённые эталоны и файлы, отмеченные для сохранения как эталонные, должны быть проверены на импортируемых тестах и текущих лимитах. Результаты и история проверок записываются вместе с задачей.</value></data>
+  <data name="ImportRunPreviewHint" xml:space="preserve"><value>Новые и изменённые эталоны требуют проверки перед сохранением. Сохранённые эталоны нужно перепроверять только при изменении тестов или параметров проверки.</value></data>
   <data name="ImportReferenceChecksRequired" xml:space="preserve"><value>Перед сохранением завершите проверку всех эталонных записей на текущих тестах и лимитах.</value></data>
   <data name="ImportReferencesChanged" xml:space="preserve"><value>Сохранённые эталонные решения изменились. Список и предупреждения о замене обновлены. Проверьте их и подтвердите сохранение повторно.</value></data>
   <data name="ImportSolutionCompilerRequired" xml:space="preserve"><value>{0}: выберите доступный компилятор для сохранения эталонного решения.</value></data>
@@ -937,7 +937,7 @@
   <data name="ImportCheckProgress" xml:space="preserve"><value>Проверка: {0} из {1}</value></data>
   <data name="ImportRunOutdated" xml:space="preserve"><value>Требуется перепроверка</value></data>
   <data name="ImportSaveProblem" xml:space="preserve"><value>Сохранить задачу</value></data>
-  <data name="ImportConfirmProblem" xml:space="preserve"><value>Сохранить задачу «{0}»? Её набор тестов будет полностью заменён. Посылки и история проверок сохранятся.</value></data>
+  <data name="ImportConfirmProblem" xml:space="preserve"><value>Сохранить следующие изменения задачи «{0}»?</value></data>
   <data name="ImportProblemSaved" xml:space="preserve"><value>Задача «{0}» сохранена.</value></data>
   <data name="ImportHasErrors" xml:space="preserve"><value>Есть ошибки</value></data>
   <data name="ImportUpdateProblem" xml:space="preserve"><value>Есть изменения</value></data>
@@ -993,4 +993,14 @@
   <data name="StatementConstructError" xml:space="preserve"><value>Неподдерживаемая конструкция Markdown.</value></data>
   <data name="StatementPrintWarning" xml:space="preserve"><value>Условие отсутствует или некорректно. В печатном комплекте будет заглушка.</value></data>
   <data name="DownloadStatementTex" xml:space="preserve"><value>Скачать условия в TeX ZIP</value></data>
+  <data name="ImportValidateAll" xml:space="preserve"><value>Запустить все валидаторы</value></data>
+  <data name="ImportValidate" xml:space="preserve"><value>Запустить валидатор</value></data>
+  <data name="ImportValidationProgress" xml:space="preserve"><value>Проверено {0} из {1}</value></data>
+  <data name="ImportValidationNotRequired" xml:space="preserve"><value>Не требуется</value></data>
+  <data name="ImportValidationPending" xml:space="preserve"><value>Ожидает проверки</value></data>
+  <data name="ImportValidationWarnings" xml:space="preserve"><value>Есть предупреждения</value></data>
+  <data name="StatementExportAnyway" xml:space="preserve"><value>Скачать всё равно</value></data>
+  <data name="MeasureLimits" xml:space="preserve"><value>Замер лимитов</value></data>
+  <data name="MeasureAllReferences" xml:space="preserve"><value>Запустить все эталоны ×5</value></data>
+  <data name="ImportStatementChanged" xml:space="preserve"><value>Условие будет обновлено.</value></data>
 </root>

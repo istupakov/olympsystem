@@ -101,6 +101,19 @@ public sealed class ContestImportRow
     internal IReadOnlyList<ReferenceImportSolution> ValidatorReferences { get; set; } = [];
     internal string? ValidatorSource => Validator?.Source.Source ?? SavedValidator?.Source.Source;
     public bool HasValidator => ValidatorSource is not null;
+    public bool? ValidatorPassed => IsValidating ? null
+        : ValidatorErrors.Count != 0 ? false
+        : ValidatorChecked && ValidatorResult is { } result ? result.Compiled && result.Tests.All(test => test.IsValid)
+        : !TestsChanged && (Validator is null || Validator.AlreadySaved) && SavedValidator?.CheckedStatus is int status
+            ? status is 0 or 1 or -1 or -10 ? null : status == 2
+        : null;
+    public int EffectiveReferenceCount => ReferenceSolutions.Count(reference => !IsReplaced(reference))
+        + Solutions.Count(solution => solution.Save && !solution.AlreadySaved);
+    public bool HasAcceptedReference => (!RequiresReferenceChecks
+        && ReferenceSolutions.Any(reference => !IsReplaced(reference) && reference.StatusCode == 2))
+        || Runs.Any(run => run.Result?.StatusCode == 2 && IsCurrent(run)
+            && (run.ReferenceId is int id ? ReferenceSolutions.Any(reference => reference.Id == id && !IsReplaced(reference))
+                : Solutions.Any(solution => solution.Save && solution.Filename == run.File && solution.CompilerId == run.CompilerId)));
     public ValidatorResult? ValidatorResult { get; internal set; }
     public ValidatorResult? SavedValidatorResult { get; internal set; }
     public string? ValidatorMessage { get; internal set; }
@@ -112,6 +125,7 @@ public sealed class ContestImportRow
         && Solutions.Where(s => s.Save && !s.AlreadySaved).All(s => Runs.Any(r => r.ReferenceId is null
             && r.File == s.Filename && r.CompilerId == s.CompilerId && IsCurrent(r))));
     public bool IsChecking { get; internal set; }
+    public bool IsValidating { get; internal set; }
     public int RunsCompleted { get; internal set; }
     public int RunsTotal { get; internal set; }
     public string? CheckError { get; internal set; }
@@ -214,7 +228,24 @@ public sealed class ContestImportPreview
             foreach (var row in Rows) row.NormalizeTests(value);
         }
     }
-    public int? ValidatorCompilerId { get; set; }
+    public int? ValidatorCompilerId
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+            field = value;
+            foreach (var row in Rows.Where(row => row.Validator is not null))
+            {
+                row.Validator!.CompilerId = value;
+                row.ValidatorKey = null;
+                row.ValidatorResult = row.SavedValidatorResult = null;
+                row.ValidatorMessage = null;
+                row.ValidatorErrors.Clear();
+                row.ValidatorWarnings.Clear();
+            }
+        }
+    }
 }
 
 public sealed partial class ContestImportService(OlympContext context, ICheckerManager manager, IEnumerable<ISimpleChecker> checkers,
@@ -357,6 +388,19 @@ public sealed partial class ContestImportService(OlympContext context, ICheckerM
         row.NormalizationVersion
     });
 
+    public async Task PrepareValidationAsync(ClaimsPrincipal actor, ContestImportPreview preview, ContestImportRow row, CancellationToken token = default)
+    {
+        EnsureMember(preview, row);
+        await AuthorizeAsync(actor, preview.ContestId);
+        await CheckStateAsync(preview, row, token);
+        if (row.StateErrors.Count == 0 && (!row.RequiresValidatorCheck || !row.HasValidator))
+        {
+            row.ValidatorKey = ValidatorCacheKey(preview, row);
+            if (row.RequiresValidatorCheck && !row.HasValidator && !row.ValidatorWarnings.Contains(SiteResources.ImportNoValidator))
+                row.ValidatorWarnings.Add(SiteResources.ImportNoValidator);
+        }
+    }
+
     public async Task EnsureValidatorAsync(ClaimsPrincipal actor, ContestImportPreview preview, ContestImportRow row, CancellationToken token = default)
     {
         EnsureMember(preview, row);
@@ -370,7 +414,7 @@ public sealed partial class ContestImportService(OlympContext context, ICheckerM
         if (row.Validator is { } file)
             file.CompilerId = preview.ValidatorCompilerId;
         string key = ValidatorCacheKey(preview, row);
-        if (row.ValidatorKey == key && row.ReferenceValidatorChecked && (!row.HasValidator || (runner is not null && row.ValidatorResult is not null))) return;
+        if (row.ValidatorKey == key && row.ReferenceValidatorChecked && (!row.RequiresValidatorCheck || !row.HasValidator || (runner is not null && row.ValidatorResult is not null))) return;
         row.ValidatorKey = null;
         row.ValidatorResult = null;
         row.SavedValidatorResult = null;
@@ -446,6 +490,9 @@ public sealed partial class ContestImportService(OlympContext context, ICheckerM
                 ReferenceId: (int?)null, s.CompilerId))
             .Concat(row.ReferencesToCheck.Select(s => (s.Source, Compiler: (Compilator?)s.Submission.Compilator,
                 ReferenceId: (int?)s.Id, CompilerId: (int?)s.Submission.CompilatorId))).ToArray();
+        row.Runs.RemoveAll(run => run.CompilerId is null);
+        if (selected.Any(s => s.CompilerId is null))
+            throw new OperationValidationException(SiteResources.SelectCompiler);
         IReadOnlyList<(ICheckerService Runner, CompilatorInfo Info)> Matching(Compilator? compiler)
         {
             return compiler is null ? [] : [.. configurations.Where(c => compiler.IsActive && CompilerMatching.Matches(compiler, c.Info))];

@@ -61,6 +61,8 @@ Supplied input and output line endings are normalized before validation, solutio
 
 ## Validation and saving
 
+Validators and solutions run only on explicit request. Preparing an import, changing its settings and saving do not start runs. New or changed archive solutions are selected for saving by default and can be excluded individually.
+
 - Compilers for solutions and validators must be active database records. Each run requires an available Runner matching the compiler; unavailable compilers produce an error.
 - If supplied, `validator.cpp` checks test inputs using a selected C++ compiler; `testlib.h` is available. Failure on an active test or an unavailable Runner blocks saving; failure on an inactive test is a warning. A missing validator or compilation failure is a warning.
 - Selected files from `solutions/` run on active tests using the resulting checker, time limits, and selected compiler. Results are informational.

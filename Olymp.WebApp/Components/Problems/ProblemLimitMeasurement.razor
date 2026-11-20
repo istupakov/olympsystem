@@ -1,0 +1,69 @@
+@implements IDisposable
+@using Olymp.WebApp.Services.Contests
+@using Olymp.WebApp.Components.Submissions
+@inject IServiceScopeFactory ScopeFactory
+
+<section class="mt-4" aria-label="@SiteResources.MeasureLimits">
+    <h3 class="h5">@SiteResources.MeasureLimits</h3>
+    <button class="btn btn-outline-primary" disabled="@_running" @onclick="RunAsync">@SiteResources.MeasureAllReferences</button>
+    @if (_running)
+    {
+        <span class="ms-2" role="status">@SiteResources.StaffChecking · @_results.Count</span>
+        <button class="btn btn-outline-secondary ms-2" @onclick="() => _operation?.Cancel()">@SiteResources.ImportStop</button>
+    }
+    @if (_error is not null) { <p class="text-danger" role="alert">@_error</p> }
+    @if (_results.Count > 0)
+    {
+        <div class="table-responsive mt-3"><table class="table table-sm align-middle">
+            <thead><tr><th>@SiteResources.ImportRunFile</th><th>@SiteResources.Compiler</th><th>@SiteResources.ImportRunTimeLimit</th><th>@SiteResources.ImportRunTime</th><th>@SiteResources.ImportRunSlowestTest</th><th>@SiteResources.ImportRunMemory</th><th>@SiteResources.Status</th></tr></thead>
+            <tbody>
+                @foreach (var row in _results)
+                {
+                    <tr><td>@row.File</td><td>@row.Compiler</td><td>@row.TimeLimit</td><td>@row.Result?.MaxUserTime?.TotalSeconds.ToString("0.###")</td><td>@row.Result?.SlowestTest</td><td>@(row.Result?.MaxMemory is ulong bytes ? (bytes / 1048576d).ToString("0.##") : null)</td>
+                        <td>@if (row.Result is { } result) { <SubmissionStatus StatusCode="result.StatusCode" /> } else { @row.Error }</td></tr>
+                }
+            </tbody>
+        </table></div>
+        @foreach (var row in _results.Where(row => row.Result is not null))
+        {
+            <details><summary>@row.File · @row.Compiler · @SiteResources.StaffRunOutput</summary><pre class="overflow-auto">@row.Result!.Log</pre></details>
+        }
+    }
+</section>
+
+@code {
+    [Parameter] public int ProblemId { get; set; }
+    [CascadingParameter] private Task<AuthenticationState> AuthenticationState { get; set; } = default!;
+    private readonly List<LimitMeasurement> _results = [];
+    private CancellationTokenSource? _operation;
+    private bool _running, _disposed;
+    private string? _error;
+
+    private async Task RunAsync()
+    {
+        if (_running || _disposed) return;
+        using var operation = new CancellationTokenSource();
+        _operation = operation;
+        _running = true;
+        _results.Clear();
+        _error = null;
+        try
+        {
+            await using var scope = ScopeFactory.CreateAsyncScope();
+            await scope.ServiceProvider.GetRequiredService<ContestProblemService>().MeasureLimitsAsync(
+                (await AuthenticationState).User, ProblemId, async result =>
+                {
+                    if (_disposed) return;
+                    _results.Add(result);
+                    await InvokeAsync(StateHasChanged);
+                }, operation.Token);
+        }
+        catch (OperationCanceledException) when (operation.IsCancellationRequested) { }
+        catch (Olymp.WebApp.Services.OperationValidationException exception) { _error = exception.Message; }
+        catch (Olymp.WebApp.Services.EntityNotFoundException) { _error = SiteResources.PageNotFoundMessage; }
+        catch (Exception) { _error = SiteResources.ImportFailed; }
+        finally { _running = false; _operation = null; }
+    }
+
+    public void Dispose() { _disposed = true; _operation?.Cancel(); }
+}

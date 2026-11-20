@@ -1,0 +1,23 @@
+<div class="d-flex flex-wrap gap-2">
+    @if (HasValidator)
+    {
+        @if (ValidatorUrl is not null) { <a class="badge @ValidatorClass text-decoration-none" href="@ValidatorUrl">@SiteResources.StaffValidator</a> }
+        else { <span class="badge @ValidatorClass">@SiteResources.StaffValidator</span> }
+    }
+    @if (ReferenceCount > 0)
+    {
+        @if (ReferencesUrl is not null) { <a class="badge @ReferencesClass text-decoration-none" href="@ReferencesUrl">@SiteResources.StaffReferenceSolutions · @ReferenceCount</a> }
+        else { <span class="badge @ReferencesClass">@SiteResources.StaffReferenceSolutions · @ReferenceCount</span> }
+    }
+</div>
+
+@code {
+    private string ValidatorClass => ValidatorPassed is null ? "text-bg-secondary" : ValidatorPassed.Value ? "text-bg-success" : "text-bg-danger";
+    private string ReferencesClass => HasAccepted ? "text-bg-success" : "text-bg-warning";
+    [Parameter] public bool HasValidator { get; set; }
+    [Parameter] public bool? ValidatorPassed { get; set; }
+    [Parameter] public int ReferenceCount { get; set; }
+    [Parameter] public bool HasAccepted { get; set; }
+    [Parameter] public string? ValidatorUrl { get; set; }
+    [Parameter] public string? ReferencesUrl { get; set; }
+}

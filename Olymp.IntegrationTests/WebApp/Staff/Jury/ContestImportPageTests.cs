@@ -128,7 +128,7 @@ public partial class ContestImportPageTests(WebAppFactory factory) : StaffCompon
                 var row = Preview(page).Rows[0];
                 var file = validator ? row.Validator! : row.Solutions[0];
                 Assert.True(file.Save);
-                if (!validator) Assert.True(file.Selected);
+                if (!validator) Assert.False(file.Selected);
                 Assert.True(row.HasChanges);
                 file.Save = false;
                 await ActAsync(page, "SolutionsChanged");
@@ -182,7 +182,7 @@ public partial class ContestImportPageTests(WebAppFactory factory) : StaffCompon
             await ActAsync(page, "RefreshAsync");
             Assert.Same(first, Field(page, "_selected"));
             Assert.Equal(7, first.TimeLimit); Assert.Equal(11, first.SlowTimeLimit);
-            Assert.True(first.Solutions[0].Selected);
+            Assert.True(first.Solutions[0].Save);
             await ActAsync(page, "Finish");
         });
         Assert.Contains(SiteResources.ImportLeaveConfirm, html);

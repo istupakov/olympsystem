@@ -25,6 +25,8 @@ public sealed class ReferenceImportSolution
     public string Filename => Source.Filename;
     public string Compiler => Submission.Compilator.Description ?? Submission.Compilator.Name;
     public int StatusCode => Submission.StatusCode;
+    public int? CheckedStatus => Submission.CheckResults.OrderByDescending(check => check.CheckTime).ThenByDescending(check => check.Id)
+        .Select(check => (int?)check.StatusCode).FirstOrDefault();
     public bool Selected { get; set; }
 }
 
@@ -34,7 +36,9 @@ public sealed partial class ContestImportService
     {
         row.RunDataKey = null;
         var submissions = row.Original is null ? [] : await context.Submissions.AsNoTracking()
-            .Where(s => s.ProblemId == row.Id && s.IsReference).Include(s => s.Compilator).OrderBy(s => s.Id).ToListAsync(token);
+            .Where(s => s.ProblemId == row.Id && s.IsReference).Include(s => s.Compilator)
+            .Include(s => s.CheckResults.OrderByDescending(check => check.CheckTime).ThenByDescending(check => check.Id).Take(1))
+            .OrderBy(s => s.Id).ToListAsync(token);
         row.ReferenceSnapshot = Hash(submissions.Select(s => new
         {
             s.Id,
