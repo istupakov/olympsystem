@@ -54,6 +54,20 @@ separate sign-in restriction.
 `IsHidden` controls visibility; it is not equivalent to account lockout or
 `IsDisqualified`. The effect of disqualification must be specified per operation.
 
+Permanent users may merge another personal account after confirming deletion and
+verifying its password under ordinary sign-in confirmation and lockout checks.
+History, memberships and incoming coach relationships transfer; the other account
+is deleted. Its profile, permissions, restrictions and sign-in methods do not
+transfer. A resulting self-coach relationship is cleared. Different participations
+in the same contest prevent merging and require administrator intervention.
+
+Permanent users may select or clear their own coach. A new coach must be another
+permanent user with a `coach-org` claim for the user's current organization.
+Selection immediately grants the existing coach access to submissions. Changing
+the user's organization clears their coach; revoking a coach's organization claim
+retains existing relationships. Profile changes do not change historical
+participant-account coaches.
+
 Sources: [policy and claim names](../Olymp.WebApp/Names.cs),
 [WebApp policies](../Olymp.WebApp/Program.cs),
 [email migration](../Olymp.WebApp/Services/Authorization/EmailAsLoginRequirement.cs),
@@ -80,7 +94,7 @@ Submission lists ignore freeze restrictions in open contests even if an
 inconsistent record retains a non-null `FreezeTime`.
 
 `ProblemShowTime` exists to allow PDF printing before the contest
-starts. It does not publish HTML statements early.
+starts. It does not publish problem statements early.
 
 The problem workspace requires sign-in and shows only active problems in visible,
 started contests (`AllowShowProblems`). Closing submissions does not remove read
@@ -103,7 +117,7 @@ on these routes, including staff accounts.
 | --- | --- |
 | Statement PDF after the start | Anonymous download when the contest is visible and the file exists. |
 | Statement PDF before the start | Permanent account passing the `Coach` policy, from `ProblemShowTime`, with a participant in this contest whose `CoachId` matches the account. Visible contest and existing file required; participant approval is not required. |
-| HTML statements and examples | Signed-in account and a visible, active problem, including temporary accounts viewing another contest. Examples contain only active, open tests. |
+| Problem statements and examples | Signed-in account and a visible, active problem, including temporary accounts viewing another contest. Examples contain only active, open tests. |
 | Test ZIP | Permanent account passing `OlympUser`, with the coach claim or linked as a member or coach to a participant in this contest; visible, open contest strictly after its end and an existing file. Participant approval is not required. |
 
 Early printing uses the protected `/contests/{id}/printproblems` endpoint;
@@ -148,6 +162,8 @@ sessions, and upstream response bodies are not retained or logged.
   contest before its end. First name, last name, and organization are required.
   Registration in competition additionally requires a group/profile detail.
   A user without that detail can register only out of competition.
+  The participant inherits the personal account's selected coach at registration.
+  Later profile changes do not change existing participants' coaches.
 - Team registration requires a permanent coach account with a matching
   organization claim and a visible team contest before its end. Linked members
   must belong to that organization, be visible, and not already participate in
@@ -427,7 +443,7 @@ details, including to jury members without a contest management assignment.
 | Restore a database backup | Administrator only, in Development. Requires preview and confirmation of replacing the development database. |
 | Pause or resume judging for all Runner connections | Administrator only. Pausing stops new checks; current checks finish normally. |
 | Create a contest | Jury or administrator; the creator receives management permission. New contests are hidden. |
-| Edit contest settings, upload or replace the statements PDF, change problem and test activity; publish or remove the contest test archive; finish a contest; manage participants and credentials, import ICPC teams, answer questions, manage announcements and clarifications | Administrator or jury member with the stored `contest-manage` assignment for this contest. Replacing an existing statements PDF requires confirmation. Archive publication and contest completion are permitted only after the contest ends and require confirmation; archive removal also requires confirmation. |
+| Edit contest settings, upload, replace or delete the statements PDF, change problem and test activity; publish or remove the contest test archive; finish a contest; manage participants and credentials, import ICPC teams, answer questions, manage announcements and clarifications | Administrator or jury member with the stored `contest-manage` assignment for this contest. Replacing or deleting an existing statements PDF requires confirmation. Deletion is allowed regardless of contest time, retains problem texts and examples, and rejects a file changed since confirmation was requested. Archive publication and contest completion are permitted only after the contest ends and require confirmation; archive removal also requires confirmation. |
 | Submit solutions from the staff task page | Jury or administrator, without a contest assignment or public publication, activity, time, or open-contest restrictions. Solutions belong to the signed-in account. |
 | Delete a problem and its tests, remaining submissions, check history, and messages | Administrator or jury member with the stored `contest-manage` assignment for this contest. Requires confirmation and no submissions or messages linked to `Competitor` accounts. Conditions are rechecked when deleting. |
 | Read compiler configurations and Runner diagnostics; run anti-cheat analysis and trial runs | Jury or administrator. Analysis applies no participant penalties automatically. |

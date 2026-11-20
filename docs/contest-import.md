@@ -2,7 +2,7 @@
 
 Import problems from a ZIP into an existing contest. One ZIP can contain new and existing problems. Each problem is saved in a separate transaction. See [import permissions](access-control.md#10-jury-administration-and-service-accounts).
 
-For contests at or after the [Markdown cutoff](problem-statements.md), include an optional UTF-8 `statement.md` beside `problem.json`. Earlier contests retain their existing HTML/PDF statements. Partial updates apply to both formats.
+Include an optional UTF-8 `statement.md` beside `problem.json`, using the [Markdown statement format](problem-statements.md), regardless of the contest date.
 
 ## Prepare the ZIP
 

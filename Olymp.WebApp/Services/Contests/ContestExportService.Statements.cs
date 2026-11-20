@@ -14,7 +14,6 @@ public sealed partial class ContestExportService
         await using var db = await factory.CreateDbContextAsync(token);
         await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, token);
         var contest = await db.Contests.AsNoTracking().SingleOrDefaultAsync(c => c.Id == contestId, token) ?? throw new EntityNotFoundException();
-        if (!StatementFormat.UsesMarkdown(contest.StartTime)) throw new EntityNotFoundException();
         var problems = await db.Problems.AsNoTracking().Where(p => p.ContestId == contestId && p.IsActive)
             .Include(p => p.Tests.Where(t => t.IsActive && t.IsOpen)).OrderBy(p => p.Number).ThenBy(p => p.Id).ToListAsync(token);
         if (problems.Count == 0) throw new OperationValidationException(SiteResources.NoProblemsFound);

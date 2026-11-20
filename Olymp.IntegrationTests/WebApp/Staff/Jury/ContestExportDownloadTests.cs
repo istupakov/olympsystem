@@ -31,7 +31,7 @@ public class ContestExportDownloadTests(WebAppFactory factory) : StaffComponentT
         await GrantRoleAsync(user.Id, role);
         await using var scope = _factory.Services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<OlympContext>();
-        var contest = TestEntities.CreateContest("Русский турнир", Olymp.Statements.StatementFormat.Cutoff, Olymp.Statements.StatementFormat.Cutoff.AddHours(5));
+        var contest = TestEntities.CreateContest("Русский турнир", new DateTimeOffset(2020, 1, 1, 0, 0, 0, TimeSpan.FromHours(7)), new DateTimeOffset(2020, 1, 1, 0, 0, 0, TimeSpan.FromHours(7)).AddHours(5));
         contest.Abbr = "tex-" + Guid.NewGuid().ToString("N");
         contest.IsHidden = true;
         var problem = TestEntities.CreateProblem(contest, 2);

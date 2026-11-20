@@ -154,4 +154,16 @@
   <data name="AcceptRulesPrefix" xml:space="preserve"><value>I accept the</value></data>
   <data name="SystemUsageRules" xml:space="preserve"><value>system usage rules</value></data>
   <data name="AcceptRulesRequired" xml:space="preserve"><value>You must accept the system usage rules.</value></data>
+  <data name="Coach" xml:space="preserve"><value>Coach</value></data>
+  <data name="NoCoach" xml:space="preserve"><value>No coach</value></data>
+  <data name="CoachExplanation" xml:space="preserve"><value>Changing your university clears your coach. Save the new university to update the coach list. The selected coach immediately receives access to your submissions under the site's rules.</value></data>
+  <data name="CoachInvalid" xml:space="preserve"><value>Choose a coach authorized for your university.</value></data>
+  <data name="MergeAccounts" xml:space="preserve"><value>Merge accounts</value></data>
+  <data name="MergeExplanation" xml:space="preserve"><value>Enter the login and password of another personal account. Its history and participation links will be transferred to your current account, and the other account will be deleted. Your current profile, permissions, restrictions and sign-in methods will remain.</value></data>
+  <data name="MergeConfirmation" xml:space="preserve"><value>I confirm the transfer of history and deletion of the account whose login I entered.</value></data>
+  <data name="MergeConfirmationRequired" xml:space="preserve"><value>Confirm the transfer and deletion of the other account.</value></data>
+  <data name="MergeInvalidAccount" xml:space="preserve"><value>Enter the login and password of another personal account.</value></data>
+  <data name="MergeParticipationConflict" xml:space="preserve"><value>Cannot merge accounts: they are linked to different participants in these contests: {0}. Contact an administrator to merge the accounts.</value></data>
+  <data name="MergeFailed" xml:space="preserve"><value>Failed to merge accounts. No history was transferred and the other account was not deleted.</value></data>
+  <data name="MergeSucceeded" xml:space="preserve"><value>The accounts have been merged. The other account has been deleted.</value></data>
 </root>

@@ -132,7 +132,16 @@ else
             <InputFile @key="_pdfInputVersion" id="contest-pdf" class="form-control mb-2" accept=".pdf,application/pdf" OnChange="SelectPdf" disabled="@_saving" />
             <StaffFormFeedback Error="@_pdfError" />
             @if (_pdfSaved) { <p class="alert alert-success" role="status">@SiteResources.StaffPdfUploaded</p> }
-            @if (_confirmPdf)
+            @if (_pdfRemoved) { <p class="alert alert-success" role="status">@SiteResources.StaffPdfRemoved</p> }
+            @if (_pdfRemoval is not null)
+            {
+                <div class="alert alert-warning" role="alert">
+                    <p>@SiteResources.StaffRemovePdfConfirm</p>
+                    <button type="button" class="btn btn-danger" disabled="@_saving" @onclick="() => RemovePdfAsync(true)">@SiteResources.StaffRemovePdf</button>
+                    <button type="button" class="btn btn-outline-secondary ms-2" disabled="@_saving" @onclick="() => _pdfRemoval = null">@SiteResources.StaffCancel</button>
+                </div>
+            }
+            else if (_confirmPdf)
             {
                 <div class="alert alert-warning" role="alert">
                     <p>@SiteResources.StaffReplacePdfConfirm</p>
@@ -143,6 +152,10 @@ else
             else
             {
                 <button type="button" class="btn btn-secondary" disabled="@(_saving || _pdfFile is null)" @onclick="() => UploadPdfAsync(false)">@(_hasPdf ? SiteResources.StaffReplacePdf : SiteResources.StaffUploadPdf)</button>
+                @if (_hasPdf)
+                {
+                    <button type="button" class="btn btn-outline-danger ms-2" disabled="@_saving" @onclick="() => RemovePdfAsync(false)">@SiteResources.StaffRemovePdf</button>
+                }
             }
         </div>
         <ContestImportAccess ContestId="Id.Value" />

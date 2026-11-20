@@ -1,6 +1,6 @@
 # Markdown problem statements
 
-This format applies to contests starting on or after 1 November 2026 at 00:00 in Novosibirsk (UTC+07:00). Earlier contests use their existing HTML and PDF. The cutoff uses the contest start time, including for imports performed before the contest.
+Problem texts use Markdown regardless of the contest date.
 
 ## Authoring a problem
 

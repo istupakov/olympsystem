@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Data;
 using System.IO.Compression;
 using System.Security.Claims;
+using System.Security.Cryptography;
 
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
@@ -99,14 +100,38 @@ public sealed partial class ContestProblemService(OlympContext context, IChecker
         await context.SaveChangesAsync(token);
     }
 
-    public async Task RemovePdfAsync(int contestId, CancellationToken token = default)
+    public sealed record PdfRemoval(int ContestId, int PdfId, string Hash);
+
+    public async Task<PdfRemoval?> PrepareRemovePdfAsync(ClaimsPrincipal actor, int contestId, CancellationToken token = default)
     {
-        var contest = await context.Contests.Include(x => x.ProblemPdf).AsTracking()
+        await AuthorizeAsync(actor, contestId);
+        var contest = await context.Contests.AsNoTracking().Include(item => item.ProblemPdf)
+            .SingleOrDefaultAsync(item => item.Id == contestId, token) ?? throw new EntityNotFoundException();
+        return contest.ProblemPdf is { } pdf ? new(contestId, pdf.Id, Convert.ToHexString(SHA256.HashData(pdf.Data))) : null;
+    }
+
+    public async Task RemovePdfAsync(ClaimsPrincipal actor, PdfRemoval preview, CancellationToken token = default)
+    {
+        await AuthorizeAsync(actor, preview.ContestId);
+        await using var transaction = await context.Database.BeginTransactionAsync(IsolationLevel.Serializable, token);
+        var contest = await context.Contests.AsNoTracking().Include(item => item.ProblemPdf)
+            .SingleOrDefaultAsync(item => item.Id == preview.ContestId, token) ?? throw new EntityNotFoundException();
+        if (contest.ProblemPdf is { } pdf && (pdf.Id != preview.PdfId || Convert.ToHexString(SHA256.HashData(pdf.Data)) != preview.Hash))
+            throw new OperationValidationException(SiteResources.StaffPdfChanged);
+        await RemovePdfAsync(preview.ContestId, token);
+        await transaction.CommitAsync(token);
+    }
+
+    internal async Task RemovePdfAsync(int contestId, CancellationToken token = default)
+    {
+        var contest = await context.Contests.AsTracking()
             .SingleAsync(x => x.Id == contestId, token);
-        if (contest.ProblemPdf is not { } pdf)
-            return;
+        await context.Entry(contest).ReloadAsync(token);
+        if (contest.ProblemPdfId is not int pdfId) return;
+        var pdf = await context.Blobs.AsTracking().SingleAsync(item => item.Id == pdfId, token);
 
         contest.ProblemPdf = null;
+        contest.ProblemPdfId = null;
         context.Blobs.Remove(pdf);
         await context.SaveChangesAsync(token);
     }

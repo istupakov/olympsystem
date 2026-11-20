@@ -19,6 +19,38 @@ namespace Olymp.IntegrationTests.Services.Contests;
 public class CompetitorRegistrationTests(ContestServiceFixture site) : IClassFixture<ContestServiceFixture>
 {
     [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task IndividualRegistrationCopiesProfileCoachAndRetainsItAfterProfileChanges(bool hasCoach, bool outOfCompetition)
+    {
+        var token = TestContext.Current.CancellationToken;
+        var (user, contest, _) = await SetupAsync();
+        var coach = await site.AddUserAsync();
+        int? selectedCoach = hasCoach ? coach.Id : null;
+        using (var setup = site.Services.CreateScope())
+            await setup.ServiceProvider.GetRequiredService<OlympContext>().OlympUsers.Where(item => item.Id == user.Id)
+                .ExecuteUpdateAsync(setters => setters.SetProperty(item => item.CoachId, selectedCoach), token);
+
+        using (var registration = site.Services.CreateScope())
+            await registration.ServiceProvider.GetRequiredService<CompetitorManagementService>()
+                .RegisterIndividualAsync(contest.Id, user.Id, outOfCompetition, token);
+
+        using var verification = site.Services.CreateScope();
+        var db = verification.ServiceProvider.GetRequiredService<OlympContext>();
+        var participant = await db.Competitors.AsNoTracking().Include(item => item.Members)
+            .SingleAsync(item => item.ContestId == contest.Id, token);
+        Assert.Equal(selectedCoach, participant.CoachId);
+        Assert.Equal(user.Id, Assert.Single(participant.Members).Id);
+        Assert.Equal(outOfCompetition, participant.IsOutOfCompetition);
+
+        await db.OlympUsers.Where(item => item.Id == user.Id)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(item => item.CoachId, hasCoach ? null : (int?)coach.Id), token);
+        Assert.Equal(selectedCoach, await db.Competitors.Where(item => item.Id == participant.Id).Select(item => item.CoachId).SingleAsync(token));
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public async Task RegistrationIsRejectedAtTheExactEndTime(bool team)

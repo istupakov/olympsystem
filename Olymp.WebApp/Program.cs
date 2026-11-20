@@ -134,6 +134,7 @@ builder.Services.AddSingleton<DatabaseBackupService>();
 builder.Services.AddHostedService(services => services.GetRequiredService<DatabaseBackupService>());
 builder.Services.AddScoped<AdminParticipantService>();
 builder.Services.AddScoped<UnconfirmedUserCleanupService>();
+builder.Services.AddScoped<AccountMergeService>();
 builder.Services.AddScoped<StaffGridState>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<IcpcImportService>();

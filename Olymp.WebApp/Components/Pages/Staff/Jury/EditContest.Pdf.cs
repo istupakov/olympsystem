@@ -12,14 +12,16 @@ namespace Olymp.WebApp.Components.Pages.Staff.Jury;
 public partial class EditContest
 {
     private IBrowserFile? _pdfFile;
-    private bool _hasPdf, _confirmPdf, _pdfSaved;
+    private bool _hasPdf, _confirmPdf, _pdfSaved, _pdfRemoved;
+    private ContestProblemService.PdfRemoval? _pdfRemoval;
     private string? _pdfError;
     private int _pdfInputVersion;
 
     private void ResetPdf()
     {
         _pdfFile = null;
-        _hasPdf = _confirmPdf = _pdfSaved = false;
+        _hasPdf = _confirmPdf = _pdfSaved = _pdfRemoved = false;
+        _pdfRemoval = null;
         _pdfError = null;
         _pdfInputVersion++;
     }
@@ -28,7 +30,8 @@ public partial class EditContest
     {
         if (_saving) return;
         _pdfFile = args.FileCount == 1 ? args.File : null;
-        _confirmPdf = _pdfSaved = false;
+        _confirmPdf = _pdfSaved = _pdfRemoved = false;
+        _pdfRemoval = null;
         _pdfError = null;
     }
 
@@ -38,6 +41,8 @@ public partial class EditContest
         _saving = true;
         _pdfError = null;
         _pdfSaved = false;
+        _pdfRemoved = false;
+        _pdfRemoval = null;
         try
         {
             long limit = ImportOptions.Value.MaxPdfBytes;
@@ -70,6 +75,39 @@ public partial class EditContest
         catch (Exception exception) when (exception is System.Data.Common.DbException or DbUpdateException)
         {
             Logger.LogError(exception, "Failed to upload contest PDF for {ContestId}", id);
+            _pdfError = SiteResources.StaffSaveFailed;
+        }
+        finally { _saving = false; }
+    }
+
+    private async Task RemovePdfAsync(bool confirm)
+    {
+        if (_saving || Id is not int id) return;
+        _saving = true;
+        _pdfError = null;
+        _confirmPdf = _pdfSaved = _pdfRemoved = false;
+        try
+        {
+            await using var scope = ScopeFactory.CreateAsyncScope();
+            var service = scope.ServiceProvider.GetRequiredService<ContestProblemService>();
+            var actor = (await AuthenticationState).User;
+            if (!confirm)
+            {
+                _pdfRemoval = await service.PrepareRemovePdfAsync(actor, id);
+                _hasPdf = _pdfRemoval is not null;
+                return;
+            }
+            if (_pdfRemoval is not { } preview || preview.ContestId != id) return;
+            await service.RemovePdfAsync(actor, preview);
+            ResetPdf();
+            _pdfRemoved = true;
+        }
+        catch (OperationValidationException exception) { _pdfRemoval = null; _pdfError = exception.Message; }
+        catch (EntityNotFoundException) { _pdfRemoval = null; _pdfError = SiteResources.PageNotFoundMessage; }
+        catch (Exception exception) when (exception is System.Data.Common.DbException or DbUpdateException)
+        {
+            _pdfRemoval = null;
+            Logger.LogError(exception, "Failed to remove contest PDF for {ContestId}", id);
             _pdfError = SiteResources.StaffSaveFailed;
         }
         finally { _saving = false; }

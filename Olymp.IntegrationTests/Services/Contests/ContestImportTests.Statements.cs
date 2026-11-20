@@ -23,7 +23,7 @@ public partial class ContestImportTests
         using var scope = site.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<OlympContext>();
         var contest = await db.Contests.AsTracking().SingleAsync(c => c.Id == setup.Contest.Id, Token);
-        contest.StartTime = StatementFormat.Cutoff;
+        contest.StartTime = new DateTimeOffset(2020, 1, 1, 0, 0, 0, TimeSpan.FromHours(7));
         contest.EndTime = contest.StartTime.AddHours(5);
         await db.SaveChangesAsync(Token);
         var service = scope.ServiceProvider.GetRequiredService<ContestImportService>();
@@ -97,7 +97,7 @@ public partial class ContestImportTests
         using var scope = site.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<OlympContext>();
         var contest = await db.Contests.AsTracking().SingleAsync(c => c.Id == setup.Contest.Id, Token);
-        contest.StartTime = StatementFormat.Cutoff;
+        contest.StartTime = new DateTimeOffset(2020, 1, 1, 0, 0, 0, TimeSpan.FromHours(7));
         await db.SaveChangesAsync(Token);
         var service = scope.ServiceProvider.GetRequiredService<ContestImportService>();
         var preview = await PrepareAsync(service, setup.Actor, contest.Id, Package(new { number = 1 }, false,

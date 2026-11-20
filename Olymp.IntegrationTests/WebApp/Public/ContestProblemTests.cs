@@ -29,7 +29,7 @@ public class ContestProblemTests(WebAppFactory factory) : IClassFixture<WebAppFa
     {
         var contest = Contest("Contest <em>name</em>", 2024);
         foreach (int number in Enumerable.Range(1, 60).Reverse())
-            AddProblem(contest, number).Text = $"<p>Statement {number}</p>";
+            AddProblem(contest, number).Text = $"# Problem {number}\n\nStatement {number}\n\n## Формат входных данных\n\nInput.\n\n## Формат выходных данных\n\nOutput.";
         var other = Contest("Other contest", 2025);
         AddProblem(other, 1).Name = "Unrelated problem";
         AddProblem(contest, 61).IsActive = false;
@@ -44,7 +44,7 @@ public class ContestProblemTests(WebAppFactory factory) : IClassFixture<WebAppFa
         Assert.Equal(Enumerable.Range(1, 60).Select(number => $"{number}. Problem {number}"),
             document.QuerySelectorAll(".problem-list .list-group-item").Select(link => link.TextContent));
         Assert.Equal("1. Problem 1", document.QuerySelector("#problem-detail h2")!.TextContent);
-        Assert.Equal("Statement 1", document.QuerySelector(".statement-html")!.TextContent);
+        Assert.Equal("Statement 1", document.QuerySelector(".statement-markdown p")!.TextContent);
         Assert.NotNull(document.QuerySelector("#submission-code"));
         Assert.NotNull(document.QuerySelector("#submissions"));
         Assert.Null(document.QuerySelector("#problem-year, #problem-contest, #problem-search, .pagination"));
@@ -143,7 +143,7 @@ public class ContestProblemTests(WebAppFactory factory) : IClassFixture<WebAppFa
         var contest = Contest("Contest", 2024);
         var first = AddProblem(contest, 1);
         var second = AddProblem(contest, 2);
-        second.Text = "<p>Second statement</p>";
+        second.Text = "# Second\n\nSecond statement\n\n## Формат входных данных\n\nInput.\n\n## Формат выходных данных\n\nOutput.";
         await SeedAsync(contest);
         using var client = await LoginAsync();
         using var document = await GetAsync(client, Path(contest));
@@ -194,12 +194,12 @@ public class ContestProblemTests(WebAppFactory factory) : IClassFixture<WebAppFa
     [Theory]
     [InlineData("ru")]
     [InlineData("en")]
-    public async Task StatementsPreserveLegacyHtmlAndOnlyExposeActiveOpenExamples(string culture)
+    public async Task MarkdownStatementsWorkForOldContestsAndOnlyExposeActiveOpenExamples(string culture)
     {
         var contest = Contest("Source contest", 2024);
         var problem = AddProblem(contest, 1);
         problem.Name = "Name <em>as text</em>";
-        problem.Text = "<p><strong>Original HTML</strong> <a href='../legacy'>Legacy link</a></p>";
+        problem.Text = "# Old statement\n\n**Converted Markdown**\n\n## Формат входных данных\n\nInput.\n\n## Формат выходных данных\n\nOutput.";
         AddTest(problem, 3, true, true, "  2\n3  \n");
         AddTest(problem, 1, true, true, "<script>input</script>\nПример");
         AddTest(problem, 2, false, true, "Private example");
@@ -207,8 +207,8 @@ public class ContestProblemTests(WebAppFactory factory) : IClassFixture<WebAppFa
         await SeedAsync(contest);
         using var client = await LoginAsync(culture);
         using var document = await GetAsync(client, Path(contest, problem));
-        Assert.Equal("Original HTML", document.QuerySelector(".statement-html strong")!.TextContent);
-        Assert.NotNull(document.QuerySelector(".statement-html a[href='../legacy']"));
+        Assert.Equal("Converted Markdown", document.QuerySelector(".statement-markdown strong")!.TextContent);
+        Assert.Null(document.QuerySelector(".statement-html"));
         Assert.Null(document.QuerySelector("#problem-detail h2 em"));
         Assert.Equal([culture == "ru" ? "Стандартный ввод" : "Standard input", culture == "ru" ? "Стандартный вывод" : "Standard output"],
             document.QuerySelectorAll(".problem-examples th").Select(cell => cell.TextContent));
