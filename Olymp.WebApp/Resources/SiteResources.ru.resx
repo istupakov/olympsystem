@@ -158,7 +158,6 @@
   <data name="OwnSubmissions" xml:space="preserve"><value>Мои решения</value></data>
   <data name="CoachedSubmissions" xml:space="preserve"><value>Подопечные</value></data>
   <data name="AllSubmissions" xml:space="preserve"><value>Все</value></data>
-  <data name="SubmissionRecorded" xml:space="preserve"><value>Отправлено</value></data>
   <data name="SubmissionPages" xml:space="preserve"><value>Страницы решений</value></data>
   <data name="NextPage" xml:space="preserve"><value>Далее</value></data>
   <data name="ParticipantAccountSignIn" xml:space="preserve"><value>Для участия в соревновании войдите под этим аккаунтом участника.</value></data>

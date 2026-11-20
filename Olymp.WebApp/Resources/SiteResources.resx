@@ -158,7 +158,6 @@
   <data name="OwnSubmissions" xml:space="preserve"><value>My submissions</value></data>
   <data name="CoachedSubmissions" xml:space="preserve"><value>Coached authors</value></data>
   <data name="AllSubmissions" xml:space="preserve"><value>All</value></data>
-  <data name="SubmissionRecorded" xml:space="preserve"><value>Submitted</value></data>
   <data name="SubmissionPages" xml:space="preserve"><value>Submission pages</value></data>
   <data name="NextPage" xml:space="preserve"><value>Next</value></data>
   <data name="ParticipantAccountSignIn" xml:space="preserve"><value>Sign in with this participant account to participate in the contest.</value></data>
