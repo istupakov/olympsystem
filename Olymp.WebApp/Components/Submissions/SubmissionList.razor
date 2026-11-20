@@ -78,8 +78,8 @@
     private SubmissionKind selectedKind;
     private bool loaded;
     private bool isTemporary;
-    private bool isForeignParticipant;
-    private bool FixedParticipant => isTemporary && !isForeignParticipant;
+    private bool isPublicParticipant;
+    private bool FixedParticipant => isTemporary && !isPublicParticipant;
     private readonly HashSet<(SubmissionScope Scope, SubmissionKind Kind)> available = [];
     private bool hasNextPage;
 
@@ -107,8 +107,8 @@
         }
         int userId = user.Id;
         isTemporary = user is Competitor;
-        isForeignParticipant = user is Competitor participant && ContestId.HasValue && ContestId != participant.ContestId;
-        selectedScope = isForeignParticipant ? SubmissionScope.All : SubmissionScope.Own;
+        isPublicParticipant = user is Competitor participant && (!ContestId.HasValue || ContestId != participant.ContestId);
+        selectedScope = isPublicParticipant ? SubmissionScope.All : SubmissionScope.Own;
         bool legacyParticipant = string.Equals(Scope, "participant", StringComparison.OrdinalIgnoreCase);
         selectedKind = SubmissionKind.Contest;
         if (!FixedParticipant && ((!string.IsNullOrEmpty(Scope) && !legacyParticipant
@@ -161,7 +161,7 @@
             return;
         }
 
-        query = isTemporary ? (isForeignParticipant ? publicQuery : query.Where(item => item.UserId == userId)) : selectedScope switch
+        query = isTemporary ? (isPublicParticipant ? publicQuery : query.Where(item => item.UserId == userId)) : selectedScope switch
         {
             SubmissionScope.Own => ownQuery,
             SubmissionScope.Coached => coachedQuery,
@@ -215,13 +215,13 @@
     {
         bool explicitScope = !string.IsNullOrEmpty(Scope);
         bool explicitKind = !string.IsNullOrEmpty(Kind) || legacyParticipant;
-        if (isForeignParticipant) selectedScope = SubmissionScope.All;
+        if (isPublicParticipant) selectedScope = SubmissionScope.All;
         else if (legacyParticipant) selectedScope = SubmissionScope.Own;
         else if (!explicitScope) selectedScope = ContestId.HasValue ? SubmissionScope.Own : SubmissionScope.All;
         if (!explicitKind) selectedKind = preferredKind;
         if (!ContestId.HasValue) return;
 
-        SubmissionScope[] scopes = isForeignParticipant || explicitScope ? [selectedScope]
+        SubmissionScope[] scopes = isPublicParticipant || explicitScope ? [selectedScope]
             : [SubmissionScope.Own, SubmissionScope.Coached, SubmissionScope.All];
         SubmissionKind[] kinds = explicitKind ? [selectedKind]
             : [preferredKind, preferredKind == SubmissionKind.Contest ? SubmissionKind.Training : SubmissionKind.Contest];

@@ -96,6 +96,7 @@ public class ContestProblemTests(WebAppFactory factory) : IClassFixture<WebAppFa
             Add(0, -1002, 2);
             Add(0, 2, 3, school ? 100 : null);
             Add(0, -1003, 4);
+            Add(0, 1, 5);
             Add(1, -1001, 1);
             Add(1, -1002, 2);
             Add(1, -1003, 3);
@@ -104,16 +105,19 @@ public class ContestProblemTests(WebAppFactory factory) : IClassFixture<WebAppFa
             Add(2, school ? -1003 : 2, 1, school ? 37 : null);
             if (school)
                 Add(2, -1004, 2, 12);
+            Add(2, 1, 3);
             Add(3, 0, 1);
             Add(3, 1, 2);
             Add(3, -1, 3);
             Add(4, 2, 1, school ? 100 : null, foreign: true);
             Add(4, 2, 2, school ? 100 : null, hidden: true);
+            Add(4, 0, 3, foreign: true);
+            Add(4, 1, 4, hidden: true);
             await context.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
-        string[] texts = school ? ["100/100", "0/100", "37/100", "", "", ""] : ["+2", "-3", "+", "", "", ""];
-        string?[] colors = ["success", "danger", school ? "warning" : "success", null, null, null];
+        string[] texts = school ? ["100/100", "0/100 (?4)", "37/100 (?2)", "?2", "", ""] : ["+2", "?4", "+", "?2", "", ""];
+        string?[] colors = ["success", "warning", school ? "warning" : "success", "warning", null, null];
         foreach (string suffix in temporary ? new[] { "" } : ["", "&scope=all"])
         {
             using var document = await GetAsync(client, Path(contest, problems[0]) + suffix);

@@ -256,7 +256,7 @@ who can select this scope.
 
 | Account | Available scopes |
 | --- | --- |
-| Temporary `Competitor` | Own submissions in the general list and their bound contest; public submission information in other contests. |
+| Temporary `Competitor` | Own submissions in their bound contest; public submission information in the general list and other contests, with Contest/Training selection. |
 | Permanent `OlympUser` | Mine (own and linked `Competitor` submissions); All with uniformly restricted public information. |
 | Permanent user with coached authors | The permanent-user scopes plus submissions of authors whose `User.CoachId` equals the viewer's ID. Coached authors may be `Competitor` or `OlympUser`; no coach claim is required for this scope. |
 

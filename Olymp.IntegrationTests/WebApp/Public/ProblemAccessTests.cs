@@ -442,7 +442,7 @@ public sealed class ProblemAccessTests(WebAppFactory factory) : IClassFixture<We
     }
 
     [Fact]
-    public async Task TemporarySubmissionPaginationDropsScopeAndKeepsOwnRows()
+    public async Task TemporaryOwnContestSubmissionPaginationDropsScopeAndKeepsOwnRows()
     {
         var data = await CreateDataAsync(running: true);
         var participant = await ParticipantAsync(data.Contest);
@@ -451,9 +451,10 @@ public sealed class ProblemAccessTests(WebAppFactory factory) : IClassFixture<We
             ownIds.Add(await AddSubmissionAsync(participant.Id, data.Problem, data.Compiler));
         int foreignId = await AddSubmissionAsync(data.User.Id, data.Problem, data.Compiler);
         using var client = await factory.LoginAsync(participant.UserName!);
-        foreach (string path in new[] { "/submissions", $"/contests/{data.Contest.Id}/submissions" })
+        foreach (string path in new[] { $"/contests/{data.Contest.Id}/submissions", Path(data.Contest, data.Problem) })
         {
-            using var first = await GetAsync(client, $"{path}?scope=all&kind=training");
+            string separator = path.Contains('?') ? "&" : "?";
+            using var first = await GetAsync(client, $"{path}{separator}scope=all&kind=training");
             Assert.Equal(20, first.QuerySelectorAll("#submissions tbody tr").Length);
             Assert.Null(first.QuerySelector($"#submission-{foreignId}"));
             string nextUrl = first.QuerySelector("#submissions a[href*='page=2']")!.GetAttribute("href")!;
@@ -477,13 +478,16 @@ public sealed class ProblemAccessTests(WebAppFactory factory) : IClassFixture<We
         using var client = await factory.LoginAsync(participant.UserName!);
         using var own = await GetAsync(client, Path(data.Contest, data.Problem));
         using var history = await GetAsync(client, "/submissions");
-        Assert.Single(history.QuerySelectorAll("#submissions tbody tr"));
-        Assert.Null(history.QuerySelector("#submissions .nav"));
+        Assert.NotNull(history.QuerySelector($"#submission-{foreignId}"));
+        Assert.Null(history.QuerySelector($"#submission-{ownId}"));
+        Assert.Null(history.QuerySelector("#submissions nav a[href*='scope=own']"));
+        Assert.Empty(history.QuerySelectorAll("#submissions tbody a[href*='submissions/']"));
         foreach (string scope in new[] { "all", "participant", "coached", "unknown" })
         {
-            foreach (string path in new[] { "/submissions", $"/contests/{data.Contest.Id}/submissions" })
+            foreach (string path in new[] { $"/contests/{data.Contest.Id}/submissions", Path(data.Contest, data.Problem) })
             {
-                using var scoped = await GetAsync(client, $"{path}?scope={scope}&kind=training");
+                string separator = path.Contains('?') ? "&" : "?";
+                using var scoped = await GetAsync(client, $"{path}{separator}scope={scope}&kind=training");
                 Assert.Single(scoped.QuerySelectorAll("#submissions tbody tr"));
                 Assert.NotNull(scoped.QuerySelector($"#submission-{ownId}"));
                 Assert.Null(scoped.QuerySelector("#submissions nav"));

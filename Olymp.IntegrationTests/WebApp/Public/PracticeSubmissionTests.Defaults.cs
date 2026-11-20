@@ -20,6 +20,63 @@ public partial class PracticeSubmissionTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
+    public async Task GlobalParticipantFeedIsPublicWithKindSelectionRegardlessOfOwnHistory(bool hasOwn)
+    {
+        var data = await SeedAsync();
+        using var client = await TemporaryClientAsync(data.Contest);
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<OlympContext>();
+        var token = TestContext.Current.CancellationToken;
+        var publicTeam = await db.Competitors.SingleAsync(item => item.Members.Any(member => member.Id == data.User.Id), token);
+        var participant = await db.Competitors.SingleAsync(item => item.ContestId == data.Contest.Id && item.Id != publicTeam.Id, token);
+        Submission Add(User author, int status, bool hidden = false)
+        {
+            var item = TestEntities.CreateSubmission(author, data.Problem, data.Compiler, DateTimeOffset.UtcNow);
+            item.User = null!;
+            item.Problem = null!;
+            item.Compilator = null!;
+            item.StatusCode = status;
+            item.IsHidden = hidden;
+            db.Submissions.Add(item);
+            return item;
+        }
+        var training = Add(data.User, 2);
+        var competition = Add(publicTeam, -1003);
+        var own = hasOwn ? Add(participant, -1007) : null;
+        var hidden = Add(publicTeam, 2, hidden: true);
+        await db.SaveChangesAsync(token);
+
+        using var page = await GetAsync(client, "/submissions");
+        Assert.Contains("scope=all", RefreshUrl(page));
+        Assert.Contains("kind=training", RefreshUrl(page));
+        Assert.NotNull(page.QuerySelector($"#submission-{training.Id}"));
+        Assert.Null(page.QuerySelector($"#submission-{competition.Id}"));
+        Assert.Equal(2, page.QuerySelectorAll("#submissions nav a[href*='kind=']").Length);
+        Assert.Null(page.QuerySelector("#submissions nav a[href*='scope=own']"));
+
+        foreach (string requestedScope in new[] { "all", "own", "coached", "participant" })
+        {
+            using var contest = await GetAsync(client, $"/submissions?scope={requestedScope}&kind=contest");
+            Assert.Contains("scope=all", RefreshUrl(contest));
+            Assert.Contains("kind=contest", RefreshUrl(contest));
+            Assert.Equal(hasOwn ? 2 : 1, contest.QuerySelectorAll("#submissions tbody tr").Length);
+            Assert.NotNull(contest.QuerySelector($"#submission-{competition.Id}"));
+            Assert.Null(contest.QuerySelector($"#submission-{hidden.Id}"));
+            Assert.DoesNotContain("Wrong answer", contest.QuerySelector("#submissions")!.TextContent);
+            Assert.Empty(contest.QuerySelectorAll("#submissions tbody a[href*='submissions/']"));
+            if (own is not null) Assert.NotNull(contest.QuerySelector($"#submission-{own.Id}"));
+        }
+
+        using var ownContest = await GetAsync(client, $"/contests/{data.Contest.Id}/submissions?scope=all&kind=training");
+        Assert.Equal(hasOwn ? 1 : 0, ownContest.QuerySelectorAll("#submissions tbody tr").Length);
+        Assert.Null(ownContest.QuerySelector("#submissions nav"));
+        if (own is not null)
+            Assert.Contains("Wrong answer on test 7", ownContest.QuerySelector($"#submission-{own.Id}")!.TextContent);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     public async Task ContestAndProblemDefaultsPreferContestModeThenOwnCoachedAndAll(bool open)
     {
         var data = await SeedAsync();

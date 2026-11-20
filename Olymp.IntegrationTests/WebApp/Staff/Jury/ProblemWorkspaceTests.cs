@@ -23,6 +23,36 @@ namespace Olymp.IntegrationTests.WebApp.Staff.Jury;
 [Trait("Category", "Integration")]
 public partial class ProblemWorkspaceTests(WebAppFactory factory) : StaffComponentTests(factory)
 {
+    [Fact]
+    public async Task SwitchingProblemsKeepsWorkspaceVisibleWhileLoading()
+    {
+        var author = await _factory.AddUserAsync();
+        await using var scope = _factory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<OlympContext>();
+        var contest = TestEntities.CreateContest("Switch problems", DateTimeOffset.Now, DateTimeOffset.Now.AddHours(5));
+        var first = TestEntities.CreateProblem(contest);
+        var second = TestEntities.CreateProblem(contest, 2);
+        db.Problems.AddRange(first, second);
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        using var page = await new HtmlParser().ParseDocumentAsync(await RenderAsync<JuryProblems>(
+            $"/jury/contests/{contest.Id}/problems?problemId={first.Id}",
+            new() { [nameof(JuryProblems.ContestId)] = contest.Id },
+            Staff(author.Id), async component =>
+            {
+                typeof(JuryProblems).GetProperty(nameof(JuryProblems.ProblemId))!.SetValue(component, second.Id);
+                var load = ActAsync(component, "OnParametersSetAsync");
+                try
+                {
+                    Assert.True((bool)typeof(JuryProblems).GetField("_loaded", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(component)!);
+                }
+                finally { await load; }
+            }));
+
+        Assert.Equal(second.NameWithNumber, page.QuerySelector("#problem-detail h2")!.TextContent);
+        Assert.Equal(second.Id.ToString(), page.QuerySelector("#workspace-problem")!.GetAttribute("value"));
+    }
+
     [Theory]
     [InlineData(1, 2, true, false, true)]
     [InlineData(-1, 1, true, true, true)]
