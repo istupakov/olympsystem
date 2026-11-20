@@ -925,7 +925,7 @@
   <data name="ImportWillReplace" xml:space="preserve"><value>Will replace</value></data>
   <data name="ImportReferenceReplacement" xml:space="preserve"><value>{0}: a reference solution with this name and different code or compiler exists. Saving replaces its reference flag; the previous submission and history are retained.</value></data>
   <data name="ImportReferenceAddition" xml:space="preserve"><value>{0}: will be saved as a reference solution.</value></data>
-  <data name="ImportRunPreviewHint" xml:space="preserve"><value>All saved references and files selected to save as references must be checked on the imported tests and current limits. Results and check history are saved with the problem.</value></data>
+  <data name="ImportRunPreviewHint" xml:space="preserve"><value>New or changed references require checks before saving. Saved references require new checks only when tests or judging parameters change.</value></data>
   <data name="ImportReferenceChecksRequired" xml:space="preserve"><value>Complete the checks for all reference records on the current tests and limits before saving.</value></data>
   <data name="ImportReferencesChanged" xml:space="preserve"><value>Saved reference solutions have changed. The list and replacement warnings have been updated. Review them and confirm saving again.</value></data>
   <data name="ImportSolutionCompilerRequired" xml:space="preserve"><value>{0}: select an available compiler before saving the reference solution.</value></data>
@@ -937,7 +937,7 @@
   <data name="ImportCheckProgress" xml:space="preserve"><value>Checking: {0} of {1}</value></data>
   <data name="ImportRunOutdated" xml:space="preserve"><value>Recheck required</value></data>
   <data name="ImportSaveProblem" xml:space="preserve"><value>Save problem</value></data>
-  <data name="ImportConfirmProblem" xml:space="preserve"><value>Save problem “{0}”? Its test set will be completely replaced. Submissions and judging history will be retained.</value></data>
+  <data name="ImportConfirmProblem" xml:space="preserve"><value>Save the following changes to problem “{0}”?</value></data>
   <data name="ImportProblemSaved" xml:space="preserve"><value>Problem “{0}” saved.</value></data>
   <data name="ImportHasErrors" xml:space="preserve"><value>Errors</value></data>
   <data name="ImportUpdateProblem" xml:space="preserve"><value>Has changes</value></data>
@@ -993,4 +993,14 @@
   <data name="StatementConstructError" xml:space="preserve"><value>Unsupported Markdown construct.</value></data>
   <data name="StatementPrintWarning" xml:space="preserve"><value>The statement is missing or invalid. The printable set contains a placeholder.</value></data>
   <data name="DownloadStatementTex" xml:space="preserve"><value>Download statements as TeX ZIP</value></data>
+  <data name="ImportValidateAll" xml:space="preserve"><value>Run all validators</value></data>
+  <data name="ImportValidate" xml:space="preserve"><value>Run validator</value></data>
+  <data name="ImportValidationProgress" xml:space="preserve"><value>Validated {0} of {1}</value></data>
+  <data name="ImportValidationNotRequired" xml:space="preserve"><value>Not required</value></data>
+  <data name="ImportValidationPending" xml:space="preserve"><value>Awaiting validation</value></data>
+  <data name="ImportValidationWarnings" xml:space="preserve"><value>Warnings</value></data>
+  <data name="StatementExportAnyway" xml:space="preserve"><value>Download anyway</value></data>
+  <data name="MeasureLimits" xml:space="preserve"><value>Measure limits</value></data>
+  <data name="MeasureAllReferences" xml:space="preserve"><value>Run all references ×5</value></data>
+  <data name="ImportStatementChanged" xml:space="preserve"><value>Statement will be updated.</value></data>
 </root>

@@ -490,9 +490,10 @@ Additional restrictions:
 - Compiler records may be imported only from a connected Runner that passed
   self-testing. New records start disabled; repeated imports retain availability.
   Disabling requires confirmation and preserves existing submissions.
-- Trial runs require jury or administrator access, including when using inactive
-  tests or unpublished problems. They do not create submissions or change saved
-  results or check history. Task and submission trial runs require an active
+- Trial runs and reference limit measurements require jury or administrator
+  access, including for unpublished problems. Trial runs may use inactive tests.
+  Neither operation creates submissions or changes saved results or check history.
+  Task and submission trial runs and reference limit measurements require an active
   compiler and a matching Runner that passed self-testing. Diagnostic runs using
   custom input may use configurations of connected Runners regardless of their
   self-testing status. Compiler import and activation remain administrator

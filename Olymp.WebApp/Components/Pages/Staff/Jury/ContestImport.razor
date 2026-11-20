@@ -24,6 +24,10 @@
 {
     <div class="d-flex flex-wrap gap-2 mb-3">
         <button class="btn btn-outline-secondary" @onclick="Finish">@SiteResources.ImportFinish</button>
+        @if (_preview is not null)
+        {
+            <button class="btn btn-outline-primary" disabled="@(_busy || AnyChecking || _confirmSave || _exitTarget is not null)" @onclick="ValidateAllAsync">@SiteResources.ImportValidateAll</button>
+        }
         @if (_busy || AnyChecking) { <button class="btn btn-outline-secondary" @onclick="Stop">@(_saving ? SiteResources.ImportCancelSave : SiteResources.ImportStop)</button> }
     </div>
     @if (_exitTarget is not null)
@@ -34,19 +38,20 @@
             <button class="btn btn-outline-secondary ms-2" @onclick="() => _exitTarget = null">@SiteResources.ImportStay</button>
         </div>
     }
-    @if (_busy) { <p role="status">@(_saving ? SiteResources.ImportWaiting : SiteResources.StaffChecking)</p> }
+    @if (_validatingAll) { <p role="status">@string.Format(SiteResources.ImportValidationProgress, _validatedCount, _preview!.Rows.Count)</p> }
+    @if (_busy) { <p role="status">@(_saving ? SiteResources.ImportWaiting : SiteResources.StaffLoading)</p> }
     <fieldset disabled="@(_busy || AnyChecking || _confirmSave || _exitTarget is not null)">
         <div class="mb-3"><label for="import-zip" class="form-label">ZIP</label><InputFile id="import-zip" class="form-control" accept=".zip" OnChange="UploadAsync" /></div>
         @if (_preview is { } preview)
         {
             <div class="mb-3"><label for="import-line-endings" class="form-label">@SiteResources.ImportLineEndings</label>
-                <select id="import-line-endings" class="form-select" @bind="preview.LineEndings" @bind:after="CheckValidatorAsync">
+                <select id="import-line-endings" class="form-select" @bind="preview.LineEndings" @bind:after="SettingsChangedAsync">
                     <option value="@ImportLineEndings.Crlf">CRLF</option>
                     <option value="@ImportLineEndings.Lf">LF</option>
                 </select>
             </div>
             <div class="mb-4"><label for="import-cpp" class="form-label">@SiteResources.ImportValidatorCompiler</label>
-                <select id="import-cpp" class="form-select" @bind="preview.ValidatorCompilerId" @bind:after="CheckValidatorAsync">
+                <select id="import-cpp" class="form-select" @bind="preview.ValidatorCompilerId" @bind:after="SettingsChangedAsync">
                     <option value="">@SiteResources.SelectCompiler</option>
                     @foreach (var c in _validatorCompilers) { <option value="@c.Id">@(c.Description ?? c.Name) · ID @c.Id</option> }
                 </select>
@@ -59,7 +64,7 @@
             <nav class="problem-list col-lg-3 text-break" aria-label="@SiteResources.ProblemList">
                 <div class="d-lg-none mb-3"><label for="import-problem" class="form-label">@SiteResources.Problems</label>
                     <select id="import-problem" class="form-select" value="@_selected?.Folder" @onchange="SelectProblem" disabled="@_busy">
-                        @foreach (var row in package.Rows) { <option value="@row.Folder">@row.Label · @RowStatus(row)</option> }
+                        @foreach (var row in package.Rows) { <option value="@row.Folder">@row.Label · @RowStatus(row) · @SiteResources.ImportValidator: @ValidationStatus(row)</option> }
                     </select>
                 </div>
                 <div class="list-group d-none d-lg-flex">
@@ -67,6 +72,7 @@
                     {
                         <a class="list-group-item list-group-item-action @(_selected == row ? "active" : null) @(_busy ? "disabled" : null)" href="@ProblemUrl(row)" aria-current="@(_selected == row ? "page" : null)" aria-disabled="@_busy">
                             <span class="d-block">@row.Label</span><span class="badge @RowBadgeClass(row) text-wrap text-start">@RowStatus(row)</span>
+                            <ReferenceBadges HasValidator="row.HasValidator" ValidatorPassed="row.ValidatorPassed" ReferenceCount="row.EffectiveReferenceCount" HasAccepted="row.HasAcceptedReference" />
                         </a>
                     }
                 </div>
@@ -77,6 +83,7 @@
                     <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
                         <h2 class="h4 mb-0">@task.Label</h2>
                         <span class="badge @RowBadgeClass(task) text-wrap text-start" role="status">@RowStatus(task)</span>
+                        <ReferenceBadges HasValidator="task.HasValidator" ValidatorPassed="task.ValidatorPassed" ReferenceCount="task.EffectiveReferenceCount" HasAccepted="task.HasAcceptedReference" />
                     </div>
                     <p class="text-body-secondary">@task.Folder · @(task.Id is { } id ? $"ID {id}" : SiteResources.ImportNewProblem)</p>
                     <div class="table-responsive"><table class="table table-sm">
@@ -112,6 +119,7 @@
                         <details class="mb-3"><summary>@SiteResources.StatementSource</summary><pre class="overflow-auto">@task.Statement</pre></details>
                     }
                     <h3 class="h5">@SiteResources.ImportValidator</h3>
+                    <button class="btn btn-outline-primary mb-3" disabled="@(_busy || AnyChecking || _confirmSave || _exitTarget is not null)" @onclick="CheckValidatorAsync">@SiteResources.ImportValidate</button>
                     @if (task.HasValidator)
                     {
                         <p>validator.cpp · @(task.Validator is not null ? SiteResources.ImportArchiveSolutions : SiteResources.ImportSavedValidator)
@@ -130,7 +138,7 @@
                             @if (validator.ReplacedIds.Count != 0) { <p class="small text-warning-emphasis">@SiteResources.ImportValidatorReplacement</p> }
                         }
                     }
-                    <p class="alert @ValidatorStatusClass(task)" role="status">@(task.HasValidator ? task.ValidatorMessage ?? SiteResources.ImportValidatorNotRun : SiteResources.ImportNoValidator)</p>
+                    <p class="small text-body-secondary" role="status">@ValidationStatus(task)</p>
                     @foreach (var message in task.ValidatorErrors) { <p class="text-danger" role="alert">@message</p> }
                     @foreach (var message in task.ValidatorWarnings.Where(w => w != task.ValidatorMessage)) { <p class="text-warning-emphasis">@message</p> }
                     @if (task.ValidatorResult is { } validation) { <details class="mb-3"><summary>@SiteResources.StaffRunOutput</summary><pre class="overflow-auto">@validation.Log</pre></details> }
@@ -139,7 +147,7 @@
                         <p class="alert @(savedValidation.Compiled && savedValidation.Tests.All(t => t.IsValid) ? "alert-success" : "alert-warning")">@SiteResources.ImportSavedValidator: @(savedValidation.Compiled ? savedValidation.Tests.All(t => t.IsValid) ? SiteResources.ImportValidatorPassed : SiteResources.ImportValidatorRejected : SiteResources.ImportValidatorCompileFailed)</p>
                         <details class="mb-3"><summary>@SiteResources.StaffRunOutput</summary><pre class="overflow-auto">@savedValidation.Log</pre></details>
                     }
-                    <fieldset disabled="@(_busy || _confirmSave || _exitTarget is not null)">
+                    <fieldset disabled="@(_busy || _validatingAll || _confirmSave || _exitTarget is not null)">
                         <legend class="h5">@SiteResources.ImportLimits</legend>
                         <div class="row g-3 mb-4">
                             <div class="col-md-6"><label class="form-label" for="import-time">@SiteResources.TimeLimit (@SiteResources.Seconds)</label><input id="import-time" type="number" min="1" class="form-control" @bind="task.TimeLimit" @bind:after="LimitsChanged" /></div>
@@ -158,13 +166,17 @@
                                         {
                                             var solution = task.Solutions[i];
                                             <tr>
-                                                <td><input id="@($"solution-{i}")" type="checkbox" class="form-check-input" aria-label="@($"{SiteResources.ImportRun}: {solution.Filename}")" disabled="@(solution.Save || solution.AlreadySaved)" @bind="solution.Selected" /></td>
+                                                <td><input id="@($"solution-{i}")" type="checkbox" class="form-check-input" aria-label="@($"{SiteResources.ImportRun}: {solution.Filename}")" disabled="@(solution.Save || solution.AlreadySaved)" checked="@(solution.Selected || solution.Save || solution.AlreadySaved)" @onchange="e => solution.Selected = e.Value is true" /></td>
                                                 <td><label for="@($"solution-{i}")">@solution.Filename</label></td>
                                                 <td>
                                                     <select class="form-select form-select-sm form-control-sm" aria-label="@($"{SiteResources.Compiler}: {solution.Filename}")" @bind="solution.CompilerId" @bind:after="SolutionsChanged">
                                                         <option value="">@SiteResources.SelectCompiler</option>
                                                         @foreach (var compiler in solution.Compilers) { <option value="@compiler.Id">@(compiler.Description ?? compiler.Name) · ID @compiler.Id</option> }
                                                     </select>
+                                                    @if ((solution.Selected || solution.Save) && !solution.AlreadySaved && solution.CompilerId is null)
+                                                    {
+                                                        <span class="small text-warning-emphasis">@SiteResources.SelectCompiler</span>
+                                                    }
                                                 </td>
                                                 <td>
                                                     @if (solution.AlreadySaved) { <span class="badge text-bg-success">@SiteResources.ImportAlreadySaved</span> }
@@ -180,7 +192,7 @@
                                         @foreach (var solution in task.ReferenceSolutions)
                                         {
                                             <tr>
-                                                <td><input id="@($"reference-{solution.Id}")" type="checkbox" class="form-check-input" aria-label="@($"{SiteResources.ImportRun}: {solution.Filename} · ID {solution.Id}")" checked="@(!task.IsReplaced(solution))" disabled /></td>
+                                                <td><input id="@($"reference-{solution.Id}")" type="checkbox" class="form-check-input" aria-label="@($"{SiteResources.ImportRun}: {solution.Filename} · ID {solution.Id}")" checked="@(task.RequiresReferenceChecks && !task.IsReplaced(solution))" disabled /></td>
                                                 <td><label for="@($"reference-{solution.Id}")">@solution.Filename</label> <span class="text-body-secondary">· ID @solution.Id</span></td>
                                                 <td><span class="form-control-plaintext form-control-sm">@solution.Compiler</span></td>
                                                 <td><span class="badge @(task.IsReplaced(solution) ? "text-bg-warning" : "text-bg-success")">@(task.IsReplaced(solution) ? SiteResources.ImportWillReplace : SiteResources.ImportAlreadySaved)</span></td>
@@ -230,6 +242,17 @@
                             else
                             {
                             <p>@string.Format(SiteResources.ImportConfirmProblem, task.Label)</p>
+                            <ul>
+                                @if (task.TestsChanged)
+                                {
+                                    <li>@SiteResources.StaffTests: @SiteResources.ImportAddedTests @Numbers(task.AddedTests); @SiteResources.ImportChangedTests @Numbers(task.ChangedTests); @SiteResources.ImportRemovedTests @Numbers(task.RemovedTests)</li>
+                                }
+                                @if (task.Statement != task.Original?.Text) { <li>@SiteResources.ImportStatementChanged</li> }
+                                @foreach (var change in ParameterChanges(task))
+                                {
+                                    <li>@change.Name: @(change.Before ?? "–") → @change.After</li>
+                                }
+                            </ul>
                             @foreach (var solution in task.Solutions.Where(s => s.Save && !s.AlreadySaved))
                             {
                                 <p>@string.Format(solution.ReplacedIds.Count == 0 ? SiteResources.ImportReferenceAddition : SiteResources.ImportReferenceReplacement, solution.Filename)</p>
@@ -263,7 +286,10 @@
     private CancellationTokenSource? _operation;
     private readonly CancellationTokenSource _lifetime = new();
     private readonly Dictionary<ContestImportRow, CancellationTokenSource> _checks = [];
-    private bool AnyChecking => _checks.Count != 0;
+    private bool _validatingAll;
+    private int _validatedCount;
+    private CancellationTokenSource? _batchOperation;
+    private bool AnyChecking => _checks.Count != 0 || _validatingAll;
     private bool HasPending => _preview?.Rows.Any(r => r.HasChanges) == true;
     private Olymp.Domain.Models.Problem PreviewProblem(ContestImportRow row) => new()
     {
@@ -278,17 +304,37 @@
     private static string Numbers(IEnumerable<int> values) => string.Join(", ", values) is { Length: > 0 } text ? text : "–";
     private static string CheckProgress(ContestImportRow row) => row.RunsTotal == 0 ? SiteResources.StaffChecking
         : string.Format(SiteResources.ImportCheckProgress, row.RunsCompleted, row.RunsTotal);
-    private static string RowStatus(ContestImportRow row) => row.IsChecking ? CheckProgress(row)
-        : row.CheckError is not null || row.Errors.Count != 0 ? SiteResources.ImportHasErrors
+    private static string RowStatus(ContestImportRow row) => row.CheckError is not null || row.StateErrors.Count != 0 ? SiteResources.ImportHasErrors
         : row.IsSaved ? SiteResources.StaffSaved : !row.HasChanges ? SiteResources.ImportUnchanged
         : row.Id.HasValue ? SiteResources.ImportUpdateProblem : SiteResources.ImportNewProblem;
-    private static string RowBadgeClass(ContestImportRow row) => row.IsChecking ? "text-bg-primary"
-        : row.CheckError is not null || row.Errors.Count != 0 ? "text-bg-danger"
+    private static string RowBadgeClass(ContestImportRow row) => row.CheckError is not null || row.StateErrors.Count != 0 ? "text-bg-danger"
         : row.IsSaved ? "text-bg-success" : !row.HasChanges ? "text-bg-secondary"
         : row.Id.HasValue ? "text-bg-warning" : "text-bg-info";
-    private static string ValidatorStatusClass(ContestImportRow row) => row.ValidatorResult is { } result
-        ? !result.Compiled || result.Tests.Any(t => !t.IsValid) ? "alert-danger" : "alert-success"
-        : "alert-warning";
+    private static string ValidationStatus(ContestImportRow row) => row.IsValidating ? SiteResources.StaffChecking
+        : row.ValidatorPassed is bool passed ? passed ? SiteResources.ImportValidatorPassed : SiteResources.ImportValidatorRejected
+        : !row.RequiresValidatorCheck ? SiteResources.ImportValidationNotRequired
+        : !row.HasValidator ? SiteResources.ImportNoValidator
+        : !row.ValidatorChecked ? SiteResources.ImportValidationPending
+        : row.ValidatorErrors.Count != 0 ? SiteResources.ImportHasErrors
+        : row.ValidatorWarnings.Count != 0 ? SiteResources.ImportValidationWarnings
+        : SiteResources.ImportValidatorPassed;
+    private static IEnumerable<(string Name, string? Before, string After)> ParameterChanges(ContestImportRow row)
+    {
+        var old = row.Previous;
+        var next = row.Proposed;
+        (string Name, string? Before, string After)[] values =
+        [
+            (SiteResources.StaffTestNumber, old?.Number.ToString(), next.Number.ToString()),
+            (SiteResources.StaffName, old?.Name, next.Name),
+            (SiteResources.TimeLimit, old?.TimeLimit.ToString(), next.TimeLimit.ToString()),
+            (SiteResources.ImportSlowTimeLimit, old?.SlowTimeLimit.ToString(), next.SlowTimeLimit.ToString()),
+            (SiteResources.MemoryLimit, old?.MemoryLimit.ToString(), next.MemoryLimit.ToString()),
+            (SiteResources.StaffChecker, old?.CheckerId.ToString(), next.CheckerId.ToString()),
+            (SiteResources.StaffActive, old is null ? null : old.IsActive ? SiteResources.StaffYes : SiteResources.StaffNo,
+                next.IsActive ? SiteResources.StaffYes : SiteResources.StaffNo)
+        ];
+        return values.Where(value => value.Before != value.After);
+    }
 
     protected override async Task OnParametersSetAsync()
     {
@@ -306,7 +352,6 @@
             if (next != _selected)
             {
                 _selected = next; _confirmSave = false; _status = null;
-                await CheckValidatorAsync();
             }
         }
     }
@@ -325,7 +370,41 @@
     {
         _confirmSave = false; _status = null;
         if (_selected is not null)
-            foreach (var solution in _selected.Solutions.Where(s => s.Save)) solution.Selected = true;
+        {
+            _selected.CheckError = null;
+            _selected.Runs.RemoveAll(run => run.ReferenceId is null
+                && _selected.Solutions.Any(solution => solution.Filename == run.File && solution.CompilerId != run.CompilerId));
+        }
+    }
+    private Task SettingsChangedAsync() => ExecuteAsync(async (service, token) =>
+    {
+        if (_preview is not { } preview) return;
+        foreach (var row in preview.Rows)
+            await service.PrepareValidationAsync((await AuthenticationState).User, preview, row, token);
+    });
+
+    private async Task ValidateAllAsync()
+    {
+        if (_preview is not { } preview || _busy || AnyChecking || _disposed) return;
+        using var operation = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token);
+        _batchOperation = operation;
+        _validatingAll = true;
+        _validatedCount = 0;
+        try
+        {
+            foreach (var row in preview.Rows)
+            {
+                if (operation.IsCancellationRequested) break;
+                await CheckRowAsync(row, validate: true);
+                _validatedCount++;
+                await NotifyCheckAsync();
+            }
+        }
+        finally
+        {
+            _validatingAll = false;
+            _batchOperation = null;
+        }
     }
     private static int SelectedSolutionCount(ContestImportRow row) => row.Solutions.Count(s => !s.AlreadySaved && (s.Selected || s.Save)) + row.ReferencesToCheck.Count();
     private async Task UploadAsync(InputFileChangeEventArgs args)
@@ -340,25 +419,27 @@
                 .OrderBy(compiler => compiler.Id).ToListAsync(token);
             foreach (var row in preview.Rows)
             {
-                foreach (var solution in row.Solutions) { solution.Save = true; solution.Selected = true; }
+                foreach (var solution in row.Solutions) solution.Save = true;
                 if (row.Validator is { } validator) validator.Save = true;
             }
             var storedCompilers = preview.Rows.Where(row => row.Validator is { AlreadySaved: true })
                 .Select(row => row.Validator!.CompilerId).Distinct().ToArray();
             preview.ValidatorCompilerId = storedCompilers.Length == 1 ? storedCompilers[0] : _validatorCompilers.FirstOrDefault()?.Id;
+            foreach (var row in preview.Rows)
+                await service.PrepareValidationAsync((await AuthenticationState).User, preview, row, token);
             _preview = preview;
             _selected = preview.Rows.First();
         }, updateSelection: true);
-        await CheckValidatorAsync();
     }
-    private Task CheckValidatorAsync() => _selected is { } row ? CheckRowAsync(row) : Task.CompletedTask;
+    private Task CheckValidatorAsync() => _selected is { } row ? CheckRowAsync(row, validate: true) : Task.CompletedTask;
 
-    private async Task CheckRowAsync(ContestImportRow row, bool force = false)
+    private async Task CheckRowAsync(ContestImportRow row, bool force = false, bool validate = false)
     {
         if (_preview is not { } preview || _busy || _disposed || row.IsChecking) return;
-        using var operation = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token);
+        using var operation = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token, _batchOperation?.Token ?? CancellationToken.None);
         _checks.Add(row, operation);
         row.IsChecking = true;
+        row.IsValidating = validate;
         row.RunsCompleted = row.RunsTotal = 0;
         row.CheckError = null;
         if (_selected == row) _confirmSave = false;
@@ -368,8 +449,8 @@
             await using var scope = ScopeFactory.CreateAsyncScope();
             var service = scope.ServiceProvider.GetRequiredService<ContestImportService>();
             var actor = (await AuthenticationState).User;
-            await service.EnsureValidatorAsync(actor, preview, row, operation.Token);
-            await service.RunSolutionsAsync(actor, preview, row, NotifyCheckAsync, force, operation.Token);
+            if (validate) await service.EnsureValidatorAsync(actor, preview, row, operation.Token);
+            else await service.RunSolutionsAsync(actor, preview, row, NotifyCheckAsync, force, operation.Token);
         }
         catch (OperationCanceledException) when (operation.IsCancellationRequested) { }
         catch (Exception ex) when (ex is OperationValidationException or InvalidDataException or IOException)
@@ -384,6 +465,7 @@
         finally
         {
             row.IsChecking = false;
+            row.IsValidating = false;
             _checks.Remove(row);
             await NotifyCheckAsync();
         }
@@ -395,14 +477,14 @@
     {
         if (_preview is not { } preview || _selected is not { } row || row.IsChecking) return;
         await ExecuteAsync(async (service, token) => await service.RefreshAsync((await AuthenticationState).User, preview, row, token));
-        await CheckRowAsync(row);
+        await SettingsChangedAsync();
     }
-    private Task RunSolutionsAsync() => CheckValidatorAsync();
+    private Task RunSolutionsAsync() => _selected is { } row ? CheckRowAsync(row) : Task.CompletedTask;
     private Task RerunSolutionsAsync() => _selected is { } row ? CheckRowAsync(row, true) : Task.CompletedTask;
     private Task ConfirmSaveAsync() => ExecuteAsync(async (service, token) =>
     {
         if (_preview is null || _selected is null || _selected.IsChecking) return;
-        await service.EnsureValidatorAsync((await AuthenticationState).User, _preview, _selected, token);
+        await service.PrepareValidationAsync((await AuthenticationState).User, _preview, _selected, token);
         ContestImportService.ValidateReferenceSelection(_selected);
         if (!_selected.ReferencesChecked || !_selected.ReferenceValidatorChecked)
             throw new OperationValidationException(SiteResources.ImportReferenceChecksRequired);
@@ -480,6 +562,7 @@
     private void Stop()
     {
         _operation?.Cancel();
+        _batchOperation?.Cancel();
         foreach (var operation in _checks.Values.ToArray()) operation.Cancel();
     }
     public ValueTask DisposeAsync() { _disposed = true; _lifetime.Cancel(); _lifetime.Dispose(); return ValueTask.CompletedTask; }
