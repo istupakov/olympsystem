@@ -134,7 +134,7 @@ else
             <section id="submissions" class="mt-4" aria-labelledby="problem-submissions-heading">
                 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
                     <h2 id="problem-submissions-heading" class="h4 mb-0">@SiteResources.Submissions</h2>
-                    <a class="btn btn-sm btn-secondary" href="@SubmissionsUrl(CurrentScope, CurrentPage)">@SiteResources.Refresh</a>
+                    <button type="button" class="btn btn-sm btn-secondary" @onclick="OnParametersSetAsync">@SiteResources.Refresh</button>
                 </div>
                 <nav aria-label="@SiteResources.StaffSubmissionAuthors" class="mb-3">
                     <ul class="nav nav-underline">

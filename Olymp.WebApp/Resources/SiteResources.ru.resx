@@ -1007,4 +1007,10 @@
   <data name="MeasureLimits" xml:space="preserve"><value>Замер лимитов</value></data>
   <data name="MeasureAllReferences" xml:space="preserve"><value>Запустить все эталоны ×5</value></data>
   <data name="ImportStatementChanged" xml:space="preserve"><value>Условие будет обновлено.</value></data>
+  <data name="StaffStatementPdf" xml:space="preserve"><value>Условия соревнования (PDF)</value></data>
+  <data name="StaffUploadPdf" xml:space="preserve"><value>Загрузить PDF</value></data>
+  <data name="StaffReplacePdf" xml:space="preserve"><value>Заменить PDF</value></data>
+  <data name="StaffReplacePdfConfirm" xml:space="preserve"><value>Заменить существующий PDF с условиями соревнования выбранным файлом?</value></data>
+  <data name="StaffPdfInvalid" xml:space="preserve"><value>Выберите непустой PDF-файл размером до {0} МиБ.</value></data>
+  <data name="StaffPdfUploaded" xml:space="preserve"><value>PDF с условиями загружен.</value></data>
 </root>

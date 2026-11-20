@@ -74,11 +74,14 @@ public class StatementTests
     [InlineData(@"1 \le n \leqslant 10^9")]
     [InlineData(@"a_1 + a_2 + a_3 = b_1 + b_2")]
     [InlineData(@"\text{a = b} + x > 0")]
+    [InlineData(@"90^\circ")]
+    [InlineData(@"90^{\circ}")]
     public void MathKeepsExpressionsAndLeavesLineBreakingToPreamble(string expression)
     {
         var document = StatementDocument.Parse(Source.Replace("Строка $s$.", $"${expression}$", StringComparison.Ordinal));
         Assert.True(document.IsValid);
         Assert.Contains("$" + expression + "$", document.Latex());
+        Assert.Contains(System.Net.WebUtility.HtmlEncode(expression), document.Html());
         Assert.DoesNotContain("\\allowbreak", document.Latex());
         Assert.Contains("\\[\n\\frac{a}{b} + \\sqrt{n} \\ge 0\n\\]", document.Latex());
     }
@@ -122,6 +125,8 @@ public class StatementTests
     [InlineData(@"\left(x\right)", true)]
     [InlineData(@"\text{если } n \gt 0", true)]
     [InlineData(@"\text{a_b}", false)]
+    [InlineData(@"\circ", true)]
+    [InlineData(@"90^\degree", false)]
     [InlineData(@"\begin cases", false)]
     public void ChecksSharedMathSubset(string formula, bool expected) => Assert.Equal(expected, StatementMath.IsSupported(formula));
 

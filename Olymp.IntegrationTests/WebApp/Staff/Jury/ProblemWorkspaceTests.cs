@@ -23,6 +23,71 @@ namespace Olymp.IntegrationTests.WebApp.Staff.Jury;
 [Trait("Category", "Integration")]
 public partial class ProblemWorkspaceTests(WebAppFactory factory) : StaffComponentTests(factory)
 {
+    [Theory]
+    [InlineData("own", 1)]
+    [InlineData("hidden", 2)]
+    [InlineData("reference", 2)]
+    public async Task RefreshingSubmissionsReloadsResultsAndKeepsWorkspaceState(string selectedScope, int submissionPage)
+    {
+        var author = await _factory.AddUserAsync();
+        await using var scope = _factory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<OlympContext>();
+        var token = TestContext.Current.CancellationToken;
+        await db.Users.Where(item => item.Id == author.Id).ExecuteUpdateAsync(update => update.SetProperty(item => item.IsHidden, true), token);
+        var now = DateTimeOffset.UtcNow;
+        var contest = TestEntities.CreateContest("Refresh solutions", now, now.AddHours(5));
+        var first = TestEntities.CreateProblem(contest);
+        var selected = TestEntities.CreateProblem(contest, 2);
+        var compiler = TestEntities.CreateCompilator();
+        db.Problems.AddRange(first, selected);
+        var submissions = Enumerable.Range(0, 21).Select(index =>
+        {
+            var item = TestEntities.CreateSubmission(author, selected, compiler, now.AddMinutes(index - 21));
+            item.User = null!;
+            item.StatusCode = 0;
+            item.IsReference = true;
+            return item;
+        }).ToArray();
+        db.Submissions.AddRange(submissions);
+        await db.SaveChangesAsync(token);
+        int submissionId = submissions[submissionPage == 1 ? 20 : 0].Id;
+        const string draft = "// Keep this draft";
+
+        using var page = await new HtmlParser().ParseDocumentAsync(await RenderAsync<JuryProblems>(
+            $"/jury/contests/{contest.Id}/problems?problemId={selected.Id}&scope={selectedScope}&submissionPage={submissionPage}#submissions",
+            new() { [nameof(JuryProblems.ContestId)] = contest.Id },
+            Staff(author.Id), async component =>
+            {
+                var input = (SubmissionInput)typeof(JuryProblems).GetField("_input", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(component)!;
+                input.Code = draft;
+                input.CompilatorId = compiler.Id;
+                for (int status = 1; status <= 2; status++)
+                {
+                    await db.Submissions.Where(item => item.Id == submissionId)
+                        .ExecuteUpdateAsync(update => update.SetProperty(item => item.StatusCode, status), token);
+                    await ActAsync(component, "OnParametersSetAsync");
+                    var rows = (List<SubmissionListItem>)typeof(JuryProblems).GetField("_rows", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(component)!;
+                    Assert.Equal(status, Assert.Single(rows, item => item.Id == submissionId).StatusCode);
+                    Assert.Same(input, typeof(JuryProblems).GetField("_input", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(component));
+                }
+            }, initialize: component =>
+            {
+                typeof(JuryProblems).GetProperty(nameof(JuryProblems.ProblemId))!.SetValue(component, selected.Id);
+                typeof(JuryProblems).GetProperty(nameof(JuryProblems.Scope))!.SetValue(component, selectedScope);
+                typeof(JuryProblems).GetProperty(nameof(JuryProblems.SubmissionPage))!.SetValue(component, submissionPage);
+            }));
+
+        Assert.NotNull(page.QuerySelector("#submissions button[type='button']"));
+        Assert.Equal(selected.Id.ToString(), page.QuerySelector("#workspace-problem")!.GetAttribute("value"));
+        Assert.Equal(draft, page.QuerySelector("#submission-code")!.TextContent);
+        Assert.Equal(compiler.Id.ToString(), page.QuerySelector("#submission-compiler option[selected]")!.GetAttribute("value"));
+        Assert.Contains("Accepted", page.QuerySelector($"#submission-{submissionId}")!.TextContent);
+        Assert.Equal(submissionPage == 1 ? 20 : 1, page.QuerySelectorAll("#submissions tbody tr").Length);
+        string activeUrl = page.QuerySelector("#submissions .nav-link.active")!.GetAttribute("href")!;
+        if (selectedScope == "own") Assert.DoesNotContain("scope=", activeUrl, StringComparison.OrdinalIgnoreCase);
+        else Assert.Contains($"scope={selectedScope}", activeUrl, StringComparison.OrdinalIgnoreCase);
+    }
+
     [Fact]
     public async Task SwitchingProblemsKeepsWorkspaceVisibleWhileLoading()
     {

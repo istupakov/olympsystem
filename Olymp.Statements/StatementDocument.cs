@@ -293,7 +293,7 @@ public static partial class StatementMath
         + "alpha beta gamma delta epsilon varepsilon zeta eta theta vartheta iota kappa lambda mu nu xi pi varpi rho varrho sigma varsigma tau upsilon phi varphi chi psi omega "
         + "Gamma Delta Theta Lambda Xi Pi Sigma Upsilon Phi Psi Omega "
         + "le leq leqslant ge geq geqslant ne neq lt gt approx sim equiv in notin subset subseteq supset supseteq cup cap emptyset varnothing forall exists "
-        + "times cdot div pm mp dots ldots cdots vdots ddots infty to rightarrow leftarrow leftrightarrow Rightarrow Leftarrow Leftrightarrow "
+        + "times cdot circ div pm mp dots ldots cdots vdots ddots infty to rightarrow leftarrow leftrightarrow Rightarrow Leftarrow Leftrightarrow "
         + "left right big Big bigg Bigg lvert rvert lVert rVert langle rangle lceil rceil lfloor rfloor "
         + "limits nolimits overline underline binom dbinom tbinom mathrm mathbf mathit mathbb mathcal text quad qquad begin end").Split(' '), StringComparer.Ordinal);
 

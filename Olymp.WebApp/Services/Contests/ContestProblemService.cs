@@ -70,7 +70,19 @@ public sealed partial class ContestProblemService(OlympContext context, IChecker
 
     public const string BusyMessage = "A related submission is still being checked. Please try again after checking finishes.";
 
-    public async Task UploadPdfAsync(int contestId, byte[] data, CancellationToken token = default)
+    public async Task UploadPdfAsync(ClaimsPrincipal actor, int contestId, byte[] data, bool replace, CancellationToken token = default)
+    {
+        await AuthorizeAsync(actor, contestId);
+        await using var transaction = await context.Database.BeginTransactionAsync(IsolationLevel.Serializable, token);
+        var contest = await context.Contests.AsNoTracking().SingleOrDefaultAsync(item => item.Id == contestId, token)
+            ?? throw new EntityNotFoundException();
+        if (contest.ProblemPdfId is not null && !replace)
+            throw new OperationValidationException(SiteResources.StaffReplacePdfConfirm);
+        await UploadPdfAsync(contestId, data, token);
+        await transaction.CommitAsync(token);
+    }
+
+    internal async Task UploadPdfAsync(int contestId, byte[] data, CancellationToken token = default)
     {
         if (data.LongLength == 0 || data.LongLength > options.Value.MaxPdfBytes)
             throw new InvalidDataException($"Invalid file size. Maximum: {options.Value.MaxPdfBytes / 1024 / 1024} MiB.");

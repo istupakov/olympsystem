@@ -1007,4 +1007,10 @@
   <data name="MeasureLimits" xml:space="preserve"><value>Measure limits</value></data>
   <data name="MeasureAllReferences" xml:space="preserve"><value>Run all references ×5</value></data>
   <data name="ImportStatementChanged" xml:space="preserve"><value>Statement will be updated.</value></data>
+  <data name="StaffStatementPdf" xml:space="preserve"><value>Contest statements (PDF)</value></data>
+  <data name="StaffUploadPdf" xml:space="preserve"><value>Upload PDF</value></data>
+  <data name="StaffReplacePdf" xml:space="preserve"><value>Replace PDF</value></data>
+  <data name="StaffReplacePdfConfirm" xml:space="preserve"><value>Replace the existing contest statements PDF with the selected file?</value></data>
+  <data name="StaffPdfInvalid" xml:space="preserve"><value>Select a nonempty PDF file no larger than {0} MiB.</value></data>
+  <data name="StaffPdfUploaded" xml:space="preserve"><value>The statements PDF has been uploaded.</value></data>
 </root>
