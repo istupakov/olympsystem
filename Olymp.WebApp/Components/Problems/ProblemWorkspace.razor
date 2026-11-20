@@ -48,7 +48,7 @@
                     <span>@problem.NameWithNumber
                         @if (!problem.IsActive) { <span class="badge text-bg-secondary ms-1">@SiteResources.StaffInactiveProblem</span> }
                     </span>
-                    @if (result.CommitNumber > 0)
+                    @if (result.CommitNumber > 0 || result.UnknownCommitNumber > 0)
                     {
                         <span class="text-nowrap">@ResultText(result)</span>
                     }
@@ -99,6 +99,8 @@
 
     private static string? ResultClass(Standing.UserProblemResult result)
     {
+        if (result.UnknownCommitNumber > 0)
+            return "list-group-item-warning";
         if (result.CommitNumber == 0)
             return null;
         if (result.Problem.Contest.IsSchool)
@@ -109,6 +111,12 @@
 
     private static string ResultText(Standing.UserProblemResult result)
     {
+        if (result.UnknownCommitNumber > 0)
+        {
+            string pending = $"?{result.CommitNumber + result.UnknownCommitNumber}";
+            return result.Problem.Contest.IsSchool && result.CommitNumber > 0
+                ? $"{result.Score}/{result.MaxScore} ({pending})" : pending;
+        }
         if (result.CommitNumber == 0)
             return "";
         if (result.Problem.Contest.IsSchool)

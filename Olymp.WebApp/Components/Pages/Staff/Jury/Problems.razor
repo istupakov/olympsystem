@@ -225,7 +225,7 @@ else
         int? requestedProblem = ProblemId;
         string selectedScope = CurrentScope;
         int page = CurrentPage;
-        if (_contest?.Id != contestId || (requestedProblem is int requested && _selected?.Id != requested)) _loaded = false;
+        if (_contest?.Id != contestId) _loaded = false;
         _error = null;
         int? previousProblem = _selected?.Id;
         int? compiler = _input.CompilatorId;
@@ -277,11 +277,11 @@ else
                 compiler = await own.Where(item => item.Compilator.IsActive)
                     .OrderByDescending(item => item.CommitTime).ThenByDescending(item => item.Id)
                     .Select(item => (int?)item.CompilatorId).FirstOrDefaultAsync();
-            var submissions = await own.Where(item => item.StatusCode != 0 && item.StatusCode != 1 && item.StatusCode != -1)
+            var submissions = await own.Where(item => item.StatusCode != -1)
                 .Select(item => new Submission { ProblemId = item.ProblemId, StatusCode = item.StatusCode, Score = item.Score,
                     CommitTime = item.CommitTime, SourceCode = null!, User = null!, Problem = null!, Compilator = null!, CheckResults = null! })
                 .ToListAsync();
-            progress = Olymp.Domain.Standing.UserProblemStanding(problems, submissions).ToList();
+            progress = ProblemProgress.Create(problems, submissions);
             long skip = ((long)page - 1) * PageSize;
             if (skip <= int.MaxValue)
                 rows = await context.Submissions.AsNoTracking().Where(item => item.ProblemId == selected.Id)
