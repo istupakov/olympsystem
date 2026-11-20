@@ -24,6 +24,7 @@ public partial class ContestExportTests
         using var scope = site.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<OlympContext>();
         db.Attach(contest);
+        contest.StartTime = Olymp.Statements.StatementFormat.Cutoff.AddDays(-1);
         db.Attach(author);
         var problem = TestEntities.CreateProblem(contest);
         problem.Text = "<p>Not included</p>";

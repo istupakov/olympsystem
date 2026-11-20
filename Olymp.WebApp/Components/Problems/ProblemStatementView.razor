@@ -1,13 +1,24 @@
 @using System.Text
 @using Olymp.WebApp.Components.Contests
+@using Olymp.Statements
+@using Microsoft.JSInterop
+@inject IJSRuntime JavaScript
 
-<div class="problem-statement text-break">
+<div class="problem-statement text-break" @ref="_element">
     <ul class="list-unstyled text-body-secondary">
         <li>@SiteResources.TimeLimit: @Problem.TimeLimit @SiteResources.Seconds</li>
         <li>@SiteResources.MemoryLimit: @Problem.MemoryLimit @SiteResources.Megabytes</li>
     </ul>
 
-    @if (!string.IsNullOrWhiteSpace(Problem.Text))
+    @if (_document is { IsValid: true })
+    {
+        <div class="statement-markdown overflow-x-auto">@((MarkupString)_html)</div>
+    }
+    else if (_document is not null)
+    {
+        <p class="text-warning-emphasis">@SiteResources.StatementUnavailable</p>
+    }
+    else if (!string.IsNullOrWhiteSpace(Problem.Text))
     {
         <div class="statement-html overflow-x-auto">@((MarkupString)Problem.Text)</div>
     }
@@ -45,6 +56,10 @@
             </div>
         </section>
     }
+    @if (_document is { IsValid: true })
+    {
+        <div class="statement-markdown overflow-x-auto">@((MarkupString)_notes)</div>
+    }
     <JuryMessageList Messages="Clarifications" Title="@SiteResources.ProblemClarifications" />
 </div>
 
@@ -60,4 +75,43 @@
 
     [Parameter]
     public bool ShowPdfLink { get; set; } = true;
+
+    [Parameter]
+    public StatementDocument? Document { get; set; }
+
+    private StatementDocument? _document;
+    private string? _source;
+    private string _html = "", _notes = "";
+    private ElementReference _element;
+    private bool _renderMath;
+
+    protected override void OnParametersSet()
+    {
+        StatementDocument? document = null;
+        if (StatementFormat.UsesMarkdown(Problem.Contest.StartTime))
+        {
+            document = Document ?? (_source == Problem.Text && _document is not null ? _document
+                : Problem.Text is null ? null : StatementDocument.Parse(Problem.Text));
+        }
+        _source = Problem.Text;
+        if (ReferenceEquals(_document, document)) return;
+        _document = document;
+        _html = document is { IsValid: true } ? document.Html() : "";
+        _notes = document is { IsValid: true } ? document.Html(notesOnly: true) : "";
+        _renderMath = _html.Contains("class=\"statement-math\"", StringComparison.Ordinal)
+            || _notes.Contains("class=\"statement-math\"", StringComparison.Ordinal);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!_renderMath) return;
+        _renderMath = false;
+        try
+        {
+            var module = await JavaScript.InvokeAsync<IJSObjectReference>("import", "./Components/Problems/ProblemStatementView.razor.js");
+            await using (module)
+                await module.InvokeVoidAsync("render", _element);
+        }
+        catch (JSDisconnectedException) { }
+    }
 }

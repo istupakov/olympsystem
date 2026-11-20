@@ -105,12 +105,11 @@ public partial class ContestImportTests(ContestServiceFixture site) : IClassFixt
         await service.EnsureValidatorAsync(setup.Actor, preview, updated, Token);
         Assert.Equal(original.Id, await service.SaveAsync(setup.Actor, preview, updated, Token));
         Assert.Equal(ProblemNumbers, await db.Problems.Where(p => p.ContestId == setup.Contest.Id).OrderBy(p => p.Number).Select(p => p.Number).ToArrayAsync(Token));
-        Assert.Empty(await db.Tests.Where(t => t.ProblemId == original.Id).ToArrayAsync(Token));
+        Assert.Equal(2, await db.Tests.CountAsync(t => t.ProblemId == original.Id, Token));
     }
 
     [Theory]
     [InlineData("{\"id\":2147483647}")]
-    [InlineData("{\"number\":1,\"name\":\"Empty active\"}")]
     [InlineData("{\"number\":1,\"name\":\"Bad metadata\",\"isActive\":false,\"scores\":{\"1\":0}}")]
     [InlineData("{\"number\":1,\"name\":\"Bad open tests\",\"isActive\":false,\"openTests\":[]}")]
     public async Task BlockingErrorsPreventAnyWrites(string json)

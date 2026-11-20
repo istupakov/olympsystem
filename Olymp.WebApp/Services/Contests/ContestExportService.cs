@@ -11,11 +11,12 @@ using Microsoft.EntityFrameworkCore;
 
 using Olymp.Domain;
 using Olymp.Domain.Models;
+using Olymp.Statements;
 using Olymp.WebApp.Resources;
 
 namespace Olymp.WebApp.Services.Contests;
 
-public sealed class ContestExportService(IDbContextFactory<OlympContext> factory)
+public sealed partial class ContestExportService(IDbContextFactory<OlympContext> factory)
 {
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase, WriteIndented = true, Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
     private static readonly JsonSerializerOptions JsonLineOptions = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase, Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
@@ -212,7 +213,9 @@ public sealed class ContestExportService(IDbContextFactory<OlympContext> factory
             problem.Id, problem.Number, problem.Name, problem.TimeLimit, problem.SlowTimeLimit, problem.MemoryLimit, problem.CheckerId,
             problem.IsActive, openTestCount, openTests.Length == openTestCount ? null : openTests,
             scores.Count == 0 ? null : scores, inactive.Length == 0 ? null : inactive, comments.Count == 0 ? null : comments), token);
-        if (!problemsOnly && problem.Text is not null) await WriteTextAsync(archive, root + "statement.html", problem.Text, token);
+        if (problem.Text is not null && StatementFormat.UsesMarkdown(contest.StartTime))
+            await WriteTextAsync(archive, root + "statement.md", problem.Text, token);
+        else if (!problemsOnly && problem.Text is not null) await WriteTextAsync(archive, root + "statement.html", problem.Text, token);
         await foreach (var test in db.Tests.AsNoTracking().Where(item => item.ProblemId == problemId).OrderBy(item => item.Number)
             .Select(item => new { item.Number, item.Input, item.Output }).AsAsyncEnumerable().WithCancellation(token))
         {

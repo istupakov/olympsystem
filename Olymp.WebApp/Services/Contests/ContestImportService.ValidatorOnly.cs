@@ -34,7 +34,7 @@ public sealed partial class ContestImportService
         if (row.Snapshot != Snapshot(problem)) throw new OperationValidationException(SiteResources.ImportStale);
         var (runner, info) = await ValidatorConfigurationAsync(preview, token) ?? throw new OperationValidationException(SiteResources.ImportNoValidatorRunner);
         var source = new ImportedProblem(row.Folder, new ProblemManifest { Id = problem.Id }, [], row.Validator.Source.Source, []);
-        var current = new ContestImportRow(source, problem)
+        var current = new ContestImportRow(source, problem, row.UsesMarkdown)
         {
             Tests = [.. problem.Tests.OrderBy(test => test.Number).Select(test =>
                 new ImportTest(test.Number, test.Input, test.Output, test.IsOpen, test.IsActive, test.Score, test.Comment))]

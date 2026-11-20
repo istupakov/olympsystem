@@ -22,6 +22,37 @@ public class ContestExportDownloadTests(WebAppFactory factory) : StaffComponentT
     [Theory]
     [InlineData(RoleNames.Jury)]
     [InlineData(RoleNames.Admin)]
+    public async Task StaffDownloadsPrintableMarkdownArchiveWithoutManagementAssignment(string role)
+    {
+        var token = TestContext.Current.CancellationToken;
+        var user = await _factory.AddUserAsync();
+        await GrantRoleAsync(user.Id, role);
+        await using var scope = _factory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<OlympContext>();
+        var contest = TestEntities.CreateContest("Русский турнир", Olymp.Statements.StatementFormat.Cutoff, Olymp.Statements.StatementFormat.Cutoff.AddHours(5));
+        contest.Abbr = "tex-" + Guid.NewGuid().ToString("N");
+        contest.IsHidden = true;
+        var problem = TestEntities.CreateProblem(contest, 2);
+        problem.Text = Olymp.Tests.Statements.StatementTests.Source;
+        problem.Tests.Add(new Test { Problem = problem, Number = 1, IsActive = true, IsOpen = true, Input = "1\n2\n"u8.ToArray(), Output = "YES\n"u8.ToArray() });
+        problem.Tests.Add(new Test { Problem = problem, Number = 2, IsActive = true, IsOpen = false, Input = "secret"u8.ToArray(), Output = [] });
+        db.Problems.Add(problem);
+        await db.SaveChangesAsync(token);
+        using var client = await _factory.LoginAsync(user.UserName!);
+        using var response = await client.GetAsync($"/jury/contests/{contest.Id}/statements/export", token);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("application/zip", response.Content.Headers.ContentType!.MediaType);
+        Assert.True(response.Headers.CacheControl!.NoStore);
+        Assert.Equal($"{contest.Abbr}-statements.zip", response.Content.Headers.ContentDisposition!.FileNameStar);
+        using var zip = new ZipArchive(new MemoryStream(await response.Content.ReadAsByteArrayAsync(token)));
+        Assert.NotNull(zip.GetEntry("statements.tex"));
+        Assert.NotNull(zip.GetEntry("olymp.sty"));
+        Assert.Equal(2, zip.Entries.Count(e => e.FullName.StartsWith("samples/", StringComparison.Ordinal)));
+    }
+
+    [Theory]
+    [InlineData(RoleNames.Jury)]
+    [InlineData(RoleNames.Admin)]
     public async Task ContestAttachmentNamesUseAbbreviation(string role)
     {
         var token = TestContext.Current.CancellationToken;
@@ -109,7 +140,7 @@ public class ContestExportDownloadTests(WebAppFactory factory) : StaffComponentT
         await scope.ServiceProvider.GetRequiredService<OlympContext>().Users.Where(item => item.Id == incomplete.Id)
             .ExecuteUpdateAsync(setters => setters.SetProperty(item => item.NormalizedEmail, (string?)null), TestContext.Current.CancellationToken);
         foreach (var client in new[] { anonymous, signedIn, needsMigration })
-            foreach (string url in new[] { "/jury/contests/1/export", "/admin/contests/export" })
+            foreach (string url in new[] { "/jury/contests/1/export", "/admin/contests/export", "/jury/contests/1/statements/export" })
             {
                 using var response = await client.GetAsync(url, TestContext.Current.CancellationToken);
                 Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);

@@ -114,13 +114,13 @@ public sealed partial class ContestImportService
         if (validatorOnly) return;
         int[] replacedIds = [.. selected.SelectMany(s => row.ReferenceSolutions.Concat(row.ValidatorReferences)
             .Where(r => r.Filename.Equals(s.Filename, StringComparison.OrdinalIgnoreCase)).Select(r => r.Id))];
-        foreach (var reference in row.ReferenceSolutions.Where(r => !replacedIds.Contains(r.Id)))
+        foreach (var reference in row.ReferencesToCheck.Where(r => !replacedIds.Contains(r.Id)))
         {
             var submission = await context.Submissions.AsTracking().SingleAsync(s => s.Id == reference.Id, token);
             await context.Entry(submission).ReloadAsync(token);
             ApplyReferenceResult(submission, row.Runs.Single(r => r.ReferenceId == reference.Id).Result!);
         }
-        if (row.SavedValidator is { } validator && !replacedIds.Contains(validator.Id))
+        if (row.TestsChanged && row.SavedValidator is { } validator && !replacedIds.Contains(validator.Id))
         {
             var result = row.SavedValidatorResult ?? throw new OperationValidationException(SiteResources.ImportReferenceChecksRequired);
             var submission = await context.Submissions.AsTracking().SingleAsync(s => s.Id == validator.Id, token);

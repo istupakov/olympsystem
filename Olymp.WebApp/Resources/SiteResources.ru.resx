@@ -980,4 +980,17 @@
   <data name="ImportValidatorOnlyRejected" xml:space="preserve"><value>Валидатор отклоняет сохранённые тесты: {0}. Сохранить его с этими ошибками?</value></data>
   <data name="ImportValidatorOnlySaved" xml:space="preserve"><value>Валидатор и результаты его проверки сохранены.</value></data>
   <data name="ImportCompilerRunnerUnavailable" xml:space="preserve"><value>Нет доступного Runner для выбранного компилятора.</value></data>
+  <data name="ImportStatementNameMismatch" xml:space="preserve"><value>Имя в JSON: {0}. Заголовок Markdown: {1}. Итоговое имя: {2}.</value></data>
+  <data name="ImportRetained" xml:space="preserve"><value>Сохранено из базы данных</value></data>
+  <data name="ImportSupplied" xml:space="preserve"><value>Передано в архиве</value></data>
+  <data name="StatementPreview" xml:space="preserve"><value>Предпросмотр условия</value></data>
+  <data name="StatementSource" xml:space="preserve"><value>Исходный Markdown</value></data>
+  <data name="StatementDiagnostic" xml:space="preserve"><value>Строка {0}: {1}</value></data>
+  <data name="StatementTitleError" xml:space="preserve"><value>В начале требуется заголовок первого уровня с обычным текстом.</value></data>
+  <data name="StatementSectionError" xml:space="preserve"><value>Недопустимый, повторный или неверно расположенный раздел.</value></data>
+  <data name="StatementSectionsError" xml:space="preserve"><value>Требуются разделы формата входных и выходных данных.</value></data>
+  <data name="StatementMathError" xml:space="preserve"><value>Неподдерживаемая или некорректная формула.</value></data>
+  <data name="StatementConstructError" xml:space="preserve"><value>Неподдерживаемая конструкция Markdown.</value></data>
+  <data name="StatementPrintWarning" xml:space="preserve"><value>Условие отсутствует или некорректно. В печатном комплекте будет заглушка.</value></data>
+  <data name="DownloadStatementTex" xml:space="preserve"><value>Скачать условия в TeX ZIP</value></data>
 </root>

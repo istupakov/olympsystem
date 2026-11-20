@@ -52,7 +52,7 @@ The file also contains `checkers` and `compilers`, sorted by ID. Include `id` an
 
 Include all contest problems, including inactive ones. `problem.json` contains `id`, `number`, `name`, `timeLimit`, `slowTimeLimit`, `memoryLimit`, `checkerId`, `isActive`, and `openTestCount`. Use seconds and MiB for limits, as in the [existing problem format](contest-import.md).
 
-Export the saved problem text as `statement.html` without conversion. Version 1 does not include separate statement assets. Examples are stored in open tests.
+Export the complete saved UTF-8 problem text as `statement.md` for [Markdown contests](problem-statements.md) and `statement.html` for earlier contests, without conversion. Version 1 does not include separate statement assets. Examples are stored in open tests.
 
 - Copy all test inputs and outputs from the database into `tests/`, byte for byte, including inactive tests. Use `inputNNN.txt` and `outputNNN.txt` with at least three digits. Preserve the database test numbers, including gaps.
 - `openTestCount` is the number of tests at the start of the sequence ordered by `Test.Number` that have `IsOpen` set. Test activity is recorded separately.
@@ -87,14 +87,18 @@ Deduplicate identical source bytes within each problem across all compilers. Sto
 
 ## Simplified problem archive
 
-The simplified ZIP contains all problems, including inactive ones, in root-level `problemNN/` directories. Each contains `problem.json` with the original ID, byte-for-byte test files, and any saved validator and reference solutions in UTF-8. Statements, contest metadata, participants, results, and check history are omitted.
+The simplified ZIP contains all problems, including inactive ones, in root-level `problemNN/` directories. Each contains `problem.json` with the original ID, byte-for-byte test files, any saved validator and reference solutions in UTF-8, and `statement.md` when present in a Markdown contest. Legacy HTML statements, contest metadata, participants, results, and check history are omitted.
 
 The archive follows the [import format](contest-import.md). Export is rejected if test numbers fall outside 1–999 or an open test follows a closed test in test-number order.
 
-## Export usage
+## Printable statements
 
-Export is a read-only operation available through the jury interface under the existing [contest material read permissions](access-control.md#10-jury-administration-and-service-accounts).
+The TeX ZIP for Markdown contests contains active problems, original problem numbering, and only active open tests as examples. Missing or invalid statements produce a warning and a placeholder rather than blocking export; `warnings.txt` lists affected problems.
 
-Export one contest from its details page or all contests from the contest list. Exporting all contests includes hidden and archived contests, regardless of the current list filters or pagination.
+The ZIP includes `statements.tex`, individual problem files, sample files, the bundled `olymp.sty`, its license, and `build.sh`. Compilation requires TeX Live with pdfLaTeX, Russian Babel, T2A fonts, `amsmath`, `amssymb` and `verbatim`. On Ubuntu, install `texlive-latex-base`, `texlive-lang-cyrillic`, `texlive-fonts-recommended` and `cm-super`. Extract the complete archive, then run `sh build.sh` from its directory. This runs pdfLaTeX twice and produces `statements.pdf`. The website does not compile PDFs.
+
+## Export rules
+
+Export is read-only and follows the [contest material read permissions](access-control.md#10-jury-administration-and-service-accounts). Exporting all contests includes hidden and archived contests.
 
 The archive contains a consistent snapshot of the database. Concurrent changes may wait until archive generation finishes. Invalid or duplicate archive paths cancel the complete export; no partial archive is returned.

@@ -505,7 +505,7 @@ public sealed class ProblemAccessTests(WebAppFactory factory) : IClassFixture<We
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         }
         using var foreign = await GetAsync(client, Path(other.Contest, other.Problem));
-        Assert.NotNull(foreign.QuerySelector(".statement-html"));
+        Assert.NotNull(foreign.QuerySelector(".statement-html, .statement-markdown"));
         Assert.Null(foreign.QuerySelector("#submission-code"));
         Assert.NotNull(foreign.QuerySelector($"#submission-{foreignId}"));
         Assert.Null(foreign.QuerySelector("#submissions nav"));
@@ -616,7 +616,9 @@ public sealed class ProblemAccessTests(WebAppFactory factory) : IClassFixture<We
         contest.ProblemPdf = new Blob { Data = "%PDF-test"u8.ToArray() };
         contest.TestZip = new Blob { Data = [1, 2, 3] };
         var problem = TestEntities.CreateProblem(contest);
-        problem.Text = "<p>Visible statement</p>";
+        problem.Text = Olymp.Statements.StatementFormat.UsesMarkdown(contest.StartTime)
+            ? "# Visible statement\n\nDescription.\n\n## Формат входных данных\n\nInput.\n\n## Формат выходных данных\n\nOutput."
+            : "<p>Visible statement</p>";
         contest.Problems.Add(problem);
         var team = TestEntities.CreateCompetitor(contest, "Own team");
         team.Members.Add(user);
