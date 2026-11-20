@@ -44,14 +44,13 @@ public sealed class ImportSolution(ImportedSolution source)
 
 public sealed class ContestImportRow
 {
-    internal ContestImportRow(ImportedProblem source, Problem? original, bool markdown = false)
+    internal ContestImportRow(ImportedProblem source, Problem? original)
     {
         Source = source;
         Original = original;
         Snapshot = ContestImportService.Snapshot(original);
-        UsesMarkdown = markdown;
-        Statement = markdown ? source.Statement ?? original?.Text : original?.Text;
-        Document = markdown && Statement is not null ? StatementDocument.Parse(Statement) : null;
+        Statement = source.Statement ?? original?.Text;
+        Document = Statement is not null ? StatementDocument.Parse(Statement) : null;
         var data = source.Manifest;
         Parameters = new(data.Number ?? original?.Number ?? 0, Document is { IsValid: true } ? Document.Title! : data.Name ?? original?.Name ?? "",
             data.TimeLimit ?? original?.TimeLimit ?? 1, data.SlowTimeLimit ?? original?.SlowTimeLimit ?? data.TimeLimit ?? 1,
@@ -80,9 +79,8 @@ public sealed class ContestImportRow
     internal int NormalizationVersion { get; private set; }
     internal ImportParameters? SavedParameters { get; set; }
     public string Folder => Source.Folder;
-    public bool UsesMarkdown { get; }
     public bool SuppliesTests => Source.Tests.Count != 0;
-    public bool SuppliesStatement => UsesMarkdown && Source.Statement is not null;
+    public bool SuppliesStatement => Source.Statement is not null;
     public string? Statement { get; internal set; }
     public StatementDocument? Document { get; internal set; }
     public bool TestsChanged => AddedTests.Any() || RemovedTests.Any() || ChangedTests.Any();
@@ -271,7 +269,7 @@ public sealed partial class ContestImportService(OlympContext context, ICheckerM
         int[] ids = [.. package.Problems.Where(p => p.Manifest.Id.HasValue).Select(p => p.Manifest.Id!.Value)];
         var originals = await context.Problems.AsNoTracking().Where(x => x.ContestId == contestId && ids.Contains(x.Id)).Include(x => x.Tests).ToListAsync(token);
         var preview = new ContestImportPreview(contestId, [.. package.Problems.Select(source => new ContestImportRow(source,
-            originals.SingleOrDefault(p => p.Id == source.Manifest.Id), StatementFormat.UsesMarkdown(contest.StartTime))).OrderBy(r => r.Parameters.Number).ThenBy(r => r.Folder, StringComparer.Ordinal)]);
+            originals.SingleOrDefault(p => p.Id == source.Manifest.Id))).OrderBy(r => r.Parameters.Number).ThenBy(r => r.Folder, StringComparer.Ordinal)]);
         foreach (var row in preview.Rows) await CheckStateAsync(preview, row, token);
         return preview;
     }
@@ -283,7 +281,7 @@ public sealed partial class ContestImportService(OlympContext context, ICheckerM
         var original = await context.Problems.AsNoTracking().Where(x => x.Id == row.Id && x.ContestId == preview.ContestId).Include(x => x.Tests).SingleOrDefaultAsync(token);
         // A saved new problem must retain its assigned ID even if it was subsequently removed.
         if (row.Id.HasValue && original is null) throw new OperationValidationException(SiteResources.ImportUnknownId);
-        var refreshed = new ContestImportRow(row.Source, original, row.UsesMarkdown);
+        var refreshed = new ContestImportRow(row.Source, original);
         if (row.TimeLimit == row.Parameters.TimeLimit) row.TimeLimit = refreshed.TimeLimit;
         if (row.SlowTimeLimit == row.Parameters.SlowTimeLimit) row.SlowTimeLimit = refreshed.SlowTimeLimit;
         if (row.Snapshot != Snapshot(original)) row.SavedParameters = null;
@@ -325,9 +323,6 @@ public sealed partial class ContestImportService(OlympContext context, ICheckerM
         row.RunDataKey = null;
         row.StateErrors.Clear();
         row.StateWarnings.Clear();
-        var contest = await context.Contests.AsNoTracking().SingleAsync(c => c.Id == preview.ContestId, token);
-        if (StatementFormat.UsesMarkdown(contest.StartTime) != row.UsesMarkdown)
-            throw new OperationValidationException(SiteResources.ImportStale);
         var original = await context.Problems.AsNoTracking().Where(x => x.ContestId == preview.ContestId && x.Id == row.Id).Include(x => x.Tests).SingleOrDefaultAsync(token);
         if (row.Snapshot != Snapshot(original)) throw new OperationValidationException(SiteResources.ImportStale);
         var m = row.Source.Manifest;

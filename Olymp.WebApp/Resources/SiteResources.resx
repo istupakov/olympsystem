@@ -1017,4 +1017,8 @@
   <data name="StaffReplacePdfConfirm" xml:space="preserve"><value>Replace the existing contest statements PDF with the selected file?</value></data>
   <data name="StaffPdfInvalid" xml:space="preserve"><value>Select a nonempty PDF file no larger than {0} MiB.</value></data>
   <data name="StaffPdfUploaded" xml:space="preserve"><value>The statements PDF has been uploaded.</value></data>
+  <data name="StaffRemovePdf" xml:space="preserve"><value>Delete PDF</value></data>
+  <data name="StaffRemovePdfConfirm" xml:space="preserve"><value>Delete the statements PDF? This file will no longer be available for download. Problem texts and examples will be retained.</value></data>
+  <data name="StaffPdfRemoved" xml:space="preserve"><value>The statements PDF has been deleted.</value></data>
+  <data name="StaffPdfChanged" xml:space="preserve"><value>The statements PDF has changed. Review the current file and confirm deletion again.</value></data>
 </root>

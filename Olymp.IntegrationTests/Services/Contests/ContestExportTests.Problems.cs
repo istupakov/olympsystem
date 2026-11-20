@@ -24,10 +24,10 @@ public partial class ContestExportTests
         using var scope = site.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<OlympContext>();
         db.Attach(contest);
-        contest.StartTime = Olymp.Statements.StatementFormat.Cutoff.AddDays(-1);
+        contest.StartTime = new DateTimeOffset(2020, 1, 1, 0, 0, 0, TimeSpan.FromHours(7)).AddDays(-1);
         db.Attach(author);
         var problem = TestEntities.CreateProblem(contest);
-        problem.Text = "<p>Not included</p>";
+        problem.Text = "# Saved statement\n\nDescription.\n\n## Формат входных данных\n\nInput.\n\n## Формат выходных данных\n\nOutput.";
         problem.TimeLimit = 3;
         problem.SlowTimeLimit = 8;
         problem.Tests.Add(new Test { Problem = problem, Number = 2, Input = [255, 13, 10, 0], Output = [128, 10], IsOpen = true, IsActive = true, Score = 0, Comment = "First" });
@@ -73,9 +73,10 @@ public partial class ContestExportTests
         Assert.False(imported.Problems.Single(p => p.Manifest.Id == inactive.Id).Manifest.IsActive);
         stream.Position = 0;
         using var zip = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: true);
-        Assert.Equal(8, zip.Entries.Count);
-        Assert.DoesNotContain(zip.Entries, entry => entry.FullName.Contains("statement", StringComparison.Ordinal)
-            || entry.FullName.Contains("jury-solutions", StringComparison.Ordinal) || entry.FullName.EndsWith(".jsonl", StringComparison.Ordinal));
+        Assert.Equal(9, zip.Entries.Count);
+        Assert.Equal(problem.Text, first.Statement);
+        Assert.NotNull(zip.GetEntry("problem01/statement.md"));
+        Assert.DoesNotContain(zip.Entries, entry => entry.FullName.Contains("jury-solutions", StringComparison.Ordinal) || entry.FullName.EndsWith(".jsonl", StringComparison.Ordinal));
     }
 
     [Theory]

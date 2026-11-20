@@ -177,7 +177,7 @@ public partial class ContestExportTests(ContestServiceFixture site) : IClassFixt
         Assert.Equal(new byte[] { 0, 255, 13, 10 }, files[task + "tests/input001.txt"]);
         Assert.Equal(new byte[] { 128 }, files[task + "tests/output001.txt"]);
         Assert.Empty(files[task + "tests/input1001.txt"]);
-        Assert.Equal(problem.Text, Encoding.UTF8.GetString(files[task + "statement.html"]));
+        Assert.Equal(problem.Text, Encoding.UTF8.GetString(files[task + "statement.md"]));
         Assert.Equal(contest.Description, Encoding.UTF8.GetString(files[root + "description.html"]));
         Assert.Equal(contest.FinalTableText, Encoding.UTF8.GetString(files[root + "tables/final.html"]));
         Assert.Equal(contest.OfficialTableText, Encoding.UTF8.GetString(files[root + "tables/official.html"]));

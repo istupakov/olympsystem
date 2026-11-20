@@ -114,7 +114,7 @@
                     <p class="small text-body-secondary">@(task.SuppliesStatement ? SiteResources.ImportSupplied : SiteResources.ImportRetained)</p>
                     <h4 class="h4">@task.Label</h4>
                     <ProblemStatementView Problem="PreviewProblem(task)" Examples="PreviewExamples(task)" Document="task.Document" ShowPdfLink="false" />
-                    @if (task.UsesMarkdown && task.Statement is not null)
+                    @if (task.Statement is not null)
                     {
                         <details class="mb-3"><summary>@SiteResources.StatementSource</summary><pre class="overflow-auto">@task.Statement</pre></details>
                     }

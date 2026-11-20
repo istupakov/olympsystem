@@ -72,6 +72,18 @@
                 </label>
                 <ValidationMessage For="() => Input.Group" class="text-danger" />
             </div>
+            <div class="form-floating mb-3">
+                <InputSelect @bind-Value="Input.CoachId" id="Input.CoachId" class="form-select">
+                    <option value="">@AccountResources.NoCoach</option>
+                    @foreach (var coach in coaches)
+                    {
+                        <option value="@coach.Id">@coach.Name (@coach.Email)</option>
+                    }
+                </InputSelect>
+                <label for="Input.CoachId">@AccountResources.Coach</label>
+                <ValidationMessage For="() => Input.CoachId" class="text-danger" />
+            </div>
+            <p class="form-text">@AccountResources.CoachExplanation</p>
             <button type="submit" class="w-100 btn btn-lg btn-primary">@AccountResources.Save</button>
         </EditForm>
     </div>
@@ -83,6 +95,7 @@
     private OlympUser? user;
     private string? username;
     private List<Organization> organizations = [];
+    private List<OlympUser> coaches = [];
 
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
@@ -108,6 +121,12 @@
 
         username = await UserManager.GetUserNameAsync(user);
         organizations = await DbContext.Organizations.AsNoTracking().OrderBy(x => x.Name).ToListAsync();
+        string? organizationClaim = user.OrganizationId?.ToString(CultureInfo.InvariantCulture);
+        coaches = await DbContext.OlympUsers.AsNoTracking()
+            .Where(coach => coach.Id != user.Id && (coach.Id == user.CoachId
+                || (organizationClaim != null && DbContext.UserClaims.Any(claim => claim.UserId == coach.Id
+                    && claim.ClaimType == ClaimNames.CoachOrg && claim.ClaimValue == organizationClaim))))
+            .OrderBy(coach => coach.Name).ThenBy(coach => coach.Id).ToListAsync();
 
         if (HttpMethods.IsGet(HttpContext.Request.Method))
         {
@@ -118,6 +137,7 @@
                 LastName = user.LastName,
                 Patronymic = user.Patronymic,
                 OrganizationId = user.OrganizationId,
+                CoachId = user.CoachId,
                 Group = user.Details
             };
         }
@@ -131,6 +151,14 @@
             return;
         }
 
+        await using var transaction = await DbContext.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, HttpContext.RequestAborted);
+        await DbContext.Entry(user).ReloadAsync(HttpContext.RequestAborted);
+        if (DbContext.Entry(user).State == EntityState.Detached)
+        {
+            RedirectManager.RedirectTo("Account/InvalidUser");
+            return;
+        }
+
         if (Input.OrganizationId is int organizationId && !await DbContext.Organizations.AnyAsync(x => x.Id == organizationId))
         {
             var validationMessages = new ValidationMessageStore(editContext);
@@ -139,10 +167,24 @@
             return;
         }
 
+        int? selectedCoach = user.OrganizationId == Input.OrganizationId ? Input.CoachId : null;
+        string? organizationClaim = user.OrganizationId?.ToString(CultureInfo.InvariantCulture);
+        if (selectedCoach is int coachId && (coachId == user.Id
+            || !await DbContext.OlympUsers.AnyAsync(coach => coach.Id == coachId
+                && (coach.Id == user.CoachId || (organizationClaim != null && DbContext.UserClaims.Any(claim => claim.UserId == coach.Id
+                    && claim.ClaimType == ClaimNames.CoachOrg && claim.ClaimValue == organizationClaim))), HttpContext.RequestAborted)))
+        {
+            var validationMessages = new ValidationMessageStore(editContext);
+            validationMessages.Add(new FieldIdentifier(Input, nameof(Input.CoachId)), AccountResources.CoachInvalid);
+            editContext.NotifyValidationStateChanged();
+            return;
+        }
+
         user.Name = Input.PublicName;
         user.FirstName = string.IsNullOrEmpty(Input.FirstName) ? null : Input.FirstName;
         user.LastName = string.IsNullOrEmpty(Input.LastName) ? null : Input.LastName;
         user.Patronymic = string.IsNullOrEmpty(Input.Patronymic) ? null : Input.Patronymic;
+        user.CoachId = selectedCoach;
         user.OrganizationId = Input.OrganizationId;
         user.Details = string.IsNullOrEmpty(Input.Group) ? null : Input.Group;
 
@@ -154,6 +196,7 @@
             return;
         }
 
+        await transaction.CommitAsync(HttpContext.RequestAborted);
         await SignInManager.RefreshSignInAsync(user);
         IdentityStatusMessage = AccountResources.ProfileUpdated;
         RedirectManager.RedirectToCurrentPage();
@@ -184,6 +227,9 @@
 
         [Display(Name = nameof(AccountResources.University), ResourceType = typeof(AccountResources))]
         public int? OrganizationId { get; set; }
+
+        [Display(Name = nameof(AccountResources.Coach), ResourceType = typeof(AccountResources))]
+        public int? CoachId { get; set; }
 
         [StringLength(16, ErrorMessageResourceName = nameof(AccountResources.FieldMaximumLength), ErrorMessageResourceType = typeof(AccountResources))]
         [RegularExpression(OlympUser.GroupRegex, ErrorMessageResourceName = nameof(AccountResources.GroupInvalidCharacters), ErrorMessageResourceType = typeof(AccountResources))]

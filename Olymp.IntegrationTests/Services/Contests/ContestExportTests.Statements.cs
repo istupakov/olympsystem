@@ -23,7 +23,7 @@ public partial class ContestExportTests
         using var scope = site.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<OlympContext>();
         db.Attach(contest);
-        contest.StartTime = StatementFormat.Cutoff;
+        contest.StartTime = new DateTimeOffset(2020, 1, 1, 0, 0, 0, TimeSpan.FromHours(7));
         var problem = TestEntities.CreateProblem(contest, 2);
         problem.Text = "# Русское условие\n\nСимвол `0`, ответ `YES`, $n \\le 10^9$.\n\n## Формат входных данных\n\nЧисло.\n\n## Формат выходных данных\n\nОтвет.\n";
         problem.Tests.Add(new Test { Problem = problem, Number = 1, IsActive = true, IsOpen = true, Input = "1\n2\n"u8.ToArray(), Output = "YES\n"u8.ToArray() });

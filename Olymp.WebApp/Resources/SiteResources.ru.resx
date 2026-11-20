@@ -1017,4 +1017,8 @@
   <data name="StaffReplacePdfConfirm" xml:space="preserve"><value>Заменить существующий PDF с условиями соревнования выбранным файлом?</value></data>
   <data name="StaffPdfInvalid" xml:space="preserve"><value>Выберите непустой PDF-файл размером до {0} МиБ.</value></data>
   <data name="StaffPdfUploaded" xml:space="preserve"><value>PDF с условиями загружен.</value></data>
+  <data name="StaffRemovePdf" xml:space="preserve"><value>Удалить PDF</value></data>
+  <data name="StaffRemovePdfConfirm" xml:space="preserve"><value>Удалить PDF условий? Скачивание этого файла станет недоступно. Тексты задач и примеры сохранятся.</value></data>
+  <data name="StaffPdfRemoved" xml:space="preserve"><value>PDF условий удалён.</value></data>
+  <data name="StaffPdfChanged" xml:space="preserve"><value>PDF условий изменился. Проверьте текущий файл и подтвердите удаление заново.</value></data>
 </root>

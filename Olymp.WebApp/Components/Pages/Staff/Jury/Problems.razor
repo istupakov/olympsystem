@@ -33,11 +33,8 @@ else
                 <a class="btn btn-outline-primary" href="jury/contests/@ContestId/import">@SiteResources.ImportProblems</a>
             }
             <a class="btn btn-outline-secondary" href="jury/contests/@ContestId/problems/export" data-enhance-nav="false">@SiteResources.ExportProblems</a>
-            @if (StatementFormat.UsesMarkdown(_contest.StartTime))
-            {
-                <button class="btn btn-outline-secondary" @onclick="() => PreviewStatementExport(false)">@SiteResources.DownloadStatementTex</button>
-                <button class="btn btn-outline-secondary" @onclick="() => PreviewStatementExport(true)">@SiteResources.DownloadStatementPdf</button>
-            }
+            <button class="btn btn-outline-secondary" @onclick="() => PreviewStatementExport(false)">@SiteResources.DownloadStatementTex</button>
+            <button class="btn btn-outline-secondary" @onclick="() => PreviewStatementExport(true)">@SiteResources.DownloadStatementPdf</button>
         </div>
     </div>
     @if (_showStatementWarnings)
@@ -237,8 +234,7 @@ else
         var contest = await context.Contests.AsNoTracking().Include(item => item.Problems).ThenInclude(item => item.Checker)
             .SingleOrDefaultAsync(item => item.Id == contestId);
         var problems = contest?.Problems.OrderBy(item => item.Number).ThenBy(item => item.Id).ToList() ?? [];
-        _statementDocuments = contest is not null && StatementFormat.UsesMarkdown(contest.StartTime)
-            ? problems.ToDictionary(p => p.Id, p => StatementDocument.Parse(p.Text ?? "")) : [];
+        _statementDocuments = problems.ToDictionary(p => p.Id, p => StatementDocument.Parse(p.Text ?? ""));
         var selected = requestedProblem is int id ? problems.SingleOrDefault(item => item.Id == id) : problems.FirstOrDefault();
         if (selected is null && requestedProblem.HasValue) contest = null;
         IReadOnlyList<Test> examples = [];

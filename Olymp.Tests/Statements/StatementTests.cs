@@ -182,14 +182,6 @@ public class StatementTests
     }
 
     [Theory]
-    [InlineData("2026-10-31T16:59:59Z", false)]
-    [InlineData("2026-10-31T17:00:00Z", true)]
-    [InlineData("2026-11-01T00:00:00+07:00", true)]
-    [InlineData("2026-10-31T19:00:00+02:00", true)]
-    public void CutoffComparesInstantsInclusively(string timestamp, bool expected) =>
-        Assert.Equal(expected, StatementFormat.UsesMarkdown(DateTimeOffset.Parse(timestamp)));
-
-    [Theory]
     [InlineData(@"\begin{cases} a & x \le 0 \\ b & x > 0 \end{cases}", true)]
     [InlineData(@"\begin{aligned} x &= 1 \\ y &= 2 \end{aligned}", true)]
     [InlineData(@"\href{file}{x}", false)]
@@ -213,7 +205,7 @@ public class StatementTests
     public async Task TexArchiveHasTemplateExamplesOriginalNumbersAndWarningPlaceholders()
     {
         using var stream = new MemoryStream();
-        await StatementTexArchive.WriteAsync(stream, "Турнир #1", StatementFormat.Cutoff,
+        await StatementTexArchive.WriteAsync(stream, "Турнир #1", new DateTimeOffset(2020, 1, 1, 0, 0, 0, TimeSpan.FromHours(7)),
             [new(2, "Задача", 1, 256, StatementDocument.Parse(Source), [new("a\nb\n"u8.ToArray(), "YES\n"u8.ToArray())]),
                 new(7, "Без условия", 2, 512, null, [])], "Условие отсутствует", TestContext.Current.CancellationToken);
         stream.Position = 0;
@@ -243,7 +235,7 @@ public class StatementTests
         using var stream = new MemoryStream();
         var examples = Enumerable.Range(1, count).Select(index => new StatementExample(
             Encoding.UTF8.GetBytes($"  {index}\t\n\n\u00a0"), Encoding.UTF8.GetBytes($"{index}\n\u00a0"))).ToArray();
-        await StatementTexArchive.WriteAsync(stream, "Contest", StatementFormat.Cutoff,
+        await StatementTexArchive.WriteAsync(stream, "Contest", new DateTimeOffset(2020, 1, 1, 0, 0, 0, TimeSpan.FromHours(7)),
             [new(1, "Problem", 1, 256, StatementDocument.Parse(Source), examples)], "Missing", TestContext.Current.CancellationToken);
         stream.Position = 0;
         using var zip = new ZipArchive(stream);

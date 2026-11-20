@@ -27,7 +27,7 @@ public partial class ContestImportPageTests
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<OlympContext>();
         await db.Database.ExecuteSqlRawAsync("IF NOT EXISTS (SELECT 1 FROM Checkers WHERE Id = 4) BEGIN SET IDENTITY_INSERT Checkers ON; INSERT INTO Checkers (Id, Description) VALUES (4, N'Strict'); SET IDENTITY_INSERT Checkers OFF; END", Token);
-        var contest = TestEntities.CreateContest("Changes", Olymp.Statements.StatementFormat.Cutoff, Olymp.Statements.StatementFormat.Cutoff.AddHours(5));
+        var contest = TestEntities.CreateContest("Changes", new DateTimeOffset(2020, 1, 1, 0, 0, 0, TimeSpan.FromHours(7)), new DateTimeOffset(2020, 1, 1, 0, 0, 0, TimeSpan.FromHours(7)).AddHours(5));
         var problem = TestEntities.CreateProblem(contest);
         problem.Checker = null!;
         problem.CheckerId = 4;

@@ -154,4 +154,16 @@
   <data name="AcceptRulesPrefix" xml:space="preserve"><value>Я принимаю</value></data>
   <data name="SystemUsageRules" xml:space="preserve"><value>правила использования системы</value></data>
   <data name="AcceptRulesRequired" xml:space="preserve"><value>Необходимо принять правила использования системы.</value></data>
+  <data name="Coach" xml:space="preserve"><value>Тренер</value></data>
+  <data name="NoCoach" xml:space="preserve"><value>Без тренера</value></data>
+  <data name="CoachExplanation" xml:space="preserve"><value>При смене вуза тренер сбрасывается. Сохраните новый вуз, чтобы обновить список тренеров. Выбранный тренер сразу получает доступ к вашим решениям по правилам сайта.</value></data>
+  <data name="CoachInvalid" xml:space="preserve"><value>Выберите тренера с правом работы с вашим вузом.</value></data>
+  <data name="MergeAccounts" xml:space="preserve"><value>Объединение аккаунтов</value></data>
+  <data name="MergeExplanation" xml:space="preserve"><value>Введите логин и пароль другого личного аккаунта. Его история и связи с участиями будут перенесены в текущий аккаунт, а другой аккаунт будет удалён. Профиль, права, ограничения и способы входа текущего аккаунта сохранятся.</value></data>
+  <data name="MergeConfirmation" xml:space="preserve"><value>Подтверждаю перенос истории и удаление аккаунта, логин которого я ввёл.</value></data>
+  <data name="MergeConfirmationRequired" xml:space="preserve"><value>Подтвердите перенос и удаление другого аккаунта.</value></data>
+  <data name="MergeInvalidAccount" xml:space="preserve"><value>Введите логин и пароль другого личного аккаунта.</value></data>
+  <data name="MergeParticipationConflict" xml:space="preserve"><value>Невозможно объединить аккаунты: они связаны с разными участниками следующих олимпиад: {0}. Для объединения обратитесь к администратору.</value></data>
+  <data name="MergeFailed" xml:space="preserve"><value>Не удалось объединить аккаунты. История не перенесена, другой аккаунт не удалён.</value></data>
+  <data name="MergeSucceeded" xml:space="preserve"><value>Аккаунты объединены. Другой аккаунт удалён.</value></data>
 </root>

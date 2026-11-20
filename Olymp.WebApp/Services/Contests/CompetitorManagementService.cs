@@ -59,6 +59,7 @@ public sealed class CompetitorManagementService(OlympContext context, UserManage
             IsHidden = user.IsHidden,
             IsOutOfCompetition = outOfCompetition,
             OrganizationId = user.OrganizationId,
+            CoachId = user.CoachId,
             RegistrationDate = timeProvider.GetLocalNow(),
             Members = [user],
             Messages = [],

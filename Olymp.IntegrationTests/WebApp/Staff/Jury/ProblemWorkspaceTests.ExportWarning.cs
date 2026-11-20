@@ -17,14 +17,16 @@ namespace Olymp.IntegrationTests.WebApp.Staff.Jury;
 
 public partial class ProblemWorkspaceTests
 {
-    [Fact]
-    public async Task InvalidStatementWarningAppearsOnlyWhenExportIsRequested()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task InvalidStatementWarningAppearsOnlyWhenExportIsRequested(bool pdf)
     {
         var token = TestContext.Current.CancellationToken;
         var author = await _factory.AddUserAsync();
         await using var scope = _factory.Services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<OlympContext>();
-        var contest = TestEntities.CreateContest("Export warning", Olymp.Statements.StatementFormat.Cutoff, Olymp.Statements.StatementFormat.Cutoff.AddHours(5));
+        var contest = TestEntities.CreateContest("Export warning", new DateTimeOffset(2020, 1, 1, 0, 0, 0, TimeSpan.FromHours(7)), new DateTimeOffset(2020, 1, 1, 0, 0, 0, TimeSpan.FromHours(7)).AddHours(5));
         var problem = TestEntities.CreateProblem(contest);
         db.Problems.Add(problem);
         await db.SaveChangesAsync(token);
@@ -34,10 +36,11 @@ public partial class ProblemWorkspaceTests
         using var requested = await new HtmlParser().ParseDocumentAsync(await RenderAsync<JuryProblems>(
             $"/jury/contests/{contest.Id}/problems", new() { [nameof(JuryProblems.ContestId)] = contest.Id }, Staff(author.Id), page =>
             {
-                typeof(JuryProblems).GetMethod("PreviewStatementExport", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(page, null);
+                typeof(JuryProblems).GetMethod("PreviewStatementExport", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(page, [pdf]);
                 return Task.CompletedTask;
             }));
         Assert.Contains(SiteResources.StatementPrintWarning, requested.Body!.TextContent);
-        Assert.Contains(requested.QuerySelectorAll("a"), link => link.TextContent == SiteResources.StatementExportAnyway);
+        var exportLink = Assert.Single(requested.QuerySelectorAll("a"), link => link.TextContent == SiteResources.StatementExportAnyway);
+        Assert.Equal($"jury/contests/{contest.Id}/statements/{(pdf ? "pdf" : "export")}", exportLink.GetAttribute("href"));
     }
 }

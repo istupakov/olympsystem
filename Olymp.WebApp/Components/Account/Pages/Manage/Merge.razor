@@ -1,0 +1,94 @@
+@page "/Account/Manage/Merge"
+
+@using Olymp.WebApp.Services.Identity
+@using Olymp.WebApp.Services
+
+@inject AccountMergeService MergeService
+@inject IdentityRedirectManager RedirectManager
+
+<PageTitle>@AccountResources.MergeAccounts</PageTitle>
+<h3>@AccountResources.MergeAccounts</h3>
+<StatusMessage Message="@message" IsError="true" />
+<div class="row">
+    <div class="col-xl-6">
+        <p>@AccountResources.MergeExplanation</p>
+        <EditForm Model="Input" FormName="merge" method="post" OnSubmit="MergeAsync">
+            <DataAnnotationsValidator />
+            <ValidationSummary class="text-danger" role="alert" />
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="Input.Login" id="Input.Login" class="form-control" autocomplete="username" placeholder="@AccountResources.EmailOrUserName" />
+                <label for="Input.Login">@AccountResources.EmailOrUserName</label>
+                <ValidationMessage For="() => Input.Login" class="text-danger" />
+            </div>
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="Input.Password" type="password" id="Input.Password" class="form-control" autocomplete="current-password" placeholder="@AccountResources.Password" />
+                <label for="Input.Password">@AccountResources.Password</label>
+                <ValidationMessage For="() => Input.Password" class="text-danger" />
+            </div>
+            <div class="form-check mb-3">
+                <InputCheckbox @bind-Value="Input.Confirm" id="Input.Confirm" class="form-check-input" />
+                <label for="Input.Confirm" class="form-check-label">@AccountResources.MergeConfirmation</label>
+            </div>
+            <button type="submit" class="btn btn-danger">@AccountResources.MergeAccounts</button>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    private string? message;
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromForm]
+    private InputModel Input { get; set; } = default!;
+
+    [SupplyParameterFromTempData(Name = IdentityRedirectManager.StatusMessageKey)]
+    private string? IdentityStatusMessage { get; set; }
+
+    protected override void OnInitialized() => Input ??= new();
+
+    private async Task MergeAsync(EditContext editContext)
+    {
+        try
+        {
+            if (!await editContext.ValidateAsync()) return;
+            if (!Input.Confirm)
+            {
+                message = AccountResources.MergeConfirmationRequired;
+                return;
+            }
+            await MergeService.MergeAsync(HttpContext.User, Input.Login, Input.Password, HttpContext.RequestAborted);
+        }
+        catch (OperationValidationException exception)
+        {
+            message = exception.Message;
+            return;
+        }
+        catch (IdentityOperationException)
+        {
+            message = AccountResources.MergeFailed;
+            return;
+        }
+        finally
+        {
+            Input.Password = "";
+        }
+        IdentityStatusMessage = AccountResources.MergeSucceeded;
+        RedirectManager.RedirectTo("Account/Manage");
+    }
+
+    private sealed class InputModel
+    {
+        [Required(ErrorMessageResourceName = nameof(AccountResources.FieldRequired), ErrorMessageResourceType = typeof(AccountResources))]
+        [Display(Name = nameof(AccountResources.EmailOrUserName), ResourceType = typeof(AccountResources))]
+        public string Login { get; set; } = "";
+
+        [Required(ErrorMessageResourceName = nameof(AccountResources.FieldRequired), ErrorMessageResourceType = typeof(AccountResources))]
+        [DataType(DataType.Password)]
+        [Display(Name = nameof(AccountResources.Password), ResourceType = typeof(AccountResources))]
+        public string Password { get; set; } = "";
+
+        public bool Confirm { get; set; }
+    }
+}

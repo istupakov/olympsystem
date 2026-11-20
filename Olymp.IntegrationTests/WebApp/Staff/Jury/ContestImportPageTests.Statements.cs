@@ -26,7 +26,7 @@ public partial class ContestImportPageTests
         await GrantRoleAsync(user.Id, RoleNames.Admin);
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<OlympContext>();
-        var contest = TestEntities.CreateContest("Preview", StatementFormat.Cutoff, StatementFormat.Cutoff.AddHours(5));
+        var contest = TestEntities.CreateContest("Preview", new DateTimeOffset(2020, 1, 1, 0, 0, 0, TimeSpan.FromHours(7)), new DateTimeOffset(2020, 1, 1, 0, 0, 0, TimeSpan.FromHours(7)).AddHours(5));
         var problem = TestEntities.CreateProblem(contest, 2);
         problem.Text = Olymp.Tests.Statements.StatementTests.Source;
         problem.Tests.Add(new() { Problem = problem, Number = 1, IsOpen = true, IsActive = true, Input = "public\nexample"u8.ToArray(), Output = "YES"u8.ToArray() });

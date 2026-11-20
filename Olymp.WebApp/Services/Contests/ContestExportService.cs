@@ -213,9 +213,8 @@ public sealed partial class ContestExportService(IDbContextFactory<OlympContext>
             problem.Id, problem.Number, problem.Name, problem.TimeLimit, problem.SlowTimeLimit, problem.MemoryLimit, problem.CheckerId,
             problem.IsActive, openTestCount, openTests.Length == openTestCount ? null : openTests,
             scores.Count == 0 ? null : scores, inactive.Length == 0 ? null : inactive, comments.Count == 0 ? null : comments), token);
-        if (problem.Text is not null && StatementFormat.UsesMarkdown(contest.StartTime))
+        if (problem.Text is not null)
             await WriteTextAsync(archive, root + "statement.md", problem.Text, token);
-        else if (!problemsOnly && problem.Text is not null) await WriteTextAsync(archive, root + "statement.html", problem.Text, token);
         await foreach (var test in db.Tests.AsNoTracking().Where(item => item.ProblemId == problemId).OrderBy(item => item.Number)
             .Select(item => new { item.Number, item.Input, item.Output }).AsAsyncEnumerable().WithCancellation(token))
         {

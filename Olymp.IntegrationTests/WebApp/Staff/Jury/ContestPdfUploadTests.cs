@@ -106,6 +106,37 @@ public class ContestPdfUploadTests(WebAppFactory factory) : StaffComponentTests(
         Assert.Null(await db.Contests.Where(item => item.Id == contest.Id).Select(item => item.ProblemPdfId).SingleAsync(TestContext.Current.CancellationToken));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task DeleteRequiresConfirmationAndPreservesUnsavedContestSettings(bool confirm)
+    {
+        var token = TestContext.Current.CancellationToken;
+        var actor = await _factory.AddUserAsync();
+        await using var scope = _factory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<OlympContext>();
+        var contest = TestEntities.CreateContest("PDF deletion", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddHours(5));
+        contest.ProblemPdf = new Blob { Data = "%PDF-1.4\noriginal"u8.ToArray() };
+        db.Contests.Add(contest);
+        await db.SaveChangesAsync(token);
+        int pdfId = contest.ProblemPdfId!.Value;
+        using var page = await new HtmlParser().ParseDocumentAsync(await RenderAsync<EditContest>(
+            $"/jury/contests/{contest.Id}/edit", new() { [nameof(EditContest.Id)] = contest.Id }, Staff(actor.Id), async component =>
+            {
+                var input = (EditContest.InputModel)typeof(EditContest).GetField("_input", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(component)!;
+                input.Name = "Unsaved settings";
+                await ActAsync(component, "RemovePdfAsync", false);
+                Assert.NotNull(typeof(EditContest).GetField("_pdfRemoval", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(component));
+                Assert.True(await db.Blobs.AnyAsync(item => item.Id == pdfId, token));
+                if (confirm) await ActAsync(component, "RemovePdfAsync", true);
+                Assert.Equal("Unsaved settings", input.Name);
+            }));
+        Assert.Equal(!confirm, await db.Blobs.AnyAsync(item => item.Id == pdfId, token));
+        Assert.Equal("PDF deletion", await db.Contests.Where(item => item.Id == contest.Id).Select(item => item.Name).SingleAsync(token));
+        Assert.Contains(confirm ? SiteResources.StaffPdfRemoved : SiteResources.StaffRemovePdfConfirm, page.Body!.TextContent);
+        if (confirm) Assert.DoesNotContain(page.QuerySelectorAll("button"), button => button.TextContent == SiteResources.StaffRemovePdf);
+    }
+
     private sealed class MemoryFile(byte[] data, long? declaredSize = null) : IBrowserFile
     {
         public string Name => "statements.pdf";

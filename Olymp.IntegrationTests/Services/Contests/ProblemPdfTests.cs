@@ -130,6 +130,67 @@ public class ProblemPdfTests(ContestServiceFixture site) : IClassFixture<Contest
         Assert.Equal(data, saved.ProblemPdf!.Data);
     }
 
+    [Theory]
+    [InlineData(-2)]
+    [InlineData(0)]
+    [InlineData(2)]
+    public async Task AuthorizedRemovalRequiresPreviewAndRetainsProblemTextsAtAnyContestTime(int startDays)
+    {
+        var token = TestContext.Current.CancellationToken;
+        var owner = await site.AddUserAsync(RoleNames.Jury);
+        var contest = await site.AddContestAsync(owner);
+        using var scope = site.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<OlympContext>();
+        await db.Contests.Where(item => item.Id == contest.Id).ExecuteUpdateAsync(setters => setters
+            .SetProperty(item => item.StartTime, DateTimeOffset.UtcNow.AddDays(startDays))
+            .SetProperty(item => item.EndTime, DateTimeOffset.UtcNow.AddDays(startDays).AddHours(5)), token);
+        var problem = Olymp.Tests.Shared.TestEntities.CreateProblem(contest);
+        problem.Text = "# Retained text";
+        db.Attach(contest);
+        db.Problems.Add(problem);
+        await db.SaveChangesAsync(token);
+        var service = scope.ServiceProvider.GetRequiredService<ContestProblemService>();
+        await service.UploadPdfAsync(contest.Id, "%PDF-1.4\ndelete"u8.ToArray(), token);
+        var actor = PdfActor(owner);
+        var preview = await service.PrepareRemovePdfAsync(actor, contest.Id, token);
+        Assert.NotNull(preview);
+        Assert.True(await db.Blobs.AnyAsync(item => item.Id == preview.PdfId, token));
+        await service.RemovePdfAsync(actor, preview, token);
+        Assert.Null(await service.PrepareRemovePdfAsync(actor, contest.Id, token));
+        Assert.False(await db.Blobs.AnyAsync(item => item.Id == preview.PdfId, token));
+        Assert.Equal(problem.Text, await db.Problems.Where(item => item.Id == problem.Id).Select(item => item.Text).SingleAsync(token));
+    }
+
+    [Theory]
+    [InlineData("stranger")]
+    [InlineData("revoked")]
+    [InlineData("replaced")]
+    public async Task RemovalRejectsUnauthorizedActorsAndReplacementSincePreview(string reason)
+    {
+        var token = TestContext.Current.CancellationToken;
+        var owner = await site.AddUserAsync(RoleNames.Jury);
+        var stranger = await site.AddUserAsync(RoleNames.Jury);
+        var contest = await site.AddContestAsync(owner);
+        using var scope = site.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<OlympContext>();
+        var service = scope.ServiceProvider.GetRequiredService<ContestProblemService>();
+        byte[] first = "%PDF-1.4\noriginal"u8.ToArray(), replacement = "%PDF-1.4\nreplacement"u8.ToArray();
+        await service.UploadPdfAsync(contest.Id, first, token);
+        var preview = (await service.PrepareRemovePdfAsync(PdfActor(owner), contest.Id, token))!;
+        if (reason == "stranger")
+            await Assert.ThrowsAsync<OperationValidationException>(() => service.PrepareRemovePdfAsync(PdfActor(stranger), contest.Id, token));
+        if (reason == "revoked")
+            await db.UserClaims.Where(item => item.UserId == owner.Id && item.ClaimType == ClaimNames.ContestManage).ExecuteDeleteAsync(token);
+        if (reason == "replaced")
+            await service.UploadPdfAsync(contest.Id, replacement, token);
+        await Assert.ThrowsAsync<OperationValidationException>(() => service.RemovePdfAsync(PdfActor(reason == "stranger" ? stranger : owner), preview, token));
+        Assert.Equal(reason == "replaced" ? replacement : first,
+            await db.Contests.Where(item => item.Id == contest.Id).Select(item => item.ProblemPdf!.Data).SingleAsync(token));
+    }
+
+    private static ClaimsPrincipal PdfActor(OlympUser user) => new(new ClaimsIdentity(
+        [new(ClaimTypes.NameIdentifier, user.Id.ToString()), new(ClaimTypes.Role, RoleNames.Jury)], "Test"));
+
     private sealed class FailBlobDeletion : SaveChangesInterceptor
     {
         public override ValueTask<InterceptionResult<int>> SavingChangesAsync(DbContextEventData eventData,

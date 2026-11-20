@@ -620,9 +620,7 @@ public sealed class ProblemAccessTests(WebAppFactory factory) : IClassFixture<We
         contest.ProblemPdf = new Blob { Data = "%PDF-test"u8.ToArray() };
         contest.TestZip = new Blob { Data = [1, 2, 3] };
         var problem = TestEntities.CreateProblem(contest);
-        problem.Text = Olymp.Statements.StatementFormat.UsesMarkdown(contest.StartTime)
-            ? "# Visible statement\n\nDescription.\n\n## Формат входных данных\n\nInput.\n\n## Формат выходных данных\n\nOutput."
-            : "<p>Visible statement</p>";
+        problem.Text = "# Visible statement\n\nDescription.\n\n## Формат входных данных\n\nInput.\n\n## Формат выходных данных\n\nOutput.";
         contest.Problems.Add(problem);
         var team = TestEntities.CreateCompetitor(contest, "Own team");
         team.Members.Add(user);
