@@ -27,6 +27,9 @@ RUN dotnet ef migrations bundle --project ./Olymp.Domain --startup-project ./Oly
 FROM mcr.microsoft.com/dotnet/aspnet:11.0-resolute
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
+    texlive-latex-base \
+    texlive-lang-cyrillic \
+    cm-super \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

@@ -71,6 +71,85 @@ public class StatementTests
     }
 
     [Theory]
+    [InlineData("- Первый\n- Второй", "itemize")]
+    [InlineData("- Первый\n\n- Второй", "itemize")]
+    [InlineData("1. Первый\n2. Второй", "enumerate")]
+    [InlineData("1. Первый\n\n2. Второй", "enumerate")]
+    public void ListsKeepItemsAdjacentAndSeparateFollowingParagraph(string markdown, string environment)
+    {
+        var document = StatementDocument.Parse(Source.Replace("Строка $s$.", markdown + "\n\nНовый абзац.", StringComparison.Ordinal));
+        Assert.True(document.IsValid);
+        Assert.Contains("\\item Первый\n\\item Второй\n\\end{" + environment + "}\n\nНовый абзац.\n\n", document.Latex());
+    }
+
+    [Fact]
+    public void ListItemsKeepInternalParagraphsAndNestedLists()
+    {
+        const string markdown = "- Первый абзац.\n\n  Второй абзац.\n\n  - Вложенный пункт\n\n- Следующий пункт\n\nНовый абзац.";
+        var document = StatementDocument.Parse(Source.Replace("Строка $s$.", markdown, StringComparison.Ordinal));
+        Assert.True(document.IsValid);
+        Assert.Contains("\\item Первый абзац.\n\nВторой абзац.\n\n\\begin{itemize}\n\\item Вложенный пункт\n\\end{itemize}\n\\item Следующий пункт\n\\end{itemize}\n\nНовый абзац.", document.Latex());
+    }
+
+    [Fact]
+    public void CodeBlockSeparatesFollowingParagraph()
+    {
+        var document = StatementDocument.Parse(Source.Replace("Строка $s$.", "```\ncode\n```\n\nНовый абзац.", StringComparison.Ordinal));
+        Assert.True(document.IsValid);
+        Assert.Contains("\\end{flushleft}\n\nНовый абзац.\n\n", document.Latex());
+    }
+
+    [Fact]
+    public void NonBreakingSpacesBecomeTiesInTextButRemainUnchangedInCodeAndMath()
+    {
+        const string markdown = "с\u00a0$1$, точек\u00a0$E$, $x$\u00a0-- **обычный\u00a0текст**, `a\u00a0b`, $a\u00a0+\u00a0b$.\n\n```\na\u00a0b\n```\n\n$$\na\u00a0+\u00a0b\n$$";
+        var document = StatementDocument.Parse(Source.Replace("Строка $s$.", markdown, StringComparison.Ordinal));
+        Assert.True(document.IsValid);
+        string tex = document.Latex();
+        Assert.Contains("с~$1$, точек~$E$,~$x$~-- \\textbf{обычный~текст}", tex);
+        Assert.Contains("<<\\t{a\u00a0b}>>", tex);
+        Assert.Contains("\\mbox{a\u00a0b}", tex);
+        Assert.Contains("$a\u00a0+\u00a0b$", tex);
+        Assert.Contains("\\[\na\u00a0+\u00a0b\n\\]", tex);
+        Assert.Contains(System.Net.WebUtility.HtmlEncode("с\u00a0") + "<span", document.Html());
+    }
+
+    [Theory]
+    [InlineData("точка $E$ лежит", "точка~$E$ лежит")]
+    [InlineData("ответ равен $1$.", "ответ равен~$1$.")]
+    [InlineData("**точка** $E$", "\\textbf{точка}~$E$")]
+    [InlineData("точка **$E$**", "точка~\\textbf{$E$}")]
+    [InlineData("точка\n$E$", "точка~$E$")]
+    [InlineData("точка  \n$E$", "точка\\\\\n$E$")]
+    [InlineData("$x$\n\n$E$", "$x$\n\n$E$")]
+    [InlineData("$n$ -- число", "$n$~-- число")]
+    [InlineData("текст – продолжение", "текст~– продолжение")]
+    [InlineData("текст \u2014 продолжение", "текст~\u2014 продолжение")]
+    [InlineData("текст --- продолжение", "текст~--- продолжение")]
+    [InlineData("текст\n-- продолжение", "текст~-- продолжение")]
+    [InlineData("текст - продолжение", "текст - продолжение")]
+    [InlineData("диапазон $1 -- 3$", "диапазон $1 -- 3$")]
+    [InlineData("число $10$ и $x_i$", "число $10$ и $x_i$")]
+    [InlineData("угол $\\alpha$", "угол $\\alpha$")]
+    public void LatexTiesDashesAndSingleLettersOrDigitsWithoutChangingHtmlOrMath(string markdown, string expected)
+    {
+        var document = StatementDocument.Parse(Source.Replace("Строка $s$.", markdown, StringComparison.Ordinal));
+        Assert.True(document.IsValid);
+        Assert.Contains(expected, document.Latex());
+        Assert.DoesNotContain("&#160;", document.Html());
+    }
+
+    [Fact]
+    public void AutomaticTiesDoNotChangeCode()
+    {
+        const string markdown = "`текст -- $x$`\n\n```\nтекст – $E$\n```";
+        var document = StatementDocument.Parse(Source.Replace("Строка $s$.", markdown, StringComparison.Ordinal));
+        Assert.True(document.IsValid);
+        Assert.Contains("<<\\t{текст\\ {-}{-}\\ \\$x\\$}>>", document.Latex());
+        Assert.Contains("\\mbox{текст\\ –\\ \\$E\\$}", document.Latex());
+    }
+
+    [Theory]
     [InlineData(@"1 \le n \leqslant 10^9")]
     [InlineData(@"a_1 + a_2 + a_3 = b_1 + b_2")]
     [InlineData(@"\text{a = b} + x > 0")]
@@ -163,7 +242,7 @@ public class StatementTests
     {
         using var stream = new MemoryStream();
         var examples = Enumerable.Range(1, count).Select(index => new StatementExample(
-            Encoding.UTF8.GetBytes($"  {index}\t\n\n"), Encoding.UTF8.GetBytes($"{index}\n"))).ToArray();
+            Encoding.UTF8.GetBytes($"  {index}\t\n\n\u00a0"), Encoding.UTF8.GetBytes($"{index}\n\u00a0"))).ToArray();
         await StatementTexArchive.WriteAsync(stream, "Contest", StatementFormat.Cutoff,
             [new(1, "Problem", 1, 256, StatementDocument.Parse(Source), examples)], "Missing", TestContext.Current.CancellationToken);
         stream.Position = 0;
@@ -175,8 +254,8 @@ public class StatementTests
         for (int index = 1; index <= count; index++)
         {
             Assert.Contains($"\\exmpfile{{samples/problem00-{index}.in}}{{samples/problem00-{index}.out}}%\n", tex);
-            Assert.Equal($"  {index}\t\n\n", await ReadAsync(zip, $"samples/problem00-{index}.in"));
-            Assert.Equal($"{index}\n", await ReadAsync(zip, $"samples/problem00-{index}.out"));
+            Assert.Equal($"  {index}\t\n\n\u00a0", await ReadAsync(zip, $"samples/problem00-{index}.in"));
+            Assert.Equal($"{index}\n\u00a0", await ReadAsync(zip, $"samples/problem00-{index}.out"));
         }
     }
 

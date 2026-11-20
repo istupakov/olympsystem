@@ -35,7 +35,8 @@ else
             <a class="btn btn-outline-secondary" href="jury/contests/@ContestId/problems/export" data-enhance-nav="false">@SiteResources.ExportProblems</a>
             @if (StatementFormat.UsesMarkdown(_contest.StartTime))
             {
-                <button class="btn btn-outline-secondary" @onclick="PreviewStatementExport">@SiteResources.DownloadStatementTex</button>
+                <button class="btn btn-outline-secondary" @onclick="() => PreviewStatementExport(false)">@SiteResources.DownloadStatementTex</button>
+                <button class="btn btn-outline-secondary" @onclick="() => PreviewStatementExport(true)">@SiteResources.DownloadStatementPdf</button>
             }
         </div>
     </div>
@@ -46,7 +47,7 @@ else
             {
                 <p>@problem.NameWithNumber: @SiteResources.StatementPrintWarning</p>
             }
-            <a class="btn btn-warning" href="jury/contests/@ContestId/statements/export" data-enhance-nav="false">@SiteResources.StatementExportAnyway</a>
+            <a class="btn btn-warning" href="@StatementExportUrl" data-enhance-nav="false">@SiteResources.StatementExportAnyway</a>
             <button class="btn btn-outline-secondary ms-2" @onclick="() => _showStatementWarnings = false">@SiteResources.StaffCancel</button>
         </div>
     }
@@ -200,10 +201,13 @@ else
     private bool _hasAcceptedReference, _showStatementWarnings;
     private IEnumerable<Problem> InvalidStatements => _progress.Select(item => item.Problem)
         .Where(problem => problem.IsActive && _statementDocuments.TryGetValue(problem.Id, out var document) && !document.IsValid);
-    private void PreviewStatementExport()
+    private bool _statementPdf;
+    private string StatementExportUrl => $"jury/contests/{ContestId}/statements/{(_statementPdf ? "pdf" : "export")}";
+    private void PreviewStatementExport(bool pdf)
     {
+        _statementPdf = pdf;
         _showStatementWarnings = InvalidStatements.Any();
-        if (!_showStatementWarnings) Navigation.NavigateTo($"jury/contests/{ContestId}/statements/export", forceLoad: true);
+        if (!_showStatementWarnings) Navigation.NavigateTo(StatementExportUrl, forceLoad: true);
     }
 
     private string ProblemUrl(int id) => $"jury/contests/{ContestId}/problems?problemId={id}" + (CurrentScope == "own" ? "" : $"&scope={CurrentScope}");

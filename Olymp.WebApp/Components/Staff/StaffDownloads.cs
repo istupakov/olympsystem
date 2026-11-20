@@ -20,6 +20,7 @@ internal static class StaffDownloads
             ExportContestAsync(contestId, http, service));
         jury.MapGet("/contests/{contestId:int}/problems/export", ExportProblemsAsync);
         jury.MapGet("/contests/{contestId:int}/statements/export", ExportStatementsAsync);
+        jury.MapGet("/contests/{contestId:int}/statements/pdf", DownloadStatementPdfAsync);
         jury.MapGet("/problems/{problemId:int}/tests/download", DownloadZipAsync);
         jury.MapGet("/problems/{problemId:int}/tests/{id:int}/input", (int problemId, int id, HttpContext http,
             IDbContextFactory<OlympContext> factory) => DownloadTestAsync(problemId, id, false, http, factory));
@@ -91,6 +92,24 @@ internal static class StaffDownloads
         catch (OperationValidationException exception)
         {
             return Results.Problem(exception.Message, statusCode: StatusCodes.Status400BadRequest, title: SiteResources.StaffExportFailed);
+        }
+    }
+
+    private static async Task<IResult> DownloadStatementPdfAsync(int contestId, HttpContext http,
+        ContestExportService service, StatementPdfService pdf)
+    {
+        http.Response.Headers.CacheControl = "no-store";
+        try
+        {
+            var export = await service.ExportStatementsAsync(contestId, http.RequestAborted);
+            await using var archive = export.Stream;
+            byte[] data = await pdf.CompileAsync(archive, http.RequestAborted);
+            return Results.File(data, "application/pdf", Path.ChangeExtension(export.FileName, ".pdf"));
+        }
+        catch (EntityNotFoundException) { return Results.NotFound(); }
+        catch (OperationValidationException exception)
+        {
+            return Results.Problem(exception.Message, statusCode: StatusCodes.Status400BadRequest);
         }
     }
 

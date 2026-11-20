@@ -20,9 +20,11 @@ namespace Olymp.IntegrationTests.WebApp.Staff.Jury;
 public class ContestExportDownloadTests(WebAppFactory factory) : StaffComponentTests(factory)
 {
     [Theory]
-    [InlineData(RoleNames.Jury)]
-    [InlineData(RoleNames.Admin)]
-    public async Task StaffDownloadsPrintableMarkdownArchiveWithoutManagementAssignment(string role)
+    [InlineData(RoleNames.Jury, false)]
+    [InlineData(RoleNames.Admin, false)]
+    [InlineData(RoleNames.Jury, true)]
+    [InlineData(RoleNames.Admin, true)]
+    public async Task StaffDownloadsPrintableMarkdownWithoutManagementAssignment(string role, bool pdf)
     {
         var token = TestContext.Current.CancellationToken;
         var user = await _factory.AddUserAsync();
@@ -39,12 +41,19 @@ public class ContestExportDownloadTests(WebAppFactory factory) : StaffComponentT
         db.Problems.Add(problem);
         await db.SaveChangesAsync(token);
         using var client = await _factory.LoginAsync(user.UserName!);
-        using var response = await client.GetAsync($"/jury/contests/{contest.Id}/statements/export", token);
+        using var response = await client.GetAsync($"/jury/contests/{contest.Id}/statements/{(pdf ? "pdf" : "export")}", token);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Equal("application/zip", response.Content.Headers.ContentType!.MediaType);
+        Assert.Equal(pdf ? "application/pdf" : "application/zip", response.Content.Headers.ContentType!.MediaType);
         Assert.True(response.Headers.CacheControl!.NoStore);
-        Assert.Equal($"{contest.Abbr}-statements.zip", response.Content.Headers.ContentDisposition!.FileNameStar);
-        using var zip = new ZipArchive(new MemoryStream(await response.Content.ReadAsByteArrayAsync(token)));
+        Assert.Equal($"{contest.Abbr}-statements.{(pdf ? "pdf" : "zip")}", response.Content.Headers.ContentDisposition!.FileNameStar);
+        byte[] data = await response.Content.ReadAsByteArrayAsync(token);
+        if (pdf)
+        {
+            Assert.True(data.AsSpan().StartsWith("%PDF-"u8));
+            Assert.Null(await db.Contests.Where(item => item.Id == contest.Id).Select(item => item.ProblemPdfId).SingleAsync(token));
+            return;
+        }
+        using var zip = new ZipArchive(new MemoryStream(data));
         Assert.NotNull(zip.GetEntry("statements.tex"));
         Assert.NotNull(zip.GetEntry("olymp.sty"));
         Assert.Equal(2, zip.Entries.Count(e => e.FullName.StartsWith("samples/", StringComparison.Ordinal)));
@@ -140,7 +149,7 @@ public class ContestExportDownloadTests(WebAppFactory factory) : StaffComponentT
         await scope.ServiceProvider.GetRequiredService<OlympContext>().Users.Where(item => item.Id == incomplete.Id)
             .ExecuteUpdateAsync(setters => setters.SetProperty(item => item.NormalizedEmail, (string?)null), TestContext.Current.CancellationToken);
         foreach (var client in new[] { anonymous, signedIn, needsMigration })
-            foreach (string url in new[] { "/jury/contests/1/export", "/admin/contests/export", "/jury/contests/1/statements/export" })
+            foreach (string url in new[] { "/jury/contests/1/export", "/admin/contests/export", "/jury/contests/1/statements/export", "/jury/contests/1/statements/pdf" })
             {
                 using var response = await client.GetAsync(url, TestContext.Current.CancellationToken);
                 Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
