@@ -5,6 +5,7 @@
 @using Olymp.WebApp.Components.Submissions
 @using Olymp.WebApp.Services
 @using Olymp.WebApp.Services.Contests
+@using Olymp.Statements
 @inject IDbContextFactory<OlympContext> ContextFactory
 @inject SubmissionService Submissions
 @inject ClientConnection Connection
@@ -32,8 +33,19 @@ else
                 <a class="btn btn-outline-primary" href="jury/contests/@ContestId/import">@SiteResources.ImportProblems</a>
             }
             <a class="btn btn-outline-secondary" href="jury/contests/@ContestId/problems/export" data-enhance-nav="false">@SiteResources.ExportProblems</a>
+            @if (StatementFormat.UsesMarkdown(_contest.StartTime))
+            {
+                <a class="btn btn-outline-secondary" href="jury/contests/@ContestId/statements/export" data-enhance-nav="false">@SiteResources.DownloadStatementTex</a>
+            }
         </div>
     </div>
+    @if (StatementFormat.UsesMarkdown(_contest.StartTime))
+    {
+        @foreach (var problem in _progress.Select(p => p.Problem).Where(p => p.IsActive && !_statementDocuments.GetValueOrDefault(p.Id)!.IsValid))
+        {
+            <p class="text-warning-emphasis">@problem.NameWithNumber: @SiteResources.StatementPrintWarning</p>
+        }
+    }
     @if (_selected is null)
     {
         <p>@SiteResources.NoProblemsFound</p>
@@ -104,7 +116,7 @@ else
                     <dt class="col-sm-4">@SiteResources.StaffOpenTests</dt><dd class="col-sm-8">@_openTestCount</dd>
                 </dl>
             </details>
-            <ProblemStatementView Problem="_selected" Examples="_examples" Clarifications="_clarifications" ShowPdfLink="false" />
+            <ProblemStatementView Problem="_selected" Examples="_examples" Clarifications="_clarifications" ShowPdfLink="false" Document="_statementDocuments.GetValueOrDefault(_selected.Id)" />
             <section class="mt-4" aria-labelledby="submit-heading">
                 <h2 id="submit-heading" class="h4">@SiteResources.SubmitSolution</h2>
                 <EditForm @key="_input" Model="_input" OnValidSubmit="SubmitAsync">
@@ -155,6 +167,7 @@ else
     private Task<AuthenticationState> AuthenticationState { get; set; } = default!;
 
     private Contest? _contest;
+    private Dictionary<int, StatementDocument> _statementDocuments = [];
     private Problem? _selected;
     private IReadOnlyList<Test> _examples = [];
     private List<Message> _clarifications = [];
@@ -205,6 +218,8 @@ else
         var contest = await context.Contests.AsNoTracking().Include(item => item.Problems).ThenInclude(item => item.Checker)
             .SingleOrDefaultAsync(item => item.Id == contestId);
         var problems = contest?.Problems.OrderBy(item => item.Number).ThenBy(item => item.Id).ToList() ?? [];
+        _statementDocuments = contest is not null && StatementFormat.UsesMarkdown(contest.StartTime)
+            ? problems.ToDictionary(p => p.Id, p => StatementDocument.Parse(p.Text ?? "")) : [];
         var selected = requestedProblem is int id ? problems.SingleOrDefault(item => item.Id == id) : problems.FirstOrDefault();
         if (selected is null && requestedProblem.HasValue) contest = null;
         IReadOnlyList<Test> examples = [];

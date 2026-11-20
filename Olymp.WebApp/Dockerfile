@@ -8,6 +8,7 @@ COPY --link ./global.json ./
 COPY --link ./Olymp.Checker/*.csproj ./Olymp.Checker/
 COPY --link ./Olymp.Domain/*.csproj ./Olymp.Domain/
 COPY --link ./Olymp.Icpc/*.csproj ./Olymp.Icpc/
+COPY --link ./Olymp.Statements/*.csproj ./Olymp.Statements/
 COPY --link ./Olymp.WebApp/*.csproj ./Olymp.WebApp/
 RUN dotnet restore --no-cache ./Olymp.WebApp/Olymp.WebApp.csproj
 
@@ -15,6 +16,7 @@ COPY --link ./Protos ./Protos/
 COPY --link ./Olymp.Checker ./Olymp.Checker/
 COPY --link ./Olymp.Domain ./Olymp.Domain/
 COPY --link ./Olymp.Icpc ./Olymp.Icpc/
+COPY --link ./Olymp.Statements ./Olymp.Statements/
 COPY --link ./Olymp.WebApp ./Olymp.WebApp/
 RUN dotnet publish --no-restore ./Olymp.WebApp/Olymp.WebApp.csproj -c Release -o ./app
 

@@ -420,6 +420,7 @@ details, including to jury members without a contest management assignment.
 | Export assigned participant credentials | Jury or administrator. |
 | Export one contest as ZIP, including hidden and archived contests | Jury or administrator; contest management assignment is not required. |
 | Export all problems of one contest as an import-compatible ZIP | Jury or administrator; contest management assignment is not required. Includes inactive problems and hidden or archived contests. |
+| Export printable Markdown statements as a TeX ZIP | Jury or administrator; contest management assignment is not required. Includes active problems and active open examples, including in hidden or archived contests. |
 | Import problems; assign or remove reference solutions | Administrator or contest manager at any time; jury members with a stored `contest-import` assignment for this contest strictly before its start. Assignments and start time are rechecked for every operation, including saving an open import. |
 | Grant or revoke `contest-import` assignments | Administrator or contest manager. Recipients must be permanent accounts with the Jury role. The assignment grants no other contest management permissions. |
 | Export all contests as ZIP; view backup storage and disk space; create, download, and delete database backups | Administrator only. Backup deletion requires a preview and confirmation; deleting a full backup includes its dependent differential backups. |

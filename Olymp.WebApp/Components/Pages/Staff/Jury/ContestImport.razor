@@ -4,6 +4,7 @@
 @using Olymp.WebApp.Services
 @using Olymp.WebApp.Services.Contests
 @using Olymp.WebApp.Components.Submissions
+@using Olymp.WebApp.Components.Problems
 @inject IServiceScopeFactory ScopeFactory
 @inject IDbContextFactory<OlympContext> ContextFactory
 @inject NavigationManager Navigation
@@ -91,6 +92,7 @@
                         </tbody>
                     </table></div>
                     <h3 class="h5">@SiteResources.StaffTests (@task.Tests.Count)</h3>
+                    <p class="small text-body-secondary">@(task.SuppliesTests ? SiteResources.ImportSupplied : SiteResources.ImportRetained)</p>
                     <p class="small text-body-secondary">@SiteResources.ImportTestLineEndings</p>
                     <p>@SiteResources.ImportAddedTests: @Numbers(task.AddedTests)<br />@SiteResources.ImportChangedTests: @Numbers(task.ChangedTests)<br />@SiteResources.ImportRemovedTests: @Numbers(task.RemovedTests)</p>
                     <details class="mb-3"><summary>@SiteResources.ImportTestSet</summary>
@@ -101,6 +103,14 @@
                     </details>
                     @foreach (var message in task.StateErrors) { <p class="text-danger" role="alert">@message</p> }
                     @foreach (var message in task.StateWarnings) { <p class="text-warning-emphasis">@message</p> }
+                    <h3 class="h5">@SiteResources.StatementPreview</h3>
+                    <p class="small text-body-secondary">@(task.SuppliesStatement ? SiteResources.ImportSupplied : SiteResources.ImportRetained)</p>
+                    <h4 class="h4">@task.Label</h4>
+                    <ProblemStatementView Problem="PreviewProblem(task)" Examples="PreviewExamples(task)" Document="task.Document" ShowPdfLink="false" />
+                    @if (task.UsesMarkdown && task.Statement is not null)
+                    {
+                        <details class="mb-3"><summary>@SiteResources.StatementSource</summary><pre class="overflow-auto">@task.Statement</pre></details>
+                    }
                     <h3 class="h5">@SiteResources.ImportValidator</h3>
                     @if (task.HasValidator)
                     {
@@ -255,6 +265,15 @@
     private readonly Dictionary<ContestImportRow, CancellationTokenSource> _checks = [];
     private bool AnyChecking => _checks.Count != 0;
     private bool HasPending => _preview?.Rows.Any(r => r.HasChanges) == true;
+    private Olymp.Domain.Models.Problem PreviewProblem(ContestImportRow row) => new()
+    {
+        Name = row.Proposed.Name, Number = row.Proposed.Number, TimeLimit = row.TimeLimit,
+        MemoryLimit = row.Proposed.MemoryLimit, Text = row.Statement, Contest = _contest!, ContestId = ContestId,
+        Checker = null!, Messages = [], Submissions = [], Tests = []
+    };
+    private static IReadOnlyList<Olymp.Domain.Models.Test> PreviewExamples(ContestImportRow row) =>
+        [.. row.Tests.Where(t => t.IsActive && t.IsOpen).OrderBy(t => t.Number)
+            .Select(t => new Olymp.Domain.Models.Test { Number = t.Number, Input = t.Input, Output = t.Output, Problem = null! })];
     private string ProblemUrl(ContestImportRow row) => Navigation.GetUriWithQueryParameter("task", row.Folder);
     private static string Numbers(IEnumerable<int> values) => string.Join(", ", values) is { Length: > 0 } text ? text : "–";
     private static string CheckProgress(ContestImportRow row) => row.RunsTotal == 0 ? SiteResources.StaffChecking

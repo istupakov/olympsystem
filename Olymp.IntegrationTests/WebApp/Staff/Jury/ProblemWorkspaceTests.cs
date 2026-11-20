@@ -98,7 +98,7 @@ public partial class ProblemWorkspaceTests(WebAppFactory factory) : StaffCompone
         contest.IsHidden = true;
         var problem = TestEntities.CreateProblem(contest);
         problem.IsActive = false;
-        problem.Text = "<strong>Unpublished statement</strong>";
+        problem.Text = "# Unpublished\n\n**Unpublished statement**\n\n## Формат входных данных\n\nInput.\n\n## Формат выходных данных\n\nOutput.";
         var second = TestEntities.CreateProblem(contest, 2);
         db.Problems.AddRange(problem, second);
         db.Messages.AddRange(

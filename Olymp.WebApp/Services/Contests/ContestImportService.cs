@@ -10,6 +10,7 @@ using Microsoft.Extensions.Options;
 using Olymp.Checker;
 using Olymp.Domain;
 using Olymp.Domain.Models;
+using Olymp.Statements;
 using Olymp.WebApp.Resources;
 using Olymp.WebApp.Services.Checker;
 
@@ -43,15 +44,19 @@ public sealed class ImportSolution(ImportedSolution source)
 
 public sealed class ContestImportRow
 {
-    internal ContestImportRow(ImportedProblem source, Problem? original)
+    internal ContestImportRow(ImportedProblem source, Problem? original, bool markdown = false)
     {
         Source = source;
         Original = original;
         Snapshot = ContestImportService.Snapshot(original);
+        UsesMarkdown = markdown;
+        Statement = markdown ? source.Statement ?? original?.Text : original?.Text;
+        Document = markdown && Statement is not null ? StatementDocument.Parse(Statement) : null;
         var data = source.Manifest;
-        Parameters = new(data.Number ?? original?.Number ?? 0, data.Name ?? original?.Name ?? "",
+        Parameters = new(data.Number ?? original?.Number ?? 0, Document is { IsValid: true } ? Document.Title! : data.Name ?? original?.Name ?? "",
             data.TimeLimit ?? original?.TimeLimit ?? 1, data.SlowTimeLimit ?? original?.SlowTimeLimit ?? data.TimeLimit ?? 1,
-            data.MemoryLimit ?? original?.MemoryLimit ?? 256, data.CheckerId ?? original?.CheckerId ?? 4, data.IsActive ?? original?.IsActive ?? true);
+            data.MemoryLimit ?? original?.MemoryLimit ?? 256, data.CheckerId ?? original?.CheckerId ?? 4,
+            (original is not null || source.Tests.Count != 0) && (data.IsActive ?? original?.IsActive ?? true));
         TimeLimit = Parameters.TimeLimit;
         SlowTimeLimit = Parameters.SlowTimeLimit;
         int open = data.OpenTestCount ?? (source.Tests.Count == 0 ? 0 : 1);
@@ -59,7 +64,9 @@ public sealed class ContestImportRow
             data.InactiveTests?.Contains(test.Number) != true,
             data.Scores is not null && data.Scores.TryGetValue(test.Number, out int score) ? score : null,
             data.TestComments?.GetValueOrDefault(test.Number)))];
-        NormalizeTests(ImportLineEndings.Crlf);
+        if (source.Tests.Count == 0)
+            Tests = [.. original?.Tests.OrderBy(t => t.Number).Select(t => new ImportTest(t.Number, t.Input, t.Output, t.IsOpen, t.IsActive, t.Score, t.Comment)) ?? []];
+        else NormalizeTests(ImportLineEndings.Crlf);
         Solutions = [.. source.Solutions.OrderBy(s => s.Filename, StringComparer.Ordinal).Select(s => new ImportSolution(s))];
         Validator = source.Validator is { } validator ? new(new(ReferenceSolutionFiles.ValidatorFilename, validator)) : null;
     }
@@ -73,6 +80,15 @@ public sealed class ContestImportRow
     internal int NormalizationVersion { get; private set; }
     internal ImportParameters? SavedParameters { get; set; }
     public string Folder => Source.Folder;
+    public bool UsesMarkdown { get; }
+    public bool SuppliesTests => Source.Tests.Count != 0;
+    public bool SuppliesStatement => UsesMarkdown && Source.Statement is not null;
+    public string? Statement { get; internal set; }
+    public StatementDocument? Document { get; internal set; }
+    public bool TestsChanged => AddedTests.Any() || RemovedTests.Any() || ChangedTests.Any();
+    public bool RequiresReferenceChecks => TestsChanged || Original is null || Proposed.TimeLimit != Original.TimeLimit
+        || Proposed.SlowTimeLimit != Original.SlowTimeLimit || Proposed.MemoryLimit != Original.MemoryLimit || Proposed.CheckerId != Original.CheckerId;
+    public bool RequiresValidatorCheck => TestsChanged || Validator is { AlreadySaved: false };
     public int? Id => Original?.Id ?? Source.Manifest.Id;
     public string Label => string.IsNullOrWhiteSpace(Parameters.Name) ? Folder : $"{Parameters.Number}. {Parameters.Name}";
     public ImportParameters Parameters { get; internal set; }
@@ -91,7 +107,7 @@ public sealed class ContestImportRow
     public bool ValidatorChecked => ValidatorKey is not null;
     public bool IsReplaced(ReferenceImportSolution reference) => Solutions.Any(solution => solution.Save && !solution.AlreadySaved
         && solution.ReplacedIds.Contains(reference.Id));
-    public IEnumerable<ReferenceImportSolution> ReferencesToCheck => ReferenceSolutions.Where(reference => !IsReplaced(reference));
+    public IEnumerable<ReferenceImportSolution> ReferencesToCheck => ReferenceSolutions.Where(reference => RequiresReferenceChecks && !IsReplaced(reference));
     public bool ReferencesChecked => IsSaved || (ReferencesToCheck.All(s => Runs.Any(r => r.ReferenceId == s.Id && IsCurrent(r)))
         && Solutions.Where(s => s.Save && !s.AlreadySaved).All(s => Runs.Any(r => r.ReferenceId is null
             && r.File == s.Filename && r.CompilerId == s.CompilerId && IsCurrent(r))));
@@ -104,8 +120,8 @@ public sealed class ContestImportRow
         && run.TimeLimit == (run.UsesSlowTimeLimit ? SlowTimeLimit : TimeLimit);
     internal bool ReplacesValidator => Validator is { Save: true, AlreadySaved: false };
     public bool ReferenceValidatorChecked => (Validator is not { Save: true, AlreadySaved: false } || ValidatorResult is not null)
-        && (SavedValidator is null || ReplacesValidator || SavedValidatorResult is not null);
-    public bool HasChanges => Original is null || Proposed != Previous || AddedTests.Any() || RemovedTests.Any() || ChangedTests.Any()
+        && (!RequiresValidatorCheck || SavedValidator is null || ReplacesValidator || SavedValidatorResult is not null);
+    public bool HasChanges => Original is null || Proposed != Previous || Statement != Original.Text || TestsChanged
         || Solutions.Any(s => s.Save && !s.AlreadySaved) || Validator is { Save: true, AlreadySaved: false };
     public bool IsSaved => SavedParameters == Proposed && !HasChanges;
     public int TimeLimit { get; set; }
@@ -126,13 +142,14 @@ public sealed class ContestImportRow
     internal void CheckParameters()
     {
         StateErrors.Remove(SiteResources.ImportInvalidParameters);
-        if ((!Id.HasValue && (Source.Manifest.Number is null || Source.Manifest.Name is null)) || Parameters.Number < 0
+        if ((!Id.HasValue && Source.Manifest.Number is null) || Parameters.Number < 0
             || string.IsNullOrWhiteSpace(Parameters.Name) || TimeLimit <= 0 || SlowTimeLimit <= 0 || Parameters.MemoryLimit <= 0)
             StateErrors.Add(SiteResources.ImportInvalidParameters);
     }
 
     internal void NormalizeTests(ImportLineEndings endings)
     {
+        if (!SuppliesTests) return;
         Tests = [.. Source.Tests.Zip(Tests, (source, test) => test with
         {
             Input = NormalizeLineEndings(source.Input, endings),
@@ -218,12 +235,12 @@ public sealed partial class ContestImportService(OlympContext context, ICheckerM
     {
         await AuthorizeAsync(actor, contestId);
         var package = await ProblemArchive.ReadAsync(zip, options.Value, token);
-        if (!await context.Contests.AnyAsync(x => x.Id == contestId, token)) throw new EntityNotFoundException();
+        var contest = await context.Contests.AsNoTracking().SingleOrDefaultAsync(x => x.Id == contestId, token) ?? throw new EntityNotFoundException();
         if (package.ContestId is { } id && id != contestId) throw new OperationValidationException(SiteResources.ImportContestMismatch);
         int[] ids = [.. package.Problems.Where(p => p.Manifest.Id.HasValue).Select(p => p.Manifest.Id!.Value)];
         var originals = await context.Problems.AsNoTracking().Where(x => x.ContestId == contestId && ids.Contains(x.Id)).Include(x => x.Tests).ToListAsync(token);
         var preview = new ContestImportPreview(contestId, [.. package.Problems.Select(source => new ContestImportRow(source,
-            originals.SingleOrDefault(p => p.Id == source.Manifest.Id))).OrderBy(r => r.Parameters.Number).ThenBy(r => r.Folder, StringComparer.Ordinal)]);
+            originals.SingleOrDefault(p => p.Id == source.Manifest.Id), StatementFormat.UsesMarkdown(contest.StartTime))).OrderBy(r => r.Parameters.Number).ThenBy(r => r.Folder, StringComparer.Ordinal)]);
         foreach (var row in preview.Rows) await CheckStateAsync(preview, row, token);
         return preview;
     }
@@ -235,11 +252,14 @@ public sealed partial class ContestImportService(OlympContext context, ICheckerM
         var original = await context.Problems.AsNoTracking().Where(x => x.Id == row.Id && x.ContestId == preview.ContestId).Include(x => x.Tests).SingleOrDefaultAsync(token);
         // A saved new problem must retain its assigned ID even if it was subsequently removed.
         if (row.Id.HasValue && original is null) throw new OperationValidationException(SiteResources.ImportUnknownId);
-        var refreshed = new ContestImportRow(row.Source, original);
+        var refreshed = new ContestImportRow(row.Source, original, row.UsesMarkdown);
         if (row.TimeLimit == row.Parameters.TimeLimit) row.TimeLimit = refreshed.TimeLimit;
         if (row.SlowTimeLimit == row.Parameters.SlowTimeLimit) row.SlowTimeLimit = refreshed.SlowTimeLimit;
         if (row.Snapshot != Snapshot(original)) row.SavedParameters = null;
         row.Parameters = refreshed.Parameters;
+        row.Statement = refreshed.Statement;
+        row.Document = refreshed.Document;
+        if (!row.SuppliesTests) row.Tests = refreshed.Tests;
         row.Original = original;
         row.Snapshot = Snapshot(original);
         await LoadReferenceSolutionsAsync(row, token);
@@ -274,19 +294,29 @@ public sealed partial class ContestImportService(OlympContext context, ICheckerM
         row.RunDataKey = null;
         row.StateErrors.Clear();
         row.StateWarnings.Clear();
+        var contest = await context.Contests.AsNoTracking().SingleAsync(c => c.Id == preview.ContestId, token);
+        if (StatementFormat.UsesMarkdown(contest.StartTime) != row.UsesMarkdown)
+            throw new OperationValidationException(SiteResources.ImportStale);
         var original = await context.Problems.AsNoTracking().Where(x => x.ContestId == preview.ContestId && x.Id == row.Id).Include(x => x.Tests).SingleOrDefaultAsync(token);
         if (row.Snapshot != Snapshot(original)) throw new OperationValidationException(SiteResources.ImportStale);
         var m = row.Source.Manifest;
         if (row.Source.Error is { } error) row.StateErrors.Add(string.Format(SiteResources.ImportArchiveError, error));
         if (m.Id.HasValue && row.Original is null) row.StateErrors.Add(SiteResources.ImportUnknownId);
         row.CheckParameters();
+        if (row.Document is { } document)
+        {
+            foreach (var diagnostic in document.Diagnostics)
+                row.StateErrors.Add(StatementMessages.Diagnostic(diagnostic));
+            if (document.IsValid && m.Name is not null && m.Name.Trim() != document.Title)
+                row.StateWarnings.Add(string.Format(SiteResources.ImportStatementNameMismatch, m.Name, document.Title, row.Parameters.Name));
+        }
         if (row.Proposed.IsActive && row.Tests.Count == 0) row.StateErrors.Add(SiteResources.ImportEmptyActive);
-        if (m.OpenTests is not null) row.StateErrors.Add(SiteResources.ImportOpenTests);
+        if ((row.SuppliesTests || row.Original is null) && m.OpenTests is not null) row.StateErrors.Add(SiteResources.ImportOpenTests);
         int open = m.OpenTestCount ?? (row.Tests.Count == 0 ? 0 : 1);
-        if (open < 0 || open > row.Tests.Count || m.Scores?.Any(x => x.Value < 0 || row.Tests.All(t => t.Number != x.Key)) == true
+        if ((row.SuppliesTests || row.Original is null) && (open < 0 || open > row.Tests.Count || m.Scores?.Any(x => x.Value < 0 || row.Tests.All(t => t.Number != x.Key)) == true
             || m.Scores?.Values.Sum(x => (long)x) > int.MaxValue
             || m.InactiveTests?.Any(x => row.Tests.All(t => t.Number != x)) == true
-            || m.TestComments?.Any(x => row.Tests.All(t => t.Number != x.Key)) == true)
+            || m.TestComments?.Any(x => row.Tests.All(t => t.Number != x.Key)) == true))
             row.StateErrors.Add(SiteResources.ImportInvalidMetadata);
         if (m.Id.HasValue && preview.Rows.Count(x => x.Source.Manifest.Id == m.Id) > 1) row.StateErrors.Add(SiteResources.ImportDuplicateId);
         if (!checkers.Any(x => x.Id == row.Proposed.CheckerId) || !await context.Checkers.AnyAsync(x => x.Id == row.Proposed.CheckerId, token))
@@ -348,6 +378,12 @@ public sealed partial class ContestImportService(OlympContext context, ICheckerM
         row.ValidatorWarnings.Clear();
         row.ValidatorMessage = SiteResources.ImportValidatorNotRun;
         if (row.StateErrors.Count != 0) return;
+        if (!row.RequiresValidatorCheck)
+        {
+            row.ValidatorMessage = SiteResources.ImportRetained;
+            row.ValidatorKey = key;
+            return;
+        }
         if (!row.HasValidator || runner is null)
         {
             row.ValidatorMessage = row.HasValidator ? SiteResources.ImportNoValidatorRunner : SiteResources.ImportNoValidator;
@@ -489,11 +525,12 @@ public sealed partial class ContestImportService(OlympContext context, ICheckerM
                         ? await context.Problems.AsTracking().Where(p => p.Id == id && p.ContestId == preview.ContestId).Include(p => p.Tests).SingleAsync(token)
                         : new Problem { ContestId = preview.ContestId, Contest = null!, Name = "", Checker = null!, Tests = [], Submissions = [], Messages = [] };
                     if (row.Id is null) context.Problems.Add(p);
-                    else { context.Tests.RemoveRange(p.Tests); p.Tests.Clear(); }
+                    else if (row.TestsChanged) { context.Tests.RemoveRange(p.Tests); p.Tests.Clear(); }
                     var data = row.Proposed;
                     p.Number = data.Number; p.Name = data.Name; p.TimeLimit = data.TimeLimit; p.SlowTimeLimit = data.SlowTimeLimit;
                     p.MemoryLimit = data.MemoryLimit; p.CheckerId = data.CheckerId; p.IsActive = data.IsActive;
-                    foreach (var t in row.Tests)
+                    p.Text = row.Statement;
+                    foreach (var t in row.Tests.Where(_ => row.Original is null || row.TestsChanged))
                         p.Tests.Add(new Test
                         {
                             Problem = p,
@@ -510,9 +547,10 @@ public sealed partial class ContestImportService(OlympContext context, ICheckerM
                     string previousValidatorKey = ValidatorCacheKey(preview, row);
                     await AuthorizeAsync(actor, preview.ContestId);
                     await context.SaveChangesAsync(token);
+                    var saved = await context.Problems.AsNoTracking().Include(problem => problem.Tests).SingleAsync(problem => problem.Id == p.Id, token);
                     await transaction.CommitAsync(token);
-                    row.Original = p;
-                    row.Snapshot = Snapshot(p);
+                    row.Original = saved;
+                    row.Snapshot = Snapshot(saved);
                     row.SavedParameters = data;
                     await LoadReferenceSolutionsAsync(row, token);
                     string savedRunKey = ReferenceRunsKey(row);

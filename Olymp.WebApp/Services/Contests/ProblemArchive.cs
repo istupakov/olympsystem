@@ -26,7 +26,7 @@ public sealed class ProblemManifest
 public sealed record ImportedTest(int Number, byte[] Input, byte[] Output);
 public sealed record ImportedSolution(string Filename, string Source);
 public sealed record ImportedProblem(string Folder, ProblemManifest Manifest, IReadOnlyList<ImportedTest> Tests,
-    string? Validator, IReadOnlyList<ImportedSolution> Solutions, string? Error = null);
+    string? Validator, IReadOnlyList<ImportedSolution> Solutions, string? Error = null, string? Statement = null);
 public sealed record ImportedContest(int? ContestId, IReadOnlyList<ImportedProblem> Problems);
 
 public static partial class ProblemArchive
@@ -113,7 +113,8 @@ public static partial class ProblemArchive
                 foreach (var (number, input) in inputs)
                     tests.Add(new(number, await ReadEntryAsync(input, token), await ReadEntryAsync(outputs[number], token)));
                 string? validator = files.TryGetValue($"{folder}/validator.cpp", out var file) ? await ReadTextAsync(file, token) : null;
-                result.Add(new(folder, manifest, tests, validator, solutions));
+                string? statement = files.TryGetValue($"{folder}/statement.md", out var markdown) ? await ReadMarkdownAsync(markdown, token) : null;
+                result.Add(new(folder, manifest, tests, validator, solutions, Statement: statement));
             }
             catch (Exception ex) when (ex is InvalidDataException or JsonException or System.Text.DecoderFallbackException)
             {
@@ -121,6 +122,13 @@ public static partial class ProblemArchive
             }
         }
         return new(contestId, result);
+    }
+
+    private static async Task<string> ReadMarkdownAsync(ZipArchiveEntry entry, CancellationToken token)
+    {
+        byte[] bytes = await ReadEntryAsync(entry, token);
+        int offset = bytes.AsSpan().StartsWith("\uFEFF"u8) ? 3 : 0;
+        return new System.Text.UTF8Encoding(false, true).GetString(bytes, offset, bytes.Length - offset);
     }
 
     private static async Task<string> ReadTextAsync(ZipArchiveEntry entry, CancellationToken token)

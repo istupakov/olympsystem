@@ -146,7 +146,7 @@ public partial class ContestImportTests
         file.CompilerId = newCompiler.Id;
         Assert.False(file.AlreadySaved);
         Assert.Equal([originalId], file.ReplacedIds);
-        Assert.Single(row.ReferencesToCheck);
+        Assert.Empty(row.ReferencesToCheck);
         file.Save = true;
         Assert.Empty(row.ReferencesToCheck);
         if (!oldCompilerInactive)
@@ -154,7 +154,7 @@ public partial class ContestImportTests
             file.CompilerId = oldCompiler.Id;
             Assert.True(file.AlreadySaved);
             Assert.Empty(file.ReplacedIds);
-            Assert.Single(row.ReferencesToCheck);
+            Assert.Empty(row.ReferencesToCheck);
             file.CompilerId = newCompiler.Id;
         }
         await service.EnsureValidatorAsync(setup.Actor, preview, row, Token);
