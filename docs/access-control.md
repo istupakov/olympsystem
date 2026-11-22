@@ -440,6 +440,7 @@ details, including to jury members without a contest management assignment.
 | Import problems; assign or remove reference solutions | Administrator or contest manager at any time; jury members with a stored `contest-import` assignment for this contest strictly before its start. Assignments and start time are rechecked for every operation, including saving an open import. |
 | Grant or revoke `contest-import` assignments | Administrator or contest manager. Recipients must be permanent accounts with the Jury role. The assignment grants no other contest management permissions. |
 | Export all contests as ZIP; view backup storage and disk space; create, download, and delete database backups | Administrator only. Backup deletion requires a preview and confirmation; deleting a full backup includes its dependent differential backups. |
+| Import contest names, descriptions, Markdown statements, problem names, saved standings, and participant names and statuses for existing contests from a ZIP; optionally replace statement PDFs with generated PDFs | Administrator only. Requires preview and confirmation. |
 | Restore a database backup | Administrator only, in Development. Requires preview and confirmation of replacing the development database. |
 | Pause or resume judging for all Runner connections | Administrator only. Pausing stops new checks; current checks finish normally. |
 | Create a contest | Jury or administrator; the creator receives management permission. New contests are hidden. |

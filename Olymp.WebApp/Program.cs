@@ -125,6 +125,7 @@ builder.Services.AddScoped<ContestImportService>();
 builder.Services.AddScoped<ContestImportAccessService>();
 builder.Services.AddScoped<ReferenceSubmissionService>();
 builder.Services.AddScoped<ContestExportService>();
+builder.Services.AddScoped<MaterialImportService>();
 builder.Services.AddSingleton<StatementPdfService>();
 builder.Services.AddOptions<DatabaseBackupOptions>()
     .Bind(builder.Configuration.GetSection(DatabaseBackupOptions.SectionName))

@@ -1,0 +1,170 @@
+@page "/admin/contests/import"
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@implements IDisposable
+@using System.Data.Common
+@using Olymp.WebApp.Services
+@using Olymp.WebApp.Services.Contests
+@inject MaterialImportService Import
+@inject Microsoft.Extensions.Options.IOptions<ContestImportOptions> Options
+@inject ILogger<MaterialImport> Logger
+
+<NavigationLock ConfirmExternalNavigation="@HasPending" />
+<StaffPageTitle Title="@SiteResources.MaterialImportTitle" />
+<div class="mb-3">
+    <button type="button" class="btn btn-link p-0" disabled="@_busy" @onclick="Back">@SiteResources.StaffBackToList</button>
+</div>
+<h1>@SiteResources.MaterialImportTitle</h1>
+<p>@SiteResources.MaterialImportHelp</p>
+<StaffFormFeedback Error="@_error" />
+@if (_busy) { <p role="status">@SiteResources.StaffLoading</p> }
+@if (_status is not null) { <p class="alert alert-info" role="status">@_status</p> }
+@if (_leaving)
+{
+    <div class="alert alert-warning" role="alert">
+        <p>@SiteResources.MaterialLeave</p>
+        <button class="btn btn-warning" @onclick="Leave">@SiteResources.StaffConfirm</button>
+        <button class="btn btn-outline-secondary ms-2" @onclick="() => _leaving = false">@SiteResources.StaffCancel</button>
+    </div>
+}
+<fieldset disabled="@(_busy || _confirm || _leaving)">
+    <div class="mb-3">
+        <label for="material-zip" class="form-label">ZIP</label>
+        <InputFile id="material-zip" class="form-control" accept=".zip" OnChange="SelectFile" />
+    </div>
+    <div class="form-check mb-2">
+        <input id="material-pdf" type="checkbox" class="form-check-input" @bind="_regeneratePdf" @bind:after="ResetPreview" />
+        <label for="material-pdf" class="form-check-label">@SiteResources.MaterialRegeneratePdf</label>
+    </div>
+    <p class="form-text">@SiteResources.MaterialRegenerateHelp</p>
+    <button class="btn btn-primary mb-3" disabled="@(_file is null)" @onclick="PreviewAsync">@SiteResources.MaterialPreview</button>
+</fieldset>
+@if (_rows is not null)
+{
+    <p role="status">@string.Format(SiteResources.MaterialSummary, _rows.Count, _rows.Count(r => r.CanSave), _rows.Count(r => r.Error is not null))</p>
+    @foreach (var row in _rows)
+    {
+        <section class="card mb-3" @key="row">
+            <div class="card-header d-flex flex-wrap align-items-center gap-2">
+                @if (row.CanSave)
+                {
+                    <input type="checkbox" class="form-check-input mt-0" aria-label="@SiteResources.MaterialSelect" checked="@_selected.Contains(row)"
+                           disabled="@(_busy || _confirm)" @onchange="e => SelectRow(row, e.Value is true)" />
+                }
+                <h2 class="h5 mb-0">@row.Name · ID @row.ContestId</h2>
+                @if (row.Saved) { <span class="badge text-bg-success">@SiteResources.StaffSaved</span> }
+            </div>
+            <div class="card-body">
+                @if (row.Error is not null) { <p class="text-danger mb-0" role="alert">@row.Error</p> }
+                else if (row.Changes.Count == 0) { <p class="mb-0">@SiteResources.MaterialUnchanged</p> }
+                @foreach (var change in row.Changes)
+                {
+                    <details class="mb-2">
+                        <summary>@change.Name – <span class="@(change.IsDeletion ? "text-danger" : null)">@ChangeLabel(change)</span></summary>
+                        @if (!change.IsPdf)
+                        {
+                            <div class="row g-3 mt-1">
+                                <div class="col-md-6"><h3 class="h6">@SiteResources.MaterialBefore</h3><pre class="overflow-auto">@ShortText(change.Before)</pre></div>
+                                <div class="col-md-6"><h3 class="h6">@SiteResources.MaterialAfter</h3><pre class="overflow-auto">@ShortText(change.After)</pre></div>
+                            </div>
+                            @if (change.Before?.Length > 4000 || change.After?.Length > 4000) { <p class="form-text">@SiteResources.MaterialPreviewTruncated</p> }
+                        }
+                    </details>
+                }
+            </div>
+        </section>
+    }
+    @if (_confirm)
+    {
+        <div class="alert alert-warning" role="alert">
+            <p>@string.Format(SiteResources.MaterialConfirm, SelectedRows.Length)</p>
+            <button class="btn btn-warning" disabled="@_busy" @onclick="SaveAsync">@SiteResources.StaffConfirm</button>
+            <button class="btn btn-outline-secondary ms-2" disabled="@_busy" @onclick="() => _confirm = false">@SiteResources.StaffCancel</button>
+        </div>
+    }
+    else
+    {
+        <button class="btn btn-primary" disabled="@(_busy || SelectedRows.Length == 0)" @onclick="() => _confirm = true">@SiteResources.MaterialApply</button>
+    }
+}
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState> AuthenticationState { get; set; } = default!;
+    [Inject] private NavigationManager Navigation { get; set; } = default!;
+    private readonly CancellationTokenSource _lifetime = new();
+    private IBrowserFile? _file;
+    private IReadOnlyList<MaterialImportRow>? _rows;
+    private readonly HashSet<MaterialImportRow> _selected = [];
+    private bool _regeneratePdf, _busy, _confirm, _leaving;
+    private string? _error, _status;
+    private MaterialImportRow[] SelectedRows => _rows?.Where(r => r.CanSave && _selected.Contains(r)).ToArray() ?? [];
+    private bool HasPending => _busy || _rows?.Any(r => r.CanSave) == true;
+    private void SelectFile(InputFileChangeEventArgs args) { _file = args.File; ResetPreview(); }
+    private void ResetPreview() { _rows = null; _selected.Clear(); _error = _status = null; _confirm = false; }
+    private void SelectRow(MaterialImportRow row, bool selected)
+    {
+        if (_busy || _confirm) return;
+        if (selected) _selected.Add(row); else _selected.Remove(row);
+    }
+    private static string? ShortText(string? text) => text is { Length: > 4000 } ? text[..4000] : text;
+    private static string ChangeLabel(MaterialChange change) => change.IsPdf ? SiteResources.MaterialGenerated
+        : change.IsDeletion ? SiteResources.MaterialDeleted
+        : string.IsNullOrWhiteSpace(change.Before) ? SiteResources.MaterialAdded : SiteResources.MaterialReplaced;
+
+    private async Task PreviewAsync()
+    {
+        if (_busy || _file is null) return;
+        ResetPreview();
+        _busy = true;
+        try
+        {
+            await using var stream = _file.OpenReadStream(Options.Value.MaxZipBytes, _lifetime.Token);
+            _rows = await Import.PreviewAsync((await AuthenticationState).User, stream, _regeneratePdf, _lifetime.Token);
+            foreach (var row in _rows.Where(r => r.CanSave)) _selected.Add(row);
+        }
+        catch (Exception exception) when (exception is InvalidDataException or IOException or System.Text.Json.JsonException)
+        { _error = exception.Message; }
+        catch (UnauthorizedAccessException) { _error = SiteResources.StaffAccessDenied; }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested) { }
+        catch (Exception exception) when (exception is DbException or InvalidOperationException)
+        { Logger.LogError(exception, "Material import preview failed"); _error = SiteResources.StaffSaveFailed; }
+        finally { _busy = false; }
+    }
+
+    private async Task SaveAsync()
+    {
+        if (_busy || !_confirm) return;
+        var selected = SelectedRows;
+        _busy = true;
+        int saved = 0, failed = 0;
+        try
+        {
+            for (int i = 0; i < selected.Length; i++)
+            {
+                _status = string.Format(SiteResources.MaterialProgress, i + 1, selected.Length);
+                await InvokeAsync(StateHasChanged);
+                try { await Import.SaveAsync((await AuthenticationState).User, selected[i], _lifetime.Token); saved++; }
+                catch (OperationValidationException exception) { selected[i].Error = exception.Message; failed++; }
+                catch (UnauthorizedAccessException) { _error = SiteResources.StaffAccessDenied; break; }
+                catch (DbException exception)
+                { Logger.LogError(exception, "Material import failed for {ContestId}", selected[i].ContestId); selected[i].Error = SiteResources.StaffSaveFailed; failed++; }
+            }
+            _status = string.Format(SiteResources.MaterialComplete, saved, failed);
+        }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested) { }
+        finally { _busy = _confirm = false; }
+    }
+
+    private void Back()
+    {
+        if (_busy) return;
+        if (HasPending) _leaving = true;
+        else Navigation.NavigateTo("admin/backups");
+    }
+    private void Leave()
+    {
+        ResetPreview();
+        _leaving = false;
+        Navigation.NavigateTo("admin/backups");
+    }
+    public void Dispose() { _lifetime.Cancel(); _lifetime.Dispose(); }
+}
