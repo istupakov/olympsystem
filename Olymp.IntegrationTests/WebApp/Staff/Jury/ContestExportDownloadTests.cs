@@ -105,7 +105,7 @@ public class ContestExportDownloadTests(WebAppFactory factory) : StaffComponentT
         using var oldExport = await client.GetAsync("/jury/contests/export", token);
         Assert.NotEqual("application/zip", oldExport.Content.Headers.ContentType?.MediaType);
         Assert.Null(oldExport.Content.Headers.ContentDisposition);
-        foreach (string url in new[] { $"/jury/contests/{contest.Id}/export", "/admin/contests/export?Search=missing&Hidden=false" })
+        foreach (string url in new[] { $"/jury/contests/{contest.Id}/export/download", "/admin/contests/export?Search=missing&Hidden=false" })
         {
             using var response = await client.GetAsync(url, token);
             if (role == RoleNames.Jury && url.Contains("export?", StringComparison.Ordinal))
@@ -123,11 +123,11 @@ public class ContestExportDownloadTests(WebAppFactory factory) : StaffComponentT
             using var zip = new ZipArchive(new MemoryStream(await response.Content.ReadAsByteArrayAsync(token)));
             Assert.NotNull(zip.GetEntry(contest.Abbr + "/contest.json"));
         }
-        using var missing = await client.GetAsync($"/jury/contests/{int.MaxValue}/export", token);
+        using var missing = await client.GetAsync($"/jury/contests/{int.MaxValue}/export/download", token);
         Assert.Equal(HttpStatusCode.NotFound, missing.StatusCode);
         using var details = await new HtmlParser().ParseDocumentAsync(await RenderAsync<ContestDetails>(
             $"/jury/contests/{contest.Id}", new() { ["Id"] = contest.Id }, Staff(user.Id, role)));
-        Assert.NotNull(details.QuerySelector($"a[href='jury/contests/{contest.Id}/export'][data-enhance-nav='false']"));
+        Assert.NotNull(details.QuerySelector($"a[href='jury/contests/{contest.Id}/export']"));
         foreach (string view in new[] { "", "archive" })
         {
             using var list = await new HtmlParser().ParseDocumentAsync(await RenderAsync<ContestList>(
@@ -149,7 +149,7 @@ public class ContestExportDownloadTests(WebAppFactory factory) : StaffComponentT
         await scope.ServiceProvider.GetRequiredService<OlympContext>().Users.Where(item => item.Id == incomplete.Id)
             .ExecuteUpdateAsync(setters => setters.SetProperty(item => item.NormalizedEmail, (string?)null), TestContext.Current.CancellationToken);
         foreach (var client in new[] { anonymous, signedIn, needsMigration })
-            foreach (string url in new[] { "/jury/contests/1/export", "/admin/contests/export", "/jury/contests/1/statements/export", "/jury/contests/1/statements/pdf" })
+            foreach (string url in new[] { "/jury/contests/1/export", "/jury/contests/1/export/download", "/admin/contests/export", "/jury/contests/1/statements/export", "/jury/contests/1/statements/pdf" })
             {
                 using var response = await client.GetAsync(url, TestContext.Current.CancellationToken);
                 Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
@@ -171,7 +171,7 @@ public class ContestExportDownloadTests(WebAppFactory factory) : StaffComponentT
         await db.SaveChangesAsync(token);
         using var client = await _factory.LoginAsync(user.UserName!);
         client.DefaultRequestHeaders.AcceptLanguage.ParseAdd("ru");
-        using var response = await client.GetAsync($"/jury/contests/{contest.Id}/export", token);
+        using var response = await client.GetAsync($"/jury/contests/{contest.Id}/export/download", token);
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         Assert.Equal("application/problem+json", response.Content.Headers.ContentType!.MediaType);
         string body = await response.Content.ReadAsStringAsync(token);

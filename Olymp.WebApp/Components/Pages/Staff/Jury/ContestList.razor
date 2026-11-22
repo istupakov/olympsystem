@@ -57,6 +57,9 @@
         </TemplateColumn>
         <TemplateColumn Title="@SiteResources.ContestStart" SortBy="_startSort" Sortable="true" Context="item">@item.StartTime.ToLocalTime().ToString("g")</TemplateColumn>
         <TemplateColumn Title="@SiteResources.ContestEnd" SortBy="_endSort" Sortable="true" Context="item">@item.EndTime.ToLocalTime().ToString("g")</TemplateColumn>
+        <TemplateColumn Title="@SiteResources.StaffActions" Context="item">
+            <a class="btn btn-outline-secondary btn-sm" href="jury/contests/@item.Id/export">@SiteResources.ExportTitle</a>
+        </TemplateColumn>
     </StaffGrid>
 }
 else if (contests is null)
@@ -92,6 +95,7 @@ else
                     <a class="btn btn-outline-secondary btn-sm" href="jury/contests/@contest.Id/standing">@SiteResources.ContestStandings</a>
                     <a class="btn btn-outline-secondary btn-sm" href="jury/contests/@contest.Id/messages">@SiteResources.StaffMessages</a>
                     <a class="btn btn-outline-secondary btn-sm" href="jury/contests/@contest.Id/anticheat">@SiteResources.StaffAntiCheat</a>
+                    <a class="btn btn-outline-secondary btn-sm" href="jury/contests/@contest.Id/export">@SiteResources.ExportTitle</a>
                 </div>
             </div>
         }

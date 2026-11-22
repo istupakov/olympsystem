@@ -212,11 +212,11 @@ public class StatementTests
         using var zip = new ZipArchive(stream);
         Assert.NotNull(zip.GetEntry("olymp.sty"));
         Assert.NotNull(zip.GetEntry("LICENSE"));
-        string first = await ReadAsync(zip, "problem00.tex"), second = await ReadAsync(zip, "problem01.tex");
+        string first = await ReadAsync(zip, "problem02.tex"), second = await ReadAsync(zip, "problem07.tex");
         Assert.Contains("\\setcounter{problem}{1}", first);
         Assert.Contains("\\setcounter{problem}{6}", second);
-        Assert.Contains("\\Example\n\\begin{example}%\n\\exmpfile{samples/problem00-1.in}{samples/problem00-1.out}%\n\\end{example}", first);
-        Assert.Equal("a\nb\n", await ReadAsync(zip, "samples/problem00-1.in"));
+        Assert.Contains("\\Example\n\\begin{example}%\n\\exmpfile{samples/problem02-1.in}{samples/problem02-1.out}%\n\\end{example}", first);
+        Assert.Equal("a\nb\n", await ReadAsync(zip, "samples/problem02-1.in"));
         Assert.Contains("Условие отсутствует", second);
         Assert.Contains("7. Без условия", await ReadAsync(zip, "warnings.txt"));
         string main = await ReadAsync(zip, "statements.tex");
@@ -239,15 +239,15 @@ public class StatementTests
             [new(1, "Problem", 1, 256, StatementDocument.Parse(Source), examples)], "Missing", TestContext.Current.CancellationToken);
         stream.Position = 0;
         using var zip = new ZipArchive(stream);
-        string tex = await ReadAsync(zip, "problem00.tex");
+        string tex = await ReadAsync(zip, "problem01.tex");
         Assert.Equal(count * 2, zip.Entries.Count(entry => entry.FullName.StartsWith("samples/", StringComparison.Ordinal)));
         if (count == 0) Assert.DoesNotContain("\\Example", tex);
         else Assert.Contains(count == 1 ? "\\Example\n" : "\\Examples\n", tex);
         for (int index = 1; index <= count; index++)
         {
-            Assert.Contains($"\\exmpfile{{samples/problem00-{index}.in}}{{samples/problem00-{index}.out}}%\n", tex);
-            Assert.Equal($"  {index}\t\n\n\u00a0", await ReadAsync(zip, $"samples/problem00-{index}.in"));
-            Assert.Equal($"{index}\n\u00a0", await ReadAsync(zip, $"samples/problem00-{index}.out"));
+            Assert.Contains($"\\exmpfile{{samples/problem01-{index}.in}}{{samples/problem01-{index}.out}}%\n", tex);
+            Assert.Equal($"  {index}\t\n\n\u00a0", await ReadAsync(zip, $"samples/problem01-{index}.in"));
+            Assert.Equal($"{index}\n\u00a0", await ReadAsync(zip, $"samples/problem01-{index}.out"));
         }
     }
 

@@ -996,7 +996,7 @@
   <data name="StatementConstructError" xml:space="preserve"><value>Неподдерживаемая конструкция Markdown.</value></data>
   <data name="StatementPrintWarning" xml:space="preserve"><value>Условие отсутствует или некорректно. В печатном комплекте будет заглушка.</value></data>
   <data name="DownloadStatementTex" xml:space="preserve"><value>Скачать условия в TeX ZIP</value></data>
-  <data name="DownloadStatementPdf" xml:space="preserve"><value>Скачать условия в PDF</value></data>
+  <data name="DownloadStatementPdf" xml:space="preserve"><value>Сформировать PDF</value></data>
   <data name="StatementPdfUnavailable" xml:space="preserve"><value>Сборка PDF недоступна: pdflatex не установлен.</value></data>
   <data name="StatementPdfFailed" xml:space="preserve"><value>Не удалось собрать PDF. Скачайте TeX ZIP для проверки исходников.</value></data>
   <data name="StatementPdfTimeout" xml:space="preserve"><value>Превышено время ожидания сборки PDF.</value></data>
@@ -1100,6 +1100,44 @@
   </data>
   <data name="MaterialSummary" xml:space="preserve">
     <value>Олимпиад: {0}; готово к импорту: {1}; с ошибками: {2}.</value>
+  </data>
+  <data name="ExportTitle" xml:space="preserve">
+    <value>Экспорт</value>
+  </data>
+  <data name="ExportRequiredMaterials" xml:space="preserve">
+    <value>Всегда включаются: метаданные олимпиад и задач (JSON) и описание, если оно есть.</value>
+  </data>
+  <data name="ExportAdditionalMaterials" xml:space="preserve">
+    <value>Дополнительные материалы</value>
+  </data>
+  <data name="ExportSavedTables" xml:space="preserve"><value>Сохранённые таблицы</value></data>
+  <data name="ExportMarkdown" xml:space="preserve"><value>Markdown-условия</value></data>
+  <data name="ExportResultsAndMessages" xml:space="preserve">
+    <value>Результаты и сообщения</value>
+  </data>
+  <data name="ExportReferencesAndValidator" xml:space="preserve">
+    <value>Эталонные решения и валидатор</value>
+  </data>
+  <data name="ExportJurySolutions" xml:space="preserve">
+    <value>Решения жюри</value>
+  </data>
+  <data name="ExportStoredTestZip" xml:space="preserve">
+    <value>Сохранённый ZIP тестов</value>
+  </data>
+  <data name="ExportStoredPdf" xml:space="preserve">
+    <value>Сохранённый PDF условий</value>
+  </data>
+  <data name="ExportTex" xml:space="preserve">
+    <value>Исходники печатных условий (TeX)</value>
+  </data>
+  <data name="ExportDownloadArchive" xml:space="preserve">
+    <value>Скачать архив</value>
+  </data>
+  <data name="ExportPrintableStatements" xml:space="preserve">
+    <value>Печатные условия</value>
+  </data>
+  <data name="ExportGeneratedPdfHelp" xml:space="preserve">
+    <value>Сформировать новый PDF из текущих Markdown-условий. Опция «Сохранённый PDF условий» добавляет в архив сохранённый PDF без пересборки.</value>
   </data>
   <data name="StatementProblemNumbers" xml:space="preserve">
     <value>Для формирования печатных условий номера задач должны быть неотрицательными и уникальными.</value>

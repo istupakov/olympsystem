@@ -37,7 +37,7 @@ public partial class ContestExportTests
         var service = scope.ServiceProvider.GetRequiredService<ContestExportService>();
         foreach (bool simplified in new[] { false, true })
         {
-            var export = simplified ? await service.ExportProblemsAsync(contest.Id, token) : await service.ExportAsync(contest.Id, token);
+            var export = simplified ? await service.ExportProblemsAsync(contest.Id, token) : await service.ExportAsync(contest.Id, new(Markdown: true), token);
             await using var stream = export.Stream;
             var imported = await ProblemArchive.ReadAsync(stream, new(), token);
             Assert.Equal(problem.Text, imported.Problems.Single(p => p.Manifest.Id == problem.Id).Statement);
@@ -47,7 +47,7 @@ public partial class ContestExportTests
         using var archive = new ZipArchive(texStream);
         Assert.Equal(2, archive.Entries.Count(e => e.Name.StartsWith("problem", StringComparison.Ordinal) && e.Name.EndsWith(".tex", StringComparison.Ordinal)));
         Assert.Equal(2, archive.Entries.Count(e => e.FullName.StartsWith("samples/", StringComparison.Ordinal)));
-        using var input = new StreamReader(archive.GetEntry("samples/problem00-1.in")!.Open(), Encoding.UTF8);
+        using var input = new StreamReader(archive.GetEntry("samples/problem02-1.in")!.Open(), Encoding.UTF8);
         Assert.Equal("1\n2\n", await input.ReadToEndAsync(token));
         using var warnings = new StreamReader(archive.GetEntry("warnings.txt")!.Open(), Encoding.UTF8);
         Assert.Contains("7.", await warnings.ReadToEndAsync(token));

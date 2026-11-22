@@ -163,7 +163,6 @@ else
             @if (_operationCompleted) { <p class="alert alert-success" role="status">@SiteResources.StaffOperationCompleted</p> }
             <div class="d-flex flex-wrap gap-2">
                 <a class="btn btn-secondary" href="jury/contests/@Id/import">@SiteResources.ImportProblems</a>
-                <a class="btn btn-outline-secondary" href="jury/contests/@Id/problems/export" data-enhance-nav="false">@SiteResources.ExportProblems</a>
                 @if (_canRetest)
                 {
                     <a class="btn btn-warning" href="jury/contests/@Id/submissions?Retest=true">@SiteResources.StaffRetestFiltered</a>

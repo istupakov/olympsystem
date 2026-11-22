@@ -32,22 +32,8 @@ else
             {
                 <a class="btn btn-outline-primary" href="jury/contests/@ContestId/import">@SiteResources.ImportProblems</a>
             }
-            <a class="btn btn-outline-secondary" href="jury/contests/@ContestId/problems/export" data-enhance-nav="false">@SiteResources.ExportProblems</a>
-            <button class="btn btn-outline-secondary" @onclick="() => PreviewStatementExport(false)">@SiteResources.DownloadStatementTex</button>
-            <button class="btn btn-outline-secondary" @onclick="() => PreviewStatementExport(true)">@SiteResources.DownloadStatementPdf</button>
         </div>
     </div>
-    @if (_showStatementWarnings)
-    {
-        <div class="alert alert-warning" role="alert">
-            @foreach (var problem in InvalidStatements)
-            {
-                <p>@problem.NameWithNumber: @SiteResources.StatementPrintWarning</p>
-            }
-            <a class="btn btn-warning" href="@StatementExportUrl" data-enhance-nav="false">@SiteResources.StatementExportAnyway</a>
-            <button class="btn btn-outline-secondary ms-2" @onclick="() => _showStatementWarnings = false">@SiteResources.StaffCancel</button>
-        </div>
-    }
     @if (_selected is null)
     {
         <p>@SiteResources.NoProblemsFound</p>
@@ -195,18 +181,7 @@ else
     private int? _validatorId;
     private int _referenceSolutionCount;
     private bool? _validatorPassed;
-    private bool _hasAcceptedReference, _showStatementWarnings;
-    private IEnumerable<Problem> InvalidStatements => _progress.Select(item => item.Problem)
-        .Where(problem => problem.IsActive && _statementDocuments.TryGetValue(problem.Id, out var document) && !document.IsValid);
-    private bool _statementPdf;
-    private string StatementExportUrl => $"jury/contests/{ContestId}/statements/{(_statementPdf ? "pdf" : "export")}";
-    private void PreviewStatementExport(bool pdf)
-    {
-        _statementPdf = pdf;
-        _showStatementWarnings = InvalidStatements.Any();
-        if (!_showStatementWarnings) Navigation.NavigateTo(StatementExportUrl, forceLoad: true);
-    }
-
+    private bool _hasAcceptedReference;
     private string ProblemUrl(int id) => $"jury/contests/{ContestId}/problems?problemId={id}" + (CurrentScope == "own" ? "" : $"&scope={CurrentScope}");
     private string SubmissionsUrl(string scope, int page) => Navigation.GetUriWithQueryParameters(Navigation.Uri.Split('#')[0],
         new Dictionary<string, object?> { [nameof(Scope)] = scope == "own" ? null : scope, [nameof(SubmissionPage)] = page == 1 ? null : page }) + "#submissions";
@@ -217,7 +192,6 @@ else
     {
         int version = ++_loadVersion;
         _confirmActivity = false;
-        _showStatementWarnings = false;
         _deletion = null;
         _activityError = null;
         _canManage = (await Authorization.AuthorizeAsync((await AuthenticationState).User, ContestId, PolicyNames.ManageContest)).Succeeded;

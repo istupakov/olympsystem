@@ -65,9 +65,11 @@ public partial class ContestNavigationTests(WebAppFactory factory) : StaffCompon
         foreach (bool archive in new[] { true, false })
         {
             int[]? ids = null;
-            await RenderAsync<ContestList>("/jury/contests" + (archive ? "/archive" : "") + $"?Search={marker}", new() { ["View"] = archive ? "archive" : null },
+            string markup = await RenderAsync<ContestList>("/jury/contests" + (archive ? "/archive" : "") + $"?Search={marker}", new() { ["View"] = archive ? "archive" : null },
                 Staff(staff.Id, RoleNames.Jury), async component => ids = await component.Query(db).Select(item => item.Id).ToArrayAsync(TestContext.Current.CancellationToken), services => { services.RemoveAll<TimeProvider>(); services.AddSingleton<TimeProvider>(new WorkspaceClock(now)); });
             Assert.Equal(new[] { archive ? archived.Id : boundary.Id }, ids);
+            using var list = await new HtmlParser().ParseDocumentAsync(markup);
+            if (!archive) Assert.NotNull(list.QuerySelector($"a[href='jury/contests/{ids![0]}/export']"));
         }
         using var details = await new HtmlParser().ParseDocumentAsync(await RenderAsync<ContestDetails>(
             $"/jury/contests/{archived.Id}", new() { ["Id"] = archived.Id }, Staff(staff.Id, RoleNames.Jury)));

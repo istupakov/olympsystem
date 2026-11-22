@@ -16,8 +16,8 @@ internal static class StaffDownloads
     public static void MapStaffDownloads(this IEndpointRouteBuilder endpoints)
     {
         var jury = endpoints.MapGroup("/jury").RequireAuthorization(PolicyNames.JuryOrAdmin);
-        jury.MapGet("/contests/{contestId:int}/export", (int contestId, HttpContext http, ContestExportService service) =>
-            ExportContestAsync(contestId, http, service));
+        jury.MapGet("/contests/{contestId:int}/export/download", (int contestId, [AsParameters] ContestExportOptions options, HttpContext http, ContestExportService service) =>
+            ExportContestAsync(contestId, options, http, service));
         jury.MapGet("/contests/{contestId:int}/problems/export", ExportProblemsAsync);
         jury.MapGet("/contests/{contestId:int}/statements/export", ExportStatementsAsync);
         jury.MapGet("/contests/{contestId:int}/statements/pdf", DownloadStatementPdfAsync);
@@ -30,8 +30,8 @@ internal static class StaffDownloads
         jury.MapGet("/contests/{contestId:int}/files/{kind}", DownloadContestFileAsync);
 
         var admin = endpoints.MapGroup("/admin").RequireAuthorization(PolicyNames.Admin);
-        admin.MapGet("/contests/export", (HttpContext http, ContestExportService service) =>
-            ExportContestAsync(null, http, service));
+        admin.MapGet("/contests/export", ([AsParameters] ContestExportOptions options, HttpContext http, ContestExportService service) =>
+            ExportContestAsync(null, options, http, service));
         admin.MapGet("/backups/{name}/download", DownloadBackupAsync);
     }
 
@@ -60,12 +60,12 @@ internal static class StaffDownloads
         }
     }
 
-    private static async Task<IResult> ExportContestAsync(int? contestId, HttpContext http, ContestExportService service)
+    private static async Task<IResult> ExportContestAsync(int? contestId, ContestExportOptions options, HttpContext http, ContestExportService service)
     {
         http.Response.Headers.CacheControl = "no-store";
         try
         {
-            var export = await service.ExportAsync(contestId, http.RequestAborted);
+            var export = await service.ExportAsync(contestId, options, http.RequestAborted);
             http.Response.RegisterForDispose(export.Stream);
             return Results.File(export.Stream, "application/zip", export.FileName);
         }

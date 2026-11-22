@@ -996,7 +996,7 @@
   <data name="StatementConstructError" xml:space="preserve"><value>Unsupported Markdown construct.</value></data>
   <data name="StatementPrintWarning" xml:space="preserve"><value>The statement is missing or invalid. The printable set contains a placeholder.</value></data>
   <data name="DownloadStatementTex" xml:space="preserve"><value>Download statements as TeX ZIP</value></data>
-  <data name="DownloadStatementPdf" xml:space="preserve"><value>Download statements as PDF</value></data>
+  <data name="DownloadStatementPdf" xml:space="preserve"><value>Generate PDF</value></data>
   <data name="StatementPdfUnavailable" xml:space="preserve"><value>PDF compilation is unavailable: pdflatex is not installed.</value></data>
   <data name="StatementPdfFailed" xml:space="preserve"><value>PDF compilation failed. Download the TeX ZIP to check the source.</value></data>
   <data name="StatementPdfTimeout" xml:space="preserve"><value>PDF compilation exceeded the time limit.</value></data>
@@ -1100,6 +1100,44 @@
   </data>
   <data name="MaterialSummary" xml:space="preserve">
     <value>Contests: {0}; ready: {1}; errors: {2}.</value>
+  </data>
+  <data name="ExportTitle" xml:space="preserve">
+    <value>Export</value>
+  </data>
+  <data name="ExportRequiredMaterials" xml:space="preserve">
+    <value>Always included: contest and problem metadata (JSON) and description, when present.</value>
+  </data>
+  <data name="ExportAdditionalMaterials" xml:space="preserve">
+    <value>Additional materials</value>
+  </data>
+  <data name="ExportSavedTables" xml:space="preserve"><value>Saved standings</value></data>
+  <data name="ExportMarkdown" xml:space="preserve"><value>Markdown statements</value></data>
+  <data name="ExportResultsAndMessages" xml:space="preserve">
+    <value>Results and messages</value>
+  </data>
+  <data name="ExportReferencesAndValidator" xml:space="preserve">
+    <value>Reference solutions and validator</value>
+  </data>
+  <data name="ExportJurySolutions" xml:space="preserve">
+    <value>Jury solutions</value>
+  </data>
+  <data name="ExportStoredTestZip" xml:space="preserve">
+    <value>Stored test ZIP</value>
+  </data>
+  <data name="ExportStoredPdf" xml:space="preserve">
+    <value>Stored statement PDF</value>
+  </data>
+  <data name="ExportTex" xml:space="preserve">
+    <value>Printable statement sources (TeX)</value>
+  </data>
+  <data name="ExportDownloadArchive" xml:space="preserve">
+    <value>Download archive</value>
+  </data>
+  <data name="ExportPrintableStatements" xml:space="preserve">
+    <value>Printable statements</value>
+  </data>
+  <data name="ExportGeneratedPdfHelp" xml:space="preserve">
+    <value>Build a new PDF from current Markdown statements. The stored PDF archive option includes the stored PDF without rebuilding it.</value>
   </data>
   <data name="StatementProblemNumbers" xml:space="preserve">
     <value>Problem numbers must be non-negative and unique to generate printable statements.</value>
