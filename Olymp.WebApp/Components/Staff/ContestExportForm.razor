@@ -1,0 +1,30 @@
+<form action="@DownloadUrl" method="get" data-enhance="false">
+    <p>@SiteResources.ExportRequiredMaterials</p>
+    <fieldset class="mb-3">
+        <legend class="h5">@SiteResources.ExportAdditionalMaterials</legend>
+        @foreach (var (name, label) in Choices)
+        {
+            <div class="form-check mb-2">
+                <input class="form-check-input" type="checkbox" name="@name" value="true" id="@($"export-{name}")" />
+                <label class="form-check-label" for="@($"export-{name}")">@label</label>
+            </div>
+        }
+    </fieldset>
+    <button class="btn btn-primary" type="submit">@SiteResources.ExportDownloadArchive</button>
+</form>
+
+@code {
+    [Parameter, EditorRequired] public string DownloadUrl { get; set; } = "";
+    private static (string Name, string Label)[] Choices => [
+        ("Markdown", SiteResources.ExportMarkdown),
+        ("Pdf", SiteResources.ExportStoredPdf),
+        ("Tex", SiteResources.ExportTex),
+        ("Tests", SiteResources.StaffTests),
+        ("TestZip", SiteResources.ExportStoredTestZip),
+        ("ReferenceSolutions", SiteResources.ExportReferencesAndValidator),
+        ("JurySolutions", SiteResources.ExportJurySolutions),
+        ("Participants", SiteResources.ContestParticipants),
+        ("ResultsAndMessages", SiteResources.ExportResultsAndMessages),
+        ("Tables", SiteResources.ExportSavedTables)
+    ];
+}

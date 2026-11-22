@@ -1,5 +1,3 @@
-using System.Reflection;
-
 using AngleSharp.Html.Parser;
 
 using Microsoft.Extensions.DependencyInjection;
@@ -11,16 +9,14 @@ using Olymp.WebApp.Resources;
 
 using Xunit;
 
-using JuryProblems = Olymp.WebApp.Components.Pages.Staff.Jury.Problems;
+using ExportPage = Olymp.WebApp.Components.Pages.Staff.Jury.ContestExport;
 
 namespace Olymp.IntegrationTests.WebApp.Staff.Jury;
 
 public partial class ProblemWorkspaceTests
 {
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task InvalidStatementWarningAppearsOnlyWhenExportIsRequested(bool pdf)
+    [Fact]
+    public async Task InvalidStatementWarningAppearsOnlyWhenPdfIsRequested()
     {
         var token = TestContext.Current.CancellationToken;
         var author = await _factory.AddUserAsync();
@@ -30,17 +26,13 @@ public partial class ProblemWorkspaceTests
         var problem = TestEntities.CreateProblem(contest);
         db.Problems.Add(problem);
         await db.SaveChangesAsync(token);
-        using var initial = await new HtmlParser().ParseDocumentAsync(await RenderAsync<JuryProblems>(
-            $"/jury/contests/{contest.Id}/problems", new() { [nameof(JuryProblems.ContestId)] = contest.Id }, Staff(author.Id)));
+        using var initial = await new HtmlParser().ParseDocumentAsync(await RenderAsync<ExportPage>(
+            $"/jury/contests/{contest.Id}/export", new() { [nameof(ExportPage.ContestId)] = contest.Id }, Staff(author.Id)));
         Assert.DoesNotContain(SiteResources.StatementPrintWarning, initial.Body!.TextContent);
-        using var requested = await new HtmlParser().ParseDocumentAsync(await RenderAsync<JuryProblems>(
-            $"/jury/contests/{contest.Id}/problems", new() { [nameof(JuryProblems.ContestId)] = contest.Id }, Staff(author.Id), page =>
-            {
-                typeof(JuryProblems).GetMethod("PreviewStatementExport", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(page, [pdf]);
-                return Task.CompletedTask;
-            }));
+        using var requested = await new HtmlParser().ParseDocumentAsync(await RenderAsync<ExportPage>(
+            $"/jury/contests/{contest.Id}/export", new() { [nameof(ExportPage.ContestId)] = contest.Id }, Staff(author.Id), page => ActAsync(page, "PreviewPdf")));
         Assert.Contains(SiteResources.StatementPrintWarning, requested.Body!.TextContent);
         var exportLink = Assert.Single(requested.QuerySelectorAll("a"), link => link.TextContent == SiteResources.StatementExportAnyway);
-        Assert.Equal($"jury/contests/{contest.Id}/statements/{(pdf ? "pdf" : "export")}", exportLink.GetAttribute("href"));
+        Assert.Equal($"jury/contests/{contest.Id}/statements/pdf", exportLink.GetAttribute("href"));
     }
 }

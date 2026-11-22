@@ -63,7 +63,7 @@ public partial class ContestExportTests(ContestServiceFixture site) : IClassFixt
         var importedProblem = Assert.Single(imported.Problems);
         Assert.Null(importedProblem.Error);
         Assert.Equal(source, importedProblem.Solutions.Single(s => s.Filename == original.Description).Source);
-        Assert.Equal(compiler.Id, Assert.Single(Json(files, contest.Abbr + "/contest.json").GetProperty("compilers").EnumerateArray()).GetProperty("id").GetInt32());
+        Assert.False(Json(files, contest.Abbr + "/contest.json").TryGetProperty("compilers", out _));
     }
 
     [Fact]
@@ -184,7 +184,7 @@ public partial class ContestExportTests(ContestServiceFixture site) : IClassFixt
         var metadata = Json(files, root + "contest.json");
         Assert.Equal(contest.Id, metadata.GetProperty("id").GetInt32());
         Assert.EndsWith("+07:00", metadata.GetProperty("startTime").GetString());
-        Assert.Equal([compiler.Id, secondCompiler.Id], metadata.GetProperty("compilers").EnumerateArray().Select(item => item.GetProperty("id").GetInt32()));
+        Assert.False(metadata.TryGetProperty("compilers", out _));
         Assert.Single(metadata.GetProperty("checkers").EnumerateArray());
         var manifest = Json(files, task + "problem.json");
         Assert.Equal(problem.Name, manifest.GetProperty("name").GetString());
@@ -209,9 +209,9 @@ public partial class ContestExportTests(ContestServiceFixture site) : IClassFixt
         Assert.Equal(6, results[0].EnumerateObject().Count());
         Assert.Equal(0, results[0].GetProperty("score").GetInt32());
         Assert.Equal(JsonValueKind.Null, results[1].GetProperty("score").ValueKind);
-        string sourcePath = task + "jury-solutions/" + Convert.ToHexStringLower(SHA256.HashData(source)) + ".src";
+        string sourcePath = task + "jury-solutions/" + Convert.ToHexStringLower(SHA256.HashData(source)) + compiler.SourceExtension;
         Assert.Equal(source, files[sourcePath]);
-        var solution = Assert.Single(Lines(files, task + "jury-solutions/solutions.jsonl"));
+        var solution = Lines(files, task + "jury-solutions/solutions.jsonl").Single(s => s.GetProperty("file").GetString() == Path.GetFileName(sourcePath));
         var attempts = solution.GetProperty("attempts").EnumerateArray().ToArray();
         Assert.Equal([juryBefore.Id, juryAfter.Id], attempts.Select(item => item.GetProperty("submissionId").GetInt32()));
         Assert.Equal(-3600, attempts[0].GetProperty("secondsFromStart").GetDecimal());
@@ -316,7 +316,7 @@ public partial class ContestExportTests(ContestServiceFixture site) : IClassFixt
         {
             first.Abbr = invalid;
             await db.SaveChangesAsync(token);
-            var error = await Assert.ThrowsAsync<OperationValidationException>(() => service.ExportAsync(first.Id, token));
+            var error = await Assert.ThrowsAsync<OperationValidationException>(() => service.ExportAsync(first.Id, ContestExportOptions.All, token));
             Assert.Contains($"contestId={first.Id}", error.Message);
         }
         first.Abbr = second.Abbr.ToUpperInvariant();
@@ -329,7 +329,7 @@ public partial class ContestExportTests(ContestServiceFixture site) : IClassFixt
         var secondProblem = TestEntities.CreateProblem(first, 1, firstProblem.Checker);
         db.Problems.AddRange(firstProblem, secondProblem);
         await db.SaveChangesAsync(token);
-        duplicate = await Assert.ThrowsAsync<OperationValidationException>(() => service.ExportAsync(first.Id, token));
+        duplicate = await Assert.ThrowsAsync<OperationValidationException>(() => service.ExportAsync(first.Id, ContestExportOptions.All, token));
         Assert.Contains($"problemId={firstProblem.Id}", duplicate.Message);
         Assert.Contains($"problemId={secondProblem.Id}", duplicate.Message);
         secondProblem.Number = 2;
@@ -337,7 +337,7 @@ public partial class ContestExportTests(ContestServiceFixture site) : IClassFixt
         var secondTest = new Test { Problem = firstProblem, Number = 1, Input = [], Output = [] };
         db.Tests.AddRange(firstTest, secondTest);
         await db.SaveChangesAsync(token);
-        duplicate = await Assert.ThrowsAsync<OperationValidationException>(() => service.ExportAsync(first.Id, token));
+        duplicate = await Assert.ThrowsAsync<OperationValidationException>(() => service.ExportAsync(first.Id, ContestExportOptions.All, token));
         Assert.Contains($"problemId={firstProblem.Id}", duplicate.Message);
         Assert.Contains($"testId={firstTest.Id}", duplicate.Message);
         Assert.Contains($"testId={secondTest.Id}", duplicate.Message);
@@ -345,11 +345,11 @@ public partial class ContestExportTests(ContestServiceFixture site) : IClassFixt
         await db.SaveChangesAsync(token);
     }
 
-    private static async Task<Dictionary<string, byte[]>> ReadAsync(ContestExportService service, int? contestId)
+    private static async Task<Dictionary<string, byte[]>> ReadAsync(ContestExportService service, int? contestId, ContestExportOptions? options = null)
     {
         string temporaryPath;
         var files = new Dictionary<string, byte[]>(StringComparer.Ordinal);
-        await using (var stream = (await service.ExportAsync(contestId, TestContext.Current.CancellationToken)).Stream)
+        await using (var stream = (await service.ExportAsync(contestId, options ?? ContestExportOptions.All, TestContext.Current.CancellationToken)).Stream)
         {
             temporaryPath = stream.Name;
             using var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: true);

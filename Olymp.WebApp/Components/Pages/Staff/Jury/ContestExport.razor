@@ -1,0 +1,53 @@
+@page "/jury/contests/{ContestId:int}/export"
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@using Olymp.Statements
+@inject IDbContextFactory<OlympContext> ContextFactory
+@inject NavigationManager Navigation
+
+<StaffPageTitle Title="@SiteResources.ExportTitle" Context="@_contest?.Name" />
+@if (!_loaded) { <p role="status">@SiteResources.StaffLoading</p> }
+else if (_contest is null) { <p>@SiteResources.PageNotFoundMessage</p> }
+else
+{
+    <StaffContestNavigation ContestId="ContestId" ContestName="@_contest.Name" IsHidden="_contest.IsHidden" />
+    <h1 class="h3">@SiteResources.ExportTitle</h1>
+    <section class="mb-4">
+        <h2 class="h4">@SiteResources.ExportPrintableStatements</h2>
+        <p>@SiteResources.ExportGeneratedPdfHelp</p>
+        <button class="btn btn-outline-secondary" disabled="@(!_hasActiveProblems)" @onclick="PreviewPdf">@SiteResources.DownloadStatementPdf</button>
+        @if (_showWarnings)
+        {
+            <div class="alert alert-warning mt-3" role="alert">
+                @foreach (string name in _invalidStatements) { <p>@name: @SiteResources.StatementPrintWarning</p> }
+                <a class="btn btn-warning" href="jury/contests/@ContestId/statements/pdf" data-enhance-nav="false">@SiteResources.StatementExportAnyway</a>
+                <button class="btn btn-outline-secondary ms-2" @onclick="() => _showWarnings = false">@SiteResources.StaffCancel</button>
+            </div>
+        }
+    </section>
+    <section class="mb-4">
+        <h2 class="h4">ZIP</h2>
+        <ContestExportForm DownloadUrl="@($"jury/contests/{ContestId}/export/download")" />
+    </section>
+}
+
+@code {
+    [Parameter] public int ContestId { get; set; }
+    private Contest? _contest;
+    private bool _loaded, _hasActiveProblems, _showWarnings;
+    private string[] _invalidStatements = [];
+    protected override async Task OnParametersSetAsync()
+    {
+        _showWarnings = false;
+        await using var db = await ContextFactory.CreateDbContextAsync();
+        _contest = await db.Contests.AsNoTracking().SingleOrDefaultAsync(c => c.Id == ContestId);
+        var problems = await db.Problems.AsNoTracking().Where(p => p.ContestId == ContestId && p.IsActive).OrderBy(p => p.Number).ToListAsync();
+        _hasActiveProblems = problems.Count != 0;
+        _invalidStatements = problems.Where(p => string.IsNullOrWhiteSpace(p.Text) || !StatementDocument.Parse(p.Text).IsValid).Select(p => p.NameWithNumber).ToArray();
+        _loaded = true;
+    }
+    private void PreviewPdf()
+    {
+        _showWarnings = _invalidStatements.Length != 0;
+        if (!_showWarnings) Navigation.NavigateTo($"jury/contests/{ContestId}/statements/pdf", forceLoad: true);
+    }
+}

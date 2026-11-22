@@ -14,6 +14,14 @@ public static class StatementTexArchive
         IReadOnlyList<PrintableProblem> problems, string unavailable, CancellationToken token = default)
     {
         using var archive = new ZipArchive(destination, ZipArchiveMode.Create, leaveOpen: true);
+        await WriteAsync(archive, "", contestName, start, problems, unavailable, token);
+    }
+
+    public static async Task WriteAsync(ZipArchive archive, string prefix, string contestName, DateTimeOffset start,
+        IReadOnlyList<PrintableProblem> problems, string unavailable, CancellationToken token = default)
+    {
+        if (problems.Any(p => p.Number < 0) || problems.Select(p => p.Number).Distinct().Count() != problems.Count)
+            throw new InvalidDataException("Problem numbers must be non-negative and unique.");
         var assembly = typeof(StatementTexArchive).Assembly;
         using var preamble = new StreamReader(assembly.GetManifestResourceStream("Olymp.Statements.Latex.preamble.tex")
             ?? throw new InvalidOperationException("Missing preamble resource."));
@@ -23,10 +31,9 @@ public static class StatementTexArchive
             .Replace("STATEMENT_CONTEST_NAME", StatementDocument.Escape(contestName, true), StringComparison.Ordinal));
         main.Append("\n\\begin{document}\n\\raggedbottom\n");
         var warnings = new List<string>();
-        foreach (var (index, problem) in problems.OrderBy(p => p.Number).Index())
+        foreach (var problem in problems.OrderBy(p => p.Number))
         {
-            // Sequence-based file names also support duplicate problem numbers.
-            string stem = "problem" + index.ToString("D2", CultureInfo.InvariantCulture);
+            string stem = "problem" + problem.Number.ToString("D2", CultureInfo.InvariantCulture);
             string title = problem.Document is { IsValid: true } valid ? valid.Title! : problem.Name;
             var text = new StringBuilder("\\setcounter{problem}{").Append(problem.Number - 1).Append("}\n\\begin{problem}{")
                 .Append(StatementDocument.Escape(title, true)).Append("}{}{}{").Append(problem.TimeLimit)
@@ -43,26 +50,26 @@ public static class StatementTexArchive
                 foreach (var (exampleIndex, example) in problem.Examples.Index())
                 {
                     string input = $"samples/{stem}-{exampleIndex + 1}.in", output = $"samples/{stem}-{exampleIndex + 1}.out";
-                    await WriteBytesAsync(archive, input, example.Input, token);
-                    await WriteBytesAsync(archive, output, example.Output, token);
+                    await WriteBytesAsync(archive, prefix + input, example.Input, token);
+                    await WriteBytesAsync(archive, prefix + output, example.Output, token);
                     text.Append("\\exmpfile{").Append(input).Append("}{").Append(output).Append("}%\n");
                 }
                 text.Append("\\end{example}\n");
             }
             if (problem.Document is { IsValid: true } notes) text.Append(notes.Latex(notesOnly: true));
             text.Append("\\end{problem}\n");
-            await WriteTextAsync(archive, stem + ".tex", text.ToString(), token);
+            await WriteTextAsync(archive, prefix + stem + ".tex", text.ToString(), token);
             main.Append("\\input{").Append(stem).Append(".tex}\n");
         }
         main.Append("\\end{document}\n");
-        await WriteTextAsync(archive, "statements.tex", main.ToString(), token);
-        await WriteTextAsync(archive, "warnings.txt", string.Join('\n', warnings), token);
-        await WriteTextAsync(archive, "build.sh", "#!/bin/sh\nset -eu\ncd -- \"$(dirname -- \"$0\")\"\npdflatex -no-shell-escape -halt-on-error -interaction=nonstopmode statements.tex\npdflatex -no-shell-escape -halt-on-error -interaction=nonstopmode statements.tex\n", token);
+        await WriteTextAsync(archive, prefix + "statements.tex", main.ToString(), token);
+        if (warnings.Count != 0) await WriteTextAsync(archive, prefix + "warnings.txt", string.Join('\n', warnings), token);
+        await WriteTextAsync(archive, prefix + "build.sh", "#!/bin/sh\nset -eu\ncd -- \"$(dirname -- \"$0\")\"\npdflatex -no-shell-escape -halt-on-error -interaction=nonstopmode statements.tex\npdflatex -no-shell-escape -halt-on-error -interaction=nonstopmode statements.tex\n", token);
         foreach (string name in new[] { "olymp.sty", "LICENSE" })
         {
             await using var source = assembly.GetManifestResourceStream("Olymp.Statements.Latex." + name)
                 ?? throw new InvalidOperationException("Missing template resource: " + name);
-            await using var target = archive.CreateEntry(name).Open();
+            await using var target = archive.CreateEntry(prefix + name).Open();
             await source.CopyToAsync(target, token);
         }
     }

@@ -99,8 +99,8 @@ public class ProblemExportDownloadTests(WebAppFactory factory) : StaffComponentT
         using var settings = await new HtmlParser().ParseDocumentAsync(await RenderAsync<EditContest>(
             $"/jury/contests/{contest.Id}/edit", new() { ["Id"] = contest.Id }, Staff(user.Id, role)));
         string selector = $"a[href='{url.TrimStart('/')}'][data-enhance-nav='false']";
-        Assert.Equal(allowed, problems.QuerySelector(selector) is not null);
-        Assert.Equal(role == RoleNames.Admin || assigned, settings.QuerySelector(selector) is not null);
+        Assert.Null(problems.QuerySelector(selector));
+        Assert.Null(settings.QuerySelector(selector));
         if (assigned)
         {
             await db.UserClaims.Where(claim => claim.UserId == user.Id && claim.ClaimType == ClaimNames.ContestManage).ExecuteDeleteAsync(token);

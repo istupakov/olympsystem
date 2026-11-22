@@ -91,7 +91,7 @@ public partial class ContestImportTests
             await saveScope.ServiceProvider.GetRequiredService<ContestImportService>().SaveAsync(setup.Actor, preview, row, Token);
         Assert.False(row.HasChanges);
         Assert.Equal(1, await db.CheckResults.CountAsync(r => r.SubmissionId == row.SavedValidator!.Id, Token));
-        var export = await scope.ServiceProvider.GetRequiredService<ContestExportService>().ExportAsync(setup.Contest.Id, Token);
+        var export = await scope.ServiceProvider.GetRequiredService<ContestExportService>().ExportAsync(setup.Contest.Id, new(ReferenceSolutions: true), Token);
         await using var stream = export.Stream;
         using var archive = new ZipArchive(stream, ZipArchiveMode.Read);
         var validator = Assert.Single(archive.Entries, e => e.FullName.EndsWith("/validator.cpp", StringComparison.Ordinal));

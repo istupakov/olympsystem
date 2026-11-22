@@ -10,7 +10,6 @@ else
 {
     <StaffContestNavigation ContestId="Id" ContestName="@_contest.Name" IsHidden="_contest.IsHidden" />
     <h1 class="h3">@SiteResources.StaffContestDetails</h1>
-    <a class="btn btn-outline-secondary mb-3" href="jury/contests/@Id/export" data-enhance-nav="false">@SiteResources.StaffExportContest</a>
     <dl class="row text-break">
         <dt class="col-sm-4">ID</dt><dd class="col-sm-8">@Id</dd>
         <dt class="col-sm-4">@SiteResources.StaffName</dt><dd class="col-sm-8">@_contest.Name</dd>
