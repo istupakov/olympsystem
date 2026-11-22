@@ -1020,4 +1020,88 @@
   <data name="StaffRemovePdfConfirm" xml:space="preserve"><value>Delete the statements PDF? This file will no longer be available for download. Problem texts and examples will be retained.</value></data>
   <data name="StaffPdfRemoved" xml:space="preserve"><value>The statements PDF has been deleted.</value></data>
   <data name="StaffPdfChanged" xml:space="preserve"><value>The statements PDF has changed. Review the current file and confirm deletion again.</value></data>
+  <data name="MaterialImportTitle" xml:space="preserve">
+    <value>Import contest materials</value>
+  </data>
+  <data name="MaterialImportHelp" xml:space="preserve">
+    <value>ZIP in the export format: contest name in contest.json, description.html, problemNN/statement.md, tables/final.html or official.html, and participant names and statuses in participants.jsonl. Non-empty Markdown statements also update problem names from their headings. Records are matched by ID. Missing files or fields keep existing data; empty text files clear text or delete tables. Empty participant lists delete nobody. Other fields and files are ignored.</value>
+  </data>
+  <data name="MaterialArchiveStructure" xml:space="preserve">
+    <value>Each contest must have its own folder with contest.json.</value>
+  </data>
+  <data name="MaterialDuplicateId" xml:space="preserve">
+    <value>The archive contains a duplicate ID.</value>
+  </data>
+  <data name="MaterialMissingId" xml:space="preserve">
+    <value>A positive ID is required in contest.json, in problem.json for each supplied statement, and in every participant record.</value>
+  </data>
+  <data name="MaterialTableEncoding" xml:space="preserve">
+    <value>The table contains characters that cannot be stored in Windows-1251.</value>
+  </data>
+  <data name="MaterialProblemOwnership" xml:space="preserve">
+    <value>The problem does not belong to this contest or does not exist.</value>
+  </data>
+  <data name="MaterialParticipantOwnership" xml:space="preserve">
+    <value>The participant does not belong to this contest or does not exist.</value>
+  </data>
+  <data name="MaterialInvalidField" xml:space="preserve">
+    <value>Invalid value for {0}. Names must be non-empty strings; statuses must be true or false.</value>
+  </data>
+  <data name="MaterialRegeneratePdf" xml:space="preserve">
+    <value>Replace the statement PDF with a generated one</value>
+  </data>
+  <data name="MaterialRegenerateHelp" xml:space="preserve">
+    <value>Generate a PDF for every selected contest from all active problems and active public examples, including unchanged statements. A PDF error prevents saving that contest.</value>
+  </data>
+  <data name="MaterialPreview" xml:space="preserve">
+    <value>Preview changes</value>
+  </data>
+  <data name="MaterialBefore" xml:space="preserve">
+    <value>Current text</value>
+  </data>
+  <data name="MaterialAfter" xml:space="preserve">
+    <value>Imported text</value>
+  </data>
+  <data name="MaterialAdded" xml:space="preserve">
+    <value>Will be added</value>
+  </data>
+  <data name="MaterialReplaced" xml:space="preserve">
+    <value>Will be replaced</value>
+  </data>
+  <data name="MaterialDeleted" xml:space="preserve">
+    <value>Will be deleted</value>
+  </data>
+  <data name="MaterialGenerated" xml:space="preserve">
+    <value>PDF will be generated and saved</value>
+  </data>
+  <data name="MaterialUnchanged" xml:space="preserve">
+    <value>No changes</value>
+  </data>
+  <data name="MaterialApply" xml:space="preserve">
+    <value>Import selected contests</value>
+  </data>
+  <data name="MaterialConfirm" xml:space="preserve">
+    <value>Apply the previewed changes to {0} selected contests, including the indicated deletions? Each contest is saved separately.</value>
+  </data>
+  <data name="MaterialSelect" xml:space="preserve">
+    <value>Import this contest</value>
+  </data>
+  <data name="MaterialProgress" xml:space="preserve">
+    <value>Processing contest {0} of {1}…</value>
+  </data>
+  <data name="MaterialComplete" xml:space="preserve">
+    <value>Processing finished: saved {0}, failed {1}.</value>
+  </data>
+  <data name="MaterialPreviewTruncated" xml:space="preserve">
+    <value>Only the first 4000 characters are shown.</value>
+  </data>
+  <data name="MaterialLeave" xml:space="preserve">
+    <value>Leave without applying the previewed changes?</value>
+  </data>
+  <data name="MaterialSummary" xml:space="preserve">
+    <value>Contests: {0}; ready: {1}; errors: {2}.</value>
+  </data>
+  <data name="StatementProblemNumbers" xml:space="preserve">
+    <value>Problem numbers must be non-negative and unique to generate printable statements.</value>
+  </data>
 </root>

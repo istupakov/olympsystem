@@ -1020,4 +1020,88 @@
   <data name="StaffRemovePdfConfirm" xml:space="preserve"><value>Удалить PDF условий? Скачивание этого файла станет недоступно. Тексты задач и примеры сохранятся.</value></data>
   <data name="StaffPdfRemoved" xml:space="preserve"><value>PDF условий удалён.</value></data>
   <data name="StaffPdfChanged" xml:space="preserve"><value>PDF условий изменился. Проверьте текущий файл и подтвердите удаление заново.</value></data>
+  <data name="MaterialImportTitle" xml:space="preserve">
+    <value>Импорт материалов олимпиад</value>
+  </data>
+  <data name="MaterialImportHelp" xml:space="preserve">
+    <value>ZIP в формате экспорта: название олимпиады в contest.json, description.html, problemNN/statement.md, tables/final.html или official.html, имена и статусы участников в participants.jsonl. Непустые Markdown-условия также обновляют имена задач из заголовков. Записи сопоставляются по ID. Отсутствующие файлы и поля сохраняют данные; пустые текстовые файлы очищают текст или удаляют таблицы. Пустой список участников никого не удаляет. Остальные поля и файлы игнорируются.</value>
+  </data>
+  <data name="MaterialArchiveStructure" xml:space="preserve">
+    <value>Каждая олимпиада должна находиться в отдельной папке с contest.json.</value>
+  </data>
+  <data name="MaterialDuplicateId" xml:space="preserve">
+    <value>В архиве повторяется ID.</value>
+  </data>
+  <data name="MaterialMissingId" xml:space="preserve">
+    <value>В contest.json, в problem.json для каждого переданного условия и в каждой записи участника требуется положительный ID.</value>
+  </data>
+  <data name="MaterialTableEncoding" xml:space="preserve">
+    <value>Таблица содержит символы, которые нельзя сохранить в Windows-1251.</value>
+  </data>
+  <data name="MaterialProblemOwnership" xml:space="preserve">
+    <value>Задача не принадлежит этой олимпиаде или не существует.</value>
+  </data>
+  <data name="MaterialParticipantOwnership" xml:space="preserve">
+    <value>Участник не принадлежит этой олимпиаде или не существует.</value>
+  </data>
+  <data name="MaterialInvalidField" xml:space="preserve">
+    <value>Некорректное значение поля {0}. Имя должно быть непустой строкой, статус – true или false.</value>
+  </data>
+  <data name="MaterialRegeneratePdf" xml:space="preserve">
+    <value>Заменить PDF условий на сгенерированный</value>
+  </data>
+  <data name="MaterialRegenerateHelp" xml:space="preserve">
+    <value>Сформировать PDF для каждой выбранной олимпиады из всех активных задач и активных открытых примеров, включая неизменённые условия. Ошибка PDF отменяет сохранение этой олимпиады.</value>
+  </data>
+  <data name="MaterialPreview" xml:space="preserve">
+    <value>Посмотреть изменения</value>
+  </data>
+  <data name="MaterialBefore" xml:space="preserve">
+    <value>Текущий текст</value>
+  </data>
+  <data name="MaterialAfter" xml:space="preserve">
+    <value>Текст из архива</value>
+  </data>
+  <data name="MaterialAdded" xml:space="preserve">
+    <value>Будет добавлено</value>
+  </data>
+  <data name="MaterialReplaced" xml:space="preserve">
+    <value>Будет заменено</value>
+  </data>
+  <data name="MaterialDeleted" xml:space="preserve">
+    <value>Будет удалено</value>
+  </data>
+  <data name="MaterialGenerated" xml:space="preserve">
+    <value>PDF будет сгенерирован и сохранён</value>
+  </data>
+  <data name="MaterialUnchanged" xml:space="preserve">
+    <value>Без изменений</value>
+  </data>
+  <data name="MaterialApply" xml:space="preserve">
+    <value>Импортировать выбранные олимпиады</value>
+  </data>
+  <data name="MaterialConfirm" xml:space="preserve">
+    <value>Применить показанные изменения к выбранным олимпиадам ({0}), включая отмеченные удаления? Каждая олимпиада сохраняется отдельно.</value>
+  </data>
+  <data name="MaterialSelect" xml:space="preserve">
+    <value>Импортировать эту олимпиаду</value>
+  </data>
+  <data name="MaterialProgress" xml:space="preserve">
+    <value>Обработка олимпиады {0} из {1}…</value>
+  </data>
+  <data name="MaterialComplete" xml:space="preserve">
+    <value>Обработка завершена: сохранено {0}, с ошибками {1}.</value>
+  </data>
+  <data name="MaterialPreviewTruncated" xml:space="preserve">
+    <value>Показаны только первые 4000 символов.</value>
+  </data>
+  <data name="MaterialLeave" xml:space="preserve">
+    <value>Уйти без применения показанных изменений?</value>
+  </data>
+  <data name="MaterialSummary" xml:space="preserve">
+    <value>Олимпиад: {0}; готово к импорту: {1}; с ошибками: {2}.</value>
+  </data>
+  <data name="StatementProblemNumbers" xml:space="preserve">
+    <value>Для формирования печатных условий номера задач должны быть неотрицательными и уникальными.</value>
+  </data>
 </root>
