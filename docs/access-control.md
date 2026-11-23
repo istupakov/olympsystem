@@ -435,6 +435,7 @@ details, including to jury members without a contest management assignment.
 | Read test metadata and bounded file previews; download individual input/output files, all tests of a problem as ZIP, and stored contest attachments | Jury or administrator; includes closed and inactive tests and hidden contests. Public download rules are unchanged. |
 | Export participant credentials and the participant/coach list | Jury or administrator. |
 | Export one contest as ZIP, including hidden and archived contests | Jury or administrator; contest management assignment is not required. |
+| Export final ICPC results (CSV and CCS) | Jury or administrator; contest management assignment is not required. Available after an ACM/ICPC contest ends. |
 | Export all problems of one contest as an import-compatible ZIP | Jury or administrator; contest management assignment is not required. Includes inactive problems and hidden or archived contests. |
 | Export printable Markdown statements as a TeX ZIP or PDF | Jury or administrator; contest management assignment is not required. Includes active problems and active open examples, including in hidden or archived contests. |
 | Import problems; assign or remove reference solutions | Administrator or contest manager at any time; jury members with a stored `contest-import` assignment for this contest strictly before its start. Assignments and start time are rechecked for every operation, including saving an open import. |

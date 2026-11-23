@@ -1,9 +1,11 @@
 using System.IO.Compression;
 using System.Text;
 
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 using Olymp.Domain;
+using Olymp.Icpc;
 using Olymp.WebApp.Resources;
 using Olymp.WebApp.Services;
 using Olymp.WebApp.Services.Contests;
@@ -18,6 +20,7 @@ internal static class StaffDownloads
         var jury = endpoints.MapGroup("/jury").RequireAuthorization(PolicyNames.JuryOrAdmin);
         jury.MapGet("/contests/{contestId:int}/export/download", (int contestId, [AsParameters] ContestExportOptions options, HttpContext http, ContestExportService service) =>
             ExportContestAsync(contestId, options, http, service));
+        jury.MapPost("/contests/{contestId:int}/results/export", ExportIcpcResultsAsync).WithFormOptions(valueCountLimit: 20_000);
         jury.MapGet("/contests/{contestId:int}/problems/export", ExportProblemsAsync);
         jury.MapGet("/contests/{contestId:int}/statements/export", ExportStatementsAsync);
         jury.MapGet("/contests/{contestId:int}/statements/pdf", DownloadStatementPdfAsync);
@@ -33,6 +36,36 @@ internal static class StaffDownloads
         admin.MapGet("/contests/export", ([AsParameters] ContestExportOptions options, HttpContext http, ContestExportService service) =>
             ExportContestAsync(null, options, http, service));
         admin.MapGet("/backups/{name}/download", DownloadBackupAsync);
+    }
+
+    private static async Task<IResult> ExportIcpcResultsAsync(int contestId, [FromForm] IFormCollection form,
+        HttpContext http, IcpcResultsService service, TimeProvider clock)
+    {
+        http.Response.Headers.CacheControl = "no-store";
+        string format = form["format"].ToString();
+        if (format is not ("csv" or "ccs")) return Results.BadRequest();
+        try
+        {
+            var preview = await service.PreviewAsync(contestId, http.RequestAborted);
+            if (preview.Snapshot != form["snapshot"].ToString()
+                || (format == "csv" && preview.InvalidTeamIds.Count != 0))
+                return Results.Redirect($"/jury/contests/{contestId}/export?ResultsError=changed#icpc-results");
+            var awards = new Dictionary<string, IcpcResultAward>();
+            foreach (var team in preview.Results.Teams)
+            {
+                string[] fields = [$"medal-{team.Id}", $"site-{team.Id}", $"citation-{team.Id}"];
+                if (fields.Any(key => form[key].Count != 1 || form[key].ToString().Length > 1000)) return Results.BadRequest();
+                awards[team.Id] = new(form[fields[0]].ToString(), form[fields[1]].ToString(), form[fields[2]].ToString());
+            }
+            return format == "csv"
+                ? Results.File(IcpcResultsWriter.Csv(preview.Results, awards), "text/csv; charset=utf-8", $"contest-{contestId}-results.csv")
+                : Results.File(IcpcResultsWriter.Ccs(preview.Results, awards, clock.GetUtcNow()), "application/zip", $"contest-{contestId}-ccs.zip");
+        }
+        catch (EntityNotFoundException) { return Results.NotFound(); }
+        catch (OperationValidationException)
+        {
+            return Results.Redirect($"/jury/contests/{contestId}/export?ResultsError=changed#icpc-results");
+        }
     }
 
     private static async Task<IResult> DownloadBackupAsync(string name, bool? single, HttpContext http, DatabaseBackupService service)

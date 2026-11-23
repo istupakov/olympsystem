@@ -1142,4 +1142,55 @@
   <data name="StatementProblemNumbers" xml:space="preserve">
     <value>Для формирования печатных условий номера задач должны быть неотрицательными и уникальными.</value>
   </data>
+  <data name="IcpcResultsTitle" xml:space="preserve">
+    <value>Итоги ICPC</value>
+  </data>
+  <data name="IcpcResultsHelp" xml:space="preserve">
+    <value>Окончательные официальные итоги рассчитываются по отправкам без заморозки, без скрытых, неподтверждённых, внеконкурсных и дисквалифицированных команд. Награды используются только для скачивания. Границы медалей включают указанное место; при равенстве мест медали одинаковые. Время в CSV – в минутах.</value>
+  </data>
+  <data name="IcpcResultsUnavailable" xml:space="preserve">
+    <value>Экспорт итогов доступен для завершённых соревнований ACM/ICPC.</value>
+  </data>
+  <data name="IcpcResultsPending" xml:space="preserve">
+    <value>Не все отправки проверены. Дождитесь окончания проверки и обновите предпросмотр.</value>
+  </data>
+  <data name="IcpcResultsStale" xml:space="preserve">
+    <value>Данные изменились или экспорт недоступен. Обновите предпросмотр.</value>
+  </data>
+  <data name="IcpcResultsGold" xml:space="preserve">
+    <value>Золото: последнее место</value>
+  </data>
+  <data name="IcpcResultsSilver" xml:space="preserve">
+    <value>Серебро: последнее место</value>
+  </data>
+  <data name="IcpcResultsBronze" xml:space="preserve">
+    <value>Бронза: последнее место</value>
+  </data>
+  <data name="IcpcResultsPreview" xml:space="preserve">
+    <value>Обновить предпросмотр</value>
+  </data>
+  <data name="IcpcResultsRank" xml:space="preserve">
+    <value>Место</value>
+  </data>
+  <data name="IcpcResultsTeam" xml:space="preserve">
+    <value>Команда</value>
+  </data>
+  <data name="IcpcResultsSolved" xml:space="preserve">
+    <value>Решено</value>
+  </data>
+  <data name="IcpcResultsTime" xml:space="preserve">
+    <value>Время, мин</value>
+  </data>
+  <data name="IcpcResultsInvalidId" xml:space="preserve">
+    <value>Отсутствует или некорректен</value>
+  </data>
+  <data name="IcpcResultsCsvIds" xml:space="preserve">
+    <value>Для CSV каждой команде нужен корректный уникальный ICPC ID. CCS использует локальные ID и остаётся доступным.</value>
+  </data>
+  <data name="IcpcResultsThresholds" xml:space="preserve">
+    <value>Границы медалей должны быть положительными и идти по возрастанию. Неиспользуемые границы оставьте пустыми.</value>
+  </data>
+  <data name="IcpcResultsLastTime" xml:space="preserve">
+    <value>Последняя задача, мин</value>
+  </data>
 </root>

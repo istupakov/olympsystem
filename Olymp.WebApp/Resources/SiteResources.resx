@@ -1142,4 +1142,55 @@
   <data name="StatementProblemNumbers" xml:space="preserve">
     <value>Problem numbers must be non-negative and unique to generate printable statements.</value>
   </data>
+  <data name="IcpcResultsTitle" xml:space="preserve">
+    <value>ICPC results</value>
+  </data>
+  <data name="IcpcResultsHelp" xml:space="preserve">
+    <value>Final official results are calculated from submissions without a freeze, excluding hidden, unapproved, out-of-competition and disqualified teams. Awards are only used for this download. Medal limits are inclusive ranks; ties receive the same medal. CSV times are minutes.</value>
+  </data>
+  <data name="IcpcResultsUnavailable" xml:space="preserve">
+    <value>Results export requires a finished ACM/ICPC contest.</value>
+  </data>
+  <data name="IcpcResultsPending" xml:space="preserve">
+    <value>Some submissions are still being judged. Wait for judging to finish and refresh the preview.</value>
+  </data>
+  <data name="IcpcResultsStale" xml:space="preserve">
+    <value>The data changed or export is unavailable. Refresh the preview.</value>
+  </data>
+  <data name="IcpcResultsGold" xml:space="preserve">
+    <value>Gold through rank</value>
+  </data>
+  <data name="IcpcResultsSilver" xml:space="preserve">
+    <value>Silver through rank</value>
+  </data>
+  <data name="IcpcResultsBronze" xml:space="preserve">
+    <value>Bronze through rank</value>
+  </data>
+  <data name="IcpcResultsPreview" xml:space="preserve">
+    <value>Refresh preview</value>
+  </data>
+  <data name="IcpcResultsRank" xml:space="preserve">
+    <value>Rank</value>
+  </data>
+  <data name="IcpcResultsTeam" xml:space="preserve">
+    <value>Team</value>
+  </data>
+  <data name="IcpcResultsSolved" xml:space="preserve">
+    <value>Solved</value>
+  </data>
+  <data name="IcpcResultsTime" xml:space="preserve">
+    <value>Time, min</value>
+  </data>
+  <data name="IcpcResultsInvalidId" xml:space="preserve">
+    <value>Missing or invalid</value>
+  </data>
+  <data name="IcpcResultsCsvIds" xml:space="preserve">
+    <value>CSV requires a unique valid ICPC ID for every team. CCS uses local IDs and remains available.</value>
+  </data>
+  <data name="IcpcResultsThresholds" xml:space="preserve">
+    <value>Medal rank limits must be positive and in ascending order. Leave unused limits blank.</value>
+  </data>
+  <data name="IcpcResultsLastTime" xml:space="preserve">
+    <value>Last solve, min</value>
+  </data>
 </root>
