@@ -28,9 +28,11 @@ else
         <h2 class="h4">ZIP</h2>
         <ContestExportForm DownloadUrl="@($"jury/contests/{ContestId}/export/download")" />
     </section>
+    <IcpcResultsExport ContestId="ContestId" DownloadError="@(ResultsError is not null)" />
 }
 
 @code {
+    [SupplyParameterFromQuery] public string? ResultsError { get; set; }
     [Parameter] public int ContestId { get; set; }
     private Contest? _contest;
     private bool _loaded, _hasActiveProblems, _showWarnings;

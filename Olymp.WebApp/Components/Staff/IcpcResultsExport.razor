@@ -1,0 +1,85 @@
+@using Olymp.Icpc
+@using Olymp.WebApp.Services
+@using Olymp.WebApp.Services.Contests
+@inject IcpcResultsService ResultsService
+
+<section class="my-4" id="icpc-results">
+    <h2 class="h4">@SiteResources.IcpcResultsTitle</h2>
+    <p>@SiteResources.IcpcResultsHelp</p>
+    @if (DownloadError && _preview is null && _error is null)
+    {
+        <div class="alert alert-warning" role="alert">@SiteResources.IcpcResultsStale</div>
+    }
+    <div class="row g-3 mb-3">
+        <div class="col-sm-4"><label class="form-label" for="icpc-gold">@SiteResources.IcpcResultsGold</label><input id="icpc-gold" class="form-control" type="number" min="1" @bind="_gold" @bind:after="ClearPreview" /></div>
+        <div class="col-sm-4"><label class="form-label" for="icpc-silver">@SiteResources.IcpcResultsSilver</label><input id="icpc-silver" class="form-control" type="number" min="1" @bind="_silver" @bind:after="ClearPreview" /></div>
+        <div class="col-sm-4"><label class="form-label" for="icpc-bronze">@SiteResources.IcpcResultsBronze</label><input id="icpc-bronze" class="form-control" type="number" min="1" @bind="_bronze" @bind:after="ClearPreview" /></div>
+        <div class="col-sm-6"><label class="form-label" for="icpc-site">siteCitation</label><input id="icpc-site" class="form-control" maxlength="1000" @bind="_site" @bind:after="ClearPreview" /></div>
+        <div class="col-sm-6"><label class="form-label" for="icpc-citation">citation</label><input id="icpc-citation" class="form-control" maxlength="1000" @bind="_citation" @bind:after="ClearPreview" /></div>
+    </div>
+    <button class="btn btn-outline-primary" disabled="@_busy" @onclick="PreviewAsync">@SiteResources.IcpcResultsPreview</button>
+    @if (_error is not null) { <div class="alert alert-warning mt-3" role="alert">@_error</div> }
+    @if (_preview is not null)
+    {
+        <form method="post" action="jury/contests/@ContestId/results/export" data-enhance="false" class="mt-3">
+            <AntiforgeryToken />
+            <input type="hidden" name="snapshot" value="@_preview.Snapshot" />
+            <div class="table-responsive">
+                <table class="table table-sm align-middle">
+                    <thead><tr><th>@SiteResources.IcpcResultsRank</th><th>@SiteResources.IcpcResultsTeam</th><th>ICPC ID</th><th>@SiteResources.IcpcResultsSolved</th><th>@SiteResources.IcpcResultsTime</th><th>@SiteResources.IcpcResultsLastTime</th><th>medalCitation</th><th>siteCitation</th><th>citation</th></tr></thead>
+                    <tbody>
+                    @foreach (var team in _preview.Results.Teams)
+                    {
+                        var award = _awards[team.Id];
+                        <tr @key="team.Id">
+                            <td>@team.Rank</td><td>@team.Name</td><td>@(team.IcpcId ?? SiteResources.IcpcResultsInvalidId)</td>
+                            <td>@team.Solved</td><td>@Math.Floor(team.TotalTime.TotalMinutes)</td><td>@Math.Floor(team.LastProblemTime.TotalMinutes)</td>
+                            <td><input class="form-control w-auto" name="medal-@team.Id" aria-label="@($"{team.Name}: medalCitation")" maxlength="1000" value="@award.MedalCitation" /></td>
+                            <td><input class="form-control w-auto" name="site-@team.Id" aria-label="@($"{team.Name}: siteCitation")" maxlength="1000" value="@award.SiteCitation" /></td>
+                            <td><input class="form-control w-auto" name="citation-@team.Id" aria-label="@($"{team.Name}: citation")" maxlength="1000" value="@award.Citation" /></td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+            @if (_preview.InvalidTeamIds.Count != 0) { <p class="text-danger">@SiteResources.IcpcResultsCsvIds</p> }
+            <button class="btn btn-primary" name="format" value="csv" disabled="@(_preview.InvalidTeamIds.Count != 0)">CSV</button>
+            <button class="btn btn-outline-primary ms-2" name="format" value="ccs">CCS ZIP</button>
+        </form>
+    }
+</section>
+
+@code {
+    [Parameter] public int ContestId { get; set; }
+    [Parameter] public bool DownloadError { get; set; }
+    private int? _gold, _silver, _bronze;
+    private string _site = "", _citation = "Honorable Mention";
+    private string? _error;
+    private bool _busy;
+    private IcpcResultsPreview? _preview;
+    private Dictionary<string, IcpcResultAward> _awards = [];
+
+    protected override void OnParametersSet() { _preview = null; _error = null; }
+
+    private void ClearPreview() { _preview = null; _error = null; }
+
+    private async Task PreviewAsync()
+    {
+        _preview = null;
+        _error = null;
+        if (!IcpcResultsWriter.ValidThresholds(_gold, _silver, _bronze))
+        {
+            _error = SiteResources.IcpcResultsThresholds;
+            return;
+        }
+        _busy = true;
+        try
+        {
+            _preview = await ResultsService.PreviewAsync(ContestId);
+            _awards = _preview.Results.Teams.ToDictionary(t => t.Id, t => IcpcResultsWriter.DefaultAward(t, _gold, _silver, _bronze, _site, _citation));
+        }
+        catch (OperationValidationException ex) { _error = ex.Message; }
+        catch (EntityNotFoundException) { _error = SiteResources.PageNotFoundMessage; }
+        finally { _busy = false; }
+    }
+}
